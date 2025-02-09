@@ -1,0 +1,161 @@
+#region Import Modules
+# Check and install required modules if not present
+$RequiredModules = @(
+    'PSReadLine',
+    'posh-git',
+    'Terminal-Icons',
+    'AWS.Tools.Common',
+    'Az',
+    'DockerCompletion'
+)
+
+foreach ($module in $RequiredModules) {
+    if (!(Get-Module -ListAvailable -Name $module)) {
+        Install-Module -Name $module -Force -AllowClobber -Scope CurrentUser
+    }
+    Import-Module $module
+}
+#endregion
+
+#region Environment Setup
+# Set encoding to UTF-8
+$OutputEncoding = [Console]::InputEncoding = [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+
+# Better command history and prediction
+Set-PSReadLineOption -PredictionSource History
+Set-PSReadLineOption -PredictionViewStyle ListView
+Set-PSReadLineOption -EditMode Windows
+Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+
+# Enable bash-like tab completion
+Set-PSReadLineKeyHandler -Key Tab -Function Complete
+
+# Colors for ls
+$env:LSCOLORS = "ExGxBxDxCxEgEdxbxgxcxd"
+#endregion
+
+#region Custom Functions
+# Docker helper functions
+function Start-DockerCleanup {
+    docker system prune -f
+    docker volume prune -f
+    docker image prune -f
+}
+
+# WSL helper functions
+function Switch-WSLDistro {
+    param([string]$Distro)
+    wsl --set-default $Distro
+}
+
+function Get-WSLDistros {
+    wsl --list --verbose
+}
+
+# Node.js version management
+function Switch-NodeVersion {
+    param([string]$Version)
+    nvm use $Version
+}
+
+# Git helpers
+function New-GitFeature {
+    param([string]$FeatureName)
+    git checkout -b "feature/$FeatureName"
+}
+
+function New-GitHotfix {
+    param([string]$HotfixName)
+    git checkout -b "hotfix/$HotfixName"
+}
+
+# Cloud helper functions
+function Switch-AWSProfile {
+    param([string]$ProfileName)
+    $env:AWS_PROFILE = $ProfileName
+}
+
+function Switch-AzureSubscription {
+    param([string]$SubscriptionId)
+    Set-AzContext -SubscriptionId $SubscriptionId
+}
+#endregion
+
+#region Aliases
+# Set-Alias -Name k -Value kubectl
+# Set-Alias -Name d -Value docker
+# Set-Alias -Name g -Value git
+# Set-Alias -Name np -Value notepad
+# Set-Alias -Name dc -Value Start-DockerCleanup
+# Set-Alias -Name wsl-list -Value Get-WSLDistros
+#endregion
+
+#region Path Additions
+# Add common development tools to PATH if they exist
+$PathsToAdd = @(
+    "${env:ProgramFiles}\Docker\Docker\resources\bin",
+    "${env:ProgramFiles}\Microsoft VS Code\bin",
+    "${env:ProgramFiles}\Git\bin",
+    "${env:USERPROFILE}\AppData\Roaming\npm",
+    "${env:ProgramFiles}\Amazon\AWSCLI\bin",
+    "${env:ProgramFiles(x86)}\Microsoft SDKs\Azure\CLI2\wbin"
+)
+
+foreach ($path in $PathsToAdd) {
+    if (Test-Path $path) {
+        $env:Path = $env:Path + ";$path"
+    }
+}
+#endregion
+
+#region Custom Prompt
+function prompt {
+    $location = Get-Location
+    $gitBranch = git branch --show-current 2>$null
+    $awsProfile = $env:AWS_PROFILE
+    $azureContext = (Get-AzContext).Subscription.Name 2>$null
+
+    $promptString = "`n"
+    $promptString += "🚀 $($location.Path)`n"
+
+    if ($gitBranch) {
+        $promptString += "📂 git:($gitBranch) "
+    }
+    if ($awsProfile) {
+        $promptString += "☁️ aws:($awsProfile) "
+    }
+    if ($azureContext) {
+        $promptString += "☁️ azure:($azureContext) "
+    }
+
+    $promptString += "`n❯ "
+    return $promptString
+}
+#endregion
+
+#region Development Environment Variables
+# Node.js
+$env:NODE_ENV = "development"
+
+# Docker
+$env:DOCKER_BUILDKIT = 1
+$env:COMPOSE_DOCKER_CLI_BUILD = 1
+
+# WSL
+$env:WSLENV = "PATH/l:PATH/u"
+
+# Git
+$env:GIT_SSH_COMMAND = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+#endregion
+
+#region Welcome Message
+Write-Host "🚀 Development Environment Loaded!" -ForegroundColor Green
+Write-Host "Available commands:" -ForegroundColor Yellow
+Write-Host "  • Start-DockerCleanup (alias: dc) - Clean up Docker resources"
+Write-Host "  • Switch-WSLDistro - Switch WSL distribution"
+Write-Host "  • Switch-NodeVersion - Switch Node.js version"
+Write-Host "  • New-GitFeature - Create new feature branch"
+Write-Host "  • New-GitHotfix - Create new hotfix branch"
+Write-Host "  • Switch-AWSProfile - Switch AWS profile"
+Write-Host "  • Switch-AzureSubscription - Switch Azure subscription"
+#endregion
