@@ -116,3 +116,24 @@ try {
 } catch {
     Write-Host "Failed to setup SSH: $_" -ForegroundColor Red
 }
+
+# Create and copy profile
+try {
+    if (!(Test-Path -Path $PROFILE)) {
+        New-Item -ItemType File -Path $PROFILE -Force
+    }
+    Copy-Item -Path ".\PROFILE" -Destination $PROFILE -Force
+    Write-Host "PowerShell profile successfully installed" -ForegroundColor Green
+} catch {
+    Write-Host "Failed to install PowerShell profile: $_" -ForegroundColor Red
+    exit 1
+}
+
+# Copy bashrc into wsl
+wsl -e bash -c @'
+    if [ -f ~/.bashrc ]; then
+        cp ~/.bashrc ~/.bashrc.backup
+    fi
+    cp /mnt/c/Users/$USER/Documents/PROFILE ~/.bashrc
+'@
+Write-Host "Bash profile successfully installed" -ForegroundColor Green

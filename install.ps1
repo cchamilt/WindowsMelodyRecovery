@@ -118,21 +118,6 @@ winget install EpicGames.EpicGamesLauncher
 # Install WSL
 wsl --install -d Ubuntu
 
-# Create and copy profile
-try {
-    if (!(Test-Path -Path $PROFILE)) {
-        New-Item -ItemType File -Path $PROFILE -Force
-    }
-    Copy-Item -Path ".\PROFILE" -Destination $PROFILE -Force
-    Write-Host "PowerShell profile successfully installed" -ForegroundColor Green
-} catch {
-    Write-Host "Failed to install PowerShell profile: $_" -ForegroundColor Red
-    exit 1
-}
-
-# Write profile
-Set-Content -Path $PROFILE -Stream StandardOutput -Value (Get-Content .\PROFILE)
-
 # Install nuget
 Install-PackageProvider -Name NuGet -Force
 
