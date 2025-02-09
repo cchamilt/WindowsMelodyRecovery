@@ -1,8 +1,13 @@
+$RDP_PATH = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup\shared\RDP"
+$VPN_PATH = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup\shared\VPN"
+$SSH_PATH = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup\shared\SSH"
+
 # Install PowerShell
 winget install Microsoft.PowerShell
 # Install Package Managers
 winget install Git.Git
 winget install Microsoft.WindowsTerminal
+
 winget install Microsoft.VisualStudioCode
 winget install Docker.DockerDesktop
 
@@ -277,8 +282,9 @@ try {
     Write-Host "Importing Azure VPN configuration..." -ForegroundColor Blue
     
     # Define paths
-    $vpnConfigPath = "$env:USERPROFILE\OneDrive\Backups\VPN\AzureVPN.xml"
+    $vpnConfigPath = "$VPN_PATH\*"
     
+
     if (Test-Path -Path $vpnConfigPath) {
         # Wait for Azure VPN Client service to be ready
         Start-Sleep -Seconds 5
@@ -305,9 +311,10 @@ try {
     Write-Host "Installing Remote Desktop profiles..." -ForegroundColor Blue
     
     # Define paths
-    $backupPath = "$env:USERPROFILE\OneDrive\Backups\RDP"  # Adjust this path to your backup location
+    $backupPath = "$RDP_PATH"  # Adjust this path to your backup location
     $rdpPath = "$env:USERPROFILE\Documents\Remote Desktop Connection Manager"
     
+
     # Create the RDP directory if it doesn't exist
     if (!(Test-Path -Path $rdpPath)) {
         New-Item -ItemType Directory -Path $rdpPath -Force
@@ -345,10 +352,11 @@ try {
     }
     
     # Copy SSH files from backup if they exist
-    $sshBackupPath = "$env:USERPROFILE\OneDrive\Backups\SSH"
+    $sshBackupPath = "$SSH_PATH"
     if (Test-Path -Path $sshBackupPath) {
         Copy-Item -Path "$sshBackupPath\*" -Destination $windowsSshDir -Force -Recurse
         # Ensure correct permissions on private keys
+
         Get-ChildItem -Path $windowsSshDir -Filter "id_*" | ForEach-Object {
             icacls $_.FullName /inheritance:r
             icacls $_.FullName /grant:r "${env:USERNAME}:F"
