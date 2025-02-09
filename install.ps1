@@ -1,3 +1,5 @@
+# In an admin powershell run the following:
+
 $RDP_PATH = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup\shared\RDP"
 $VPN_PATH = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup\shared\VPN"
 $SSH_PATH = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup\shared\SSH"
@@ -101,6 +103,9 @@ winget install -e --id KDE.Krita
 #Install video editing software
 # Install OBS Studio
 winget install OBSProject.OBSStudio
+
+# Install OpenShot
+winget install -e --id OpenShot.OpenShot
 
 # Install Kdenlive
 winget install -e --id KDE.Kdenlive
