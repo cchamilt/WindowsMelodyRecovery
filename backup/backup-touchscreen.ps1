@@ -20,10 +20,16 @@ try {
             reg export $regPath $regFile /y
         }
         
-        # Export current touchscreen device configuration
-        $touchDevices = Get-CimInstance -ClassName Win32_PnPEntity | 
-            Where-Object { $_.PNPClass -eq "TouchScreen" } | 
-            Select-Object Name, DeviceID, Status
+        # Get all touchscreen devices, including disabled ones
+        $touchDevices = Get-PnpDevice | Where-Object { 
+            $_.Class -eq "HIDClass" -and 
+            $_.FriendlyName -match "touch screen|touchscreen|touch input"
+        } | Select-Object -Property @(
+            'InstanceId',
+            'FriendlyName',
+            'Status',
+            @{Name='IsEnabled'; Expression={$_.Status -eq 'OK'}}
+        )
         
         if ($touchDevices) {
             $touchDevices | ConvertTo-Json | Out-File "$backupPath\touch_devices.json" -Force

@@ -42,7 +42,8 @@ $backupFunctions = @(
     @{ Name = "Remote Desktop Settings"; Function = "Backup-RDPSettings"; Script = "backup-rdp.ps1" },
     @{ Name = "Azure VPN Settings"; Function = "Backup-VPNSettings"; Script = "backup-vpn.ps1" },
     @{ Name = "SSH Settings"; Function = "Backup-SSHSettings"; Script = "backup-ssh.ps1" },
-    @{ Name = "WSL SSH Settings"; Function = "Backup-WSLSSHSettings"; Script = "backup-wsl-ssh.ps1" }
+    @{ Name = "WSL SSH Settings"; Function = "Backup-WSLSSHSettings"; Script = "backup-wsl-ssh.ps1" },
+    @{ Name = "PowerShell Settings"; Function = "Backup-PowerShellSettings"; Script = "backup-powershell.ps1" }
 )
 
 # Create machine backup directory if it doesn't exist

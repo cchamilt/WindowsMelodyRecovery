@@ -4,26 +4,57 @@ function Restore-WSLSettings {
         $wslPath = Test-BackupPath -Path "WSL" -BackupType "WSL"
         
         if ($wslPath) {
-            # Restore WSL bash profile
-            $bashrcFile = "$wslPath\.bashrc"
-            if (Test-Path $bashrcFile) {
-                # Create a temporary copy for WSL to access
-                Copy-Item -Path $bashrcFile -Destination "$env:USERPROFILE\.wsl_bashrc_temp" -Force
-                
-                # Copy .bashrc to WSL home directory
-                wsl -e bash -c @"
-                    if [ -f ~/.bashrc ]; then
-                        cp ~/.bashrc ~/.bashrc.backup
-                    fi
+            # Copy files to temp location for WSL access
+            if (Test-Path "$wslPath\.bashrc") {
+                Copy-Item "$wslPath\.bashrc" "$env:USERPROFILE\.wsl_bashrc_temp" -Force
+            }
+            
+            if (Test-Path "$wslPath\packages.list") {
+                Copy-Item "$wslPath\packages.list" "$env:USERPROFILE\.wsl_packages_temp" -Force
+            }
+            
+            if (Test-Path "$wslPath\sources.list") {
+                Copy-Item "$wslPath\sources.list" "$env:USERPROFILE\.wsl_sources_temp" -Force
+            }
+            
+            if (Test-Path "$wslPath\sources.list.d.tar.gz") {
+                Copy-Item "$wslPath\sources.list.d.tar.gz" "$env:USERPROFILE\.wsl_sources_d_temp.tar.gz" -Force
+            }
+
+            # Restore settings in WSL
+            wsl -e bash -c @"
+                # Restore .bashrc
+                if [ -f ~/.bashrc ]; then
+                    cp ~/.bashrc ~/.bashrc.backup
+                fi
+                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_bashrc_temp ]; then
                     cp /mnt/c/Users/$env:USERNAME/.wsl_bashrc_temp ~/.bashrc
                     source ~/.bashrc
-"@
-                # Clean up temp file
-                Remove-Item -Path "$env:USERPROFILE\.wsl_bashrc_temp" -Force
-                Write-Host "WSL bash profile restored successfully" -ForegroundColor Green
-            } else {
-                Write-Host "WSL bash profile not found" -ForegroundColor Yellow
-            }
+                fi
+
+                # Restore package repositories
+                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_sources_temp ]; then
+                    cp /mnt/c/Users/$env:USERNAME/.wsl_sources_temp /etc/apt/sources.list
+                fi
+                
+                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_sources_d_temp.tar.gz ]; then
+                    tar xzf /mnt/c/Users/$env:USERNAME/.wsl_sources_d_temp.tar.gz -C /
+                fi
+
+                # Update package list
+                apt-get update
+
+                # Install packages from backup
+                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_packages_temp ]; then
+                    echo "Installing packages from backup..."
+                    xargs -a /mnt/c/Users/$env:USERNAME/.wsl_packages_temp apt-get install -y
+                fi
+"@ -u root
+
+            # Cleanup temp files
+            Remove-Item "$env:USERPROFILE\.wsl_*_temp*" -Force -ErrorAction SilentlyContinue
+            
+            Write-Host "WSL settings restored successfully" -ForegroundColor Green
         }
     } catch {
         Write-Host "Failed to restore WSL settings: $_" -ForegroundColor Red

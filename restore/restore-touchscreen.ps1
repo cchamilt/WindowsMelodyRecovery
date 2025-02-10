@@ -15,10 +15,14 @@ function Restore-TouchscreenSettings {
             if (Test-Path $deviceConfig) {
                 $touchDevices = Get-Content $deviceConfig | ConvertFrom-Json
                 foreach ($device in $touchDevices) {
-                    $existingDevice = Get-PnpDevice -InstanceId $device.DeviceID -ErrorAction SilentlyContinue
+                    $existingDevice = Get-PnpDevice -InstanceId $device.InstanceId -ErrorAction SilentlyContinue
                     if ($existingDevice) {
-                        if ($device.Status -eq 'OK' -and $existingDevice.Status -ne 'OK') {
-                            Enable-PnpDevice -InstanceId $device.DeviceID -Confirm:$false
+                        if ($device.IsEnabled -and $existingDevice.Status -ne 'OK') {
+                            Write-Host "Enabling touchscreen device: $($device.FriendlyName)" -ForegroundColor Yellow
+                            Enable-PnpDevice -InstanceId $device.InstanceId -Confirm:$false
+                        } elseif (-not $device.IsEnabled -and $existingDevice.Status -eq 'OK') {
+                            Write-Host "Disabling touchscreen device: $($device.FriendlyName)" -ForegroundColor Yellow
+                            Disable-PnpDevice -InstanceId $device.InstanceId -Confirm:$false
                         }
                     }
                 }

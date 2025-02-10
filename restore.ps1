@@ -45,11 +45,9 @@ $restoreScripts = @(
     "restore-rdp.ps1",
     "restore-vpn.ps1",
     "restore-ssh.ps1",
-    "restore-wsl-ssh.ps1"
+    "restore-wsl-ssh.ps1",
+    "restore-powershell.ps1"
 )
-
-
-
 
 foreach ($script in $restoreScripts) {
     try {
