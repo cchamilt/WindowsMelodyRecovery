@@ -1,5 +1,14 @@
 # Update Installed Apps/Tools/etc.
 
+# At the start of the script
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptPath "scripts\Load-Environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
+}
+
 # Collect any errors during update
 $updateErrors = @()
 

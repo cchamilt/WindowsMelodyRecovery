@@ -146,4 +146,13 @@ if ($response -eq "Y" -or $response -eq "y") {
     } catch {
         Write-Host "Failed to run backup: $_" -ForegroundColor Red
     }
+}
+
+# At the start after admin check
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptPath "scripts\Load-Environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
 } 

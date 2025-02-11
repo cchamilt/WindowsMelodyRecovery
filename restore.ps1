@@ -1,8 +1,14 @@
-# Define common paths
-$BACKUP_ROOT = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup"
-$MACHINE_NAME = $env:COMPUTERNAME
-$MACHINE_BACKUP = "$BACKUP_ROOT\$MACHINE_NAME"
-$SHARED_BACKUP = "$BACKUP_ROOT\shared"
+# At the start of the script
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptPath "scripts\Load-Environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
+}
+
+$MACHINE_BACKUP = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+$SHARED_BACKUP = "$env:BACKUP_ROOT\shared"
 
 function Test-BackupPath {
     param (

@@ -2,6 +2,15 @@
 #Requires -RunAsAdministrator
 
 try {
+    # At the start after admin check
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    . (Join-Path $scriptPath "scripts\Load-Environment.ps1")
+
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
+    }
+
     Write-Host "Registering system update task..." -ForegroundColor Blue
 
     # Get the current script directory

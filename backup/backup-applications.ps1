@@ -3,6 +3,15 @@ param(
     [string]$BackupRootPath
 )
 
+# Load environment at start
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\Load-Environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
+}
+
 try {
     Write-Host "Backing up Application List..." -ForegroundColor Blue
     $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "Applications" -BackupRootPath $BackupRootPath

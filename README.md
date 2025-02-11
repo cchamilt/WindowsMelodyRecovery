@@ -34,7 +34,6 @@ This script will setup RDP, VPN, ssh keys, etc.
 
 ## Run the user.ps1 script
 
-
 ```powershell
 user.ps1
 ```
@@ -65,3 +64,55 @@ Add backup.ps1 to task schedule to backup the registry and other stuff to One Dr
 ```powershell
 register-backup-task.ps1
 ```
+
+
+
+# Windows Configuration Scripts
+
+A collection of PowerShell scripts for Windows configuration backup, restore, and maintenance.
+
+## Installation
+
+### Quick Install
+
+1. Open PowerShell as Administrator
+2. Navigate to the script directory
+3. Run: `.\install.ps1`
+
+### Advanced Installation
+
+```powershell
+.\install.ps1 [-InstallPath <path>] [-NoScheduledTasks] [-NoPrompt]
+```
+
+Parameters:
+- `-InstallPath`: Custom installation directory (default: `%USERPROFILE%\Scripts\WindowsConfig`)
+- `-NoScheduledTasks`: Skip scheduled task registration
+- `-NoPrompt`: Non-interactive installation
+
+## Features
+
+- Automatic backup of Windows settings
+- System updates management
+- Browser profile backup
+- KeePassXC configuration
+- Network and printer settings
+- And more...
+
+## Post-Installation
+
+1. Restart PowerShell
+2. Configure backup email notifications (optional):
+
+```powershell
+$env:BACKUP_EMAIL_FROM = "your-email@domain.com"
+$env:BACKUP_EMAIL_TO = "your-email@domain.com"
+$env:BACKUP_EMAIL_PASSWORD = "your-app-password"
+```
+
+## Usage
+
+- Manual backup: `backup.ps1`
+- Manual restore: `restore.ps1`
+- System update: `update.ps1`
+- KeePassXC setup: `setup-keepassxc.ps1`

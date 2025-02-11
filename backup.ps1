@@ -1,7 +1,18 @@
+# At the start of the script
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptPath "scripts\Load-Environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
+}
+
+# Then use the environment variables
+$MACHINE_BACKUP = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+
 # Define common paths
 $BACKUP_ROOT = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup"
 $MACHINE_NAME = $env:COMPUTERNAME
-$MACHINE_BACKUP = "$BACKUP_ROOT\$MACHINE_NAME"
 
 function Initialize-BackupDirectory {
     param (

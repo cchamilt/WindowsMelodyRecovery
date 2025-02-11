@@ -1,4 +1,13 @@
 function Restore-Applications {
+    # Load environment at start
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\Load-Environment.ps1")
+
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        return
+    }
+
     try {
         Write-Host "Restoring Applications..." -ForegroundColor Blue
         $applicationsPath = Test-BackupPath -Path "Applications" -BackupType "Applications"
@@ -44,6 +53,6 @@ function Restore-Applications {
             }
         }
     } catch {
-        Write-Host "Failed to restore Applications: $_" -ForegroundColor Red
+        Write-Host "Failed to restore applications: $_" -ForegroundColor Red
     }
 } 
