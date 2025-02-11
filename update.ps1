@@ -119,6 +119,90 @@ try {
         $updateErrors += $errorMessage
     }
 
+    # Update WSL distributions
+    Write-Host "`nUpdating WSL distributions..." -ForegroundColor Yellow
+    try {
+        # Get all installed WSL distributions
+        $wslDistros = wsl --list --quiet
+
+        foreach ($distro in $wslDistros) {
+            $distro = $distro.Trim()
+            if ($distro -ne "") {
+                Write-Host "Updating $distro..." -ForegroundColor Yellow
+                
+                # Update package lists and upgrade packages based on distribution
+                try {
+                    # Get distribution info
+                    $distroInfo = wsl -d $distro cat /etc/os-release
+                    $isUbuntu = $distroInfo -match "Ubuntu"
+                    $isDebian = $distroInfo -match "Debian"
+                    $isFedora = $distroInfo -match "Fedora"
+                    $isOpenSUSE = $distroInfo -match "openSUSE"
+                    
+                    if ($isUbuntu -or $isDebian) {
+                        # Ubuntu/Debian-based distributions
+                        wsl -d $distro sudo apt update
+                        wsl -d $distro sudo apt upgrade -y
+                        wsl -d $distro sudo apt autoremove -y
+                    }
+                    elseif ($isFedora) {
+                        # Fedora-based distributions
+                        wsl -d $distro sudo dnf upgrade -y
+                        wsl -d $distro sudo dnf autoremove -y
+                    }
+                    elseif ($isOpenSUSE) {
+                        # openSUSE
+                        wsl -d $distro sudo zypper refresh
+                        wsl -d $distro sudo zypper update -y
+                        wsl -d $distro sudo zypper clean --all
+                    }
+                    
+                    # Update specific package managers if installed
+                    # Check for and update Snap packages
+                    wsl -d $distro which snap 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "Updating Snap packages in $distro..." -ForegroundColor Yellow
+                        wsl -d $distro sudo snap refresh
+                    }
+
+                    # Check for and update Flatpak packages
+                    wsl -d $distro which flatpak 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "Updating Flatpak packages in $distro..." -ForegroundColor Yellow
+                        wsl -d $distro flatpak update -y
+                    }
+
+                    # Check for and update npm global packages
+                    wsl -d $distro which npm 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "Updating npm global packages in $distro..." -ForegroundColor Yellow
+                        wsl -d $distro sudo npm update -g
+                    }
+
+                    # Check for and update pip packages
+                    wsl -d $distro which pip3 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "Updating pip packages in $distro..." -ForegroundColor Yellow
+                        wsl -d $distro pip3 list --outdated --format=json | 
+                            wsl -d $distro python3 -c "import json, sys; print('\n'.join([p['name'] for p in json.load(sys.stdin)]))" |
+                            ForEach-Object { wsl -d $distro pip3 install -U $_ }
+                    }
+
+                    Write-Host "$distro updates completed successfully" -ForegroundColor Green
+                } catch {
+                    $errorMessage = "Failed to update $distro : $_"
+                    Write-Host $errorMessage -ForegroundColor Red
+                    $updateErrors += $errorMessage
+                }
+            }
+        }
+        Write-Host "WSL updates completed" -ForegroundColor Green
+    } catch {
+        $errorMessage = "Failed to update WSL distributions: $_"
+        Write-Host $errorMessage -ForegroundColor Red
+        $updateErrors += $errorMessage
+    }
+
     Write-Host "`nSystem update completed!" -ForegroundColor Green
     Write-Host "Note: Some updates may require a system restart to take effect" -ForegroundColor Yellow
 
@@ -138,8 +222,8 @@ try {
 
     foreach ($pattern in $errorPatterns) {
         if ($consoleOutput -match "(?im)$pattern") {
-            $matches = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
-            foreach ($match in $matches) {
+            $matchs = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
+            foreach ($match in $matchs) {
                 $errorMessage = "Console output error: $($match.Value.Trim())"
                 if ($updateErrors -notcontains $errorMessage) {
                     $updateErrors += $errorMessage
