@@ -59,7 +59,12 @@ $backupFunctions = @(
     @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" },
     @{ Name = "System Settings"; Function = "Backup-SystemSettings"; Script = "backup-system-settings.ps1" },
     @{ Name = "Browser Settings"; Function = "Backup-BrowserSettings"; Script = "backup-browsers.ps1" },
-    @{ Name = "KeePassXC Settings"; Function = "Backup-KeePassXCSettings"; Script = "backup-keepassxc.ps1" }
+    @{ Name = "KeePassXC Settings"; Function = "Backup-KeePassXCSettings"; Script = "backup-keepassxc.ps1" },
+    @{ Name = "OneNote Settings"; Function = "Backup-OneNoteSettings"; Script = "backup-onenote.ps1" },
+    @{ Name = "Outlook Settings"; Function = "Backup-OutlookSettings"; Script = "backup-outlook.ps1" },
+    @{ Name = "Word Settings"; Function = "Backup-WordSettings"; Script = "backup-word.ps1" },
+    @{ Name = "Excel Settings"; Function = "Backup-ExcelSettings"; Script = "backup-excel.ps1" },
+    @{ Name = "Visio Settings"; Function = "Backup-VisioSettings"; Script = "backup-visio.ps1" }
 )
 
 # Create machine backup directory if it doesn't exist

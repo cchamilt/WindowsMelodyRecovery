@@ -57,7 +57,12 @@ $restoreScripts = @(
     "restore-applications.ps1",
     "restore-system-settings.ps1",
     "restore-browsers.ps1",
-    "restore-keepassxc.ps1"
+    "restore-keepassxc.ps1",
+    "restore-onenote.ps1",
+    "restore-outlook.ps1",
+    "restore-word.ps1",
+    "restore-excel.ps1",
+    "restore-visio.ps1"
 )
 
 foreach ($script in $restoreScripts) {

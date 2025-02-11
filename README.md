@@ -20,7 +20,7 @@ If during the recovery process the machine name directory is not found, it will 
 ├── scripts/        # Helper scripts
 ├── Backup-WindowsConfig.ps1      # Main backup script
 ├── Restore-WindowsConfig.ps1     # Main restore script
-├── Update-WindowsConfig.ps1      # System update script
+├── Update-WindowsConfig.ps1      # Package update script
 └── Install-WindowsConfig.ps1     # Installation script
 ```
 
@@ -42,9 +42,15 @@ This will install the Windows Configuration and create a scheduled task to backu
 ## Features
 
 - Automatic backup of Windows settings
+- Detailed list of backed up settings can be found in [BACKUP_DETAILS.md](docs/BACKUP_DETAILS.md)
 - System updates management
 - Browser profile backup
 - KeePassXC configuration
+- OneNote settings and templates
+- Outlook configuration (excluding PST files)
+- Word settings and templates
+- Excel settings and macros
+- Visio settings and stencils
 - Network and printer settings
 - And more...
 
@@ -65,7 +71,7 @@ Restore-WindowsConfig.ps1
 
 This will restore the Windows Configuration from One Drive.  If the machine name directory is not found for individual restore scripts, it will use the shared folder.
 
-## Update the Windows Configuration
+## Package Updates through Windows Configuration
 
 With admin privileges, run the following command to update the Windows Configuration.
 
@@ -73,7 +79,7 @@ With admin privileges, run the following command to update the Windows Configura
 Update-WindowsConfig.ps1
 ```
 
-This will update the Windows Configuration to the latest version.
+This will update applications and powershell packages through the package managers supported including inside WSL distributions.
 
 ## Backup the Windows Configuration
 
@@ -92,3 +98,35 @@ With admin privileges, run the following command to search for all the packages 
 ```powershell
 Convert-ToWinGet.ps1
 ```
+
+## Example backup directory structure on One Drive
+
+```text
+C:\Users\<username>\OneDrive\backup\
+├── LAPTOP-XYZ123\              # Machine-specific backup directory
+│   ├── Applications\           # Installed apps and package manager configs
+│   ├── Browsers\              # Browser profiles and settings
+│   │   ├── Chrome\
+│   │   ├── Edge\
+│   │   └── Firefox\
+│   ├── Excel\                 # Excel settings and templates
+│   ├── KeePassXC\             # KeePassXC configurations
+│   ├── Network\               # Network and VPN settings
+│   ├── OneNote\               # OneNote settings
+│   ├── Outlook\               # Outlook settings (no PST files)
+│   ├── PowerShell\            # PowerShell profiles and modules
+│   ├── SSH\                   # SSH keys and configs
+│   ├── System\                # Windows system settings
+│   ├── Terminal\              # Windows Terminal settings
+│   ├── Visio\                 # Visio settings and stencils
+│   ├── Word\                  # Word settings and templates
+│   └── WSL\                   # WSL configurations
+│
+└── shared\                    # Shared settings across machines
+    ├── Applications\          # Common application settings
+    ├── Browsers\              # Shared browser bookmarks/settings
+    ├── SSH\                   # Shared SSH configurations
+    ├── Templates\             # Common document templates
+    └── WSL\                   # Common WSL configurations
+```
+
