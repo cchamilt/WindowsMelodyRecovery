@@ -45,7 +45,8 @@ $backupFunctions = @(
     @{ Name = "WSL SSH Settings"; Function = "Backup-WSLSSHSettings"; Script = "backup-wsl-ssh.ps1" },
     @{ Name = "PowerShell Settings"; Function = "Backup-PowerShellSettings"; Script = "backup-powershell.ps1" },
     @{ Name = "Windows Features"; Function = "Backup-WindowsFeatures"; Script = "backup-windows-features.ps1" },
-    @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" }
+    @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" },
+    @{ Name = "System Settings"; Function = "Backup-SystemSettings"; Script = "backup-system-settings.ps1" }
 )
 
 # Create machine backup directory if it doesn't exist

@@ -48,7 +48,8 @@ $restoreScripts = @(
     "restore-wsl-ssh.ps1",
     "restore-powershell.ps1",
     "restore-windows-features.ps1",
-    "restore-applications.ps1"
+    "restore-applications.ps1",
+    "restore-system-settings.ps1"
 )
 
 foreach ($script in $restoreScripts) {
