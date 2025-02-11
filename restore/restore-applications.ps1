@@ -1,7 +1,7 @@
 function Restore-Applications {
     # Load environment at start
     $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\Load-Environment.ps1")
+    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red

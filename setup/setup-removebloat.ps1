@@ -1,8 +1,135 @@
-# Confidence: Low - This script is not fully tested and may remove important Lenovo/ASUS applications.
-
 # See Andrew S Taylor's blog for more information: https://andrewstaylor.com/2022/08/09/removing-bloatware-from-windows-10-11-via-script/
-# But want to keep copilot and some other iffy apps
+# This does some of the same stuff but not all of it.
+# But want to keep copilot and some others
 
+# Requires admin privileges
+#Requires -RunAsAdministrator
+
+# At the start after admin check
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    Write-Host "Starting Windows bloatware removal..." -ForegroundColor Blue
+
+    # List of Windows 10/11 bloatware app packages to remove
+    $bloatwareApps = @(
+        "Microsoft.3DBuilder"
+        "Microsoft.BingFinance"
+        "Microsoft.BingNews"
+        "Microsoft.BingSports"
+        "Microsoft.BingWeather"
+        "Microsoft.GetHelp"
+        "Microsoft.Getstarted"
+        "Microsoft.MicrosoftOfficeHub"
+        "Microsoft.MicrosoftSolitaireCollection"
+        "Microsoft.MixedReality.Portal"
+        "Microsoft.People"
+        "Microsoft.SkypeApp"
+        "Microsoft.WindowsAlarms"
+        "Microsoft.WindowsFeedbackHub"
+        "Microsoft.WindowsMaps"
+        "Microsoft.ZuneMusic"
+        "Microsoft.ZuneVideo"
+        "*EclipseManager*"
+        "*ActiproSoftwareLLC*"
+        "*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
+        "*Duolingo-LearnLanguagesforFree*"
+        "*PandoraMediaInc*"
+        "*CandyCrush*"
+        "*BubbleWitch3Saga*"
+        "*Wunderlist*"
+        "*Flipboard*"
+        "*Twitter*"
+        "*Facebook*"
+        "*Spotify*"
+        "*Minecraft*"
+        "*Royal Revolt*"
+        "*Sway*"
+        "*Speed Test*"
+        "*Dolby*"
+        "*Disney*"
+        "*.Netflix*"
+        "*McAfee*"
+        "*Lenovo*"
+        "*ASUS*"
+        "*Dell*"
+        "*HP*"
+    )
+
+    # Remove Windows Store apps
+    foreach ($app in $bloatwareApps) {
+        Write-Host "Removing $app..." -ForegroundColor Yellow
+        Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -ErrorAction SilentlyContinue
+        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $app | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+    }
+
+    # Disable Windows features
+    $windowsFeatures = @(
+        #"WindowsMediaPlayer"
+        "Internet-Explorer-Optional-*"
+        "WorkFolders-Client"
+    )
+
+    foreach ($feature in $windowsFeatures) {
+        Write-Host "Disabling Windows feature: $feature..." -ForegroundColor Yellow
+        Disable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart -ErrorAction SilentlyContinue
+    }
+
+    # Disable scheduled tasks
+    $tasks = @(
+        "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
+        "\Microsoft\Windows\Application Experience\ProgramDataUpdater"
+        "\Microsoft\Windows\Application Experience\StartupAppTask"
+        "\Microsoft\Windows\Customer Experience Improvement Program\Consolidator"
+        "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip"
+    )
+
+    foreach ($task in $tasks) {
+        Write-Host "Disabling scheduled task: $task..." -ForegroundColor Yellow
+        Disable-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue
+    }
+
+    # Remove third-party bloatware
+    $thirdPartyBloat = @(
+        "McAfee Security"
+        "McAfee LiveSafe"
+        "HP Support Assistant"
+        "HP Customer Experience Enhancements"
+        "HP Registration Service"
+        "HP System Event Utility"
+        "Lenovo Vantage"
+        "Lenovo System Interface Foundation"
+        "ASUS GiftBox"
+        "ASUS WebStorage"
+        "ASUS Live Update"
+        "Dell Digital Delivery"
+        "Dell Customer Connect"
+        "Dell Update"
+        "SupportAssist"
+        "Dell SupportAssist OS Recovery"
+    )
+
+    foreach ($program in $thirdPartyBloat) {
+        Write-Host "Removing $program..." -ForegroundColor Yellow
+        $app = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -like "*$program*" }
+        if ($app) {
+            $app.Uninstall()
+        }
+    }
+
+    Write-Host "`nBloatware removal completed!" -ForegroundColor Green
+    Write-Host "Note: Some changes may require a system restart to take effect" -ForegroundColor Yellow
+
+} catch {
+    Write-Host "Failed to remove bloatware: $_" -ForegroundColor Red
+    exit 1
+}
 
 #Remove: Lenovo*, new outlook, etc.
 Write-Host "Removing Lenovo bloatware..." -ForegroundColor Blue
@@ -124,66 +251,32 @@ Get-Service -Name UDCService | Set-Service -StartupType Disabled
 # Remove Lenovo UDCService from registry
 Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\UDCService" -Recurse -Force
 
-# Disable Lenovo Universal Device Client Device driver from System devices
-
-# Disable Lenovo Universal Device Client Device Plugins drivers from Software Components
-Remove-Item -Path "C:\Windows\System32\drivers\Lenovo\udc\Service\UDClientService.exe" -Force
-
-# Remove Lenovo UDCService from services
-Get-Service -Name UDCService | Stop-Service -Force
-Get-Service -Name UDCService | Set-Service -StartupType Disabled
-
-# Remove new outlook
-Write-Host "Removing new outlook..." -ForegroundColor Blue
-
+# Disable Lenovo Universal Device Client Device drivers...
+Write-Host "Disabling Lenovo Universal Device Client Device drivers..." -ForegroundColor Blue
 try {
-    # Remove Outlook from the registry
-    Write-Host "Removing Outlook from registry..." -ForegroundColor Yellow
-    Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft.Office.16.0.Outlook" -Recurse -Force
+    # Get Lenovo UDC devices
+    $lenovoDevices = Get-PnpDevice | Where-Object { 
+        $_.FriendlyName -like "*Lenovo Universal Device*" -or 
+        $_.InstanceId -like "*VEN_17EF*" -or  # Lenovo's Vendor ID
+        $_.HardwareID -like "*LenovoUDC*" 
+    }
 
-    # Remove Outlook from the registry
-    Write-Host "Removing Outlook from registry..." -ForegroundColor Yellow
-    Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft.Office.16.0.Outlook" -Recurse -Force 
+    foreach ($device in $lenovoDevices) {
+        Write-Host "Disabling device: $($device.FriendlyName)" -ForegroundColor Yellow
+        $device | Disable-PnpDevice -Confirm:$false
+        
+        # Optionally prevent Windows from re-enabling it
+        $instanceId = $device.InstanceId -replace "\\", "\\"
+        $registryPath = "HKLM:\SYSTEM\CurrentControlSet\Enum\$instanceId"
+        if (Test-Path $registryPath) {
+            Set-ItemProperty -Path $registryPath -Name "ConfigFlags" -Value 0x1 -Type DWord
+        }
+    }
 
-    Write-Host "Outlook removal completed" -ForegroundColor Green
+    Write-Host "Lenovo UDC devices disabled successfully" -ForegroundColor Green
 } catch {
-    Write-Host "Failed to remove Outlook: $_" -ForegroundColor Red
+    Write-Host "Failed to disable Lenovo UDC devices: $_" -ForegroundColor Red
 }
-
-# Remove McAfee AV
-Write-Host "Removing McAfee AV..." -ForegroundColor Blue
-
-try {
-    # Remove McAfee from the registry
-    Write-Host "Removing McAfee from registry..." -ForegroundColor Yellow
-    Remove-Item -Path "HKLM:\SOFTWARE\McAfee" -Recurse -Force
-
-    # Remove McAfee from the registry
-    Write-Host "Removing McAfee from registry..." -ForegroundColor Yellow
-    Remove-Item -Path "HKLM:\SOFTWARE\McAfee" -Recurse -Force   
-
-    Write-Host "McAfee removal completed" -ForegroundColor Green
-} catch {
-    Write-Host "Failed to remove McAfee: $_" -ForegroundColor Red
-}
-
-# Remove ASUS bloatware
-Write-Host "Removing ASUS bloatware..." -ForegroundColor Blue
-
-try {
-    # Remove ASUS from the registry
-    Write-Host "Removing ASUS from registry..." -ForegroundColor Yellow 
-    Remove-Item -Path "HKLM:\SOFTWARE\ASUS" -Recurse -Force
-
-    # Remove ASUS from the registry
-    Write-Host "Removing ASUS from registry..." -ForegroundColor Yellow
-    Remove-Item -Path "HKLM:\SOFTWARE\ASUS" -Recurse -Force
-
-    Write-Host "ASUS removal completed" -ForegroundColor Green
-} catch {
-    Write-Host "Failed to remove ASUS: $_" -ForegroundColor Red
-}
-
 
 
 

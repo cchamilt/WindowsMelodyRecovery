@@ -4,7 +4,7 @@
 try {
     # At the start after admin check
     $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    . (Join-Path $scriptPath "scripts\Load-Environment.ps1")
+    . (Join-Path $scriptPath "scripts\load-environment.ps1")
 
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
