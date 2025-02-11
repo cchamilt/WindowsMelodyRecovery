@@ -1,0 +1,49 @@
+function Restore-Applications {
+    try {
+        Write-Host "Restoring Applications..." -ForegroundColor Blue
+        $applicationsPath = Test-BackupPath -Path "Applications" -BackupType "Applications"
+        
+        if ($applicationsPath) {
+            $applicationsFile = "$applicationsPath\applications.json"
+            if (Test-Path $applicationsFile) {
+                $applications = Get-Content $applicationsFile | ConvertFrom-Json
+
+                # Install Winget applications
+                Write-Host "`nInstalling Winget applications..." -ForegroundColor Yellow
+                foreach ($app in $applications.Winget) {
+                    if ($app.Id) {
+                        Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                        winget install --id $app.Id --source $app.Source --accept-package-agreements --accept-source-agreements
+                    } else {
+                        Write-Host "Skipping $($app.Name) - No package ID found" -ForegroundColor Red
+                    }
+                }
+
+                # Install Chocolatey applications if choco is installed
+                if (Get-Command choco -ErrorAction SilentlyContinue) {
+                    Write-Host "`nInstalling Chocolatey packages..." -ForegroundColor Yellow
+                    foreach ($app in $applications.Chocolatey) {
+                        Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                        choco install $app.Name -y
+                    }
+                }
+
+                # List applications that need manual installation
+                Write-Host "`nThe following applications need to be installed manually:" -ForegroundColor Yellow
+                Write-Host "=============================================" -ForegroundColor Yellow
+                foreach ($app in $applications.Other) {
+                    Write-Host "$($app.DisplayName)" -ForegroundColor White
+                    Write-Host "  Publisher: $($app.Publisher)" -ForegroundColor Gray
+                    Write-Host "  Version: $($app.DisplayVersion)" -ForegroundColor Gray
+                    Write-Host "  Install Date: $($app.InstallDate)" -ForegroundColor Gray
+                    Write-Host "---------------------------------------------" -ForegroundColor Gray
+                }
+
+                Write-Host "`nAutomatic application installation completed" -ForegroundColor Green
+                Write-Host "Please review the list above for applications that need manual installation" -ForegroundColor Yellow
+            }
+        }
+    } catch {
+        Write-Host "Failed to restore Applications: $_" -ForegroundColor Red
+    }
+} 

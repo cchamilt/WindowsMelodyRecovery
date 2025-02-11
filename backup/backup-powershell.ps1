@@ -33,12 +33,30 @@ try {
             Write-Host "PowerShell modules backed up successfully" -ForegroundColor Green
             $profilesFound = $true
         }
+
+        # Backup installed modules list
+        $installedModules = Get-InstalledModule | Select-Object Name, Version, Repository
+        $installedModules | ConvertTo-Json | Out-File "$backupPath\installed_modules.json" -Force
+        Write-Host "PowerShell module list backed up successfully" -ForegroundColor Green
+
+        # Backup NuGet package sources
+        $nugetSources = Get-PackageSource | Select-Object Name, Location, ProviderName, IsTrusted
+        $nugetSources | ConvertTo-Json | Out-File "$backupPath\nuget_sources.json" -Force
+        Write-Host "NuGet package sources backed up successfully" -ForegroundColor Green
+
+        # Backup PSRepository settings
+        $psRepositories = Get-PSRepository | Select-Object Name, SourceLocation, PublishLocation, InstallationPolicy
+        $psRepositories | ConvertTo-Json | Out-File "$backupPath\ps_repositories.json" -Force
+        Write-Host "PowerShell repositories backed up successfully" -ForegroundColor Green
+
+        # Output summary
+        Write-Host "`nPowerShell Backup Summary:" -ForegroundColor Green
+        Write-Host "Profiles: $($profilePaths.Count) found" -ForegroundColor Yellow
+        Write-Host "Installed Modules: $($installedModules.Count)" -ForegroundColor Yellow
+        Write-Host "NuGet Sources: $($nugetSources.Count)" -ForegroundColor Yellow
+        Write-Host "PS Repositories: $($psRepositories.Count)" -ForegroundColor Yellow
         
-        if ($profilesFound) {
-            Write-Host "PowerShell settings backed up successfully to: $backupPath" -ForegroundColor Green
-        } else {
-            Write-Host "No PowerShell profiles or modules found to backup" -ForegroundColor Yellow
-        }
+        Write-Host "PowerShell settings backed up successfully to: $backupPath" -ForegroundColor Green
     }
 } catch {
     Write-Host "Failed to backup PowerShell settings: $_" -ForegroundColor Red
