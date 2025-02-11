@@ -318,7 +318,7 @@ try {
     }
 
     # Copy all script files to installation directory
-    $scriptDirs = @("backup", "restore", "setup")
+    $scriptDirs = @("backup", "restore", "setup", "tasks", "templates", "scripts")
     foreach ($dir in $scriptDirs) {
         $targetDir = Join-Path $InstallPath $dir
         if (!(Test-Path $targetDir)) {
@@ -365,14 +365,14 @@ try {
 
         if ($registerTasks) {
             # Register backup task
-            $backupScript = Join-Path $InstallPath "register-backup-task.ps1"
+            $backupScript = Join-Path $InstallPath "tasks\register-backup-task.ps1"
             if (Test-Path $backupScript) {
                 Write-Host "`nRegistering backup task..." -ForegroundColor Blue
                 & $backupScript
             }
 
             # Register update task
-            $updateScript = Join-Path $InstallPath "register-update-task.ps1"
+            $updateScript = Join-Path $InstallPath "tasks\register-update-task.ps1"
             if (Test-Path $updateScript) {
                 Write-Host "`nRegistering update task..." -ForegroundColor Blue
                 & $updateScript
@@ -393,13 +393,7 @@ try {
 
     # Add to install.ps1 after creating installation directory
     # Create windows.env from template
-    $envTemplate = @"
-# Windows Configuration Environment Variables
-BACKUP_ROOT="$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup"
-WINDOWS_CONFIG_PATH="$InstallPath"
-MACHINE_NAME="$env:COMPUTERNAME"
-"@
-
+    $envTemplate = Get-Content (Join-Path $InstallPath "templates\windows.env.template")
     $envFile = Join-Path $InstallPath "windows.env"
     Set-Content -Path $envFile -Value $envTemplate
 
@@ -421,7 +415,7 @@ if (Test-Path `$envFile) {
     Write-Host "Please restart PowerShell for PATH changes to take effect" -ForegroundColor Yellow
 
     # After creating windows.env
-    $configTemplate = Get-Content (Join-Path $InstallPath "config.env.template")
+    $configTemplate = Get-Content (Join-Path $InstallPath "templates\config.env.template")
     $sharedConfigPath = Join-Path "$env:BACKUP_ROOT\shared" "config.env"
     $machineConfigPath = Join-Path "$env:BACKUP_ROOT\$env:MACHINE_NAME" "config.env"
 

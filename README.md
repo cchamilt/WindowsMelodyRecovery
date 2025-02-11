@@ -69,7 +69,21 @@ register-backup-task.ps1
 
 # Windows Configuration Scripts
 
-A collection of PowerShell scripts for Windows configuration backup, restore, and maintenance.
+## Directory Structure
+
+```text
+.
+├── backup/         # Backup operation scripts
+├── restore/        # Restore operation scripts
+├── setup/          # Setup scripts for applications
+├── tasks/          # Scheduled task registration scripts
+├── templates/      # Configuration templates
+├── scripts/        # Helper scripts
+├── Backup-WindowsConfig.ps1      # Main backup script
+├── Restore-WindowsConfig.ps1     # Main restore script
+├── Update-WindowsConfig.ps1      # System update script
+└── Install-WindowsConfig.ps1     # Installation script
+```
 
 ## Installation
 
@@ -112,7 +126,7 @@ $env:BACKUP_EMAIL_PASSWORD = "your-app-password"
 
 ## Usage
 
-- Manual backup: `backup.ps1`
-- Manual restore: `restore.ps1`
-- System update: `update.ps1`
-- KeePassXC setup: `setup-keepassxc.ps1`
+- Manual backup: `Backup-WindowsConfig`
+- Manual restore: `Restore-WindowsConfig`
+- System update: `Update-WindowsConfig`
+- Installation: `Install-WindowsConfig`

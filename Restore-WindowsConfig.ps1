@@ -60,7 +60,7 @@ $restoreScripts = @(
 
 foreach ($script in $restoreScripts) {
     try {
-        . "./restore/$script"
+        . (Join-Path $scriptPath "restore\$script")
     } catch {
         Write-Host "Failed to source $script : $_" -ForegroundColor Red
     }

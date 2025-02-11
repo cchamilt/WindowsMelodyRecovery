@@ -308,3 +308,6 @@ if ($updateErrors.Count -gt 0) {
     Send-UpdateNotification -Errors $updateErrors -Subject $subject
 }
 
+# Update task registration path references
+$taskScript = Join-Path (Split-Path $MyInvocation.MyCommand.Path) "tasks\register-update-task.ps1"
+

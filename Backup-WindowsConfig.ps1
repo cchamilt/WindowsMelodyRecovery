@@ -84,7 +84,7 @@ try {
     # Source all backup scripts
     foreach ($backup in $backupFunctions) {
         try {
-            . "./backup/$($backup.Script)"
+            . (Join-Path $scriptPath "backup\$($backup.Script)")
         } catch {
             $errorMessage = "Failed to source $($backup.Script) : $_"
             Write-Host $errorMessage -ForegroundColor Red
@@ -268,4 +268,7 @@ if ($backupErrors.Count -gt 0) {
     $subject = "⚠️ Backup Failed on $MACHINE_NAME ($($backupErrors.Count) errors)"
     Send-BackupNotification -Errors $backupErrors -Subject $subject
 }
+
+# Update task registration path references
+$taskScript = Join-Path (Split-Path $MyInvocation.MyCommand.Path) "tasks\register-backup-task.ps1"
 
