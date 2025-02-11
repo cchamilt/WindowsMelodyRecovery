@@ -1,31 +1,89 @@
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$BackupRootPath
+    [Parameter(Mandatory=$false)]
+    [string]$BackupRootPath = $null
 )
 
-try {
-    Write-Host "Backing up Power settings..." -ForegroundColor Blue
-    $backupPath = Initialize-BackupDirectory -Path "Power" -BackupType "Power" -BackupRootPath $BackupRootPath
-    
-    if ($backupPath) {
-        # Export current power scheme
-        $activePlan = powercfg /getactivescheme
-        if ($activePlan -match "Power Scheme GUID: (.+) \((.+)\)") {
-            $planGuid = $matches[1]
-            $planName = $matches[2]
-            
-            # Export the active power scheme
-            $schemePath = "$backupPath\power_scheme.pow"
-            powercfg /export $schemePath $planGuid
-            
-            # Save the plan name for reference
-            $planName | Out-File "$backupPath\scheme_name.txt"
-            
-            Write-Host "Power settings backed up successfully to: $backupPath" -ForegroundColor Green
-        } else {
-            Write-Host "Failed to identify active power scheme" -ForegroundColor Red
-        }
+# Load environment if not provided
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!$BackupRootPath) {
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
     }
-} catch {
-    Write-Host "Failed to backup Power settings: $_" -ForegroundColor Red
+    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
+
+function Backup-PowerSettings {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath
+    )
+    
+    try {
+        Write-Host "Backing up Power Settings..." -ForegroundColor Blue
+        $backupPath = Initialize-BackupDirectory -Path "Power" -BackupType "Power Settings" -BackupRootPath $BackupRootPath
+        
+        if ($backupPath) {
+            # Export power schemes
+            $powerSchemes = powercfg /list | Select-String "Power Scheme GUID: (.*?) \((.*?)\)" | ForEach-Object {
+                @{
+                    GUID = $_.Matches[0].Groups[1].Value
+                    Name = $_.Matches[0].Groups[2].Value
+                    IsActive = $false
+                }
+            }
+
+            # Get active scheme
+            $activeScheme = powercfg /getactivescheme | Select-String "Power Scheme GUID: (.*?) \((.*?)\)" | ForEach-Object {
+                $_.Matches[0].Groups[1].Value
+            }
+
+            # Export each power scheme
+            foreach ($scheme in $powerSchemes) {
+                $scheme.IsActive = $scheme.GUID -eq $activeScheme
+                $schemeFile = "$backupPath\$($scheme.GUID).pow"
+                powercfg /export $schemeFile $scheme.GUID
+            }
+
+            # Save scheme metadata
+            $powerSchemes | ConvertTo-Json | Out-File "$backupPath\power_schemes.json" -Force
+
+            # Export power registry settings
+            $regPaths = @(
+                "HKLM\SYSTEM\CurrentControlSet\Control\Power",
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\PowerSettings",
+                "HKCU\Control Panel\PowerCfg",
+                "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
+            )
+
+            foreach ($regPath in $regPaths) {
+                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                reg export $regPath $regFile /y 2>$null
+            }
+
+            # Export power button actions
+            $buttonSettings = @{
+                PowerButton = gwmi -Class Win32_PowerSettings | Where-Object { $_.Caption -like "*power button*" }
+                SleepButton = gwmi -Class Win32_PowerSettings | Where-Object { $_.Caption -like "*sleep button*" }
+                LidClose = gwmi -Class Win32_PowerSettings | Where-Object { $_.Caption -like "*lid*" }
+            }
+            $buttonSettings | ConvertTo-Json | Out-File "$backupPath\button_settings.json" -Force
+            
+            Write-Host "Power Settings backed up successfully to: $backupPath" -ForegroundColor Green
+            return $true
+        }
+        return $false
+    } catch {
+        Write-Host "Failed to backup Power Settings: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+# Allow script to be run directly or sourced
+if ($MyInvocation.InvocationName -ne '.') {
+    # Script was run directly
+    Backup-PowerSettings -BackupRootPath $BackupRootPath
 } 

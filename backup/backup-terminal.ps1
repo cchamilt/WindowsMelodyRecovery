@@ -1,22 +1,56 @@
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$BackupRootPath
+    [Parameter(Mandatory=$false)]
+    [string]$BackupRootPath = $null
 )
 
-try {
-    Write-Host "Backing up Windows Terminal settings..." -ForegroundColor Blue
-    $backupPath = Initialize-BackupDirectory -Path "Terminal" -BackupType "Terminal" -BackupRootPath $BackupRootPath
-    
-    if ($backupPath) {
-        $terminalSettingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
-        
-        if (Test-Path -Path $terminalSettingsPath) {
-            Copy-Item -Path $terminalSettingsPath -Destination "$backupPath\settings.json" -Force
-            Write-Host "Windows Terminal settings backed up successfully" -ForegroundColor Green
-        } else {
-            Write-Host "No Windows Terminal settings found to backup" -ForegroundColor Yellow
-        }
+# Load environment if not provided
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!$BackupRootPath) {
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
     }
-} catch {
-    Write-Host "Failed to backup Windows Terminal settings: $_" -ForegroundColor Red
+    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
+
+function Backup-TerminalSettings {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath
+    )
+    
+    try {
+        Write-Host "Backing up Terminal Settings..." -ForegroundColor Blue
+        $backupPath = Initialize-BackupDirectory -Path "Terminal" -BackupType "Terminal Settings" -BackupRootPath $BackupRootPath
+        
+        if ($backupPath) {
+            # Windows Terminal settings
+            $terminalSettingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+            if (Test-Path $terminalSettingsPath) {
+                Copy-Item -Path $terminalSettingsPath -Destination "$backupPath\terminal-settings.json" -Force
+            }
+
+            # Windows Terminal Preview settings
+            $previewSettingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json"
+            if (Test-Path $previewSettingsPath) {
+                Copy-Item -Path $previewSettingsPath -Destination "$backupPath\terminal-preview-settings.json" -Force
+            }
+            
+            Write-Host "Terminal Settings backed up successfully to: $backupPath" -ForegroundColor Green
+            return $true
+        }
+        return $false
+    } catch {
+        Write-Host "Failed to backup Terminal Settings: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+# Allow script to be run directly or sourced
+if ($MyInvocation.InvocationName -ne '.') {
+    # Script was run directly
+    Backup-TerminalSettings -BackupRootPath $BackupRootPath
 } 

@@ -8,33 +8,78 @@ try {
     $backupPath = Initialize-BackupDirectory -Path "SystemSettings" -BackupType "System Settings" -BackupRootPath $BackupRootPath
     
     if ($backupPath) {
-        # Backup browser profiles
-        $browserProfiles = @{
-            "Chrome" = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default"
-            "Edge" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default"
-            "Firefox" = "$env:APPDATA\Mozilla\Firefox\Profiles"
-            "Brave" = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default"
-            "Vivaldi" = "$env:LOCALAPPDATA\Vivaldi\User Data\Default"
+        # Create registry backup directory
+        $registryPath = Join-Path $backupPath "Registry"
+        New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+
+        # System-wide registry settings to backup
+        $regPaths = @(
+            # System settings
+            "HKLM\SYSTEM\CurrentControlSet\Control",
+            "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup",
+            
+            # Performance and memory
+            "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management",
+            "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
+            
+            # System environment
+            "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+            
+            # Power settings
+            "HKLM\SYSTEM\CurrentControlSet\Control\Power",
+            
+            # Time and region
+            "HKLM\SYSTEM\CurrentControlSet\Control\TimeZoneInformation",
+            "HKCU\Control Panel\International",
+            
+            # System restore
+            "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore",
+            
+            # Remote settings
+            "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance",
+            "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server",
+            
+            # Security settings
+            "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+            "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
+        )
+
+        foreach ($regPath in $regPaths) {
+            $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+            reg export $regPath $regFile /y 2>$null
         }
 
-        foreach ($browser in $browserProfiles.GetEnumerator()) {
-            if (Test-Path $browser.Value) {
-                # Only backup bookmarks and settings, not cache/cookies
-                $browserBackupPath = Join-Path $backupPath "Browsers\$($browser.Key)"
-                New-Item -ItemType Directory -Force -Path $browserBackupPath | Out-Null
-                
-                switch ($browser.Key) {
-                    { $_ -in "Chrome", "Edge", "Brave", "Vivaldi" } {
-                        Copy-Item "$($browser.Value)\Bookmarks" $browserBackupPath -ErrorAction SilentlyContinue
-                        Copy-Item "$($browser.Value)\Preferences" $browserBackupPath -ErrorAction SilentlyContinue
-                    }
-                    "Firefox" {
-                        Copy-Item "$($browser.Value)\*.default*\bookmarkbackups" $browserBackupPath -Recurse -ErrorAction SilentlyContinue
-                        Copy-Item "$($browser.Value)\*.default*\prefs.js" $browserBackupPath -ErrorAction SilentlyContinue
-                    }
-                }
-            }
+        # Export additional system configurations
+        $systemConfigPath = Join-Path $backupPath "SystemConfig"
+        New-Item -ItemType Directory -Force -Path $systemConfigPath | Out-Null
+
+        # Export power schemes
+        powercfg /list | Out-File (Join-Path $systemConfigPath "power_schemes.txt") -Force
+        powercfg /query | Out-File (Join-Path $systemConfigPath "power_settings.txt") -Force
+
+        # Export system performance settings
+        Get-CimInstance Win32_OperatingSystem | 
+            Select-Object FreePhysicalMemory, TotalVisibleMemorySize, SizeStoredInPagingFiles |
+            ConvertTo-Json | Out-File (Join-Path $systemConfigPath "performance_settings.json") -Force
+
+        # Export system restore points
+        Get-ComputerRestorePoint | 
+            Select-Object Description, CreationTime, RestorePointType, SequenceNumber |
+            ConvertTo-Json | Out-File (Join-Path $systemConfigPath "restore_points.json") -Force
+
+        # Export page file settings
+        Get-CimInstance Win32_PageFileSetting | 
+            Select-Object Name, InitialSize, MaximumSize |
+            ConvertTo-Json | Out-File (Join-Path $systemConfigPath "pagefile_settings.json") -Force
+
+        # Export time and region settings
+        $timeSettings = @{
+            TimeZone = (Get-TimeZone).Id
+            Region = (Get-WinHomeLocation).GeoId
+            SystemLocale = (Get-WinSystemLocale).Name
+            UserLocale = (Get-WinUserLanguageList)[0].LanguageTag
         }
+        $timeSettings | ConvertTo-Json | Out-File (Join-Path $systemConfigPath "time_settings.json") -Force
 
         # Backup printer settings
         $printerPath = Join-Path $backupPath "Printers"
@@ -68,35 +113,11 @@ try {
             Where-Object { $_.DisplayRoot } | 
             Export-Clixml (Join-Path $backupPath "mapped-drives.xml")
 
-        # Backup KeePassXC settings
-        $keepassPath = Join-Path $backupPath "KeePassXC"
-        New-Item -ItemType Directory -Force -Path $keepassPath | Out-Null
-        
-        # KeePassXC config locations
-        $keepassConfigs = @{
-            "Config" = "$env:APPDATA\KeePassXC\keepassxc.ini"
-            "LastDatabase" = "$env:APPDATA\KeePassXC\lastdatabase"
-            "CustomIcons" = "$env:APPDATA\KeePassXC\CustomIcons"
-        }
-        
-        foreach ($config in $keepassConfigs.GetEnumerator()) {
-            if (Test-Path $config.Value) {
-                if ((Get-Item $config.Value) -is [System.IO.DirectoryInfo]) {
-                    Copy-Item $config.Value $keepassPath -Recurse -Force
-                } else {
-                    Copy-Item $config.Value $keepassPath -Force
-                }
-            }
-        }
-        
-        # Save database location if provided
-        $dbLocation = [Environment]::GetEnvironmentVariable('KEEPASSXC_DB', 'User')
-        if ($dbLocation) {
-            $dbLocation | Out-File (Join-Path $keepassPath "database_location.txt")
-        }
-
         Write-Host "System settings backed up successfully to: $backupPath" -ForegroundColor Green
+        return $true
     }
+    return $false
 } catch {
     Write-Host "Failed to backup system settings: $_" -ForegroundColor Red
+    return $false
 } 

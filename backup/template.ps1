@@ -1,0 +1,46 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory=$false)]
+    [string]$BackupRootPath = $null
+)
+
+# Load environment if not provided
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!$BackupRootPath) {
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
+    }
+    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
+
+function Backup-[Feature] {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath
+    )
+    
+    try {
+        Write-Host "Backing up [Feature]..." -ForegroundColor Blue
+        $backupPath = Initialize-BackupDirectory -Path "[Feature]" -BackupType "[Feature]" -BackupRootPath $BackupRootPath
+        
+        if ($backupPath) {
+            # Backup logic here
+            
+            Write-Host "[Feature] backed up successfully to: $backupPath" -ForegroundColor Green
+            return $true
+        }
+        return $false
+    } catch {
+        Write-Host "Failed to backup [Feature]: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+# Allow script to be run directly or sourced
+if ($MyInvocation.InvocationName -ne '.') {
+    # Script was run directly
+    Backup-[Feature] -BackupRootPath $BackupRootPath
+} 

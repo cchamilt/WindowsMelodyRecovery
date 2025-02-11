@@ -1,13 +1,27 @@
-function Restore-Applications {
-    # Load environment at start
-    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory=$false)]
+    [string]$BackupRootPath = $null
+)
 
+# Load environment if not provided
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!$BackupRootPath) {
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
-        return
+        exit 1
     }
+    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
 
+function Restore-Applications {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath
+    )
+    
     try {
         Write-Host "Restoring Applications..." -ForegroundColor Blue
         $applicationsPath = Test-BackupPath -Path "Applications" -BackupType "Applications"
@@ -52,7 +66,15 @@ function Restore-Applications {
                 Write-Host "Please review the list above for applications that need manual installation" -ForegroundColor Yellow
             }
         }
+        return $true
     } catch {
-        Write-Host "Failed to restore applications: $_" -ForegroundColor Red
+        Write-Host "Failed to restore Applications: $_" -ForegroundColor Red
+        return $false
     }
+}
+
+# Allow script to be run directly or sourced
+if ($MyInvocation.InvocationName -ne '.') {
+    # Script was run directly
+    Restore-Applications -BackupRootPath $BackupRootPath
 } 

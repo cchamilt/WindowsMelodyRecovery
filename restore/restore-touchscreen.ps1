@@ -1,20 +1,43 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory=$false)]
+    [string]$BackupRootPath = $null
+)
+
+# Load environment if not provided
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!$BackupRootPath) {
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
+    }
+    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
+
 function Restore-TouchscreenSettings {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath
+    )
+    
     try {
-        Write-Host "Restoring Touchscreen settings..." -ForegroundColor Blue
-        $touchscreenPath = Test-BackupPath -Path "Touchscreen" -BackupType "Touchscreen"
+        Write-Host "Restoring Touchscreen Settings..." -ForegroundColor Blue
+        $backupPath = Test-BackupPath -Path "Touchscreen" -BackupType "Touchscreen Settings"
         
-        if ($touchscreenPath) {
-            # Import touchscreen registry settings
-            $regFiles = Get-ChildItem -Path $touchscreenPath -Filter "*.reg"
+        if ($backupPath) {
+            # Import registry settings
+            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
             foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName
+                reg import $regFile.FullName | Out-Null
             }
-            
-            # Apply device configuration if it exists
-            $deviceConfig = "$touchscreenPath\touch_devices.json"
+
+            # Restore device states
+            $deviceConfig = "$backupPath\touchscreen_devices.json"
             if (Test-Path $deviceConfig) {
-                $touchDevices = Get-Content $deviceConfig | ConvertFrom-Json
-                foreach ($device in $touchDevices) {
+                $touchscreenDevices = Get-Content $deviceConfig | ConvertFrom-Json
+                foreach ($device in $touchscreenDevices) {
                     $existingDevice = Get-PnpDevice -InstanceId $device.InstanceId -ErrorAction SilentlyContinue
                     if ($existingDevice) {
                         if ($device.IsEnabled -and $existingDevice.Status -ne 'OK') {
@@ -28,9 +51,31 @@ function Restore-TouchscreenSettings {
                 }
             }
             
-            Write-Host "Touchscreen settings restored successfully" -ForegroundColor Green
+            # Restart touch-related services
+            $services = @(
+                "TabletInputService",
+                "TouchServiced",
+                "WacomPenService"
+            )
+            
+            foreach ($service in $services) {
+                if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
+                    Restart-Service -Name $service -Force -ErrorAction SilentlyContinue
+                }
+            }
+            
+            Write-Host "Touchscreen Settings restored successfully from: $backupPath" -ForegroundColor Green
+            return $true
         }
+        return $false
     } catch {
-        Write-Host "Failed to restore Touchscreen settings: $_" -ForegroundColor Red
+        Write-Host "Failed to restore Touchscreen Settings: $_" -ForegroundColor Red
+        return $false
     }
+}
+
+# Allow script to be run directly or sourced
+if ($MyInvocation.InvocationName -ne '.') {
+    # Script was run directly
+    Restore-TouchscreenSettings -BackupRootPath $BackupRootPath
 } 

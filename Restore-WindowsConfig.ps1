@@ -55,7 +55,9 @@ $restoreScripts = @(
     "restore-powershell.ps1",
     "restore-windows-features.ps1",
     "restore-applications.ps1",
-    "restore-system-settings.ps1"
+    "restore-system-settings.ps1",
+    "restore-browsers.ps1",
+    "restore-keepassxc.ps1"
 )
 
 foreach ($script in $restoreScripts) {
