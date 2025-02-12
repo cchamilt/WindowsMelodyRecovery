@@ -232,6 +232,12 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
         $response = Read-Host "`nWould you like to configure WSL fonts? (Y/N)"
         if ($response -eq "Y" -or $response -eq "y") {
             $setupScript = Join-Path $InstallPath "setup\setup-wsl-fonts.ps1"
+            if (Test-Path $setupScript) {
+                Write-Host "Configuring WSL fonts..." -ForegroundColor Blue
+                & $setupScript
+            } else {
+                Write-Host "WSL fonts setup script not found at: $setupScript" -ForegroundColor Red
+            }
         }
     }
 

@@ -64,12 +64,29 @@ try {
 
     # Remove Windows Store apps
     foreach ($app in $bloatwareApps) {
-        Write-Host "Removing $app..." -ForegroundColor Yellow
-        Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -ErrorAction SilentlyContinue
-        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $app | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+        try {
+            $package = Get-AppxPackage -Name $app -ErrorAction SilentlyContinue
+            if ($package) {
+                Write-Host "Removing $app..." -ForegroundColor Yellow
+                $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
+                
+                # Also remove provisioned package if it exists
+                $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $app
+                if ($provPackage) {
+                    $provPackage | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
+                }
+                Write-Host "Successfully removed $app" -ForegroundColor Green
+            } else {
+                Write-Host "Skipping $app (not installed)" -ForegroundColor Gray
+            }
+        } catch {
+            Write-Host "Failed to remove $app : $_" -ForegroundColor Red
+            continue
+        }
     }
 
     # Disable Windows features
+    Write-Host "`nDisabling unnecessary Windows features..." -ForegroundColor Yellow
     $windowsFeatures = @(
         #"WindowsMediaPlayer"
         "Internet-Explorer-Optional-*"
@@ -77,22 +94,45 @@ try {
     )
 
     foreach ($feature in $windowsFeatures) {
-        Write-Host "Disabling Windows feature: $feature..." -ForegroundColor Yellow
-        Disable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart -ErrorAction SilentlyContinue
+        try {
+            Write-Host "Disabling Windows feature: $feature..." -ForegroundColor Yellow
+            $result = Disable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart -ErrorAction Stop
+            if ($result.RestartNeeded) {
+                Write-Host "Restart required after disabling $feature" -ForegroundColor Yellow
+            } else {
+                Write-Host "Successfully disabled $feature" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "Failed to disable feature $feature : $_" -ForegroundColor Red
+            continue
+        }
     }
 
-    # Disable scheduled tasks
+    # Disable telemetry tasks
+    Write-Host "`nDisabling telemetry tasks..." -ForegroundColor Yellow
     $tasks = @(
         "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
         "\Microsoft\Windows\Application Experience\ProgramDataUpdater"
         "\Microsoft\Windows\Application Experience\StartupAppTask"
         "\Microsoft\Windows\Customer Experience Improvement Program\Consolidator"
         "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip"
+        "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector"
     )
 
     foreach ($task in $tasks) {
-        Write-Host "Disabling scheduled task: $task..." -ForegroundColor Yellow
-        Disable-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue
+        try {
+            $taskObj = Get-ScheduledTask -TaskPath (Split-Path $task) -TaskName (Split-Path $task -Leaf) -ErrorAction SilentlyContinue
+            if ($taskObj) {
+                Write-Host "Disabling scheduled task: $task..." -ForegroundColor Yellow
+                Disable-ScheduledTask -TaskPath (Split-Path $task) -TaskName (Split-Path $task -Leaf) -ErrorAction Stop | Out-Null
+                Write-Host "Successfully disabled $task" -ForegroundColor Green
+            } else {
+                Write-Host "Skipping task $task (not found)" -ForegroundColor Gray
+            }
+        } catch {
+            Write-Host "Failed to disable task $task : $_" -ForegroundColor Red
+            continue
+        }
     }
 
     # Remove third-party bloatware
@@ -116,10 +156,23 @@ try {
     )
 
     foreach ($program in $thirdPartyBloat) {
-        Write-Host "Removing $program..." -ForegroundColor Yellow
-        $app = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -like "*$program*" }
-        if ($app) {
-            $app.Uninstall()
+        try {
+            Write-Host "Removing $program..." -ForegroundColor Yellow
+            $app = Get-WmiObject -Class Win32_Product -ErrorAction Stop | 
+                Where-Object { $_.Name -like "*$program*" }
+            if ($app) {
+                $result = $app.Uninstall()
+                if ($result.ReturnValue -eq 0) {
+                    Write-Host "Successfully removed $program" -ForegroundColor Green
+                } else {
+                    throw "Uninstall returned error code: $($result.ReturnValue)"
+                }
+            } else {
+                Write-Host "Skipping $program (not installed)" -ForegroundColor Gray
+            }
+        } catch {
+            Write-Host "Failed to remove $program : $_" -ForegroundColor Red
+            continue
         }
     }
 
@@ -149,8 +202,19 @@ try {
 
     # Remove Windows Store apps
     foreach ($app in $lenovoApps) {
-        Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -AllUsers
-        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $app | Remove-AppxProvisionedPackage -Online
+        try {
+            Write-Host "Removing $app..." -ForegroundColor Yellow
+            $package = Get-AppxPackage $app -AllUsers -ErrorAction Stop
+            if ($package) {
+                $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
+                Write-Host "Successfully removed $app" -ForegroundColor Green
+            } else {
+                Write-Host "Skipping $app (not installed)" -ForegroundColor Gray
+            }
+        } catch {
+            Write-Host "Failed to remove $app : $_" -ForegroundColor Red
+            continue
+        }
     }
 
     # List of Lenovo programs to uninstall
@@ -218,7 +282,19 @@ try {
     )
 
     foreach ($task in $lenovoTasks) {
-        Get-ScheduledTask -TaskPath $task -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
+        try {
+            $tasks = Get-ScheduledTask -TaskPath $task -ErrorAction SilentlyContinue
+            if ($tasks) {
+                foreach ($t in $tasks) {
+                    Write-Host "Removing task: $($t.TaskName)..." -ForegroundColor Yellow
+                    Unregister-ScheduledTask -TaskName $t.TaskName -TaskPath $t.TaskPath -Confirm:$false -ErrorAction Stop
+                    Write-Host "Successfully removed task: $($t.TaskName)" -ForegroundColor Green
+                }
+            }
+        } catch {
+            Write-Host "Failed to remove task $task : $_" -ForegroundColor Red
+            continue
+        }
     }
 
     # Remove Lenovo folders
@@ -231,8 +307,15 @@ try {
     )
 
     foreach ($folder in $lenovoFolders) {
-        if (Test-Path $folder) {
-            Remove-Item -Path $folder -Recurse -Force -ErrorAction SilentlyContinue
+        try {
+            if (Test-Path $folder) {
+                Write-Host "Removing folder: $folder..." -ForegroundColor Yellow
+                Remove-Item -Path $folder -Recurse -Force -ErrorAction Stop
+                Write-Host "Successfully removed folder: $folder" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "Failed to remove folder $folder : $_" -ForegroundColor Red
+            continue
         }
     }
 

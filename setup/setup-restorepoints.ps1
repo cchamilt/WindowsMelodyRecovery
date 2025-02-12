@@ -30,10 +30,28 @@ try {
     Write-Host "Setting System Protection storage to $maxSize GB..." -ForegroundColor Yellow
     vssadmin resize shadowstorage /for=$systemDrive /on=$systemDrive /maxsize="$maxSize`GB" | Out-Null
 
+    # Check if we can create a restore point
+    $canCreate = $true
+    try {
+        $lastRestore = Get-ComputerRestorePoint | Sort-Object -Property CreationTime -Descending | Select-Object -First 1
+        if ($lastRestore) {
+            $timeSinceLastRestore = (Get-Date) - $lastRestore.CreationTime
+            $minInterval = 1440 # 24 hours in minutes
+            if ($timeSinceLastRestore.TotalMinutes -lt $minInterval) {
+                Write-Host "Skipping initial restore point - one was created in the last 24 hours" -ForegroundColor Yellow
+                $canCreate = $false
+            }
+        }
+    } catch {
+        Write-Host "Warning: Could not check last restore point time: $_" -ForegroundColor Yellow
+    }
+
     # Create an initial restore point
-    $description = "Windows Configuration Initial Restore Point"
-    Write-Host "Creating initial restore point: $description" -ForegroundColor Yellow
-    Checkpoint-Computer -Description $description -RestorePointType "MODIFY_SETTINGS"
+    if ($canCreate) {
+        $description = "Windows Configuration Initial Restore Point"
+        Write-Host "Creating initial restore point: $description" -ForegroundColor Yellow
+        Checkpoint-Computer -Description $description -RestorePointType "MODIFY_SETTINGS"
+    }
 
     # Configure restore point schedule (if not already configured)
     $taskName = "SystemRestorePoint"
@@ -44,7 +62,17 @@ try {
         $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' `
             -Argument '-NoProfile -ExecutionPolicy Bypass -Command "Checkpoint-Computer -Description \"Monthly System Restore Point\" -RestorePointType MODIFY_SETTINGS"'
         
-        $trigger = New-ScheduledTaskTrigger -Monthly -At 4AM -DaysOfMonth 1
+        # Create weekly trigger and modify for monthly
+        $trigger = New-ScheduledTaskTrigger `
+            -Weekly `
+            -WeeksInterval 4 `
+            -DaysOfWeek Monday `
+            -At 4am
+        
+        # Modify trigger to run on day 1 of each month
+        $trigger.Repetition.Duration = $null
+        $trigger.Repetition.Interval = "P1M"
+
         $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
         $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries
 
