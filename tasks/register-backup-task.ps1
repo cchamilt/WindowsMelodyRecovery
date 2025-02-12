@@ -1,24 +1,29 @@
 # Requires admin privileges
 #Requires -RunAsAdministrator
 
-# Get the current script directory
+# Load environment
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$backupScript = Join-Path $scriptPath "backup.ps1"
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!(Load-Environment)) {
+    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    exit 1
+}
+
+# Task settings
+$taskName = "WindowsConfig_Backup"
+$taskDescription = "Backup Windows configuration settings to OneDrive"
+$backupScript = Join-Path $env:WINDOWS_CONFIG_PATH "Backup-WindowsConfig.ps1"
 
 # Verify backup script exists
 if (!(Test-Path $backupScript)) {
     throw "Backup script not found at: $backupScript"
 }
 
-# Task parameters
-$taskName = "Windows Settings Backup"
-$taskDescription = "Weekly backup of Windows settings and configurations to OneDrive"
+# Get current or default schedule
 $taskPath = "\Custom Tasks"
-
-# Check if task already exists
 $existingTask = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
 
-# Get current or default schedule
 if ($existingTask) {
     $currentTrigger = $existingTask.Triggers[0]
     $triggerTime = $currentTrigger.StartBoundary.Split('T')[1].Substring(0, 5)
@@ -31,8 +36,7 @@ if ($existingTask) {
         $triggerTime = Read-Host "Enter time to run (HH:mm, 24hr format) [default: 02:00]" 
         $dayOfWeek = Read-Host "Enter day of week to run [default: Sunday]"
     }
-}
-else {
+} else {
     $triggerTime = "02:00"  # Default 2 AM
     $dayOfWeek = "Sunday"   # Default Sunday
 }
@@ -146,13 +150,4 @@ if ($response -eq "Y" -or $response -eq "y") {
     } catch {
         Write-Host "Failed to run backup: $_" -ForegroundColor Red
     }
-}
-
-# At the start after admin check
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path $scriptPath "scripts\load-environment.ps1")
-
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
 } 

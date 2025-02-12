@@ -4,7 +4,7 @@
 try {
     # At the start after admin check
     $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    . (Join-Path $scriptPath "scripts\load-environment.ps1")
+    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
@@ -13,9 +13,8 @@ try {
 
     Write-Host "Registering system update task..." -ForegroundColor Blue
 
-    # Get the current script directory
-    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $updateScript = Join-Path $scriptDir "update.ps1"
+    # Use environment variable for update script path
+    $updateScript = Join-Path $env:WINDOWS_CONFIG_PATH "Update-WindowsConfig.ps1"
 
     # Verify update script exists
     if (!(Test-Path $updateScript)) {
@@ -27,31 +26,9 @@ try {
     $taskDescription = "Monthly system update for packages, modules, and applications"
     $taskPath = "\Custom Tasks"
 
-    # Prompt for email settings
-    Write-Host "Configure update notification settings:" -ForegroundColor Blue
-    $fromAddress = Read-Host "Enter sender email address (Office 365)"
-    $toAddress = Read-Host "Enter recipient email address"
-    $emailPassword = Read-Host "Enter email app password" -AsSecureString
-
-    # Convert secure string to plain text for script
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
-    $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-
-    # Create task action with provided email settings
-    $actionScript = @"
-`$env:BACKUP_EMAIL_FROM = '$fromAddress'
-`$env:BACKUP_EMAIL_TO = '$toAddress'
-`$env:BACKUP_EMAIL_PASSWORD = '$plainPassword'
-& '$updateScript'
-"@
-
-    # Save the script to a temporary file
-    $tempScriptPath = Join-Path $scriptDir "temp_update.ps1"
-    $actionScript | Out-File -FilePath $tempScriptPath -Force
-
     # Create the task action to run PowerShell with the update script
     $action = New-ScheduledTaskAction -Execute "powershell.exe" `
-        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$tempScriptPath`"" `
+        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$updateScript`"" `
         -WorkingDirectory $scriptDir
 
     # Create monthly trigger (run at 3 AM on the first day of each month)
@@ -89,7 +66,8 @@ try {
         -Trigger $trigger `
         -Settings $settings `
         -Principal $principal `
-        -Description $taskDescription
+        -Description $taskDescription `
+        -Force
 
     # Verify task was created
     if ($task) {
@@ -107,11 +85,6 @@ try {
 } catch {
     Write-Host "Failed to register system update task: $_" -ForegroundColor Red
     exit 1
-} finally {
-    # Clean up temporary script
-    if (Test-Path $tempScriptPath) {
-        Remove-Item $tempScriptPath -Force
-    }
 }
 
 # Offer to run the update now

@@ -1,31 +1,114 @@
 # Requires admin privileges
 #Requires -RunAsAdministrator
 
+[CmdletBinding()]
 param(
+    [Parameter(Mandatory=$false)]
     [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsConfig",
     [switch]$NoScheduledTasks,
     [switch]$NoPrompt
 )
 
 try {
-    Write-Host "Installing Windows Configuration Scripts..." -ForegroundColor Blue
+    # Prompt for install location if not using default
+    if (!$NoPrompt) {
+        $response = Read-Host "Install to [$InstallPath]"
+        if ($response) {
+            $InstallPath = $response
+        }
+    }
 
-    # Create installation directory
+    # Create and validate installation directory
     if (!(Test-Path $InstallPath)) {
         New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
-        Write-Host "Created installation directory: $InstallPath" -ForegroundColor Green
+    }
+    
+    # Only copy files if installing to a different location
+    $currentDir = (Get-Item -Path (Get-Location).Path).FullName
+    $targetDir = (Get-Item -Path $InstallPath).FullName
+    if ($targetDir -ne $currentDir) {
+        # Create required directories first
+        $directories = @("backup", "restore", "setup", "tasks", "templates", "scripts")
+        foreach ($dir in $directories) {
+            $destDir = Join-Path $InstallPath $dir
+            if (!(Test-Path $destDir)) {
+                New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+            }
+        }
+        
+        # Copy files from each directory
+        foreach ($dir in $directories) {
+            $sourcePath = Join-Path $currentDir $dir
+            $destPath = Join-Path $InstallPath $dir
+            if (Test-Path $sourcePath) {
+                Get-ChildItem -Path $sourcePath -File | ForEach-Object {
+                    Copy-Item -Path $_.FullName -Destination $destPath -Force
+                }
+            }
+        }
+        
+        # Copy root files
+        Get-ChildItem -Path $currentDir -File | Where-Object { $_.Name -notlike ".*" } | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination $InstallPath -Force
+        }
+
+        Write-Host "Copied files to installation directory" -ForegroundColor Green
+    } else {
+        Write-Host "Already in installation directory, skipping copy" -ForegroundColor Yellow
+    }
+    
+    # Detect possible OneDrive locations
+    $possibleOneDrives = @(
+        "$env:USERPROFILE\OneDrive",
+        "$env:USERPROFILE\OneDrive - *"
+    )
+    $onedriveLocations = Get-Item -Path $possibleOneDrives -ErrorAction SilentlyContinue
+    
+    # Prompt for backup location
+    $backupRoot = ""
+    if ($onedriveLocations.Count -gt 0) {
+        Write-Host "`nDetected OneDrive locations:" -ForegroundColor Blue
+        for ($i=0; $i -lt $onedriveLocations.Count; $i++) {
+            Write-Host "[$i] $($onedriveLocations[$i].FullName)"
+        }
+        $selection = Read-Host "`nSelect OneDrive location [0-$($onedriveLocations.Count-1)]"
+        $onedrivePath = $onedriveLocations[$selection].FullName
+    } else {
+        $onedrivePath = Read-Host "Enter OneDrive location"
     }
 
-    # Copy all script files to installation directory
-    $scriptDirs = @("backup", "restore", "setup", "tasks", "templates", "scripts")
-    foreach ($dir in $scriptDirs) {
-        $targetDir = Join-Path $InstallPath $dir
-        if (!(Test-Path $targetDir)) {
-            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-        }
-        Copy-Item -Path ".\$dir\*" -Destination $targetDir -Recurse -Force
+    # Prompt for backup subdirectory
+    $backupDir = Read-Host "Enter backup directory name [backup]"
+    if ([string]::IsNullOrWhiteSpace($backupDir)) {
+        $backupDir = "backup"
     }
-    Copy-Item -Path ".\*.ps1" -Destination $InstallPath -Exclude "install.ps1" -Force
+    $backupRoot = Join-Path $onedrivePath $backupDir
+
+    # Create and populate windows.env
+    $windowsEnv = @"
+# Windows Configuration Environment Variables
+BACKUP_ROOT="$backupRoot"
+WINDOWS_CONFIG_PATH="$InstallPath"
+MACHINE_NAME="$env:COMPUTERNAME"
+"@
+    $windowsEnv | Out-File (Join-Path $InstallPath "windows.env") -Force
+
+    # Change to installation directory for remaining operations
+    Set-Location $InstallPath
+
+    # Set initial environment variables
+    $env:BACKUP_ROOT = $backupRoot
+    $env:WINDOWS_CONFIG_PATH = $InstallPath
+    $env:MACHINE_NAME = $env:COMPUTERNAME
+
+    # Now load the environment
+    . (Join-Path $InstallPath "scripts\load-environment.ps1")
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "Installing Windows Configuration Scripts..." -ForegroundColor Blue
 
     # Add installation directory to user's PATH
     $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
@@ -38,20 +121,6 @@ try {
     $profileDir = Split-Path $PROFILE -Parent
     if (!(Test-Path $profileDir)) {
         New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
-    }
-
-    # Add script directory to PowerShell profile
-    $profileContent = @"
-# Windows Configuration Scripts
-`$env:WINDOWS_CONFIG_PATH = "$InstallPath"
-"@
-
-    if (Test-Path $PROFILE) {
-        if (!(Get-Content $PROFILE | Select-String "WINDOWS_CONFIG_PATH")) {
-            Add-Content $PROFILE $profileContent
-        }
-    } else {
-        Set-Content $PROFILE $profileContent
     }
 
     # Register scheduled tasks if not disabled
@@ -140,12 +209,6 @@ try {
         }
     }
 
-    # Add to install.ps1 after creating installation directory
-    # Create windows.env from template
-    $envTemplate = Get-Content (Join-Path $InstallPath "templates\windows.env.template")
-    $envFile = Join-Path $InstallPath "windows.env"
-    Set-Content -Path $envFile -Value $envTemplate
-
     # Update PowerShell profile to load windows.env
     $profileContent = @"
 # Windows Configuration Scripts
@@ -159,81 +222,17 @@ if (Test-Path `$envFile) {
 }
 "@
 
+    if (Test-Path $PROFILE) {
+        if (!(Get-Content $PROFILE | Select-String "WINDOWS_CONFIG_PATH")) {
+            Add-Content $PROFILE $profileContent
+        }
+    } else {
+        Set-Content $PROFILE $profileContent
+    }
+
     Write-Host "`nInstallation completed successfully!" -ForegroundColor Green
     Write-Host "Installation path: $InstallPath" -ForegroundColor Yellow
     Write-Host "Please restart PowerShell for PATH changes to take effect" -ForegroundColor Yellow
-
-    # After creating windows.env
-    $configTemplate = Get-Content (Join-Path $InstallPath "templates\config.env.template")
-    $sharedConfigPath = Join-Path "$env:BACKUP_ROOT\shared" "config.env"
-    $machineConfigPath = Join-Path "$env:BACKUP_ROOT\$env:MACHINE_NAME" "config.env"
-
-    # Function to create config file
-    function New-ConfigurationFile {
-        param (
-            [string]$ConfigPath,
-            [string]$ConfigType
-        )
-        
-        # Create directory if it doesn't exist
-        $configDir = Split-Path $ConfigPath -Parent
-        if (!(Test-Path $configDir)) {
-            New-Item -ItemType Directory -Path $configDir -Force | Out-Null
-        }
-
-        # Prompt for email configuration
-        Write-Host "`nConfigure $ConfigType email notifications:" -ForegroundColor Blue
-        $fromAddress = Read-Host "Enter sender email address (Office 365)"
-        $toAddress = Read-Host "Enter recipient email address"
-        $emailPassword = Read-Host "Enter email app password" -AsSecureString
-
-        # Convert secure string to plain text
-        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
-        $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-
-        # Update template with provided values
-        $configContent = $configTemplate -replace 'your-email@domain.com', $fromAddress
-        $configContent = $configContent -replace 'your-app-password', $plainPassword
-        $configContent = $configContent -replace 'BACKUP_EMAIL_TO=".*"', "BACKUP_EMAIL_TO=`"$toAddress`""
-
-        # Save config.env
-        $configContent | Out-File $ConfigPath -Force
-        Write-Host "Configuration file created at: $ConfigPath" -ForegroundColor Green
-    }
-
-    # Check for existing configurations
-    if (!(Test-Path $sharedConfigPath)) {
-        Write-Host "`nNo shared configuration found." -ForegroundColor Yellow
-        $response = Read-Host "Would you like to create a shared configuration? (Y/N)"
-        
-        if ($response -eq "Y" -or $response -eq "y") {
-            New-ConfigurationFile -ConfigPath $sharedConfigPath -ConfigType "shared"
-        } else {
-            $response = Read-Host "Would you like to create a machine-specific configuration? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                New-ConfigurationFile -ConfigPath $machineConfigPath -ConfigType "machine-specific"
-            } else {
-                Write-Host "No configuration file created. Some features may be limited." -ForegroundColor Yellow
-            }
-        }
-    } else {
-        Write-Host "`nShared configuration found at: $sharedConfigPath" -ForegroundColor Green
-        $response = Read-Host "Would you like to create a machine-specific configuration? (Y/N)"
-        
-        if ($response -eq "Y" -or $response -eq "y") {
-            if (Test-Path $machineConfigPath) {
-                Write-Host "Machine-specific configuration already exists at: $machineConfigPath" -ForegroundColor Yellow
-                $response = Read-Host "Would you like to overwrite it? (Y/N)"
-                if ($response -eq "Y" -or $response -eq "y") {
-                    New-ConfigurationFile -ConfigPath $machineConfigPath -ConfigType "machine-specific"
-                }
-            } else {
-                New-ConfigurationFile -ConfigPath $machineConfigPath -ConfigType "machine-specific"
-            }
-        } else {
-            Write-Host "Using shared configuration file" -ForegroundColor Green
-        }
-    }
 
 } catch {
     Write-Host "Installation failed: $_" -ForegroundColor Red
