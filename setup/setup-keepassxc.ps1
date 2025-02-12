@@ -52,16 +52,33 @@ try {
         [Environment]::SetEnvironmentVariable('KEEPASSXC_DB', $dbPath, 'User')
 
         # Create desktop shortcut
-        $WshShell = New-Object -ComObject WScript.Shell
-        $desktopPath = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop", "KeePassXC.lnk")
-        $Shortcut = $WshShell.CreateShortcut($desktopPath)
-        $Shortcut.TargetPath = "keepassxc"
-        $Shortcut.Arguments = $dbPath
-        $Shortcut.Save()
+        try {
+            $WshShell = New-Object -ComObject WScript.Shell
+            $desktopPath = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop", "KeePassXC.lnk")
+            
+            # Verify KeePassXC is in PATH
+            $keepassPath = (Get-Command keepassxc -ErrorAction SilentlyContinue).Source
+            if (!$keepassPath) {
+                $keepassPath = "${env:ProgramFiles}\KeePassXC\KeePassXC.exe"
+                if (!(Test-Path $keepassPath)) {
+                    throw "KeePassXC executable not found. Please ensure it's installed correctly."
+                }
+            }
+            
+            $Shortcut = $WshShell.CreateShortcut($desktopPath)
+            $Shortcut.TargetPath = $keepassPath
+            $Shortcut.Arguments = "`"$dbPath`""
+            $Shortcut.WorkingDirectory = Split-Path $keepassPath -Parent
+            $Shortcut.Save()
+            
+            Write-Host "Desktop shortcut created successfully" -ForegroundColor Green
+        } catch {
+            Write-Host "Warning: Failed to create desktop shortcut: $_" -ForegroundColor Yellow
+            Write-Host "You can manually create a shortcut to KeePassXC with the database path: $dbPath" -ForegroundColor Yellow
+        }
 
         Write-Host "`nKeePassXC setup completed!" -ForegroundColor Green
         Write-Host "Database location: $dbPath" -ForegroundColor Yellow
-        Write-Host "Desktop shortcut created" -ForegroundColor Yellow
     } else {
         Write-Host "No database location provided. Setup cancelled." -ForegroundColor Yellow
     }

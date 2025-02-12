@@ -84,7 +84,17 @@ try {
 
 # Minimize defender notifications
 Write-Host "Minimizing defender notifications..." -ForegroundColor Yellow
-Set-MpPreference -DisableNotifications $true
+# Suppress notifications using UI settings registry key
+$path = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance"
+if (!(Test-Path $path)) {
+    New-Item -Path $path -Force | Out-Null
+}
+Set-ItemProperty -Path $path -Name "Enabled" -Value 0 -Type DWord
+
+# Also disable enhanced notifications if supported
+if ((Get-Command Set-MpPreference).Parameters.Keys -contains "DisableEnhancedNotifications") {
+    Set-MpPreference -DisableEnhancedNotifications $true
+}
 
 Write-Host "Windows Defender configuration completed!" -ForegroundColor Green
 

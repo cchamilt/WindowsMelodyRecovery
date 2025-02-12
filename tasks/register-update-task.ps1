@@ -32,7 +32,7 @@ try {
         -WorkingDirectory $env:WINDOWS_CONFIG_PATH
 
     # Create monthly trigger (run at 3 AM on the first day of each month)
-    $trigger = New-ScheduledTaskTrigger -Monthly -DaysOfMonth 1 -At 3am
+    $trigger = New-ScheduledTaskTrigger -At 3am -DaysOfMonth @(1) -Monthly
 
     # Task settings
     $settings = New-ScheduledTaskSettingsSet `
