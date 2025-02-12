@@ -10,60 +10,75 @@ param(
 )
 
 try {
-    # Prompt for install location if not using default
-    if (!$NoPrompt) {
-        $response = Read-Host "Install to [$InstallPath]"
-        if ($response) {
-            $InstallPath = $response
-        }
+    # At the start of the script
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    . (Join-Path $scriptPath "scripts\load-environment.ps1")
+
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
     }
 
-    # Create and validate installation directory
-    if (!(Test-Path $InstallPath)) {
-        New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
-    }
-    
-    # Only copy files if installing to a different location
-    $currentDir = (Get-Item -Path (Get-Location).Path).FullName
-    $targetDir = (Get-Item -Path $InstallPath).FullName
-    if ($targetDir -ne $currentDir) {
-        # Get source and destination root paths
-        $sourceRoot = $currentDir
-        $destRoot = $targetDir
-        
-        # Only proceed if paths are completely different
-        if (!$destRoot.StartsWith($sourceRoot) -and !$sourceRoot.StartsWith($destRoot)) {
-            # Create required directories first
-            $directories = @("backup", "restore", "setup", "tasks", "templates", "scripts")
-            foreach ($dir in $directories) {
-                $destDir = Join-Path $InstallPath $dir
-                if (!(Test-Path $destDir)) {
-                    New-Item -ItemType Directory -Path $destDir -Force | Out-Null
-                }
+    # Check if running from installed location
+    if ($scriptPath -eq $env:WINDOWS_CONFIG_PATH) {
+        Write-Host "Running from installed location: $env:WINDOWS_CONFIG_PATH" -ForegroundColor Green
+        $InstallPath = $env:WINDOWS_CONFIG_PATH
+    } else {
+        # Prompt for install location if not using default
+        if (!$NoPrompt) {
+            $response = Read-Host "Install to [$InstallPath]"
+            if ($response) {
+                $InstallPath = $response
             }
+        }
+
+        # Create and validate installation directory
+        if (!(Test-Path $InstallPath)) {
+            New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+        }
+        
+        # Only copy files if installing to a different location
+        $currentDir = (Get-Item -Path (Get-Location).Path).FullName
+        $targetDir = (Get-Item -Path $InstallPath).FullName
+        if ($targetDir -ne $currentDir) {
+            # Get source and destination root paths
+            $sourceRoot = $currentDir
+            $destRoot = $targetDir
             
-            # Copy files from each directory
-            foreach ($dir in $directories) {
-                $sourcePath = Join-Path $sourceRoot $dir
-                $destPath = Join-Path $destRoot $dir
-                if (Test-Path $sourcePath) {
-                    Get-ChildItem -Path $sourcePath -File | ForEach-Object {
-                        Copy-Item -Path $_.FullName -Destination $destPath -Force
+            # Only proceed if paths are completely different
+            if (!$destRoot.StartsWith($sourceRoot) -and !$sourceRoot.StartsWith($destRoot)) {
+                # Create required directories first
+                $directories = @("backup", "restore", "setup", "tasks", "templates", "scripts")
+                foreach ($dir in $directories) {
+                    $destDir = Join-Path $InstallPath $dir
+                    if (!(Test-Path $destDir)) {
+                        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
                     }
                 }
-            }
-            
-            # Copy root files
-            Get-ChildItem -Path $sourceRoot -File | Where-Object { $_.Name -notlike ".*" } | ForEach-Object {
-                Copy-Item -Path $_.FullName -Destination $destRoot -Force
-            }
+                
+                # Copy files from each directory
+                foreach ($dir in $directories) {
+                    $sourcePath = Join-Path $sourceRoot $dir
+                    $destPath = Join-Path $destRoot $dir
+                    if (Test-Path $sourcePath) {
+                        Get-ChildItem -Path $sourcePath -File | ForEach-Object {
+                            Copy-Item -Path $_.FullName -Destination $destPath -Force
+                        }
+                    }
+                }
+                
+                # Copy root files
+                Get-ChildItem -Path $sourceRoot -File | Where-Object { $_.Name -notlike ".*" } | ForEach-Object {
+                    Copy-Item -Path $_.FullName -Destination $destRoot -Force
+                }
 
-            Write-Host "Copied files to installation directory" -ForegroundColor Green
+                Write-Host "Copied files to installation directory" -ForegroundColor Green
+            } else {
+                Write-Host "Source and destination paths overlap, skipping copy" -ForegroundColor Yellow
+            }
         } else {
-            Write-Host "Source and destination paths overlap, skipping copy" -ForegroundColor Yellow
+            Write-Host "Already in installation directory, skipping copy" -ForegroundColor Yellow
         }
-    } else {
-        Write-Host "Already in installation directory, skipping copy" -ForegroundColor Yellow
     }
     
     # Detect possible OneDrive locations
