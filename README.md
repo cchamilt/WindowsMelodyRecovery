@@ -4,7 +4,7 @@ Inspired by the recent instability of Windows 11, we are trying to replicate a d
 
 The default One Drive location is `C:\Users\<username>\OneDrive\backup\shared` for common shared files.
 
-Backup files are stored in `C:\Users<username>\OneDrive\backup\<machine name>`
+Backup files are stored in `C:\Users\<username>\OneDrive\backup\<machine name>`
 
 If during the recovery process the machine name directory is not found, it will use the shared folder.  Please see the LIMITS.md file for a better idea of what can be restored.
 
