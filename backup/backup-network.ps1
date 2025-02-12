@@ -93,7 +93,19 @@ function Backup-NetworkSettings {
         }
         return $false
     } catch {
-        Write-Host "Failed to backup Network Settings: $_" -ForegroundColor Red
+        $errorRecord = $_
+        $errorMessage = @(
+            "Failed to backup [Feature]"
+            "Error Message: $($errorRecord.Exception.Message)"
+            "Error Type: $($errorRecord.Exception.GetType().FullName)"
+            "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
+            "Script Name: $($errorRecord.InvocationInfo.ScriptName)"
+            "Statement: $($errorRecord.InvocationInfo.Line.Trim())"
+            if ($errorRecord.Exception.StackTrace) { "Stack Trace: $($errorRecord.Exception.StackTrace)" }
+            if ($errorRecord.Exception.InnerException) { "Inner Exception: $($errorRecord.Exception.InnerException.Message)" }
+        ) -join "`n"
+        
+        Write-Host $errorMessage -ForegroundColor Red
         return $false
     }
 }
