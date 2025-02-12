@@ -3,7 +3,9 @@
 This document describes what each backup script captures and restores.
 
 ## System Settings
+
 `backup-system-settings.ps1`
+
 - System-wide Windows settings
 - Performance and memory settings
 - Environment variables
@@ -19,7 +21,9 @@ This document describes what each backup script captures and restores.
 - Mapped network drives
 
 ## Applications
+
 `backup-applications.ps1`
+
 - Installed applications list (winget, chocolatey, scoop)
 - Package manager configurations
 - Application-specific settings
@@ -27,7 +31,9 @@ This document describes what each backup script captures and restores.
 - Custom installation paths
 
 ## Default Applications
+
 `backup-defaultapps.ps1`
+
 - Default browser settings
 - Default email client
 - Default media players
@@ -38,7 +44,9 @@ This document describes what each backup script captures and restores.
 - System-wide default applications
 
 ## Browser Settings
+
 `backup-browsers.ps1`
+
 - Browser profiles for Chrome, Edge, Firefox, Brave, and Vivaldi
 - Bookmarks and favorites
 - Browser preferences and settings
@@ -50,7 +58,9 @@ This document describes what each backup script captures and restores.
 ## Office Applications
 
 ### OneNote Settings
+
 `backup-onenote.ps1`
+
 - Application settings and preferences
 - Custom templates
 - Quick access locations
@@ -60,7 +70,9 @@ This document describes what each backup script captures and restores.
 - User interface customizations
 
 ### Outlook Settings
+
 `backup-outlook.ps1`
+
 - Account settings and profiles (excluding PST files)
 - View preferences and customizations
 - Signatures
@@ -71,7 +83,9 @@ This document describes what each backup script captures and restores.
 - Security settings
 
 ### Word Settings
+
 `backup-word.ps1`
+
 - Custom templates
 - AutoCorrect settings
 - Custom dictionaries
@@ -82,7 +96,9 @@ This document describes what each backup script captures and restores.
 - User preferences and settings
 
 ### Excel Settings
+
 `backup-excel.ps1`
+
 - Custom templates and workbooks
 - Add-ins
 - AutoCorrect settings
@@ -93,7 +109,9 @@ This document describes what each backup script captures and restores.
 - User preferences and settings
 
 ### Visio Settings
+
 `backup-visio.ps1`
+
 - Custom templates and stencils
 - Add-ins
 - Custom themes
@@ -106,7 +124,9 @@ This document describes what each backup script captures and restores.
 ## Security and Access
 
 ### KeePassXC Settings
+
 `backup-keepassxc.ps1`
+
 - Application settings
 - Custom themes
 - Window layouts
@@ -116,14 +136,18 @@ This document describes what each backup script captures and restores.
 - Recent databases list
 
 ### SSH Settings
+
 `backup-ssh.ps1`
+
 - SSH keys
 - Known hosts
 - SSH config files
 - Custom SSH settings
 
 ### WSL SSH Settings
+
 `backup-wsl-ssh.ps1`
+
 - WSL-specific SSH configurations
 - Keys and known hosts within WSL
 - Permissions and access controls
@@ -131,7 +155,9 @@ This document describes what each backup script captures and restores.
 ## Windows Features
 
 ### Explorer Settings
+
 `backup-explorer.ps1`
+
 - File Explorer preferences
 - View settings and options
 - Folder options
@@ -143,7 +169,9 @@ This document describes what each backup script captures and restores.
 - Thumbnail cache settings
 
 ### Keyboard Settings
+
 `backup-keyboard.ps1`
+
 - Keyboard layouts
 - Input methods
 - Keyboard repeat delay and rate
@@ -154,7 +182,9 @@ This document describes what each backup script captures and restores.
 - Hardware keyboard settings
 
 ### Start Menu Settings
+
 `backup-startmenu.ps1`
+
 - Start menu layout
 - Pinned applications
 - Folder options
@@ -165,7 +195,9 @@ This document describes what each backup script captures and restores.
 - Jump lists
 
 ### Remote Desktop Settings
+
 `backup-rdp.ps1`
+
 - RDP connection profiles
 - Display configurations
 - Local resource settings
@@ -176,7 +208,9 @@ This document describes what each backup script captures and restores.
 - Clipboard sharing options
 
 ### Terminal Settings
+
 `backup-terminal.ps1`
+
 - Windows Terminal profiles
 - Color schemes
 - Key bindings
@@ -189,7 +223,9 @@ This document describes what each backup script captures and restores.
 - Command line arguments
 
 ### PowerShell Settings
+
 `backup-powershell.ps1`
+
 - PowerShell profiles
 - Module configurations
 - PSReadLine settings
@@ -197,7 +233,9 @@ This document describes what each backup script captures and restores.
 - Console preferences
 
 ### WSL Settings
+
 `backup-wsl.ps1`
+
 - WSL distribution configurations
 - Network settings
 - Mount points
@@ -207,7 +245,9 @@ This document describes what each backup script captures and restores.
 ## Additional Settings
 
 ### Display Settings
+
 `backup-display.ps1`
+
 - Monitor configurations
 - Display scaling
 - Color profiles
@@ -215,7 +255,9 @@ This document describes what each backup script captures and restores.
 - HDR settings
 
 ### Network Settings
+
 `backup-network.ps1`
+
 - Network adapter configurations
 - Wi-Fi profiles
 - VPN connections
@@ -223,7 +265,9 @@ This document describes what each backup script captures and restores.
 - Network drive mappings
 
 ### Power Settings
+
 `backup-power.ps1`
+
 - Power plans
 - Sleep settings
 - Battery configurations
@@ -231,7 +275,9 @@ This document describes what each backup script captures and restores.
 - Display and sleep timers
 
 ### Sound Settings
+
 `backup-sound.ps1`
+
 - Audio device configurations
 - Default devices
 - Sound schemes
@@ -239,7 +285,9 @@ This document describes what each backup script captures and restores.
 - Communication settings
 
 ### Touchpad Settings
+
 `backup-touchpad.ps1`
+
 - Touchpad sensitivity
 - Gesture configurations
 - Multi-finger gestures
@@ -252,7 +300,9 @@ This document describes what each backup script captures and restores.
 - Custom gesture mappings
 
 ### Touchscreen Settings
+
 `backup-touchscreen.ps1`
+
 - Touch sensitivity
 - Palm rejection settings
 - Multi-touch gestures
@@ -265,7 +315,9 @@ This document describes what each backup script captures and restores.
 - Custom gesture assignments
 
 ### VPN Settings
+
 `backup-vpn.ps1`
+
 - VPN profiles
 - Connection settings
 - Authentication configurations
@@ -278,7 +330,9 @@ This document describes what each backup script captures and restores.
 - Traffic routing rules
 
 ## Windows Features Settings
+
 `backup-windows-features.ps1`
+
 - Installed Windows features
 - Optional components
 - Windows capabilities
@@ -289,6 +343,7 @@ This document describes what each backup script captures and restores.
 - Development features
 
 ## Notes
+
 - All backup scripts exclude temporary files and cache data
 - Personal data files (documents, downloads, etc.) are not included
 - Some settings may require application restart to take effect after restore
