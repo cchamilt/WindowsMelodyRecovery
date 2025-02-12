@@ -38,7 +38,7 @@ try {
         }
         
         # Only copy files if installing to a different location
-        $currentDir = (Get-Item -Path (Get-Location).Path).FullName
+        $currentDir = Split-Path -Path $MyInvocation.MyCommand.Definition
         $targetDir = (Get-Item -Path $InstallPath).FullName
         if ($targetDir -ne $currentDir) {
             # Get source and destination root paths
@@ -108,6 +108,17 @@ try {
     }
     $backupRoot = Join-Path $onedrivePath $backupDir
 
+    # Create backup root if it doesn't exist
+    if (!(Test-Path $backupRoot)) {
+        New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+    }
+
+    # Create machine-specific backup directory
+    $machineBackupDir = Join-Path $backupRoot $env:COMPUTERNAME
+    if (!(Test-Path $machineBackupDir)) {
+        New-Item -ItemType Directory -Path $machineBackupDir -Force | Out-Null
+    }
+
     # Create and populate windows.env
     $windowsEnv = @"
 # Windows Configuration Environment Variables
@@ -117,6 +128,12 @@ MACHINE_NAME="$env:COMPUTERNAME"
 "@
     $windowsEnv | Out-File (Join-Path $InstallPath "windows.env") -Force
 
+    # Create shared backup directory
+    $sharedBackupDir = Join-Path $backupRoot "shared"
+    if (!(Test-Path $sharedBackupDir)) {
+        New-Item -ItemType Directory -Path $sharedBackupDir -Force | Out-Null
+    }
+    
     # Create config.env with email settings
     $machineConfigPath = Join-Path $machineBackupDir "config.env"
     $sharedConfigPath = Join-Path $sharedBackupDir "config.env"
@@ -125,53 +142,38 @@ MACHINE_NAME="$env:COMPUTERNAME"
     $machineConfigExists = Test-Path $machineConfigPath
     $sharedConfigExists = Test-Path $sharedConfigPath
     
-    if ($sharedConfigExists) {
-        if ($machineConfigExists) {
-            $response = Read-Host "`nMachine-specific config.env exists. Would you like to overwrite it with shared config? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                Copy-Item $sharedConfigPath $machineConfigPath -Force
-                Write-Host "Copied shared config.env to machine directory" -ForegroundColor Green
-                return
-            }
-        } else {
-            $response = Read-Host "`nShared config.env found. Would you like to use it instead of creating a new one? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                Copy-Item $sharedConfigPath $machineConfigPath -Force
-                Write-Host "Copied shared config.env to machine directory" -ForegroundColor Green
-                return
-            }
-        }
+    $createConfig = $true
+    if ($machineConfigExists) {
+        $response = Read-Host "`nMachine-specific config.env exists. Would you like to recreate it? (Y/N)"
+        $createConfig = $response -eq "Y" -or $response -eq "y"
+    } elseif ($sharedConfigExists) {
+        Write-Host "`nShared config.env exists." -ForegroundColor Yellow
+        $response = Read-Host "Would you like to create a machine-specific config? (Y/N)"
+        $createConfig = $response -eq "Y" -or $response -eq "y"
     }
 
-    Write-Host "`nConfigure email notification settings:" -ForegroundColor Blue
-    $fromAddress = Read-Host "Enter sender email address (Office 365)"
-    $toAddress = Read-Host "Enter recipient email address"
-    $emailPassword = Read-Host "Enter email app password" -AsSecureString
-    
-    # Convert secure string to plain text
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
-    $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    
-    # Create config.env content
-    $configEnv = @"
+    if ($createConfig) {
+        # Only prompt for email settings if we need to create a new machine config
+        Write-Host "`nConfigure email notification settings:" -ForegroundColor Blue
+        $fromAddress = Read-Host "Enter sender email address (Office 365)"
+        $toAddress = Read-Host "Enter recipient email address"
+        $emailPassword = Read-Host "Enter email app password" -AsSecureString
+        
+        # Convert secure string to plain text
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
+        $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+
+        # Create config.env content
+        $configEnv = @"
 # Email notification settings
 BACKUP_EMAIL_FROM="$fromAddress"
 BACKUP_EMAIL_TO="$toAddress"
 BACKUP_EMAIL_PASSWORD="$plainPassword"
 "@
-    
-    # Create machine-specific and shared backup directories
-    $machineBackupDir = Join-Path $backupRoot $env:COMPUTERNAME
-    $sharedBackupDir = Join-Path $backupRoot "shared"
-    
-    foreach ($dir in @($machineBackupDir, $sharedBackupDir)) {
-        if (!(Test-Path $dir)) {
-            New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        }
+        
+        # Save config.env to machine-specific backup directory
+        $configEnv | Out-File $machineConfigPath -Force
     }
-    
-    # Save config.env to machine-specific backup directory
-    $configEnv | Out-File (Join-Path $machineBackupDir "config.env") -Force
 
     # Change to installation directory for remaining operations
     Set-Location $InstallPath
@@ -321,6 +323,13 @@ if (Test-Path `$envFile) {
     Write-Host "Please restart PowerShell for PATH changes to take effect" -ForegroundColor Yellow
 
 } catch {
-    Write-Host "Installation failed: $_" -ForegroundColor Red
+    Write-Host "`nInstallation failed!" -ForegroundColor Red
+    Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error Type: $($_.Exception.GetType().FullName)" -ForegroundColor Red
+    Write-Host "Line Number: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Line: $($_.InvocationInfo.Line)" -ForegroundColor Red
+    Write-Host "Script Name: $($_.InvocationInfo.ScriptName)" -ForegroundColor Red
+    Write-Host "Stack Trace:" -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1
 }

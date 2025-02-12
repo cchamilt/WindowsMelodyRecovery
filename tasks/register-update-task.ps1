@@ -39,7 +39,6 @@ try {
         -At 3am
 
     # Modify trigger to run on day 1 of each month
-    $trigger.Repetition.Duration = $null
     $trigger.Repetition.Interval = "P1M"
 
     # Task settings

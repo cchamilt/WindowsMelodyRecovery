@@ -13,10 +13,25 @@ if (!(Load-Environment)) {
 try {
     Write-Host "Setting up KeePassXC..." -ForegroundColor Blue
 
-    # Install KeePassXC if not already installed
-    if (!(Get-Command keepassxc -ErrorAction SilentlyContinue)) {
-        Write-Host "Installing KeePassXC..." -ForegroundColor Yellow
-        winget install -e --id KeePassXC.KeePassXC
+    # Install KeePassXC
+    Write-Host "Installing KeePassXC..." -ForegroundColor Yellow
+    try {
+        # Try winget first
+        $wingetResult = winget list KeePassXC
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "KeePassXC not found, installing..." -ForegroundColor Yellow
+            winget install -e --id KeePassXCTeam.KeePassXC
+        } else {
+            Write-Host "KeePassXC is already installed" -ForegroundColor Green
+        }
+    } catch {
+        # Fallback to chocolatey if winget fails
+        if (Get-Command choco -ErrorAction SilentlyContinue) {
+            Write-Host "Attempting to install via Chocolatey..." -ForegroundColor Yellow
+            choco install keepassxc -y
+        } else {
+            throw "Failed to install KeePassXC. Please install manually."
+        }
     }
 
     # Get database location from user
@@ -73,7 +88,13 @@ try {
             
             Write-Host "Desktop shortcut created successfully" -ForegroundColor Green
         } catch {
-            Write-Host "Warning: Failed to create desktop shortcut: $_" -ForegroundColor Yellow
+            Write-Host "Warning: Failed to create desktop shortcut" -ForegroundColor Yellow
+            Write-Host "Error details:" -ForegroundColor Yellow
+            Write-Host "  Type: $($_.Exception.GetType().FullName)" -ForegroundColor Yellow
+            Write-Host "  Message: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "  Target Path: $keepassPath" -ForegroundColor Yellow
+            Write-Host "  Shortcut Path: $desktopPath" -ForegroundColor Yellow
+            Write-Host "  Working Directory: $(Split-Path $keepassPath -Parent)" -ForegroundColor Yellow
             Write-Host "You can manually create a shortcut to KeePassXC with the database path: $dbPath" -ForegroundColor Yellow
         }
 
