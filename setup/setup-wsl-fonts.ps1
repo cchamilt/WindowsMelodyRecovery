@@ -121,16 +121,37 @@ try {
     # Configure WSL to use the fonts
     Write-Host "`nConfiguring WSL to use the fonts..." -ForegroundColor Yellow
     
-    # Create WSL fonts directory and copy fonts
-    wsl --exec bash -c "sudo mkdir -p $wslFontsDir"
-    Get-ChildItem -Path $fontsDir -Filter "*.ttf" | ForEach-Object {
-        $fontName = $_.Name
-        $fontPath = $_.FullName
-        wsl --exec bash -c "sudo cp `"$(($fontPath -replace '\\', '/') -replace ':', '')`" $wslFontsDir/"
-    }
-
-    # Update font cache in WSL
-    wsl --exec bash -c "sudo fc-cache -f -v"
+    # Create a temporary script to handle font copying in WSL
+    $tempScript = Join-Path $env:TEMP "copy-fonts.sh"
+    $windowsFontsDir = "/mnt/" + (($fontsDir -replace '\\', '/') -replace ':', '').ToLower()
+    $wslTempScript = "/mnt/" + (($tempScript -replace '\\', '/') -replace ':', '').ToLower()
+    
+    $scriptContent = @(
+        "#!/bin/bash",
+        "set -e",
+        "",
+        "# Create fonts directory",
+        "mkdir -p $wslFontsDir",
+        "",
+        "# Copy all TTF fonts",
+        "find `"$windowsFontsDir`" -name `"*.ttf`" -type f -exec cp {} $wslFontsDir/ \;",
+        "",
+        "# Set permissions",
+        "chmod 644 $wslFontsDir/*.ttf",
+        "",
+        "# Update font cache",
+        "fc-cache -f -v"
+    ) -join "`n"
+    
+    # Create UTF8 encoding without BOM
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($tempScript, $scriptContent, $utf8NoBom)
+    
+    # Make script executable and run it with sudo
+    wsl --exec bash -c "chmod +x '$wslTempScript' && sudo '$wslTempScript'"
+    
+    # Cleanup temporary script
+    Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
 
     Write-Host "`nWSL fonts configuration completed!" -ForegroundColor Green
     Write-Host "Note: You may need to restart your WSL terminal to see the changes" -ForegroundColor Yellow

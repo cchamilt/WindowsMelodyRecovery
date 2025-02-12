@@ -38,9 +38,6 @@ try {
         -DaysOfWeek Monday `
         -At 3am
 
-    # Modify trigger to run on day 1 of each month
-    $trigger.Repetition.Interval = "P1M"
-
     # Task settings
     $settings = New-ScheduledTaskSettingsSet `
         -AllowStartIfOnBatteries `
