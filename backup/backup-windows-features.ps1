@@ -16,7 +16,7 @@ if (!$BackupRootPath) {
     $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
 }
 
-function Backup-WindowsFeaturesSettings {
+function Backup-WindowsFeatures {
     param(
         [Parameter(Mandatory=$true)]
         [string]$BackupRootPath

@@ -1,5 +1,6 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$backupPath = Join-Path $scriptPath "backup"
 . (Join-Path $scriptPath "scripts\load-environment.ps1")
 
 if (!(Load-Environment)) {
@@ -53,7 +54,7 @@ $backupFunctions = @(
     @{ Name = "Keyboard Settings"; Function = "Backup-KeyboardSettings"; Script = "backup-keyboard.ps1" },
     @{ Name = "Start Menu Settings"; Function = "Backup-StartMenuSettings"; Script = "backup-startmenu.ps1" },
     @{ Name = "WSL Settings"; Function = "Backup-WSLSettings"; Script = "backup-wsl.ps1" },
-    @{ Name = "Default App Settings"; Function = "Backup-DefaultAppSettings"; Script = "backup-defaultapps.ps1" },
+    @{ Name = "Default Apps Settings"; Function = "Backup-DefaultAppsSettings"; Script = "backup-defaultapps.ps1" },
     @{ Name = "Network Settings"; Function = "Backup-NetworkSettings"; Script = "backup-network.ps1" },
     @{ Name = "Remote Desktop Settings"; Function = "Backup-RDPSettings"; Script = "backup-rdp.ps1" },
     @{ Name = "Azure VPN Settings"; Function = "Backup-VPNSettings"; Script = "backup-vpn.ps1" },
@@ -93,21 +94,39 @@ try {
     # Start transcript to capture all console output
     Start-Transcript -Path $tempLogFile -Append
 
-    # Source all backup scripts
+    # Source all backup scripts first
     foreach ($backup in $backupFunctions) {
         try {
-            . (Join-Path $scriptPath "backup\$($backup.Script)")
+            $scriptFile = Join-Path $backupPath $backup.Script
+            if (Test-Path $scriptFile) {
+                # Just dot-source the script normally
+                . $scriptFile
+                # Verify the function was loaded
+                if (!(Get-Command $backup.Function -ErrorAction SilentlyContinue)) {
+                    throw "Function $($backup.Function) was not defined in $($backup.Script)"
+                }
+            } else {
+                Write-Host "Failed to source $($backup.Script) : $scriptFile not found" -ForegroundColor Red
+                $backupErrors += "Failed to source $($backup.Script) : $scriptFile not found"
+                continue
+            }
         } catch {
             $errorMessage = "Failed to source $($backup.Script) : $_"
             Write-Host $errorMessage -ForegroundColor Red
             $backupErrors += $errorMessage
+            continue
         }
     }
 
     # Run all backup functions with backup path
     foreach ($backup in $backupFunctions) {
+        # Skip if function is not available
+        if (!(Get-Command $backup.Function -ErrorAction SilentlyContinue)) {
+            continue
+        }
         try {
-            & $backup.Function -BackupRootPath $MACHINE_BACKUP
+            # Pass the backup path to the function
+            & $backup.Function -BackupRootPath $MACHINE_BACKUP -ErrorAction Stop
         } catch {
             $errorMessage = "Failed to backup $($backup.Name): $_"
             Write-Host $errorMessage -ForegroundColor Red
