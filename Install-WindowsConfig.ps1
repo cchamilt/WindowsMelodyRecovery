@@ -103,6 +103,31 @@ MACHINE_NAME="$env:COMPUTERNAME"
     $windowsEnv | Out-File (Join-Path $InstallPath "windows.env") -Force
 
     # Create config.env with email settings
+    $machineConfigPath = Join-Path $machineBackupDir "config.env"
+    $sharedConfigPath = Join-Path $sharedBackupDir "config.env"
+    
+    # Check for existing configs
+    $machineConfigExists = Test-Path $machineConfigPath
+    $sharedConfigExists = Test-Path $sharedConfigPath
+    
+    if ($sharedConfigExists) {
+        if ($machineConfigExists) {
+            $response = Read-Host "`nMachine-specific config.env exists. Would you like to overwrite it with shared config? (Y/N)"
+            if ($response -eq "Y" -or $response -eq "y") {
+                Copy-Item $sharedConfigPath $machineConfigPath -Force
+                Write-Host "Copied shared config.env to machine directory" -ForegroundColor Green
+                return
+            }
+        } else {
+            $response = Read-Host "`nShared config.env found. Would you like to use it instead of creating a new one? (Y/N)"
+            if ($response -eq "Y" -or $response -eq "y") {
+                Copy-Item $sharedConfigPath $machineConfigPath -Force
+                Write-Host "Copied shared config.env to machine directory" -ForegroundColor Green
+                return
+            }
+        }
+    }
+
     Write-Host "`nConfigure email notification settings:" -ForegroundColor Blue
     $fromAddress = Read-Host "Enter sender email address (Office 365)"
     $toAddress = Read-Host "Enter recipient email address"
