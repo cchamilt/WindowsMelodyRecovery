@@ -29,7 +29,7 @@ try {
     # Create the task action to run PowerShell with the update script
     $action = New-ScheduledTaskAction -Execute "powershell.exe" `
         -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$updateScript`"" `
-        -WorkingDirectory $scriptDir
+        -WorkingDirectory $env:WINDOWS_CONFIG_PATH
 
     # Create monthly trigger (run at 3 AM on the first day of each month)
     $trigger = New-ScheduledTaskTrigger -Monthly -DaysOfMonth 1 -At 3am
@@ -51,7 +51,7 @@ try {
     # Create principal with highest privileges
     $principal = New-ScheduledTaskPrincipal `
         -UserId $currentUser `
-        -LogonType Password `
+        -LogonType S4U `
         -RunLevel Highest
 
     # Remove existing task if it exists

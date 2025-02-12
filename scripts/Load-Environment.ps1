@@ -25,8 +25,8 @@ function Load-Environment {
 
     # Now look for config.env in machine-specific or shared backup locations
     $configLocations = @(
-        (Join-Path $envVars.BACKUP_ROOT $envVars.MACHINE_NAME "config.env"),
-        (Join-Path $envVars.BACKUP_ROOT "shared" "config.env")
+        (Join-Path (Join-Path $envVars.BACKUP_ROOT $envVars.MACHINE_NAME) "config.env"),
+        (Join-Path (Join-Path $envVars.BACKUP_ROOT "shared") "config.env")
     )
 
     $configFound = $false

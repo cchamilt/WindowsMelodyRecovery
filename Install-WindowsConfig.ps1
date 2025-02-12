@@ -102,6 +102,37 @@ MACHINE_NAME="$env:COMPUTERNAME"
 "@
     $windowsEnv | Out-File (Join-Path $InstallPath "windows.env") -Force
 
+    # Create config.env with email settings
+    Write-Host "`nConfigure email notification settings:" -ForegroundColor Blue
+    $fromAddress = Read-Host "Enter sender email address (Office 365)"
+    $toAddress = Read-Host "Enter recipient email address"
+    $emailPassword = Read-Host "Enter email app password" -AsSecureString
+    
+    # Convert secure string to plain text
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
+    $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    
+    # Create config.env content
+    $configEnv = @"
+# Email notification settings
+BACKUP_EMAIL_FROM="$fromAddress"
+BACKUP_EMAIL_TO="$toAddress"
+BACKUP_EMAIL_PASSWORD="$plainPassword"
+"@
+    
+    # Create machine-specific and shared backup directories
+    $machineBackupDir = Join-Path $backupRoot $env:COMPUTERNAME
+    $sharedBackupDir = Join-Path $backupRoot "shared"
+    
+    foreach ($dir in @($machineBackupDir, $sharedBackupDir)) {
+        if (!(Test-Path $dir)) {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        }
+    }
+    
+    # Save config.env to machine-specific backup directory
+    $configEnv | Out-File (Join-Path $machineBackupDir "config.env") -Force
+
     # Change to installation directory for remaining operations
     Set-Location $InstallPath
 

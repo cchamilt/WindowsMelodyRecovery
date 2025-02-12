@@ -9,6 +9,11 @@ if (!(Load-Environment)) {
     exit 1
 }
 
+# Now we have access to all environment variables
+# $env:WINDOWS_CONFIG_PATH
+# $env:BACKUP_ROOT
+# $env:MACHINE_NAME
+
 # Collect any errors during update
 $updateErrors = @()
 
@@ -307,7 +312,4 @@ if ($updateErrors.Count -gt 0) {
     $subject = "⚠️ System Update Failed on $env:COMPUTERNAME ($($updateErrors.Count) errors)"
     Send-UpdateNotification -Errors $updateErrors -Subject $subject
 }
-
-# Update task registration path references
-$taskScript = Join-Path (Split-Path $MyInvocation.MyCommand.Path) "tasks\register-update-task.ps1"
 

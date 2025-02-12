@@ -16,43 +16,51 @@ try {
     # Install KeePassXC if not already installed
     if (!(Get-Command keepassxc -ErrorAction SilentlyContinue)) {
         Write-Host "Installing KeePassXC..." -ForegroundColor Yellow
-        winget install KeePassXC.KeePassXC --accept-source-agreements --accept-package-agreements
+        winget install -e --id KeePassXC.KeePassXC
     }
 
-    # Prompt for database location
+    # Get database location from user
     Write-Host "`nConfigure KeePassXC database location:" -ForegroundColor Blue
-    $dbLocation = Read-Host "Enter the full path to your KeePass database (or press Enter to browse)"
-
-    if ([string]::IsNullOrWhiteSpace($dbLocation)) {
+    $dbPath = Read-Host "Enter the full path to your KeePass database (or press Enter to browse)"
+    
+    if ([string]::IsNullOrWhiteSpace($dbPath)) {
         # Open file dialog to select database
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
         $dialog.Filter = "KeePass Database (*.kdbx)|*.kdbx|All files (*.*)|*.*"
         $dialog.Title = "Select KeePass Database"
+        $dialog.InitialDirectory = $env:USERPROFILE
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $dbLocation = $dialog.FileName
+            $dbPath = $dialog.FileName
         }
     }
-
-    if (![string]::IsNullOrWhiteSpace($dbLocation)) {
-        # Verify the path exists or create it
-        $dbDirectory = Split-Path -Parent $dbLocation
+    
+    if (![string]::IsNullOrWhiteSpace($dbPath)) {
+        # Remove quotes and create directory if it doesn't exist
+        $dbPath = $dbPath.Trim('"')
+        $dbDirectory = Split-Path -Parent $dbPath
+        
         if (!(Test-Path $dbDirectory)) {
-            New-Item -ItemType Directory -Path $dbDirectory -Force | Out-Null
+            try {
+                New-Item -ItemType Directory -Path $dbDirectory -Force | Out-Null
+            } catch {
+                throw "Failed to create database directory: $_"
+            }
         }
 
         # Save database location to environment variable
-        [Environment]::SetEnvironmentVariable('KEEPASSXC_DB', $dbLocation, 'User')
+        [Environment]::SetEnvironmentVariable('KEEPASSXC_DB', $dbPath, 'User')
 
         # Create desktop shortcut
-        $WshShell = New-Object -comObject WScript.Shell
-        $shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\KeePassXC.lnk")
-        $shortcut.TargetPath = "C:\Program Files\KeePassXC\KeePassXC.exe"
-        $shortcut.Arguments = "`"$dbLocation`""
-        $shortcut.Save()
+        $WshShell = New-Object -ComObject WScript.Shell
+        $desktopPath = [System.IO.Path]::Combine($env:USERPROFILE, "Desktop", "KeePassXC.lnk")
+        $Shortcut = $WshShell.CreateShortcut($desktopPath)
+        $Shortcut.TargetPath = "keepassxc"
+        $Shortcut.Arguments = $dbPath
+        $Shortcut.Save()
 
         Write-Host "`nKeePassXC setup completed!" -ForegroundColor Green
-        Write-Host "Database location: $dbLocation" -ForegroundColor Yellow
+        Write-Host "Database location: $dbPath" -ForegroundColor Yellow
         Write-Host "Desktop shortcut created" -ForegroundColor Yellow
     } else {
         Write-Host "No database location provided. Setup cancelled." -ForegroundColor Yellow

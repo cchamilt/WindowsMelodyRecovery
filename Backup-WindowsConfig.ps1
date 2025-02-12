@@ -7,6 +7,11 @@ if (!(Load-Environment)) {
     exit 1
 }
 
+# Now we have access to all environment variables including email settings
+# $env:BACKUP_EMAIL_FROM
+# $env:BACKUP_EMAIL_TO
+# $env:BACKUP_EMAIL_PASSWORD
+
 # Then use the environment variables
 $MACHINE_BACKUP = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
 

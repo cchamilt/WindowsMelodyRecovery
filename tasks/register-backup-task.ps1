@@ -10,6 +10,53 @@ if (!(Load-Environment)) {
     exit 1
 }
 
+# Check for existing config.env
+$configLocations = @(
+    (Join-Path (Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME) "config.env"),
+    (Join-Path (Join-Path $env:BACKUP_ROOT "shared") "config.env")
+)
+
+$configFound = $false
+foreach ($configFile in $configLocations) {
+    if (Test-Path $configFile) {
+        $configFound = $true
+        break
+    }
+}
+
+# Only prompt for email settings if no config.env found
+if (!$configFound) {
+    Write-Host "`nNo email configuration found. Please configure notification settings:" -ForegroundColor Blue
+    $fromAddress = Read-Host "Enter sender email address (Office 365)"
+    $toAddress = Read-Host "Enter recipient email address"
+    $emailPassword = Read-Host "Enter email app password" -AsSecureString
+    
+    # Convert secure string to plain text
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
+    $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    
+    # Create config.env content
+    $configEnv = @"
+# Email notification settings
+BACKUP_EMAIL_FROM="$fromAddress"
+BACKUP_EMAIL_TO="$toAddress"
+BACKUP_EMAIL_PASSWORD="$plainPassword"
+"@
+    
+    # Save to machine-specific backup directory
+    $machineBackupDir = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME
+    if (!(Test-Path $machineBackupDir)) {
+        New-Item -ItemType Directory -Path $machineBackupDir -Force | Out-Null
+    }
+    $configEnv | Out-File (Join-Path $machineBackupDir "config.env") -Force
+    
+    # Reload environment to get new settings
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load updated configuration" -ForegroundColor Red
+        exit 1
+    }
+}
+
 # Task settings
 $taskName = "WindowsConfig_Backup"
 $taskDescription = "Backup Windows configuration settings to OneDrive"
@@ -45,32 +92,10 @@ if ($existingTask) {
 if ([string]::IsNullOrWhiteSpace($triggerTime)) { $triggerTime = "02:00" }
 if ([string]::IsNullOrWhiteSpace($dayOfWeek)) { $dayOfWeek = "Sunday" }
 
-# Prompt for email settings
-Write-Host "Configure backup notification settings:" -ForegroundColor Blue
-$fromAddress = Read-Host "Enter sender email address (Office 365)"
-$toAddress = Read-Host "Enter recipient email address"
-$emailPassword = Read-Host "Enter email app password" -AsSecureString
-
-# Convert secure string to plain text for script
-$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
-$plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-
-# Create task action with provided email settings
-$actionScript = @"
-`$env:BACKUP_EMAIL_FROM = '$fromAddress'
-`$env:BACKUP_EMAIL_TO = '$toAddress'
-`$env:BACKUP_EMAIL_PASSWORD = '$plainPassword'
-& '$backupScript'
-"@
-
-# Save the script to a temporary file
-$tempScriptPath = Join-Path $scriptPath "temp_backup.ps1"
-$actionScript | Out-File -FilePath $tempScriptPath -Force
-
 # Create task action
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$tempScriptPath`"" `
+    -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$backupScript`"" `
     -WorkingDirectory $scriptPath
 
 # Create task trigger
@@ -96,7 +121,7 @@ $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 # Create principal with highest privileges
 $principal = New-ScheduledTaskPrincipal `
     -UserId $currentUser `
-    -LogonType Password `
+    -LogonType S4U `
     -RunLevel Highest
 
 try {
@@ -133,11 +158,6 @@ try {
 } catch {
     Write-Host "Failed to register backup task: $_" -ForegroundColor Red
     exit 1
-} finally {
-    # Clean up temporary script
-    if (Test-Path $tempScriptPath) {
-        Remove-Item $tempScriptPath -Force
-    }
 }
 
 # Offer to run the backup now
