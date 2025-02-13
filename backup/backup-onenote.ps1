@@ -41,35 +41,71 @@ function Backup-OneNoteSettings {
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
             }
 
-            # Registry paths to backup
+            # Export OneNote registry settings
             $regPaths = @(
                 # OneNote 2016 registry settings
                 "HKCU\Software\Microsoft\Office\16.0\OneNote",
                 # OneNote UWP settings
                 "HKCU\Software\Microsoft\Office\16.0\Common\OneNote",
                 # File associations
-                "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one"
+                "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one",
+                # OneNote 2016 registry settings
+                "HKLM\SOFTWARE\Microsoft\Office\16.0\OneNote",
+                # OneNote UWP settings
+                "HKCU\Software\Microsoft\Office\16.0\Common\OneNote",
+                # File associations
+                "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one",
+                "HKCU\Software\Microsoft\OneNote",
+                "HKLM\SOFTWARE\Microsoft\OneNote"
             )
 
             # Create registry backup directory
             $registryPath = Join-Path $backupPath "Registry"
             New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
 
-            # Backup registry settings
+            $registryBackupExists = $false
             foreach ($regPath in $regPaths) {
-                $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
-            }
-            
-            # Backup config files
-            foreach ($config in $oneNoteConfigs.GetEnumerator()) {
-                if (Test-Path $config.Value) {
-                    $targetPath = Join-Path $backupPath $config.Key
-                    if ((Get-Item $config.Value) -is [System.IO.DirectoryInfo]) {
-                        Copy-Item $config.Value $targetPath -Recurse -Force
-                    } else {
-                        Copy-Item $config.Value $targetPath -Force
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -eq 0) {
+                            $registryBackupExists = $true
+                            Write-Host "Registry key exported: $regPath" -ForegroundColor Green
+                        } else {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
                     }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
+            }
+
+            # Backup OneNote configuration files
+            $configPaths = @{
+                "AppData" = "$env:LOCALAPPDATA\Microsoft\OneNote"
+                "Templates" = "$env:APPDATA\Microsoft\Templates"
+                "Settings" = "$env:APPDATA\Microsoft\OneNote"
+            }
+
+            $configBackupExists = $false
+            foreach ($config in $configPaths.GetEnumerator()) {
+                if (Test-Path $config.Value) {
+                    $destPath = Join-Path $backupPath $config.Key
+                    New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+                    Copy-Item -Path "$($config.Value)\*" -Destination $destPath -Recurse -Force
+                    $configBackupExists = $true
+                    Write-Host "Configuration backed up: $($config.Key)" -ForegroundColor Green
                 }
             }
 
@@ -77,16 +113,25 @@ function Backup-OneNoteSettings {
             $notebooks = @()
             if (Test-Path "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml") {
                 $notebooks += Get-Content "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml"
+                Write-Host "Notebook list backed up successfully" -ForegroundColor Green
             }
             if ($notebooks.Count -gt 0) {
                 $notebooks | Out-File (Join-Path $backupPath "notebook_locations.txt")
             }
 
             Write-Host "`nOneNote Settings Backup Summary:" -ForegroundColor Green
-            Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
-            foreach ($configName in $oneNoteConfigs.Keys) {
-                $configPath = Join-Path $backupPath $configName
-                Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
+            if ($registryBackupExists) {
+                Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
+            } else {
+                Write-Host "Registry Settings: No registry keys found to backup" -ForegroundColor Yellow
+            }
+            if ($configBackupExists) {
+                foreach ($configName in $configPaths.Keys) {
+                    $configPath = Join-Path $backupPath $configName
+                    Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "Configuration: No configuration files found to backup" -ForegroundColor Yellow
             }
             Write-Host "Notebook Locations: $(Test-Path (Join-Path $backupPath "notebook_locations.txt"))" -ForegroundColor Yellow
             

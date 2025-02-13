@@ -28,7 +28,7 @@ function Backup-ExcelSettings {
         
         if ($backupPath) {
             # Excel config locations
-            $excelConfigs = @{
+            $configPaths = @{
                 # Main settings
                 "Settings" = "$env:APPDATA\Microsoft\Excel"
                 # Custom templates
@@ -36,54 +36,74 @@ function Backup-ExcelSettings {
                 # Quick Access and recent items
                 "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
                 # Custom dictionaries
-                "Dictionaries" = "$env:APPDATA\Microsoft\UProof"
+                "Custom Dictionary" = "$env:APPDATA\Microsoft\UProof"
                 # AutoCorrect entries
                 "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
-                # Custom add-ins
-                "AddIns" = "$env:APPDATA\Microsoft\AddIns"
                 # Custom toolbars and ribbons
                 "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Excel\Ribbons"
-                # Custom views and workspaces
+                # Add-ins
+                "AddIns" = "$env:APPDATA\Microsoft\AddIns"
+                # Custom views
                 "Views" = "$env:APPDATA\Microsoft\Excel\Views"
                 # Personal macro workbook
                 "Personal" = "$env:APPDATA\Microsoft\Excel\XLSTART"
             }
 
-            # Registry paths to backup
+            # Export Excel registry settings
             $regPaths = @(
                 # Excel main settings
                 "HKCU\Software\Microsoft\Office\16.0\Excel",
+                "HKLM\SOFTWARE\Microsoft\Office\16.0\Excel",
                 # Common settings
                 "HKCU\Software\Microsoft\Office\16.0\Common",
                 # File MRU and settings
                 "HKCU\Software\Microsoft\Office\16.0\Excel\File MRU",
-                # Place MRU
                 "HKCU\Software\Microsoft\Office\16.0\Excel\Place MRU",
                 # User preferences
                 "HKCU\Software\Microsoft\Office\16.0\Excel\Options",
                 # Security settings
                 "HKCU\Software\Microsoft\Office\16.0\Excel\Security",
                 # Add-ins settings
-                "HKCU\Software\Microsoft\Office\16.0\Excel\Add-in Manager"
+                "HKCU\Software\Microsoft\Office\16.0\Excel\Add-in Manager",
+                # AutoCorrect settings
+                "HKCU\Software\Microsoft\Office\16.0\Excel\AutoCorrect"
             )
 
             # Create registry backup directory
             $registryPath = Join-Path $backupPath "Registry"
             New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
 
-            # Backup registry settings
             foreach ($regPath in $regPaths) {
-                $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
-            
+
             # Backup config files
-            foreach ($config in $excelConfigs.GetEnumerator()) {
+            foreach ($config in $configPaths.GetEnumerator()) {
                 if (Test-Path $config.Value) {
                     $targetPath = Join-Path $backupPath $config.Key
                     if ((Get-Item $config.Value) -is [System.IO.DirectoryInfo]) {
                         # Skip temporary files
-                        $excludeFilter = @("*.tmp", "~$*.*", "*.lnk")
+                        $excludeFilter = @("*.tmp", "~*.*")
                         Copy-Item $config.Value $targetPath -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $config.Value $targetPath -Force
@@ -93,7 +113,7 @@ function Backup-ExcelSettings {
 
             Write-Host "`nExcel Settings Backup Summary:" -ForegroundColor Green
             Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
-            foreach ($configName in $excelConfigs.Keys) {
+            foreach ($configName in $configPaths.Keys) {
                 $configPath = Join-Path $backupPath $configName
                 Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
             }

@@ -37,12 +37,47 @@ function Backup-SSHSettings {
                 "HKCU\Software\SimonTatham\PuTTY",
                 
                 # WinSCP settings
-                "HKCU\Software\Martin Prikryl\WinSCP 2"
+                "HKCU\Software\Martin Prikryl\WinSCP 2",
+                "HKLM\SYSTEM\CurrentControlSet\Services\OpenSSHd",
+                "HKLM\SYSTEM\CurrentControlSet\Services\ssh-agent"
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
+            }
+
+            # Export SSH config files if they exist
+            $sshPaths = @{
+                "User" = "$env:USERPROFILE\.ssh"
+                "System" = "$env:ProgramData\ssh"
+            }
+
+            foreach ($sshPath in $sshPaths.GetEnumerator()) {
+                if (Test-Path $sshPath.Value) {
+                    $destPath = Join-Path $backupPath $sshPath.Key
+                    New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+                    Copy-Item -Path "$($sshPath.Value)\*" -Destination $destPath -Force -Exclude "*.key"
+                }
             }
 
             # Backup SSH config and keys

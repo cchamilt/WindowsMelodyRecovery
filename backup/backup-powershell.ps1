@@ -43,12 +43,51 @@ function Backup-PowerShellSettings {
                 
                 # PSReadLine settings
                 "HKCU\Console",
-                "HKCU\Software\Microsoft\PowerShell"
+                "HKCU\Software\Microsoft\PowerShell",
+                
+                # Additional PowerShell settings
+                "HKLM\SOFTWARE\Microsoft\PowerShell",
+                "HKLM\SOFTWARE\Microsoft\PowerShellCore",
+                "HKCU\Software\Microsoft\PowerShellCore"
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
+            }
+
+            # Export PowerShell profiles and modules
+            $psConfigPaths = @{
+                "WindowsPowerShell" = "$env:USERPROFILE\Documents\WindowsPowerShell"
+                "PowerShell" = "$env:USERPROFILE\Documents\PowerShell"
+                "SystemPowerShell" = "$env:ProgramFiles\PowerShell"
+            }
+
+            foreach ($config in $psConfigPaths.GetEnumerator()) {
+                if (Test-Path $config.Value) {
+                    $destPath = Join-Path $backupPath $config.Key
+                    New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+                    Copy-Item -Path "$($config.Value)\*" -Destination $destPath -Recurse -Force
+                }
             }
 
             # Backup PowerShell profiles with unique names

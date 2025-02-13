@@ -30,30 +30,57 @@ function Backup-VPNSettings {
             # Export VPN registry settings
             $regPaths = @(
                 # RAS/VPN settings
-                "HKLM\SYSTEM\CurrentControlSet\Services\Rasman",
+                "HKLM\SYSTEM\CurrentControlSet\Services\RasMan",
                 "HKLM\SYSTEM\CurrentControlSet\Services\RASTAPI",
                 "HKLM\SYSTEM\CurrentControlSet\Services\RasMan\Parameters",
-                
+                "HKLM\SOFTWARE\Microsoft\RasCredentials",
+                "HKCU\Software\Microsoft\RasCredentials",
+               
                 # VPN client settings
                 "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Connections",
                 "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections",
-                
-                # Network policies
+               
+                # Network Connections
                 "HKLM\SOFTWARE\Policies\Microsoft\Windows\NetworkConnections",
-                
-                # Third-party VPN clients
+               
+                # OpenVPN settings
                 "HKLM\SOFTWARE\OpenVPN",
                 "HKCU\Software\OpenVPN",
+               
+                # Cisco VPN settings
                 "HKLM\SOFTWARE\Cisco",
                 "HKCU\Software\Cisco",
-                
+               
                 # Azure VPN settings
                 "HKCU\Software\Microsoft\Azure VPN"
             )
 
+            # Create registry backup directory
+            $registryPath = Join-Path $backupPath "Registry"
+            New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export Azure VPN configurations
@@ -69,9 +96,15 @@ function Backup-VPNSettings {
                 }
             }
 
-            # Export VPN connections
-            $vpnConnections = Get-VpnConnection -AllUserConnection | Select-Object -Property *
-            $vpnConnections | ConvertTo-Json -Depth 10 | Out-File "$backupPath\vpn_connections.json" -Force
+            # Export VPN connections if any exist
+            try {
+                $vpnConnections = Get-VpnConnection -AllUserConnection | Select-Object -Property *
+                if ($vpnConnections) {
+                    $vpnConnections | ConvertTo-Json -Depth 10 | Out-File "$backupPath\vpn_connections.json" -Force
+                }
+            } catch {
+                Write-Host "Warning: Could not retrieve VPN connections" -ForegroundColor Yellow
+            }
 
             # Export rasphone.pbk files
             $pbkPaths = @(
@@ -99,8 +132,30 @@ function Backup-VPNSettings {
                 New-Item -ItemType Directory -Path $certsPath -Force | Out-Null
                 
                 foreach ($cert in $vpnCerts) {
-                    $certFile = Join-Path $certsPath "$($cert.Thumbprint).pfx"
-                    Export-PfxCertificate -Cert $cert -FilePath $certFile -Password (ConvertTo-SecureString -String "temp" -Force -AsPlainText) | Out-Null
+                    $certFile = Join-Path $certsPath "$($cert.Thumbprint).cer"
+                    # Try to export as CER first (public key only)
+                    try {
+                        $cert | Export-Certificate -FilePath $certFile -Force | Out-Null
+                        Write-Host "Exported certificate $($cert.Subject) as CER" -ForegroundColor Green
+                    } catch {
+                        Write-Host "Warning: Could not export certificate $($cert.Subject) - $($_.Exception.Message)" -ForegroundColor Yellow
+                    }
+
+                    # Try to export as PFX only if private key is exportable
+                    if ($cert.HasPrivateKey) {
+                        try {
+                            $pfxFile = Join-Path $certsPath "$($cert.Thumbprint).pfx"
+                            if ($cert.PrivateKey.CspKeyContainerInfo.Exportable) {
+                                Export-PfxCertificate -Cert $cert -FilePath $pfxFile `
+                                    -Password (ConvertTo-SecureString -String "temp" -Force -AsPlainText) | Out-Null
+                                Write-Host "Exported certificate $($cert.Subject) with private key" -ForegroundColor Green
+                            } else {
+                                Write-Host "Warning: Certificate $($cert.Subject) private key is not exportable" -ForegroundColor Yellow
+                            }
+                        } catch {
+                            Write-Host "Warning: Could not export certificate $($cert.Subject) with private key - $($_.Exception.Message)" -ForegroundColor Yellow
+                        }
+                    }
                 }
             }
 

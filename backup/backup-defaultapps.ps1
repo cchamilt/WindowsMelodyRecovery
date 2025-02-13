@@ -56,10 +56,28 @@ function Backup-DefaultAppsSettings {
             $defaultAppsXml = "$backupPath\defaultapps.xml"
             Dism.exe /Online /Export-DefaultAppAssociations:$defaultAppsXml | Out-Null
 
-            # Export user choice settings
-            $userChoices = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\*\UserChoice" -ErrorAction SilentlyContinue
+            # Export user choice settings - only for common file types
+            $commonExtensions = @(
+                '.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+                '.jpg', '.jpeg', '.png', '.gif', '.bmp',
+                '.mp3', '.mp4', '.avi', '.mkv', '.wav',
+                '.zip', '.rar', '.7z',
+                '.html', '.htm', '.xml',
+                '.exe', '.msi'
+            )
+            
+            $userChoices = foreach ($ext in $commonExtensions) {
+                $path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice"
+                if (Test-Path $path) {
+                    Get-ItemProperty $path -ErrorAction SilentlyContinue | 
+                    Add-Member -NotePropertyName Extension -NotePropertyValue $ext -PassThru
+                }
+            }
+
             if ($userChoices) {
-                $userChoices | ConvertTo-Json -Depth 10 | Out-File "$backupPath\user_choices.json" -Force
+                $userChoices | Select-Object Extension, ProgId, Hash | 
+                    ConvertTo-Json -Depth 10 | 
+                    Out-File "$backupPath\user_choices.json" -Force
             }
 
             # Export app capabilities

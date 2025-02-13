@@ -29,42 +29,65 @@ function Backup-NetworkSettings {
         if ($backupPath) {
             # Export network registry settings
             $regPaths = @(
-                # Network adapters and configuration
-                "HKLM\SYSTEM\CurrentControlSet\Control\Network",
-                "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip",
-                "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6",
-                "HKLM\SYSTEM\CurrentControlSet\Services\NetBT",
+                # Network adapter settings
+                "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}",
+                "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
                 
                 # Network profiles
                 "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList",
-                "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
                 
-                # Firewall settings
-                "HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess",
-                "HKLM\SYSTEM\CurrentControlSet\Services\mpssvc",
+                # Network sharing settings
+                "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares",
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\HomeGroup",
                 
-                # Network sharing
-                "HKLM\SYSTEM\CurrentControlSet\Control\LanmanServer",
-                "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer",
-                "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation",
-                
-                # DNS and DHCP settings
-                "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache",
-                "HKLM\SYSTEM\CurrentControlSet\Services\Dhcp"
+                # VPN settings
+                "HKLM\SYSTEM\CurrentControlSet\Services\RasMan\Parameters",
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Connections"
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export network adapters configuration
-            $networkAdapters = Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.PhysicalAdapter } | Select-Object -Property *
-            $networkAdapters | ConvertTo-Json -Depth 10 | Out-File "$backupPath\network_adapters.json" -Force
+            try {
+                $networkAdapters = Get-NetAdapter | Select-Object -Property *
+                $networkAdapters | ConvertTo-Json -Depth 10 | Out-File "$backupPath\network_adapters.json" -Force
+            } catch {
+                Write-Host "Warning: Could not retrieve network adapter information" -ForegroundColor Yellow
+            }
 
-            # Export adapter configurations
-            $adapterConfigs = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled } | Select-Object -Property *
-            $adapterConfigs | ConvertTo-Json -Depth 10 | Out-File "$backupPath\adapter_configs.json" -Force
+            # Export IP configuration
+            try {
+                $ipConfig = @{
+                    IPAddresses = Get-NetIPAddress | Select-Object -Property *
+                    Routes = Get-NetRoute | Select-Object -Property *
+                    DNSSettings = Get-DnsClientServerAddress | Select-Object -Property *
+                }
+                $ipConfig | ConvertTo-Json -Depth 10 | Out-File "$backupPath\ip_config.json" -Force
+            } catch {
+                Write-Host "Warning: Could not retrieve IP configuration" -ForegroundColor Yellow
+            }
 
             # Export network profiles
             $profiles = @{
@@ -95,7 +118,7 @@ function Backup-NetworkSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Network Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

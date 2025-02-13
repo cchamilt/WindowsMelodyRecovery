@@ -91,13 +91,32 @@ function Backup-StartMenuSettings {
                 Write-Host "Warning: Could not retrieve pinned Start Menu items" -ForegroundColor Yellow
             }
 
-            # Export taskbar settings
-            $taskbarSettings = @{
-                Position = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3" -ErrorAction SilentlyContinue
-                AutoHide = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3" -Name Settings -ErrorAction SilentlyContinue
-                Toolbars = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Streams\Desktop" -ErrorAction SilentlyContinue
+            # Export taskbar settings more efficiently
+            try {
+                $taskbarKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3"
+                $taskbarSettings = @{}
+                
+                # Get taskbar position and settings
+                if (Test-Path $taskbarKey) {
+                    $taskbarSettings.TaskbarData = Get-ItemProperty -Path $taskbarKey -Name Settings -ErrorAction SilentlyContinue | 
+                        Select-Object Settings
+                }
+                
+                # Get only essential toolbar data
+                $toolbars = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Streams\Desktop" -ErrorAction SilentlyContinue | 
+                    Select-Object PSChildName, Property |
+                    Where-Object { $_.Property } # Only include toolbars with actual data
+                
+                if ($toolbars) {
+                    $taskbarSettings.Toolbars = $toolbars
+                }
+
+                if ($taskbarSettings.TaskbarData -or $taskbarSettings.Toolbars) {
+                    $taskbarSettings | ConvertTo-Json -Compress | Out-File "$backupPath\taskbar_settings.json" -Force
+                }
+            } catch {
+                Write-Host "Warning: Could not retrieve taskbar settings" -ForegroundColor Yellow
             }
-            $taskbarSettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\taskbar_settings.json" -Force
 
             # Export jump list customizations
             $jumpListPath = "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations"

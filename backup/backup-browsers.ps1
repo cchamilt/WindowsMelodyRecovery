@@ -71,22 +71,96 @@ function Backup-BrowserSettings {
             }
 
             # Export browser registry settings
-            $regPaths = @(
-                # Chrome settings
-                "HKCU\Software\Google\Chrome",
-                # Edge settings
-                "HKCU\Software\Microsoft\Edge",
-                # Firefox settings
-                "HKCU\Software\Mozilla",
-                # Brave settings
-                "HKCU\Software\BraveSoftware",
-                # Vivaldi settings
-                "HKCU\Software\Vivaldi"
-            )
+            $regPaths = @{
+                Chrome = @(
+                    "HKCU\Software\Google\Chrome",
+                    "HKLM\SOFTWARE\Google\Chrome",
+                    "HKLM\SOFTWARE\Policies\Google\Chrome"
+                )
+                Edge = @(
+                    "HKCU\Software\Microsoft\Edge",
+                    "HKLM\SOFTWARE\Microsoft\Edge",
+                    "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+                )
+                Vivaldi = @(
+                    "HKCU\Software\Vivaldi",
+                    "HKLM\SOFTWARE\Vivaldi"
+                )
+                Firefox = @(
+                    "HKCU\Software\Mozilla",
+                    "HKLM\SOFTWARE\Mozilla",
+                    "HKLM\SOFTWARE\Policies\Mozilla"
+                )
+                Brave = @(
+                    "HKCU\Software\BraveSoftware",
+                    "HKLM\SOFTWARE\BraveSoftware",
+                    "HKLM\SOFTWARE\Policies\BraveSoftware"
+                )
+            }
 
-            foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+            # Add Firefox and Brave to browser data paths
+            $browserData = @{
+                Chrome = "$env:LOCALAPPDATA\Google\Chrome\User Data"
+                Edge = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
+                Vivaldi = "$env:LOCALAPPDATA\Vivaldi\User Data"
+                Firefox = "$env:APPDATA\Mozilla\Firefox\Profiles"
+                Brave = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data"
+            }
+
+            foreach ($browser in $regPaths.Keys) {
+                Write-Host "Backing up $browser settings..." -ForegroundColor Blue
+                $browserPath = Join-Path $backupPath $browser
+                New-Item -ItemType Directory -Path $browserPath -Force | Out-Null
+
+                foreach ($regPath in $regPaths[$browser]) {
+                    # Check if registry key exists before trying to export
+                    $keyExists = $false
+                    if ($regPath -match '^HKCU\\') {
+                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                    } elseif ($regPath -match '^HKLM\\') {
+                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                    }
+                    
+                    if ($keyExists) {
+                        try {
+                            $regFile = "$browserPath\$($regPath.Split('\')[-1]).reg"
+                            $result = reg export $regPath $regFile /y 2>&1
+                            if ($LASTEXITCODE -ne 0) {
+                                Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                            }
+                        } catch {
+                            Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } else {
+                        Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                    }
+                }
+
+                # Backup browser profiles and data
+                if (Test-Path $browserData[$browser]) {
+                    # Export bookmarks, extensions, and preferences
+                    $dataPath = Join-Path $browserPath "UserData"
+                    New-Item -ItemType Directory -Path $dataPath -Force | Out-Null
+
+                    # Copy specific files instead of entire profile
+                    $filesToCopy = @(
+                        "Bookmarks",
+                        "Preferences",
+                        "Extensions",
+                        "Favicons",
+                        "History",
+                        "Login Data",
+                        "Shortcuts",
+                        "Top Sites"
+                    )
+
+                    foreach ($file in $filesToCopy) {
+                        $sourcePath = Join-Path $browserData[$browser] "Default\$file"
+                        if (Test-Path $sourcePath) {
+                            Copy-Item -Path $sourcePath -Destination "$dataPath\$file" -Force
+                        }
+                    }
+                }
             }
 
             Write-Host "`nBrowser Settings Backup Summary:" -ForegroundColor Green

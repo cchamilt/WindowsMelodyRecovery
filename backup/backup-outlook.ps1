@@ -45,10 +45,11 @@ function Backup-OutlookSettings {
                 "Rules" = "$env:APPDATA\Microsoft\Outlook\RoamCache"
             }
 
-            # Registry paths to backup
+            # Export Outlook registry settings
             $regPaths = @(
                 # Outlook main settings
                 "HKCU\Software\Microsoft\Office\16.0\Outlook",
+                "HKLM\SOFTWARE\Microsoft\Office\16.0\Outlook",
                 # Account settings
                 "HKCU\Software\Microsoft\Office\16.0\Outlook\Profiles",
                 # AutoComplete settings
@@ -65,12 +66,30 @@ function Backup-OutlookSettings {
             $registryPath = Join-Path $backupPath "Registry"
             New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
 
-            # Backup registry settings
             foreach ($regPath in $regPaths) {
-                $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
-            
+
             # Backup config files
             foreach ($config in $outlookConfigs.GetEnumerator()) {
                 if (Test-Path $config.Value) {
@@ -86,10 +105,9 @@ function Backup-OutlookSettings {
             }
 
             Write-Host "`nOutlook Settings Backup Summary:" -ForegroundColor Green
-            Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
-            foreach ($configName in $outlookConfigs.Keys) {
-                $configPath = Join-Path $backupPath $configName
-                Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
+            foreach ($regPath in $regPaths) {
+                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                Write-Host ("Registry Path: $regPath") -ForegroundColor Yellow
             }
             
             Write-Host "Outlook Settings backed up successfully to: $backupPath" -ForegroundColor Green

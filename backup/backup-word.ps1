@@ -28,7 +28,7 @@ function Backup-WordSettings {
         
         if ($backupPath) {
             # Word config locations
-            $wordConfigs = @{
+            $configPaths = @{
                 # Main settings
                 "Settings" = "$env:APPDATA\Microsoft\Word"
                 # Custom templates
@@ -36,45 +36,69 @@ function Backup-WordSettings {
                 # Quick Access and recent items
                 "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
                 # Custom dictionaries
-                "Dictionaries" = "$env:APPDATA\Microsoft\UProof"
+                "Custom Dictionary" = "$env:APPDATA\Microsoft\UProof"
                 # AutoCorrect entries
                 "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
                 # Building Blocks
-                "BuildingBlocks" = "$env:APPDATA\Microsoft\Document Building Blocks"
+                "Building Blocks" = "$env:APPDATA\Microsoft\Document Building Blocks"
                 # Custom styles
                 "Styles" = "$env:APPDATA\Microsoft\QuickStyles"
                 # Custom toolbars and ribbons
                 "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Word\Ribbons"
+                # Startup items
+                "Startup" = "$env:APPDATA\Microsoft\Word\STARTUP"
+                # QuickParts
+                "QuickParts" = "$env:APPDATA\Microsoft\Word\QuickParts"
             }
 
-            # Registry paths to backup
+            # Export Word registry settings
             $regPaths = @(
                 # Word main settings
                 "HKCU\Software\Microsoft\Office\16.0\Word",
+                "HKLM\SOFTWARE\Microsoft\Office\16.0\Word",
                 # Common settings
                 "HKCU\Software\Microsoft\Office\16.0\Common",
                 # File MRU and settings
                 "HKCU\Software\Microsoft\Office\16.0\Word\File MRU",
-                # Place MRU
                 "HKCU\Software\Microsoft\Office\16.0\Word\Place MRU",
                 # User preferences
                 "HKCU\Software\Microsoft\Office\16.0\Word\Options",
                 # Security settings
-                "HKCU\Software\Microsoft\Office\16.0\Word\Security"
+                "HKCU\Software\Microsoft\Office\16.0\Word\Security",
+                # AutoCorrect settings
+                "HKCU\Software\Microsoft\Office\16.0\Word\AutoCorrect"
             )
 
             # Create registry backup directory
             $registryPath = Join-Path $backupPath "Registry"
             New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
 
-            # Backup registry settings
             foreach ($regPath in $regPaths) {
-                $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
-            
+
             # Backup config files
-            foreach ($config in $wordConfigs.GetEnumerator()) {
+            foreach ($config in $configPaths.GetEnumerator()) {
                 if (Test-Path $config.Value) {
                     $targetPath = Join-Path $backupPath $config.Key
                     if ((Get-Item $config.Value) -is [System.IO.DirectoryInfo]) {
@@ -89,7 +113,7 @@ function Backup-WordSettings {
 
             Write-Host "`nWord Settings Backup Summary:" -ForegroundColor Green
             Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
-            foreach ($configName in $wordConfigs.Keys) {
+            foreach ($configName in $configPaths.Keys) {
                 $configPath = Join-Path $backupPath $configName
                 Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
             }

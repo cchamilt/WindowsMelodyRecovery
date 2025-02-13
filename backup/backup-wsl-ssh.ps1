@@ -30,80 +30,75 @@ function Backup-WSLSSHSettings {
             # Create SSH backup directory
             New-Item -ItemType Directory -Path "$backupPath\ssh" -Force | Out-Null
 
-            # Backup WSL SSH configurations
-            wsl -e bash -c @"
-                # Backup SSH config and keys
-                if [ -d ~/.ssh ]; then
-                    echo "Backing up SSH configurations..."
-                    cd ~/.ssh
-                    
-                    # Save permissions
-                    getfacl -R . > /mnt/c/Users/$env:USERNAME/.wsl_ssh_perms_temp
-                    
-                    # Backup public keys and config
-                    tar czf /mnt/c/Users/$env:USERNAME/.wsl_ssh_public_temp.tar.gz \
-                        --exclude='id_*' \
-                        --exclude='*.pub' \
-                        --exclude='known_hosts' \
-                        .
+            # Export SSH configuration from WSL
+            try {
+                # Create directories for different SSH components
+                $sshConfigPath = Join-Path $backupPath "Config"
+                $sshKeysPath = Join-Path $backupPath "Keys"
+                $sshKnownHostsPath = Join-Path $backupPath "KnownHosts"
+                
+                New-Item -ItemType Directory -Force -Path $sshConfigPath | Out-Null
+                New-Item -ItemType Directory -Force -Path $sshKeysPath | Out-Null
+                New-Item -ItemType Directory -Force -Path $sshKnownHostsPath | Out-Null
 
-                    # Backup known_hosts separately
-                    if [ -f known_hosts ]; then
-                        cp known_hosts /mnt/c/Users/$env:USERNAME/.wsl_known_hosts_temp
-                    fi
+                # Export SSH config with proper error handling
+                $sshConfig = wsl bash -c 'if [ -f ~/.ssh/config ]; then cat ~/.ssh/config; fi' 2>$null
+                if ($sshConfig) {
+                    $sshConfig | Out-File "$sshConfigPath\config" -Encoding utf8
+                    Write-Host "SSH config exported successfully" -ForegroundColor Green
+                }
 
-                    # Backup public keys separately
-                    tar czf /mnt/c/Users/$env:USERNAME/.wsl_ssh_pubkeys_temp.tar.gz *.pub
+                # Export public keys with proper error handling
+                $pubKeys = wsl bash -c 'for key in ~/.ssh/*.pub; do if [ -f "$key" ]; then cat "$key"; echo ""; fi; done' 2>$null
+                if ($pubKeys) {
+                    $pubKeys | Out-File "$sshKeysPath\public_keys.txt" -Encoding utf8
+                    Write-Host "Public keys exported successfully" -ForegroundColor Green
+                }
 
-                    # Encrypt and backup private keys
-                    for key in id_rsa id_dsa id_ecdsa id_ed25519; do
-                        if [ -f \$key ]; then
-                            echo "Backing up \$key..."
-                            openssl enc -aes-256-cbc -salt -pbkdf2 \
-                                -in \$key \
-                                -out /mnt/c/Users/$env:USERNAME/.wsl_\${key}_temp.enc \
-                                -pass pass:temp
-                        fi
-                    done
-                fi
+                # Export known_hosts with proper error handling
+                $knownHosts = wsl bash -c 'if [ -f ~/.ssh/known_hosts ]; then cat ~/.ssh/known_hosts; fi' 2>$null
+                if ($knownHosts) {
+                    $knownHosts | Out-File "$sshKnownHostsPath\known_hosts" -Encoding utf8
+                    Write-Host "Known hosts exported successfully" -ForegroundColor Green
+                }
 
-                # Backup system-wide SSH configuration
-                if [ -d /etc/ssh ]; then
-                    echo "Backing up system SSH configurations..."
-                    sudo tar czf /mnt/c/Users/$env:USERNAME/.wsl_ssh_system_temp.tar.gz \
-                        /etc/ssh/ssh_config \
-                        /etc/ssh/sshd_config \
-                        /etc/ssh/ssh_config.d \
-                        /etc/ssh/sshd_config.d \
-                        2>/dev/null
-                fi
-"@ -u root
+                # Export system-wide SSH config with proper error handling
+                $systemConfig = wsl bash -c 'if [ -f /etc/ssh/ssh_config ]; then sudo cat /etc/ssh/ssh_config; fi' 2>$null
+                if ($systemConfig) {
+                    $systemConfig | Out-File "$sshConfigPath\system_config" -Encoding utf8
+                    Write-Host "System SSH config exported successfully" -ForegroundColor Green
+                }
 
-            # Move files from temp to backup location
-            if (Test-Path "$env:USERPROFILE\.wsl_ssh_perms_temp") {
-                Move-Item "$env:USERPROFILE\.wsl_ssh_perms_temp" "$backupPath\ssh\permissions.acl" -Force
-            }
-            
-            if (Test-Path "$env:USERPROFILE\.wsl_ssh_public_temp.tar.gz") {
-                Move-Item "$env:USERPROFILE\.wsl_ssh_public_temp.tar.gz" "$backupPath\ssh\config.tar.gz" -Force
-            }
-            
-            if (Test-Path "$env:USERPROFILE\.wsl_known_hosts_temp") {
-                Move-Item "$env:USERPROFILE\.wsl_known_hosts_temp" "$backupPath\ssh\known_hosts" -Force
-            }
-            
-            if (Test-Path "$env:USERPROFILE\.wsl_ssh_pubkeys_temp.tar.gz") {
-                Move-Item "$env:USERPROFILE\.wsl_ssh_pubkeys_temp.tar.gz" "$backupPath\ssh\public_keys.tar.gz" -Force
-            }
+                # Export private keys (safely)
+                $privateKeys = @()
+                $privateKeysList = wsl bash -c 'for key in ~/.ssh/id_*; do if [ -f "$key" ] && [[ ! "$key" =~ \.pub$ ]]; then echo "$key"; fi; done' 2>$null
+                if ($privateKeysList) {
+                    $privateKeysList -split "`n" | ForEach-Object {
+                        $keyPath = $_.Trim()
+                        if (![string]::IsNullOrEmpty($keyPath)) {
+                            $keyName = Split-Path $keyPath -Leaf
+                            try {
+                                # Create a temporary copy with safe permissions
+                                wsl bash -c "cp '$keyPath' '/tmp/$keyName' && chmod 644 '/tmp/$keyName' && cat '/tmp/$keyName' && rm '/tmp/$keyName'" > "$sshKeysPath\$keyName" 2>$null
+                                $privateKeys += $keyName
+                                Write-Host "Private key $keyName exported successfully" -ForegroundColor Green
+                            } catch {
+                                Write-Host "Warning: Could not export private key $keyName" -ForegroundColor Yellow
+                            }
+                        }
+                    }
+                }
 
-            # Move encrypted private keys
-            Get-ChildItem "$env:USERPROFILE\.wsl_id_*_temp.enc" -ErrorAction SilentlyContinue | ForEach-Object {
-                $newName = $_.Name -replace '_temp\.enc$','.enc'
-                Move-Item $_.FullName "$backupPath\ssh\$newName" -Force
-            }
+                # Write backup summary
+                Write-Host "`nWSL SSH Backup Summary:" -ForegroundColor Green
+                Write-Host "SSH Config: $(Test-Path "$sshConfigPath\config")" -ForegroundColor Yellow
+                Write-Host "Public Keys: $(Test-Path "$sshKeysPath\public_keys.txt")" -ForegroundColor Yellow
+                Write-Host "Known Hosts: $(Test-Path "$sshKnownHostsPath\known_hosts")" -ForegroundColor Yellow
+                Write-Host "System Config: $(Test-Path "$sshConfigPath\system_config")" -ForegroundColor Yellow
+                Write-Host "Private Keys: $($privateKeys.Count) found" -ForegroundColor Yellow
 
-            if (Test-Path "$env:USERPROFILE\.wsl_ssh_system_temp.tar.gz") {
-                Move-Item "$env:USERPROFILE\.wsl_ssh_system_temp.tar.gz" "$backupPath\ssh\system_config.tar.gz" -Force
+            } catch {
+                Write-Host "Warning: Could not export WSL SSH settings - $($_.Exception.Message)" -ForegroundColor Yellow
             }
 
             # Output summary

@@ -80,10 +80,17 @@ function Backup-RDPSettings {
                 }
             }
 
-            # Export RDP listener configuration
-            $listeners = Get-WmiObject -Namespace root\cimv2\TerminalServices -Class Win32_TSGeneralSetting
-            if ($listeners) {
-                $listeners | Select-Object -Property * | ConvertTo-Json -Depth 10 | Out-File "$backupPath\rdp_listeners.json" -Force
+            # Export RDP configuration
+            try {
+                # Use registry for RDP settings instead of WMI
+                $rdpSettings = @{
+                    Enabled = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections").fDenyTSConnections -eq 0
+                    UserAuthentication = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication").UserAuthentication
+                    SecurityLayer = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer").SecurityLayer
+                }
+                $rdpSettings | ConvertTo-Json | Out-File "$backupPath\rdp_settings.json" -Force
+            } catch {
+                Write-Host "Warning: Could not retrieve RDP settings" -ForegroundColor Yellow
             }
 
             # Export RDP authorized hosts

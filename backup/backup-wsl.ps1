@@ -29,16 +29,28 @@ function Backup-WSLSettings {
         if ($backupPath) {
             # Export WSL registry settings
             $regPaths = @(
-                # WSL settings
-                "HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
-                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss",
-                
-                # WSL network settings
+                # WSL system settings
                 "HKLM\SYSTEM\CurrentControlSet\Services\LxssManager",
-                
-                # WSL feature settings
-                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppX\AppxAllUserStore\Applications\Microsoft.WSL"
+                # WSL installation settings
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppX\AppxAllUserStore\Applications\Microsoft.WSL",
+                # WSL user settings
+                "HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
+                # WSL network settings
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss"
             )
+
+            # Check if WSL is installed
+            $wslInstalled = $false
+            foreach ($regPath in $regPaths) {
+                if ($regPath -match '^HKLM\\' -and (Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))")) {
+                    $wslInstalled = $true
+                    break
+                }
+            }
+
+            # Create registry backup directory
+            $registryPath = Join-Path $backupPath "Registry"
+            New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
 
             foreach ($regPath in $regPaths) {
                 # Check if registry key exists before trying to export
@@ -50,60 +62,86 @@ function Backup-WSLSettings {
                 }
                 
                 if ($keyExists) {
-                    $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                    reg export $regPath $regFile /y 2>$null
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
                 } else {
                     Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
                 }
             }
 
-            # Export WSL distro list and settings
-            $wslDistros = wsl --list --verbose
-            $wslDistros | Out-File "$backupPath\wsl_distros.txt" -Force
+            # Export WSL configuration
+            try {
+                # Get WSL distribution list
+                $wslOutput = wsl --list --verbose 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    $wslOutput | Out-File (Join-Path $backupPath "wsl-distributions.txt") -Force
+                    
+                    # Parse and save as JSON for easier restoration
+                    $distros = $wslOutput | Select-Object -Skip 1 | Where-Object { $_ -match '\S' } | ForEach-Object {
+                        $parts = -split $_.Trim()
+                        if ($parts.Count -ge 3) {
+                            @{
+                                Name = $parts[0] -replace '\*$',''
+                                State = $parts[1]
+                                Version = $parts[2]
+                                IsDefault = $_.Contains('*')
+                            }
+                        }
+                    }
+                    $distros | ConvertTo-Json | Out-File (Join-Path $backupPath "wsl-distributions.json") -Force
+                }
 
-            # Export WSL global settings
-            $wslConfig = @{
-                GlobalSettings = wsl --status
-                DefaultDistro = wsl --get-default
-                WslVersion = (Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux).State
-                Wsl2Version = (Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform).State
-            }
-            $wslConfig | ConvertTo-Json | Out-File "$backupPath\wsl_config.json" -Force
-
-            # Export installed distros details
-            $distros = @()
-            $wslList = wsl --list --verbose | Select-Object -Skip 1 | ForEach-Object {
-                $line = $_ -split '\s+'
-                if ($line.Count -ge 3) {
-                    $distros += @{
-                        Name = $line[-1]
-                        State = $line[-2]
-                        Version = $line[-3]
+                # Export network configuration for each distribution
+                $distros | ForEach-Object {
+                    $distroName = $_.Name
+                    try {
+                        $networkConfig = wsl -d $distroName -e ip addr show 2>&1
+                        if ($LASTEXITCODE -eq 0) {
+                            $networkConfig | Out-File (Join-Path $backupPath "network-config-$distroName.txt") -Force
+                        }
+                    } catch {
+                        Write-Host "Warning: Could not export network config for $distroName" -ForegroundColor Yellow
                     }
                 }
-            }
-            $distros | ConvertTo-Json | Out-File "$backupPath\distros.json" -Force
 
-            # Export .wslconfig if it exists
-            $wslConfigFile = "$env:USERPROFILE\.wslconfig"
-            if (Test-Path $wslConfigFile) {
-                Copy-Item -Path $wslConfigFile -Destination $backupPath -Force
-            }
+                # Export global WSL configuration
+                $globalConfig = wsl --status 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    $globalConfig | Out-File (Join-Path $backupPath "wsl-status.txt") -Force
+                }
 
-            # Export WSL network settings
-            $wslNetworkConfig = @{
-                NetworkingMode = wsl --status | Select-String "Default"
-                NetworkAdapter = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like "*WSL*" } | Select-Object Name, Status, MacAddress
+                Write-Host "WSL configuration backed up successfully" -ForegroundColor Green
+
+            } catch {
+                Write-Host "Warning: Could not export WSL configuration - $($_.Exception.Message)" -ForegroundColor Yellow
             }
-            $wslNetworkConfig | ConvertTo-Json | Out-File "$backupPath\wsl_network.json" -Force
 
             # Export WSL integration settings
-            $wslIntegration = @{
-                SystemdEnabled = (wsl --status | Select-String "systemd").ToString() -match "enabled"
-                WindowsPathEnabled = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss" -ErrorAction SilentlyContinue).AppendWindowsPath
-                AutomountEnabled = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss" -ErrorAction SilentlyContinue).DefaultAutomountEnabled
+            try {
+                $wslIntegration = @{}
+                
+                if (Test-Path "$env:USERPROFILE\.wslconfig") {
+                    $wslIntegration.NetworkConfig = Get-Content "$env:USERPROFILE\.wslconfig" -ErrorAction Stop
+                }
+                
+                $wslConfPath = "/etc/wsl.conf"
+                if ((wsl.exe test -f $wslConfPath 2>$null) -eq $true) {
+                    $wslIntegration.GlobalConfig = wsl.exe cat $wslConfPath 2>$null
+                }
+                
+                if ($wslIntegration.Count -gt 0) {
+                    $wslIntegration | ConvertTo-Json | Out-File "$backupPath\wsl_integration.json" -Force
+                }
+            } catch {
+                Write-Host "Warning: Could not retrieve WSL integration settings" -ForegroundColor Yellow
             }
-            $wslIntegration | ConvertTo-Json | Out-File "$backupPath\wsl_integration.json" -Force
 
             # Create etc backup directory
             New-Item -ItemType Directory -Path "$backupPath\etc" -Force | Out-Null

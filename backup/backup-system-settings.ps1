@@ -100,11 +100,39 @@ function Backup-SystemSettings {
             }
             $timeSettings | ConvertTo-Json | Out-File (Join-Path $systemConfigPath "time_settings.json") -Force
 
-            # Backup printer settings
-            $printerPath = Join-Path $backupPath "Printers"
-            New-Item -ItemType Directory -Force -Path $printerPath | Out-Null
-            Get-Printer | Export-Clixml "$printerPath\printers.xml"
-            Get-PrintConfiguration | Export-Clixml "$printerPath\printer-configs.xml"
+            # Export printer settings
+            try {
+                $printerPath = Join-Path $backupPath "Printers"
+                New-Item -ItemType Directory -Path $printerPath -Force | Out-Null
+
+                # Export printer list and settings
+                $printers = Get-Printer
+                $printers | Export-Clixml "$printerPath\printers.xml"
+
+                # Export printer configurations for each printer
+                $printerConfigs = @{}
+                foreach ($printer in $printers) {
+                    try {
+                        $config = Get-PrintConfiguration -PrinterName $printer.Name -ErrorAction SilentlyContinue
+                        if ($config) {
+                            $printerConfigs[$printer.Name] = $config
+                        }
+                    } catch {
+                        Write-Host "Warning: Could not get configuration for printer: $($printer.Name)" -ForegroundColor Yellow
+                    }
+                }
+                $printerConfigs | Export-Clixml "$printerPath\printer-configs.xml"
+
+                # Export printer ports
+                Get-PrinterPort | Export-Clixml "$printerPath\printer-ports.xml"
+
+                # Export printer drivers
+                Get-PrinterDriver | Export-Clixml "$printerPath\printer-drivers.xml"
+                
+                Write-Host "Printer settings backed up successfully" -ForegroundColor Green
+            } catch {
+                Write-Host "Warning: Could not backup printer settings - $($_.Exception.Message)" -ForegroundColor Yellow
+            }
 
             # Backup network profiles
             $networkPath = Join-Path $backupPath "Network"

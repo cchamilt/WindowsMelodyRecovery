@@ -72,14 +72,66 @@ function Backup-SoundSettings {
                 Write-Host "Warning: Could not retrieve sound device information" -ForegroundColor Yellow
             }
 
-            # Export default devices and their states
-            $defaultDevices = @{
-                Playback = Get-AudioDevice -Playback
-                Recording = Get-AudioDevice -Recording
-                DefaultPlayback = Get-AudioDevice -Playback -Default
-                DefaultRecording = Get-AudioDevice -Recording -Default
+            # Export default devices using MMDevice COM object
+            try {
+                Add-Type -TypeDefinition @'
+                    using System.Runtime.InteropServices;
+                    [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    internal interface IMMDeviceEnumerator {
+                        int NotImpl1();
+                        int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppDevice);
+                    }
+                    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    internal interface IMMDevice {
+                        int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+                        int OpenPropertyStore(int stgmAccess, out IPropertyStore ppProperties);
+                        int GetId([MarshalAs(UnmanagedType.LPWStr)] out string ppstrId);
+                    }
+                    [Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    internal interface IPropertyStore {
+                        int GetCount(out int cProps);
+                        int GetAt(int iProp, out PropertyKey pkey);
+                        int GetValue(ref PropertyKey key, out PropVariant pv);
+                    }
+                    [StructLayout(LayoutKind.Sequential)]
+                    internal struct PropertyKey {
+                        public Guid fmtid;
+                        public int pid;
+                    }
+                    [StructLayout(LayoutKind.Explicit)]
+                    internal struct PropVariant {
+                        [FieldOffset(0)] public short vt;
+                        [FieldOffset(8)] public string pwszVal;
+                    }
+'@
+                $enumerator = [Activator]::CreateInstance([Type]::GetTypeFromCLSID([Guid]"BCDE0395-E52F-467C-8E3D-C4579291692E"))
+                $defaultDevices = @{
+                    DefaultPlayback = $null
+                    DefaultRecording = $null
+                }
+
+                # Get default playback device (eRender = 0, eConsole = 0)
+                $device = $null
+                $enumerator.GetDefaultAudioEndpoint(0, 0, [ref]$device)
+                if ($device) {
+                    $id = ""
+                    $device.GetId([ref]$id)
+                    $defaultDevices.DefaultPlayback = $id
+                }
+
+                # Get default recording device (eCapture = 1, eConsole = 0)
+                $device = $null
+                $enumerator.GetDefaultAudioEndpoint(1, 0, [ref]$device)
+                if ($device) {
+                    $id = ""
+                    $device.GetId([ref]$id)
+                    $defaultDevices.DefaultRecording = $id
+                }
+
+                $defaultDevices | ConvertTo-Json -Depth 10 | Out-File "$backupPath\default_devices.json" -Force
+            } catch {
+                Write-Host "Warning: Could not retrieve default audio devices" -ForegroundColor Yellow
             }
-            $defaultDevices | ConvertTo-Json -Depth 10 | Out-File "$backupPath\default_devices.json" -Force
 
             # Backup sound scheme files
             $schemePath = "$env:SystemRoot\Media"

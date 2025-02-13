@@ -27,36 +27,32 @@ function Backup-PowerSettings {
         $backupPath = Initialize-BackupDirectory -Path "Power" -BackupType "Power Settings" -BackupRootPath $BackupRootPath
         
         if ($backupPath) {
-            # Export power schemes
-            $powerSchemes = powercfg.exe /list | Select-String "Power Scheme GUID: (.*?) \((.*?)\)" | ForEach-Object {
-                @{
-                    GUID = $_.Matches[0].Groups[1].Value
-                    Name = $_.Matches[0].Groups[2].Value
-                    IsActive = $false
-                }
-            }
+            # Export power scheme settings
+            $powerSchemes = powercfg /list
+            $powerSchemes | Out-File "$backupPath\power_schemes.txt" -Force
 
-            # Get active scheme
-            $activeScheme = powercfg /getactivescheme | Select-String "Power Scheme GUID: (.*?) \((.*?)\)" | ForEach-Object {
-                $_.Matches[0].Groups[1].Value
-            }
+            # Export active power scheme
+            $activeScheme = powercfg /getactivescheme
+            $activeScheme | Out-File "$backupPath\active_scheme.txt" -Force
 
-            # Export each power scheme
-            foreach ($scheme in $powerSchemes) {
-                $scheme.IsActive = $scheme.GUID -eq $activeScheme
-                $schemeFile = "$backupPath\$($scheme.GUID).pow"
-                powercfg /export $schemeFile $scheme.GUID
+            # Export power button settings using PowerCfg
+            $powerButtonSettings = @{
+                PowerButton = powercfg /query SCHEME_CURRENT SUB_BUTTONS PBUTTONACTION
+                SleepButton = powercfg /query SCHEME_CURRENT SUB_BUTTONS SBUTTONACTION
+                LidClose = powercfg /query SCHEME_CURRENT SUB_BUTTONS LIDACTION
             }
+            $powerButtonSettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\power_button_settings.json" -Force
 
-            # Save scheme metadata
-            $powerSchemes | ConvertTo-Json | Out-File "$backupPath\power_schemes.json" -Force
+            # Export all power settings for current scheme
+            $powerCfgOutput = powercfg /q
+            $powerCfgOutput | Out-File "$backupPath\power_config.txt" -Force
 
             # Export power registry settings
             $regPaths = @(
                 "HKLM\SYSTEM\CurrentControlSet\Control\Power",
                 "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\PowerSettings",
                 "HKCU\Control Panel\PowerCfg",
-                "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
+                "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\PowerSettings"
             )
 
             foreach ($regPath in $regPaths) {
@@ -76,14 +72,6 @@ function Backup-PowerSettings {
                 }
             }
 
-            # Export power button actions
-            $buttonSettings = @{
-                PowerButton = gwmi -Class Win32_PowerSettings | Where-Object { $_.Caption -like "*power button*" }
-                SleepButton = gwmi -Class Win32_PowerSettings | Where-Object { $_.Caption -like "*sleep button*" }
-                LidClose = gwmi -Class Win32_PowerSettings | Where-Object { $_.Caption -like "*lid*" }
-            }
-            $buttonSettings | ConvertTo-Json | Out-File "$backupPath\button_settings.json" -Force
-            
             Write-Host "Power Settings backed up successfully to: $backupPath" -ForegroundColor Green
             return $true
         }

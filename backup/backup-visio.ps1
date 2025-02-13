@@ -28,19 +28,25 @@ function Backup-VisioSettings {
         
         if ($backupPath) {
             # Visio config locations
-            $visioConfigs = @{
+            $configPaths = @{
                 # Main settings
                 "Settings" = "$env:APPDATA\Microsoft\Visio"
                 # Custom templates and stencils
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
                 # Quick Access and recent items
                 "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
-                # Custom stencils
-                "Stencils" = "$env:MYDOCUMENTS\My Shapes"
-                # Custom add-ins
-                "AddIns" = "$env:APPDATA\Microsoft\Visio\AddOns"
+                # Custom dictionaries
+                "Custom Dictionary" = "$env:APPDATA\Microsoft\UProof"
+                # AutoCorrect entries
+                "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
                 # Custom toolbars and ribbons
                 "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Visio\Ribbons"
+                # Add-ins
+                "AddIns" = "$env:APPDATA\Microsoft\Visio\AddOns"
+                # Custom stencils
+                "Stencils" = "$env:APPDATA\Microsoft\Visio\Stencils"
+                # Custom templates
+                "MyShapes" = "$env:APPDATA\Microsoft\Visio\My Shapes"
                 # Custom themes
                 "Themes" = "$env:APPDATA\Microsoft\Visio\Themes"
                 # Custom workspace settings
@@ -49,22 +55,22 @@ function Backup-VisioSettings {
                 "Macros" = "$env:APPDATA\Microsoft\Visio\Macros"
             }
 
-            # Registry paths to backup
+            # Export Visio registry settings
             $regPaths = @(
                 # Visio main settings
                 "HKCU\Software\Microsoft\Office\16.0\Visio",
+                "HKLM\SOFTWARE\Microsoft\Office\16.0\Visio",
                 # Common settings
                 "HKCU\Software\Microsoft\Office\16.0\Common",
                 # File MRU and settings
                 "HKCU\Software\Microsoft\Office\16.0\Visio\File MRU",
-                # Place MRU
                 "HKCU\Software\Microsoft\Office\16.0\Visio\Place MRU",
                 # User preferences
                 "HKCU\Software\Microsoft\Office\16.0\Visio\Options",
                 # Security settings
                 "HKCU\Software\Microsoft\Office\16.0\Visio\Security",
                 # Add-ins settings
-                "HKCU\Software\Microsoft\Office\16.0\Visio\Add-in Manager",
+                "HKCU\Software\Microsoft\Office\16.0\Visio\AddIns",
                 # Drawing settings
                 "HKCU\Software\Microsoft\Office\16.0\Visio\Drawing"
             )
@@ -73,19 +79,37 @@ function Backup-VisioSettings {
             $registryPath = Join-Path $backupPath "Registry"
             New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
 
-            # Backup registry settings
             foreach ($regPath in $regPaths) {
-                $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
-            
+
             # Backup config files
-            foreach ($config in $visioConfigs.GetEnumerator()) {
+            foreach ($config in $configPaths.GetEnumerator()) {
                 if (Test-Path $config.Value) {
                     $targetPath = Join-Path $backupPath $config.Key
                     if ((Get-Item $config.Value) -is [System.IO.DirectoryInfo]) {
                         # Skip temporary files
-                        $excludeFilter = @("*.tmp", "~$*.*", "*.lnk")
+                        $excludeFilter = @("*.tmp", "~*.*")
                         Copy-Item $config.Value $targetPath -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $config.Value $targetPath -Force
@@ -95,7 +119,7 @@ function Backup-VisioSettings {
 
             Write-Host "`nVisio Settings Backup Summary:" -ForegroundColor Green
             Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
-            foreach ($configName in $visioConfigs.Keys) {
+            foreach ($configName in $configPaths.Keys) {
                 $configPath = Join-Path $backupPath $configName
                 Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
             }

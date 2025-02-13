@@ -27,24 +27,7 @@ function Backup-WindowsFeatures {
         $backupPath = Initialize-BackupDirectory -Path "WindowsFeatures" -BackupType "Windows Features Settings" -BackupRootPath $BackupRootPath
         
         if ($backupPath) {
-            # Export enabled Windows Features
-            $enabledFeatures = Get-WindowsOptionalFeature -Online | Where-Object { $_.State -eq "Enabled" }
-            $enabledFeatures | Select-Object FeatureName, State | ConvertTo-Json | Out-File "$backupPath\enabled_features.json" -Force
-            Write-Host "Windows Optional Features backed up successfully" -ForegroundColor Green
-
-            # Export enabled Windows Capabilities
-            $enabledCapabilities = Get-WindowsCapability -Online | Where-Object { $_.State -eq "Installed" }
-            $enabledCapabilities | Select-Object Name, State | ConvertTo-Json | Out-File "$backupPath\enabled_capabilities.json" -Force
-            Write-Host "Windows Capabilities backed up successfully" -ForegroundColor Green
-
-            # Export Windows Features (Server)
-            if ((Get-WmiObject -Class Win32_OperatingSystem).ProductType -ne 1) {
-                $serverFeatures = Get-WindowsFeature | Where-Object { $_.Installed -eq $true }
-                $serverFeatures | Select-Object Name, InstallState | ConvertTo-Json | Out-File "$backupPath\server_features.json" -Force
-                Write-Host "Windows Server Features backed up successfully" -ForegroundColor Green
-            }
-
-            # Export registry settings for features
+            # Export Windows Features registry settings
             $regPaths = @(
                 # Windows Features settings
                 "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OptionalFeatures",
@@ -52,14 +35,68 @@ function Backup-WindowsFeatures {
                 
                 # Component settings
                 "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing",
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Features",
                 
-                # Feature store
-                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Features"
+                # Feature staging and services
+                "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup\FeatureStaging",
+                "HKLM\SYSTEM\CurrentControlSet\Services\TrustedInstaller"
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    try {
+                        $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                        $result = reg export $regPath $regFile /y 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                        }
+                    } catch {
+                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
+            }
+
+            # Export Windows Optional Features
+            try {
+                # Get all features but save enabled ones separately for restore
+                $allFeatures = Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State
+                $enabledFeatures = $allFeatures | Where-Object { $_.State -eq "Enabled" }
+                
+                $allFeatures | ConvertTo-Json | Out-File "$backupPath\optional_features.json" -Force
+                $enabledFeatures | ConvertTo-Json | Out-File "$backupPath\enabled_features.json" -Force
+                Write-Host "Windows Optional Features backed up successfully" -ForegroundColor Green
+            } catch {
+                Write-Host "Warning: Could not retrieve Windows Optional Features" -ForegroundColor Yellow
+            }
+
+            # Export Windows Capabilities
+            try {
+                # Get all capabilities but save installed ones separately for restore
+                $allCapabilities = Get-WindowsCapability -Online | Select-Object Name, State
+                $enabledCapabilities = $allCapabilities | Where-Object { $_.State -eq "Installed" }
+                
+                $allCapabilities | ConvertTo-Json | Out-File "$backupPath\capabilities.json" -Force
+                $enabledCapabilities | ConvertTo-Json | Out-File "$backupPath\enabled_capabilities.json" -Force
+                Write-Host "Windows Capabilities backed up successfully" -ForegroundColor Green
+            } catch {
+                Write-Host "Warning: Could not retrieve Windows Capabilities" -ForegroundColor Yellow
+            }
+
+            # Export Windows Features (Server)
+            if ((Get-WmiObject -Class Win32_OperatingSystem).ProductType -ne 1) {
+                $serverFeatures = Get-WindowsFeature | Where-Object { $_.Installed -eq $true }
+                $serverFeatures | Select-Object Name, InstallState | ConvertTo-Json | Out-File "$backupPath\server_features.json" -Force
+                Write-Host "Windows Server Features backed up successfully" -ForegroundColor Green
             }
 
             # Export DISM packages info
@@ -69,8 +106,8 @@ function Backup-WindowsFeatures {
             # Export feature configuration
             $featureConfig = @{
                 LastBackupDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                OptionalFeatureCount = ($enabledFeatures | Measure-Object).Count
-                CapabilitiesCount = ($enabledCapabilities | Measure-Object).Count
+                OptionalFeatureCount = ($allFeatures | Measure-Object).Count
+                CapabilitiesCount = ($allCapabilities | Measure-Object).Count
                 ServerFeaturesCount = if ($serverFeatures) { ($serverFeatures | Measure-Object).Count } else { 0 }
                 OSVersion = [System.Environment]::OSVersion.Version.ToString()
                 IsServer = ((Get-WmiObject -Class Win32_OperatingSystem).ProductType -ne 1)
