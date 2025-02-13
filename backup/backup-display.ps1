@@ -53,8 +53,20 @@ function Backup-DisplaySettings {
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                    reg export $regPath $regFile /y 2>$null
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export Win32_VideoController configuration
@@ -62,15 +74,18 @@ function Backup-DisplaySettings {
             $videoControllers | ConvertTo-Json -Depth 10 | Out-File "$backupPath\video_controllers.json" -Force
 
             # Get display configuration using WMI
-            $displays = Get-WmiObject WmiMonitorID -Namespace root\wmi | ForEach-Object {
-                @{
-                    InstanceName = $_.InstanceName
-                    ManufacturerName = [System.Text.Encoding]::ASCII.GetString($_.ManufacturerName).Trim("`0")
-                    ProductCodeID = [System.Text.Encoding]::ASCII.GetString($_.ProductCodeID).Trim("`0")
-                    SerialNumberID = [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID).Trim("`0")
-                    UserFriendlyName = [System.Text.Encoding]::ASCII.GetString($_.UserFriendlyName).Trim("`0")
-                    Settings = Get-WmiObject -Namespace root\wmi -Class WmiMonitorBasicDisplayParams | Where-Object { $_.InstanceName -eq $_.InstanceName }
+            try {
+                $displays = Get-WmiObject -Namespace root\wmi -Class WmiMonitorID | ForEach-Object {
+                    @{
+                        ManufacturerName = [System.Text.Encoding]::ASCII.GetString($_.ManufacturerName).Trim("`0")
+                        ProductCodeID = [System.Text.Encoding]::ASCII.GetString($_.ProductCodeID).Trim("`0")
+                        SerialNumberID = [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID).Trim("`0")
+                        UserFriendlyName = [System.Text.Encoding]::ASCII.GetString($_.UserFriendlyName).Trim("`0")
+                        Settings = Get-WmiObject -Namespace root\wmi -Class WmiMonitorBasicDisplayParams | Where-Object { $_.InstanceName -eq $_.InstanceName }
+                    }
                 }
+            } catch {
+                Write-Host "Warning: Could not retrieve display information via WMI" -ForegroundColor Yellow
             }
             $displays | ConvertTo-Json -Depth 10 | Out-File "$backupPath\displays.json" -Force
 
@@ -90,7 +105,7 @@ function Backup-DisplaySettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Display Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

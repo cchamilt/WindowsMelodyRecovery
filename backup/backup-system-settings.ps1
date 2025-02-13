@@ -1,7 +1,20 @@
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$BackupRootPath
+    [Parameter(Mandatory=$false)]
+    [string]$BackupRootPath = $null
 )
+
+# Load environment if not provided
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+
+if (!$BackupRootPath) {
+    if (!(Load-Environment)) {
+        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        exit 1
+    }
+    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
 
 function Backup-SystemSettings {
     param(
@@ -119,14 +132,14 @@ function Backup-SystemSettings {
                 Where-Object { $_.DisplayRoot } | 
                 Export-Clixml (Join-Path $backupPath "mapped-drives.xml")
 
-            Write-Host "System settings backed up successfully to: $backupPath" -ForegroundColor Green
+            Write-Host "System Settings backed up successfully to: $backupPath" -ForegroundColor Green
             return $true
         }
         return $false
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup System Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

@@ -55,8 +55,20 @@ function Backup-KeyboardSettings {
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                    reg export $regPath $regFile /y 2>$null
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export keyboard devices using WMI
@@ -72,9 +84,13 @@ function Backup-KeyboardSettings {
             $inputSettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\input_settings.json" -Force
 
             # Export keyboard scan code mappings
-            $scanCodeMappings = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layout" -Name "Scancode Map" -ErrorAction SilentlyContinue
-            if ($scanCodeMappings) {
-                $scanCodeMappings | ConvertTo-Json | Out-File "$backupPath\scancode_mappings.json" -Force
+            try {
+                $scanCodeMappings = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layout" -Name "Scancode Map" -ErrorAction SilentlyContinue
+                if ($scanCodeMappings) {
+                    $scanCodeMappings | ConvertTo-Json | Out-File "$backupPath\scancode_mappings.json" -Force
+                }
+            } catch {
+                Write-Host "Warning: Could not retrieve keyboard scan code mappings" -ForegroundColor Yellow
             }
 
             # Export keyboard repeat delay and speed
@@ -88,7 +104,7 @@ function Backup-KeyboardSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Keyboard Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

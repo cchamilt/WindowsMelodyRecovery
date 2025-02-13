@@ -41,8 +41,20 @@ function Backup-WSLSettings {
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                    reg export $regPath $regFile /y 2>$null
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export WSL distro list and settings
@@ -187,7 +199,7 @@ function Backup-WSLSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup WSL Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

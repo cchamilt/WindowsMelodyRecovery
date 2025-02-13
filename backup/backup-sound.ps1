@@ -48,13 +48,29 @@ function Backup-SoundSettings {
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                    reg export $regPath $regFile /y 2>$null
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export audio devices using WMI
-            $audioDevices = Get-WmiObject Win32_SoundDevice | Select-Object -Property *
-            $audioDevices | ConvertTo-Json -Depth 10 | Out-File "$backupPath\audio_devices.json" -Force
+            try {
+                $audioDevices = Get-WmiObject -Class Win32_SoundDevice | Select-Object -Property *
+                $audioDevices | ConvertTo-Json -Depth 10 | Out-File "$backupPath\audio_devices.json" -Force
+            } catch {
+                Write-Host "Warning: Could not retrieve sound device information" -ForegroundColor Yellow
+            }
 
             # Export default devices and their states
             $defaultDevices = @{
@@ -86,7 +102,7 @@ function Backup-SoundSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Sound Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

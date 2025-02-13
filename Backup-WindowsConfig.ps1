@@ -99,7 +99,8 @@ try {
         try {
             $scriptFile = Join-Path $backupPath $backup.Script
             if (Test-Path $scriptFile) {
-                # Just dot-source the script normally
+                # Pass BackupRootPath when sourcing the script
+                $BackupRootPath = $MACHINE_BACKUP
                 . $scriptFile
                 # Verify the function was loaded
                 if (!(Get-Command $backup.Function -ErrorAction SilentlyContinue)) {
@@ -125,8 +126,10 @@ try {
             continue
         }
         try {
-            # Pass the backup path to the function
-            & $backup.Function -BackupRootPath $MACHINE_BACKUP -ErrorAction Stop
+            $params = @{
+                BackupRootPath = $MACHINE_BACKUP
+            }
+            & $backup.Function @params -ErrorAction Stop
         } catch {
             $errorMessage = "Failed to backup $($backup.Name): $_"
             Write-Host $errorMessage -ForegroundColor Red

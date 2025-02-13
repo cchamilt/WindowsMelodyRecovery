@@ -28,7 +28,7 @@ function Backup-PowerSettings {
         
         if ($backupPath) {
             # Export power schemes
-            $powerSchemes = powercfg /list | Select-String "Power Scheme GUID: (.*?) \((.*?)\)" | ForEach-Object {
+            $powerSchemes = powercfg.exe /list | Select-String "Power Scheme GUID: (.*?) \((.*?)\)" | ForEach-Object {
                 @{
                     GUID = $_.Matches[0].Groups[1].Value
                     Name = $_.Matches[0].Groups[2].Value
@@ -60,8 +60,20 @@ function Backup-PowerSettings {
             )
 
             foreach ($regPath in $regPaths) {
-                $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                reg export $regPath $regFile /y 2>$null
+                # Check if registry key exists before trying to export
+                $keyExists = $false
+                if ($regPath -match '^HKCU\\') {
+                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                } elseif ($regPath -match '^HKLM\\') {
+                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                }
+                
+                if ($keyExists) {
+                    $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                    reg export $regPath $regFile /y 2>$null
+                } else {
+                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
+                }
             }
 
             # Export power button actions
@@ -79,7 +91,7 @@ function Backup-PowerSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Power Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
