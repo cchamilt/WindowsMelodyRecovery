@@ -62,6 +62,20 @@ try {
         }
     }
 
+    # Update Scoop packages if installed
+    if (Get-Command scoop -ErrorAction SilentlyContinue) {
+        Write-Host "`nUpdating Scoop packages..." -ForegroundColor Yellow
+        try {
+            scoop update
+            scoop update *
+            Write-Host "Scoop packages updated successfully" -ForegroundColor Green
+        } catch {
+            $errorMessage = "Failed to update Scoop packages: $_"
+            Write-Host $errorMessage -ForegroundColor Red
+            $updateErrors += $errorMessage
+        }
+    }
+
     # Update PowerShell modules
     Write-Host "`nUpdating PowerShell modules..." -ForegroundColor Yellow
     try {

@@ -31,18 +31,7 @@ function Restore-Applications {
             if (Test-Path $applicationsFile) {
                 $applications = Get-Content $applicationsFile | ConvertFrom-Json
 
-                # Install Winget applications
-                Write-Host "`nInstalling Winget applications..." -ForegroundColor Yellow
-                foreach ($app in $applications.Winget) {
-                    if ($app.Id) {
-                        Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
-                        winget install --id $app.Id --source $app.Source --accept-package-agreements --accept-source-agreements
-                    } else {
-                        Write-Host "Skipping $($app.Name) - No package ID found" -ForegroundColor Red
-                    }
-                }
-
-                # Install Chocolatey applications if choco is installed
+                # Install packages in order of best package management
                 if (Get-Command choco -ErrorAction SilentlyContinue) {
                     Write-Host "`nInstalling Chocolatey packages..." -ForegroundColor Yellow
                     foreach ($app in $applications.Chocolatey) {
@@ -51,15 +40,55 @@ function Restore-Applications {
                     }
                 }
 
-                # List applications that need manual installation
-                Write-Host "`nThe following applications need to be installed manually:" -ForegroundColor Yellow
+                if (Get-Command scoop -ErrorAction SilentlyContinue) {
+                    Write-Host "`nInstalling Scoop packages..." -ForegroundColor Yellow
+                    foreach ($app in $applications.Scoop) {
+                        Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                        scoop install $app.Name
+                    }
+                }
+
+                Write-Host "`nInstalling Store applications..." -ForegroundColor Yellow
+                foreach ($app in $applications.Store) {
+                    Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                    try {
+                        Add-AppxPackage -Name $app.ID
+                    } catch {
+                        Write-Host "Failed to install $($app.Name): $_" -ForegroundColor Red
+                    }
+                }
+
+                Write-Host "`nInstalling Winget applications..." -ForegroundColor Yellow
+                foreach ($app in $applications.Winget) {
+                    Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                    winget install --id $app.ID --source winget --accept-package-agreements --accept-source-agreements
+                }
+
+                # List games and unmanaged applications that need manual attention
+                Write-Host "`nThe following applications need manual installation:" -ForegroundColor Yellow
                 Write-Host "=============================================" -ForegroundColor Yellow
-                foreach ($app in $applications.Other) {
-                    Write-Host "$($app.DisplayName)" -ForegroundColor White
-                    Write-Host "  Publisher: $($app.Publisher)" -ForegroundColor Gray
-                    Write-Host "  Version: $($app.DisplayVersion)" -ForegroundColor Gray
-                    Write-Host "  Install Date: $($app.InstallDate)" -ForegroundColor Gray
-                    Write-Host "---------------------------------------------" -ForegroundColor Gray
+
+                if ($applications.Steam.Count -gt 0) {
+                    Write-Host "`nSteam Games:" -ForegroundColor Cyan
+                    foreach ($game in $applications.Steam) {
+                        Write-Host "  $($game.Name)" -ForegroundColor White
+                    }
+                }
+
+                if ($applications.Epic.Count -gt 0) {
+                    Write-Host "`nEpic Games:" -ForegroundColor Cyan
+                    foreach ($game in $applications.Epic) {
+                        Write-Host "  $($game.Name)" -ForegroundColor White
+                    }
+                }
+
+                if ($applications.Unmanaged.Count -gt 0) {
+                    Write-Host "`nUnmanaged Applications (some may already be installed by package managers):" -ForegroundColor Cyan
+                    foreach ($app in $applications.Unmanaged) {
+                        Write-Host "  $($app.Name)" -ForegroundColor White
+                        Write-Host "    Publisher: $($app.Publisher)" -ForegroundColor Gray
+                        Write-Host "    Version: $($app.Version)" -ForegroundColor Gray
+                    }
                 }
 
                 Write-Host "`nAutomatic application installation completed" -ForegroundColor Green

@@ -230,6 +230,17 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
         }
     }
 
+    # Setup Package Managers
+    if (!$NoPrompt) {
+        $response = Read-Host "Would you like to set up Package Managers? (Y/N)"
+        if ($response -eq "Y" -or $response -eq "y") {
+            $setupScript = Join-Path $InstallPath "setup\setup-packagemanagers.ps1"
+            if (Test-Path $setupScript) {
+                & $setupScript
+            }
+        }
+    }
+
     # Setup KeePassXC if requested
     if (!$NoPrompt) {
         $response = Read-Host "Would you like to set up KeePassXC? (Y/N)"
