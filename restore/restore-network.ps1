@@ -27,40 +27,87 @@ function Restore-NetworkSettings {
         $backupPath = Test-BackupPath -Path "Network" -BackupType "Network Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # Network config locations
+            $networkConfigs = @{
+                # Network adapter settings
+                "Adapters" = "HKLM:\SYSTEM\CurrentControlSet\Control\Network"
+                # TCP/IP settings
+                "TCPIP" = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters"
+                # DNS settings
+                "DNS" = "HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters"
+                # WINS settings
+                "WINS" = "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters"
+                # Network profiles
+                "Profiles" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles"
+                # Network connections
+                "Connections" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Unmanaged"
+                # Firewall rules
+                "Firewall" = "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy"
+                # VPN connections
+                "VPN" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\VirtualNetworks"
+            }
+
+            # Restore network settings
+            Write-Host "Checking network components..." -ForegroundColor Yellow
+            $networkServices = @(
+                "Dhcp", "Dnscache", "NlaSvc", "netprofm",
+                "LanmanWorkstation", "LanmanServer"
+            )
+            
+            foreach ($service in $networkServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
+
+            # Restore registry settings
+            foreach ($config in $networkConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
             }
 
             # Restore network adapter configurations
-            $adapterConfigsFile = "$backupPath\adapter_configs.json"
-            if (Test-Path $adapterConfigsFile) {
-                $savedConfigs = Get-Content $adapterConfigsFile | ConvertFrom-Json
-                $currentConfigs = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled }
-
-                foreach ($current in $currentConfigs) {
-                    $saved = $savedConfigs | Where-Object { $_.SettingID -eq $current.SettingID }
-                    if ($saved) {
+            $adaptersFile = Join-Path $backupPath "network_adapters.json"
+            if (Test-Path $adaptersFile) {
+                $adapters = Get-Content $adaptersFile | ConvertFrom-Json
+                foreach ($adapter in $adapters) {
+                    $netAdapter = Get-NetAdapter | Where-Object { $_.MacAddress -eq $adapter.MacAddress }
+                    if ($netAdapter) {
                         # Restore IP configuration
-                        if ($saved.IPAddress) {
-                            $current.EnableStatic($saved.IPAddress, $saved.IPSubnet)
+                        if ($adapter.IPAddress) {
+                            Set-NetIPAddress -InterfaceIndex $netAdapter.ifIndex `
+                                -IPAddress $adapter.IPAddress -PrefixLength $adapter.SubnetMask
                         }
-                        
                         # Restore DNS settings
-                        if ($saved.DNSServerSearchOrder) {
-                            $current.SetDNSServerSearchOrder($saved.DNSServerSearchOrder)
+                        if ($adapter.DNSServers) {
+                            Set-DnsClientServerAddress -InterfaceIndex $netAdapter.ifIndex `
+                                -ServerAddresses $adapter.DNSServers
                         }
-                        
-                        # Restore WINS settings
-                        if ($saved.WINSPrimaryServer) {
-                            $current.SetWINSServer($saved.WINSPrimaryServer, $saved.WINSSecondaryServer)
-                        }
-                        
-                        # Restore gateway settings
-                        if ($saved.DefaultIPGateway) {
-                            $current.SetGateways($saved.DefaultIPGateway, $saved.GatewayCostMetric)
-                        }
+                        # Restore other settings
+                        Set-NetAdapter -Name $netAdapter.Name `
+                            -MediaType $adapter.MediaType `
+                            -MacAddress $adapter.MacAddress
+                    }
+                }
+            }
+
+            # Restore network shares
+            $sharesFile = Join-Path $backupPath "network_shares.json"
+            if (Test-Path $sharesFile) {
+                $shares = Get-Content $sharesFile | ConvertFrom-Json
+                foreach ($share in $shares) {
+                    if (!(Get-SmbShare -Name $share.Name -ErrorAction SilentlyContinue)) {
+                        New-SmbShare -Name $share.Name -Path $share.Path -FullAccess $share.FullAccess
                     }
                 }
             }
@@ -107,18 +154,6 @@ function Restore-NetworkSettings {
                             -Enabled $rule.Enabled `
                             -Action $rule.Action `
                             -Direction $rule.Direction
-                    }
-                }
-            }
-
-            # Restore network shares
-            $sharesFile = "$backupPath\network_shares.json"
-            if (Test-Path $sharesFile) {
-                $shares = Get-Content $sharesFile | ConvertFrom-Json
-                foreach ($share in $shares) {
-                    if (!(Get-WmiObject Win32_Share -Filter "Name='$($share.Name)'")) {
-                        $null = [WmiClass]"Win32_Share"
-                        $null = $wmi.Create($share.Path, $share.Name, $share.Type)
                     }
                 }
             }

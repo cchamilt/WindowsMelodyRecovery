@@ -27,25 +27,64 @@ function Restore-TerminalSettings {
         $backupPath = Test-BackupPath -Path "Terminal" -BackupType "Terminal Settings"
         
         if ($backupPath) {
-            # Windows Terminal settings
-            $terminalSettingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState"
-            $terminalBackupPath = "$backupPath\terminal-settings.json"
-            if (Test-Path $terminalBackupPath) {
-                if (!(Test-Path $terminalSettingsPath)) {
-                    New-Item -ItemType Directory -Path $terminalSettingsPath -Force | Out-Null
-                }
-                Copy-Item -Path $terminalBackupPath -Destination "$terminalSettingsPath\settings.json" -Force
+            # Terminal config locations
+            $terminalConfigs = @{
+                # Windows Terminal settings
+                "Settings" = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState"
+                # Windows Terminal Preview settings
+                "SettingsPreview" = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState"
+                # Terminal profiles
+                "Profiles" = "$env:LOCALAPPDATA\Microsoft\Windows Terminal"
+                # Terminal fragments
+                "Fragments" = "$env:LOCALAPPDATA\Microsoft\Windows Terminal\Fragments"
+                # Terminal themes
+                "Themes" = "$env:LOCALAPPDATA\Microsoft\Windows Terminal\Themes"
+                # Terminal icons
+                "Icons" = "$env:LOCALAPPDATA\Microsoft\Windows Terminal\Icons"
             }
 
-            # Windows Terminal Preview settings
-            $previewSettingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState"
-            $previewBackupPath = "$backupPath\terminal-preview-settings.json"
-            if (Test-Path $previewBackupPath) {
-                if (!(Test-Path $previewSettingsPath)) {
-                    New-Item -ItemType Directory -Path $previewSettingsPath -Force | Out-Null
-                }
-                Copy-Item -Path $previewBackupPath -Destination "$previewSettingsPath\settings.json" -Force
+            # Restore Terminal settings
+            Write-Host "Checking Windows Terminal installation..." -ForegroundColor Yellow
+            $terminalApp = Get-AppxPackage -Name "Microsoft.WindowsTerminal" -ErrorAction SilentlyContinue
+            if (!$terminalApp) {
+                Write-Host "Installing Windows Terminal..." -ForegroundColor Yellow
+                winget install --id Microsoft.WindowsTerminal -e
             }
+
+            # Restore config files
+            foreach ($config in $terminalConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    # Create parent directory if it doesn't exist
+                    $parentDir = Split-Path $config.Value -Parent
+                    if (!(Test-Path $parentDir)) {
+                        New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
+                    }
+
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old", "state.json")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore default terminal app setting
+            $defaultTerminalFile = Join-Path $backupPath "default_terminal.json"
+            if (Test-Path $defaultTerminalFile) {
+                $defaultTerminal = Get-Content $defaultTerminalFile | ConvertFrom-Json
+                if ($defaultTerminal.DefaultTerminal) {
+                    Set-ItemProperty -Path "HKCU:\Console\%%Startup" -Name "DelegationTerminal" `
+                        -Value $defaultTerminal.DefaultTerminal
+                }
+            }
+
+            # Kill any running terminal processes to apply changes
+            Get-Process -Name "WindowsTerminal*" -ErrorAction SilentlyContinue | Stop-Process -Force
             
             Write-Host "Terminal Settings restored successfully from: $backupPath" -ForegroundColor Green
             return $true

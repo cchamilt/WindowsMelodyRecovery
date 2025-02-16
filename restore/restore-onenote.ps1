@@ -29,16 +29,32 @@ function Restore-OneNoteSettings {
         if ($backupPath) {
             # OneNote config locations
             $oneNoteConfigs = @{
+                # Main settings
+                "Settings" = "$env:APPDATA\Microsoft\OneNote"
+                # OneNote 2016 settings
                 "Settings2016" = "$env:APPDATA\Microsoft\OneNote\16.0"
+                # OneNote UWP settings
                 "SettingsUWP" = "$env:LOCALAPPDATA\Packages\Microsoft.Office.OneNote_8wekyb3d8bbwe\LocalState"
-                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\OneNote.lnk"
-                "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
+                # Templates and custom content
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
+                # Quick access and recent items
+                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\OneNote.lnk"
+                # Recent files
+                "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
+                # Custom dictionaries
+                "Custom Dictionary" = "$env:APPDATA\Microsoft\UProof"
+                # AutoCorrect entries
+                "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
+                # Custom toolbars and ribbons
+                "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\OneNote\Ribbons"
+                # Add-ins
+                "AddIns" = "$env:APPDATA\Microsoft\OneNote\AddIns"
             }
 
-            # Restore registry settings
+            # Restore registry settings first
             $registryPath = Join-Path $backupPath "Registry"
             if (Test-Path $registryPath) {
+                # Import each registry file found
                 Get-ChildItem -Path $registryPath -Filter "*.reg" | ForEach-Object {
                     Write-Host "Importing registry file: $($_.Name)" -ForegroundColor Yellow
                     reg import $_.FullName | Out-Null
@@ -56,10 +72,13 @@ function Restore-OneNoteSettings {
                     }
 
                     if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
-                        Copy-Item $backupItem $config.Value -Recurse -Force
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 

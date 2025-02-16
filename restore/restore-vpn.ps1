@@ -27,46 +27,87 @@ function Restore-VPNSettings {
         $backupPath = Test-BackupPath -Path "VPN" -BackupType "VPN Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # VPN config locations
+            $vpnConfigs = @{
+                # VPN connections
+                "Connections" = "HKLM:\SYSTEM\CurrentControlSet\Services\RasMan\Parameters"
+                # VPN network settings
+                "Network" = "HKLM:\SYSTEM\CurrentControlSet\Services\Rasman\Parameters\Config"
+                # VPN security settings
+                "Security" = "HKLM:\SYSTEM\CurrentControlSet\Services\PolicyAgent"
+                # VPN client settings
+                "Client" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections"
+                # VPN credentials
+                "Credentials" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Credentials"
+                # VPN routing
+                "Routing" = "HKLM:\SYSTEM\CurrentControlSet\Services\RasMan\Parameters\Routing"
+                # VPN protocols
+                "Protocols" = "HKLM:\SYSTEM\CurrentControlSet\Services\RasMan\Parameters\Protocols"
             }
 
-            # Restore Azure VPN configurations
-            $azureVpnConfig = "$backupPath\azure_vpn_config.xml"
-            if (Test-Path $azureVpnConfig) {
-                Write-Host "Restoring Azure VPN configurations..." -ForegroundColor Blue
-                $azureVpnPath = "$env:ProgramFiles\Microsoft\AzureVpn"
-                if (Test-Path $azureVpnPath) {
-                    $process = Start-Process -FilePath "$azureVpnPath\AzureVpn.exe" `
-                        -ArgumentList "-i `"$azureVpnConfig`"" `
-                        -Wait -PassThru -NoNewWindow
-                    
-                    if ($process.ExitCode -eq 0) {
-                        Write-Host "Azure VPN configurations imported successfully" -ForegroundColor Green
+            # Restore VPN settings
+            Write-Host "Checking VPN components..." -ForegroundColor Yellow
+            $vpnServices = @(
+                "RasMan",               # Remote Access Connection Manager
+                "Tapisrv",             # Telephony
+                "IKEv2",               # IKE and AuthIP IPsec Keying Modules
+                "PolicyAgent"          # IPsec Policy Agent
+            )
+            
+            foreach ($service in $vpnServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
+
+            # Restore registry settings
+            foreach ($config in $vpnConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 
             # Restore VPN connections
-            $vpnConnectionsFile = "$backupPath\vpn_connections.json"
-            if (Test-Path $vpnConnectionsFile) {
-                $vpnConnections = Get-Content $vpnConnectionsFile | ConvertFrom-Json
-                foreach ($vpn in $vpnConnections) {
-                    # Remove existing connection if it exists
-                    Remove-VpnConnection -Name $vpn.Name -Force -ErrorAction SilentlyContinue
-                    
+            $connectionsFile = Join-Path $backupPath "vpn_connections.json"
+            if (Test-Path $connectionsFile) {
+                $connections = Get-Content $connectionsFile | ConvertFrom-Json
+                foreach ($connection in $connections) {
                     # Add VPN connection
-                    Add-VpnConnection -Name $vpn.Name `
-                        -ServerAddress $vpn.ServerAddress `
-                        -TunnelType $vpn.TunnelType `
-                        -EncryptionLevel $vpn.EncryptionLevel `
-                        -AuthenticationMethod $vpn.AuthenticationMethod `
-                        -SplitTunneling:$vpn.SplitTunneling `
-                        -RememberCredential:$vpn.RememberCredential `
+                    Add-VpnConnection -Name $connection.Name `
+                        -ServerAddress $connection.ServerAddress `
+                        -TunnelType $connection.TunnelType `
+                        -EncryptionLevel $connection.EncryptionLevel `
+                        -AuthenticationMethod $connection.AuthenticationMethod `
+                        -RememberCredential $connection.RememberCredential `
+                        -SplitTunneling $connection.SplitTunneling `
                         -Force
+
+                    # Restore connection-specific settings
+                    if ($connection.CustomSettings) {
+                        foreach ($setting in $connection.CustomSettings.PSObject.Properties) {
+                            Set-VpnConnectionTriggerDnsConfiguration -ConnectionName $connection.Name `
+                                -DnsSuffix $setting.Name -DnsIPAddress $setting.Value
+                        }
+                    }
                 }
+            }
+
+            # Restore VPN certificates
+            $certificatesFile = Join-Path $backupPath "vpn_certificates.pfx"
+            if (Test-Path $certificatesFile) {
+                # Import VPN certificate
+                $certPassword = ConvertTo-SecureString -String "VPNCertPassword" -Force -AsPlainText
+                Import-PfxCertificate -FilePath $certificatesFile -CertStoreLocation "Cert:\LocalMachine\My" `
+                    -Password $certPassword
             }
 
             # Restore rasphone.pbk files
@@ -80,17 +121,6 @@ function Restore-VPNSettings {
                 
                 New-Item -ItemType Directory -Path (Split-Path $destPath) -Force | Out-Null
                 Copy-Item -Path $pbkFile.FullName -Destination $destPath -Force
-            }
-
-            # Restore VPN certificates
-            $certsPath = Join-Path $backupPath "Certificates"
-            if (Test-Path $certsPath) {
-                $certFiles = Get-ChildItem -Path $certsPath -Filter "*.pfx"
-                foreach ($certFile in $certFiles) {
-                    Import-PfxCertificate -FilePath $certFile.FullName `
-                        -CertStoreLocation "Cert:\CurrentUser\My" `
-                        -Password (ConvertTo-SecureString -String "temp" -Force -AsPlainText)
-                }
             }
 
             # Restore OpenVPN configs

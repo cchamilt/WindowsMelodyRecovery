@@ -27,72 +27,72 @@ function Restore-WindowsFeaturesSettings {
         $backupPath = Test-BackupPath -Path "WindowsFeatures" -BackupType "Windows Features Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # Windows Features config locations
+            $featureConfigs = @{
+                # Windows Optional Features
+                "OptionalFeatures" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OptionalFeatures"
+                # Windows Capabilities
+                "Capabilities" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages"
+                # Windows Subsystems
+                "Subsystems" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages"
             }
 
-            # Load feature configuration
-            $featureConfig = Get-Content "$backupPath\feature_config.json" | ConvertFrom-Json
-            $isServer = ((Get-WmiObject -Class Win32_OperatingSystem).ProductType -ne 1)
-
-            # Verify OS compatibility
-            if ($isServer -ne $featureConfig.IsServer) {
-                Write-Host "Warning: Backup was made on a different Windows edition (Server/Client mismatch)" -ForegroundColor Yellow
-            }
-
-            # Restore Windows Optional Features
-            $featuresFile = "$backupPath\enabled_features.json"
+            # Restore Windows Features
+            Write-Host "Loading Windows Features configuration..." -ForegroundColor Yellow
+            $featuresFile = Join-Path $backupPath "windows_features.json"
             if (Test-Path $featuresFile) {
                 $features = Get-Content $featuresFile | ConvertFrom-Json
-                foreach ($feature in $features) {
-                    $currentState = Get-WindowsOptionalFeature -Online -FeatureName $feature.FeatureName
-                    if ($currentState.State -ne "Enabled") {
+
+                # Install Windows Optional Features
+                Write-Host "`nInstalling Windows Optional Features..." -ForegroundColor Yellow
+                foreach ($feature in $features.OptionalFeatures) {
+                    if ($feature.State -eq "Enabled") {
                         Write-Host "Enabling feature: $($feature.FeatureName)" -ForegroundColor Yellow
                         Enable-WindowsOptionalFeature -Online -FeatureName $feature.FeatureName -NoRestart
                     }
                 }
-                Write-Host "Windows Optional Features restored successfully" -ForegroundColor Green
-            }
 
-            # Restore Windows Capabilities
-            $capabilitiesFile = "$backupPath\enabled_capabilities.json"
-            if (Test-Path $capabilitiesFile) {
-                $capabilities = Get-Content $capabilitiesFile | ConvertFrom-Json
-                foreach ($capability in $capabilities) {
-                    $currentState = Get-WindowsCapability -Online -Name $capability.Name
-                    if ($currentState.State -ne "Installed") {
-                        Write-Host "Adding capability: $($capability.Name)" -ForegroundColor Yellow
-                        Add-WindowsCapability -Online -Name $capability.Name -NoRestart
+                # Install Windows Capabilities
+                Write-Host "`nInstalling Windows Capabilities..." -ForegroundColor Yellow
+                foreach ($capability in $features.Capabilities) {
+                    if ($capability.State -eq "Installed") {
+                        Write-Host "Installing capability: $($capability.Name)" -ForegroundColor Yellow
+                        Add-WindowsCapability -Online -Name $capability.Name
                     }
                 }
-                Write-Host "Windows Capabilities restored successfully" -ForegroundColor Green
             }
 
-            # Restore Windows Server Features if applicable
-            if ($isServer) {
-                $serverFeaturesFile = "$backupPath\server_features.json"
-                if (Test-Path $serverFeaturesFile) {
-                    $serverFeatures = Get-Content $serverFeaturesFile | ConvertFrom-Json
-                    $featuresToInstall = $serverFeatures | Where-Object { $_.InstallState -eq "Installed" } | Select-Object -ExpandProperty Name
-                    if ($featuresToInstall) {
-                        Write-Host "Installing Server Features..." -ForegroundColor Yellow
-                        Install-WindowsFeature -Name $featuresToInstall -NoRestart
+            # Restore registry settings
+            foreach ($config in $featureConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
                     }
-                    Write-Host "Windows Server Features restored successfully" -ForegroundColor Green
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
+            }
+
+            # Check for pending reboot
+            $rebootPending = $false
+            if (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending") {
+                $rebootPending = $true
+            }
+            if (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired") {
+                $rebootPending = $true
+            }
+
+            if ($rebootPending) {
+                Write-Host "`nWARNING: A system restart is required to complete feature installation" -ForegroundColor Yellow
             }
 
             # Output summary
             Write-Host "`nWindows Features Restore Summary:" -ForegroundColor Green
-            Write-Host "Optional Features Processed: $($features.Count)" -ForegroundColor Yellow
-            Write-Host "Capabilities Processed: $($capabilities.Count)" -ForegroundColor Yellow
-            if ($isServer) {
-                Write-Host "Server Features Processed: $($serverFeatures.Count)" -ForegroundColor Yellow
-            }
-
-            Write-Host "`nNote: A system restart may be required to complete the feature installation" -ForegroundColor Yellow
             Write-Host "Windows Features Settings restored successfully from: $backupPath" -ForegroundColor Green
             return $true
         }

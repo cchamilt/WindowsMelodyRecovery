@@ -27,13 +27,31 @@ function Restore-BrowserSettings {
         $backupPath = Test-BackupPath -Path "Browsers" -BackupType "Browser Settings"
         
         if ($backupPath) {
-            # Define browser profiles
+            # Browser config locations
             $browserProfiles = @{
-                "Chrome" = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default"
-                "Edge" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default"
-                "Firefox" = "$env:APPDATA\Mozilla\Firefox\Profiles"
-                "Brave" = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default"
-                "Vivaldi" = "$env:LOCALAPPDATA\Vivaldi\User Data\Default"
+                # Chrome settings and profiles
+                "Chrome" = @{
+                    "Settings" = "$env:LOCALAPPDATA\Google\Chrome\User Data"
+                    "Extensions" = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions"
+                    "Bookmarks" = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Bookmarks"
+                    "Preferences" = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Preferences"
+                    "Shortcuts" = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Chrome Apps"
+                }
+                # Firefox settings and profiles
+                "Firefox" = @{
+                    "Profiles" = "$env:APPDATA\Mozilla\Firefox\Profiles"
+                    "Extensions" = "$env:APPDATA\Mozilla\Firefox\Extensions"
+                    "Chrome" = "$env:APPDATA\Mozilla\Firefox\Chrome"  # userChrome.css etc
+                    "Preferences" = "$env:APPDATA\Mozilla\Firefox\profiles.ini"
+                }
+                # Edge settings and profiles
+                "Edge" = @{
+                    "Settings" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
+                    "Extensions" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Extensions"
+                    "Bookmarks" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Bookmarks"
+                    "Preferences" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Preferences"
+                    "Collections" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Collections"
+                }
             }
 
             # Import registry settings first
@@ -42,46 +60,42 @@ function Restore-BrowserSettings {
                 reg import $_.FullName | Out-Null
             }
 
+            # Restore browser settings
             foreach ($browser in $browserProfiles.GetEnumerator()) {
-                $browserBackupPath = Join-Path $backupPath $browser.Key
-                if (Test-Path $browserBackupPath) {
-                    Write-Host "Restoring $($browser.Key) settings..." -ForegroundColor Yellow
+                Write-Host "`nRestoring $($browser.Key) settings..." -ForegroundColor Yellow
+                
+                # Close browser processes before restore
+                $browserProcesses = @{
+                    "Chrome" = "chrome"
+                    "Firefox" = "firefox"
+                    "Edge" = "msedge"
+                }
+                
+                if ($browserProcesses[$browser.Key]) {
+                    Stop-Process -Name $browserProcesses[$browser.Key] -Force -ErrorAction SilentlyContinue
+                }
 
-                    # Create browser profile directory if it doesn't exist
-                    if (!(Test-Path $browser.Value)) {
-                        New-Item -ItemType Directory -Force -Path $browser.Value | Out-Null
-                    }
-                    
-                    switch ($browser.Key) {
-                        { $_ -in "Chrome", "Edge", "Brave", "Vivaldi" } {
-                            # Restore Chromium-based browser settings
-                            Copy-Item "$browserBackupPath\Bookmarks" $browser.Value -ErrorAction SilentlyContinue
-                            Copy-Item "$browserBackupPath\Preferences" $browser.Value -ErrorAction SilentlyContinue
-                            Copy-Item "$browserBackupPath\Favicons" $browser.Value -ErrorAction SilentlyContinue
-                            
-                            # Restore extensions
-                            if (Test-Path "$browserBackupPath\Extensions") {
-                                Copy-Item "$browserBackupPath\Extensions\*" "$($browser.Value)\Extensions" -Recurse -Force -ErrorAction SilentlyContinue
-                            }
+                foreach ($setting in $browser.Value.GetEnumerator()) {
+                    $backupItem = Join-Path $backupPath "$($browser.Key)\$($setting.Key)"
+                    if (Test-Path $backupItem) {
+                        # Create parent directory if it doesn't exist
+                        $parentDir = Split-Path $setting.Value -Parent
+                        if (!(Test-Path $parentDir)) {
+                            New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
                         }
-                        "Firefox" {
-                            # Restore Firefox settings
-                            Get-ChildItem "$($browser.Value)\*.default*" -ErrorAction SilentlyContinue | ForEach-Object {
-                                $profilePath = $_.FullName
-                                if (Test-Path "$browserBackupPath\bookmarkbackups") {
-                                    Copy-Item "$browserBackupPath\bookmarkbackups" $profilePath -Recurse -Force -ErrorAction SilentlyContinue
-                                }
-                                if (Test-Path "$browserBackupPath\prefs.js") {
-                                    Copy-Item "$browserBackupPath\prefs.js" $profilePath -Force -ErrorAction SilentlyContinue
-                                }
-                                if (Test-Path "$browserBackupPath\extensions.json") {
-                                    Copy-Item "$browserBackupPath\extensions.json" $profilePath -Force -ErrorAction SilentlyContinue
-                                }
-                                if (Test-Path "$browserBackupPath\extensions") {
-                                    Copy-Item "$browserBackupPath\extensions\*" "$profilePath\extensions" -Recurse -Force -ErrorAction SilentlyContinue
-                                }
-                            }
+
+                        if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                            # Skip temporary files and cache during restore
+                            $excludeFilter = @(
+                                "*.tmp", "~*.*", "Cache*", "*cache*",
+                                "*.ldb", "*.log", "*.old", "Crash Reports",
+                                "GPUCache", "Code Cache", "Service Worker"
+                            )
+                            Copy-Item $backupItem $setting.Value -Recurse -Force -Exclude $excludeFilter
+                        } else {
+                            Copy-Item $backupItem $setting.Value -Force
                         }
+                        Write-Host "Restored $($setting.Key) for $($browser.Key)" -ForegroundColor Green
                     }
                 }
             }

@@ -27,39 +27,73 @@ function Restore-ExplorerSettings {
         $backupPath = Test-BackupPath -Path "Explorer" -BackupType "Explorer Settings"
         
         if ($backupPath) {
-            # Import registry settings
-            $regFile = "$backupPath\explorer-settings.reg"
-            if (Test-Path $regFile) {
-                reg import $regFile | Out-Null
+            # Explorer config locations
+            $explorerConfigs = @{
+                # File Explorer settings
+                "Settings" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer"
+                # Folder options
+                "FolderOptions" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                # Navigation pane settings
+                "Navigation" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                # Quick access settings
+                "QuickAccess" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons"
+                # File associations
+                "FileAssoc" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts"
+                # Desktop icons
+                "DesktopIcons" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel"
+                # Shell folders
+                "ShellFolders" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+                # User shell folders
+                "UserShellFolders" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
             }
 
-            # Restore Quick Access locations
-            $quickAccessFile = "$backupPath\quick-access.json"
-            if (Test-Path $quickAccessFile) {
-                $quickAccess = Get-Content $quickAccessFile | ConvertFrom-Json
+            # Restore Explorer settings
+            Write-Host "Checking Explorer components..." -ForegroundColor Yellow
+            
+            # Stop Explorer process to allow settings changes
+            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
 
-                # Get Quick Access shell application
-                $shell = New-Object -ComObject Shell.Application
-                $quickAccessShell = $shell.Namespace("shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}")
-
-                # Clear existing pinned items
-                foreach ($folder in $quickAccessShell.Items()) {
-                    if ($folder.IsPinnedToNameSpaceTree) {
-                        $folder.InvokeVerb("unpinfromhome")
+            # Restore registry settings
+            foreach ($config in $explorerConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
+            }
 
-                # Pin folders from backup
-                foreach ($path in $quickAccess.Pinned) {
-                    if (Test-Path $path) {
-                        $folder = $shell.Namespace($path)
+            # Restore Quick Access pins
+            $quickAccessFile = Join-Path $backupPath "quick_access.json"
+            if (Test-Path $quickAccessFile) {
+                $quickAccessItems = Get-Content $quickAccessFile | ConvertFrom-Json
+                foreach ($item in $quickAccessItems) {
+                    if (Test-Path $item.Path) {
+                        $shell = New-Object -ComObject Shell.Application
+                        $folder = $shell.Namespace($item.Path)
                         $folder.Self.InvokeVerb("pintohome")
                     }
                 }
             }
 
-            # Restart Explorer to apply changes
-            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+            # Restore custom folder views
+            $folderViewsFile = Join-Path $backupPath "folder_views.json"
+            if (Test-Path $folderViewsFile) {
+                $folderViews = Get-Content $folderViewsFile | ConvertFrom-Json
+                foreach ($view in $folderViews) {
+                    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Streams\Defaults" `
+                        -Name $view.ID -Value $view.Settings -Type Binary
+                }
+            }
+
+            # Start Explorer process
             Start-Process explorer
             
             Write-Host "Explorer Settings restored successfully from: $backupPath" -ForegroundColor Green

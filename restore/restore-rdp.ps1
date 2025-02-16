@@ -27,10 +27,82 @@ function Restore-RDPSettings {
         $backupPath = Test-BackupPath -Path "RDP" -BackupType "RDP Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # RDP config locations
+            $rdpConfigs = @{
+                # RDP settings
+                "Settings" = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server"
+                # RDP security
+                "Security" = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp"
+                # RDP authentication
+                "Auth" = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultUserConfiguration"
+                # RDP network
+                "Network" = "HKLM:\SYSTEM\CurrentControlSet\Services\TermService\Parameters"
+                # RDP client settings
+                "Client" = "HKCU:\Software\Microsoft\Terminal Server Client"
+                # RDP connections
+                "Connections" = "HKCU:\Software\Microsoft\Terminal Server Client\Servers"
+                # RDP certificates
+                "Certificates" = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp\SSLCertificates"
+            }
+
+            # Restore RDP settings
+            Write-Host "Checking RDP components..." -ForegroundColor Yellow
+            $rdpServices = @(
+                "TermService",          # Remote Desktop Services
+                "UmRdpService",         # Remote Desktop Services UserMode Port Redirector
+                "SessionEnv"            # Remote Desktop Configuration
+            )
+            
+            foreach ($service in $rdpServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
+
+            # Restore registry settings
+            foreach ($config in $rdpConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore RDP certificates
+            $certificatesFile = Join-Path $backupPath "rdp_certificates.pfx"
+            if (Test-Path $certificatesFile) {
+                # Import RDP certificate
+                $certPassword = ConvertTo-SecureString -String "RDPCertPassword" -Force -AsPlainText
+                Import-PfxCertificate -FilePath $certificatesFile -CertStoreLocation "Cert:\LocalMachine\My" `
+                    -Password $certPassword
+            }
+
+            # Restore saved connections
+            $connectionsFile = Join-Path $backupPath "rdp_connections.json"
+            if (Test-Path $connectionsFile) {
+                $connections = Get-Content $connectionsFile | ConvertFrom-Json
+                foreach ($connection in $connections) {
+                    $rdpPath = "$env:USERPROFILE\Documents\Remote Desktop Connection Manager\$($connection.Name).rdp"
+                    Set-Content -Path $rdpPath -Value $connection.Content -Force
+                }
+            }
+
+            # Enable RDP if it was enabled in backup
+            $rdpConfigFile = Join-Path $backupPath "rdp_config.json"
+            if (Test-Path $rdpConfigFile) {
+                $rdpConfig = Get-Content $rdpConfigFile | ConvertFrom-Json
+                if ($rdpConfig.RDPEnabled) {
+                    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
+                        -Name "fDenyTSConnections" -Value 0
+                    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+                }
             }
 
             # Restore RDP connection files

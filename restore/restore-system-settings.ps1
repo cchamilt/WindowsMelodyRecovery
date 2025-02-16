@@ -27,98 +27,81 @@ function Restore-SystemSettings {
         $backupPath = Test-BackupPath -Path "SystemSettings" -BackupType "System Settings"
         
         if ($backupPath) {
+            # System config locations
+            $systemConfigs = @{
+                # System environment variables
+                "Environment" = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+                # User environment variables
+                "UserEnvironment" = "HKCU:\Environment"
+                # System performance settings
+                "Performance" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects"
+                # Power settings
+                "Power" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power"
+                # Time and region settings
+                "TimeZone" = "HKLM:\SYSTEM\CurrentControlSet\Control\TimeZoneInformation"
+                # System restore settings
+                "SystemRestore" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore"
+                # Page file settings
+                "PageFile" = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+                # Remote settings
+                "Remote" = "HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance"
+                # Security settings
+                "Security" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+                # Printer settings
+                "Printers" = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Printers"
+            }
+
+            # Restore system settings
+            Write-Host "Checking system components..." -ForegroundColor Yellow
+            $systemServices = @(
+                "Schedule", "Power", "PlugPlay", "SystemRestore",
+                "Spooler", "RemoteRegistry"
+            )
+            
+            foreach ($service in $systemServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
+
             # Restore registry settings
-            $registryPath = Join-Path $backupPath "Registry"
-            if (Test-Path $registryPath) {
-                Get-ChildItem -Path $registryPath -Filter "*.reg" | ForEach-Object {
-                    Write-Host "Importing registry file: $($_.Name)" -ForegroundColor Yellow
-                    reg import $_.FullName | Out-Null
-                }
-            }
-
-            # Restore system configurations
-            $systemConfigPath = Join-Path $backupPath "SystemConfig"
-            if (Test-Path $systemConfigPath) {
-                # Restore power settings
-                $powerSettingsFile = Join-Path $systemConfigPath "power_settings.txt"
-                if (Test-Path $powerSettingsFile) {
-                    Write-Host "Restoring power settings..." -ForegroundColor Yellow
-                    Get-Content $powerSettingsFile | ForEach-Object {
-                        if ($_ -match "GUID: (.+)") {
-                            $guid = $matches[1]
-                            powercfg /setactive $guid
-                        }
+            foreach ($config in $systemConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
                     }
-                }
-
-                # Restore page file settings
-                $pageFileSettings = Join-Path $systemConfigPath "pagefile_settings.json"
-                if (Test-Path $pageFileSettings) {
-                    Write-Host "Restoring page file settings..." -ForegroundColor Yellow
-                    $settings = Get-Content $pageFileSettings | ConvertFrom-Json
-                    foreach ($setting in $settings) {
-                        Set-CimInstance -Query "SELECT * FROM Win32_PageFileSetting WHERE Name='$($setting.Name)'" -Property @{
-                            InitialSize = $setting.InitialSize
-                            MaximumSize = $setting.MaximumSize
-                        }
-                    }
-                }
-
-                # Restore time and region settings
-                $timeSettingsFile = Join-Path $systemConfigPath "time_settings.json"
-                if (Test-Path $timeSettingsFile) {
-                    Write-Host "Restoring time and region settings..." -ForegroundColor Yellow
-                    $timeSettings = Get-Content $timeSettingsFile | ConvertFrom-Json
-                    Set-TimeZone -Id $timeSettings.TimeZone
-                    Set-WinHomeLocation -GeoId $timeSettings.Region
-                    Set-WinSystemLocale -SystemLocale $timeSettings.SystemLocale
-                    $langList = New-WinUserLanguageList $timeSettings.UserLocale
-                    Set-WinUserLanguageList $langList -Force
-                }
-            }
-
-            # Restore printer settings
-            Write-Host "Restoring printer settings..." -ForegroundColor Yellow
-            $printerPath = Join-Path $backupPath "Printers"
-            if (Test-Path "$printerPath\printers.xml") {
-                Import-Clixml "$printerPath\printers.xml" | Add-Printer
-                Import-Clixml "$printerPath\printer-configs.xml" | Set-PrintConfiguration
-            }
-
-            # Restore network profiles
-            Write-Host "Restoring network settings..." -ForegroundColor Yellow
-            $networkPath = Join-Path $backupPath "Network"
-            if (Test-Path $networkPath) {
-                Get-ChildItem "$networkPath\*.xml" -Filter "Wi-Fi*.xml" | ForEach-Object {
-                    netsh wlan add profile filename="$($_.FullName)" user=all
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 
             # Restore scheduled tasks
-            Write-Host "Restoring scheduled tasks..." -ForegroundColor Yellow
-            $tasksPath = Join-Path $backupPath "ScheduledTasks"
-            if (Test-Path $tasksPath) {
-                Get-ChildItem $tasksPath -Filter "*.xml" | ForEach-Object {
-                    Register-ScheduledTask -Xml (Get-Content $_.FullName | Out-String) -TaskName $_.BaseName -Force
-                }
-            }
-
-            # Restore environment variables
-            Write-Host "Restoring environment variables..." -ForegroundColor Yellow
-            $envVarsFile = Join-Path $backupPath "user-environment-variables.json"
-            if (Test-Path $envVarsFile) {
-                $envVars = Get-Content $envVarsFile | ConvertFrom-Json
-                $envVars.PSObject.Properties | ForEach-Object {
-                    [Environment]::SetEnvironmentVariable($_.Name, $_.Value, 'User')
-                }
+            $tasksFile = Join-Path $backupPath "scheduled_tasks.xml"
+            if (Test-Path $tasksFile) {
+                Write-Host "Restoring scheduled tasks..." -ForegroundColor Yellow
+                Register-ScheduledTask -Xml (Get-Content $tasksFile | Out-String) -TaskName "Restored_Task" -Force
             }
 
             # Restore mapped drives
-            Write-Host "Restoring mapped drives..." -ForegroundColor Yellow
-            $mappedDrivesFile = Join-Path $backupPath "mapped-drives.xml"
-            if (Test-Path $mappedDrivesFile) {
-                Import-Clixml $mappedDrivesFile | ForEach-Object {
-                    New-PSDrive -Name $_.Name -PSProvider FileSystem -Root $_.DisplayRoot -Persist
+            $drivesFile = Join-Path $backupPath "mapped_drives.xml"
+            if (Test-Path $drivesFile) {
+                Write-Host "Restoring mapped drives..." -ForegroundColor Yellow
+                Import-Clixml $drivesFile | ForEach-Object {
+                    New-PSDrive -Name $_.Name -PSProvider FileSystem -Root $_.Root -Persist -Scope Global
+                }
+            }
+
+            # Restore system restore points
+            $restorePointsFile = Join-Path $backupPath "restore_points.xml"
+            if (Test-Path $restorePointsFile) {
+                Write-Host "Restoring system restore points..." -ForegroundColor Yellow
+                Import-Clixml $restorePointsFile | ForEach-Object {
+                    Checkpoint-Computer -Description $_.Description -RestorePointType $_.Type
                 }
             }
 

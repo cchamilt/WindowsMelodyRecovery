@@ -27,10 +27,92 @@ function Restore-WSLSettings {
         $backupPath = Test-BackupPath -Path "WSL" -BackupType "WSL Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # WSL config locations
+            $wslConfigs = @{
+                # Base WSL configuration
+                "Config" = "/etc/wsl.conf"
+                # Network configuration
+                "Resolv" = "/etc/resolv.conf"
+                # Host configuration
+                "Hosts" = "/etc/hosts"
+                # System configuration
+                "Sysctl" = "/etc/sysctl.conf"
+                # Package sources
+                "Sources" = "/etc/apt/sources.list"
+                # Package preferences
+                "Preferences" = "/etc/apt/preferences"
+                # Additional sources
+                "SourcesD" = "/etc/apt/sources.list.d"
+                # Package keyring
+                "Keyring" = "/etc/apt/trusted.gpg"
+                # Shell configuration
+                "Bashrc" = "~/.bashrc"
+                # Shell profile
+                "Profile" = "~/.profile"
+                # Shell aliases
+                "Aliases" = "~/.bash_aliases"
+                # Shell functions
+                "Functions" = "~/.bash_functions"
+            }
+
+            # Restore WSL settings
+            Write-Host "Checking WSL installation..." -ForegroundColor Yellow
+            $wslFeatures = @(
+                "Microsoft-Windows-Subsystem-Linux",
+                "VirtualMachinePlatform"
+            )
+            
+            foreach ($feature in $wslFeatures) {
+                if (!(Get-WindowsOptionalFeature -Online -FeatureName $feature).State -eq "Enabled") {
+                    Enable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart
+                }
+            }
+
+            # Restore config files
+            foreach ($config in $wslConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    # Create parent directory if needed
+                    $parentDir = Split-Path -Parent $config.Value
+                    wsl --exec mkdir -p $parentDir 2>/dev/null
+
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+
+                    # Set correct permissions
+                    if ($config.Key -like "*Sources*" -or $config.Key -eq "Keyring") {
+                        wsl --exec chmod 644 $config.Value
+                    } elseif ($config.Key -like "*rc" -or $config.Key -like "*Profile") {
+                        wsl --exec chmod 600 $config.Value
+                    }
+                }
+            }
+
+            # Restore installed packages
+            $packagesFile = Join-Path $backupPath "packages.list"
+            if (Test-Path $packagesFile) {
+                Write-Host "Restoring installed packages..." -ForegroundColor Yellow
+                $packages = Get-Content $packagesFile
+                wsl --exec apt-get update
+                wsl --exec apt-get install -y $packages
+            }
+
+            # Restore WSL version and default distro settings
+            $wslConfigFile = Join-Path $backupPath "wsl-config.json"
+            if (Test-Path $wslConfigFile) {
+                $wslConfig = Get-Content $wslConfigFile | ConvertFrom-Json
+                if ($wslConfig.DefaultDistro) {
+                    wsl --set-default $wslConfig.DefaultDistro
+                }
+                if ($wslConfig.Version -eq 2) {
+                    wsl --set-version $wslConfig.DefaultDistro 2
+                }
             }
 
             # Restore .wslconfig if it exists

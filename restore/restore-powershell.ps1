@@ -127,6 +127,92 @@ function Restore-PowerShellSettings {
                 Copy-Item -Path "$moduleConfigBackupPath\*" -Destination $moduleConfigPath -Recurse -Force
             }
 
+            # PowerShell config locations
+            $powershellConfigs = @{
+                # PowerShell Core settings
+                "PSCore" = @{
+                    # Main configuration
+                    "Config" = "$env:USERPROFILE\Documents\PowerShell"
+                    # Modules
+                    "Modules" = "$env:USERPROFILE\Documents\PowerShell\Modules"
+                    # Scripts
+                    "Scripts" = "$env:USERPROFILE\Documents\PowerShell\Scripts"
+                }
+                # Windows PowerShell settings
+                "WindowsPowerShell" = @{
+                    # Main configuration
+                    "Config" = "$env:USERPROFILE\Documents\WindowsPowerShell"
+                    # Modules
+                    "Modules" = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules"
+                    # Scripts
+                    "Scripts" = "$env:USERPROFILE\Documents\WindowsPowerShell\Scripts"
+                }
+                # Shared PowerShell components
+                "Shared" = @{
+                    # System modules
+                    "SystemModules" = "$env:ProgramFiles\PowerShell\Modules"
+                    # System scripts
+                    "SystemScripts" = "$env:ProgramFiles\PowerShell\Scripts"
+                }
+            }
+
+            # Restore PowerShell settings
+            Write-Host "Checking PowerShell installation..." -ForegroundColor Yellow
+            $pwshCore = Get-Command pwsh -ErrorAction SilentlyContinue
+            if (!$pwshCore) {
+                Write-Host "Installing PowerShell Core..." -ForegroundColor Yellow
+                winget install --id Microsoft.PowerShell -e
+            }
+
+            # Restore config files
+            foreach ($shell in $powershellConfigs.GetEnumerator()) {
+                Write-Host "`nRestoring $($shell.Key) settings..." -ForegroundColor Yellow
+                foreach ($config in $shell.Value.GetEnumerator()) {
+                    $backupItem = Join-Path $backupPath "$($shell.Key)\$($config.Key)"
+                    if (Test-Path $backupItem) {
+                        Write-Host "Restoring $($config.Key)..." -ForegroundColor Yellow
+                        # Create parent directory if it doesn't exist
+                        $parentDir = Split-Path $config.Value -Parent
+                        if (!(Test-Path $parentDir)) {
+                            New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
+                        }
+
+                        if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                            # Skip temporary files during restore
+                            $excludeFilter = @("*.tmp", "~*.*", "*.log", "*.old")
+                            Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                        } else {
+                            Copy-Item $backupItem $config.Value -Force
+                        }
+                        Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                    }
+                }
+            }
+
+            # Restore PowerShell modules
+            $modulesFile = Join-Path $backupPath "modules.json"
+            if (Test-Path $modulesFile) {
+                $modules = Get-Content $modulesFile | ConvertFrom-Json
+                Write-Host "`nInstalling PowerShell modules..." -ForegroundColor Yellow
+                foreach ($module in $modules) {
+                    if (!(Get-Module -ListAvailable -Name $module.Name)) {
+                        Write-Host "Installing module: $($module.Name)" -ForegroundColor Yellow
+                        Install-Module -Name $module.Name -Force -AllowClobber -Scope CurrentUser
+                    }
+                }
+            }
+
+            # Restore profile customizations
+            $profilesFile = Join-Path $backupPath "profiles.json"
+            if (Test-Path $profilesFile) {
+                $profiles = Get-Content $profilesFile | ConvertFrom-Json
+                foreach ($profile in $profiles) {
+                    if ($profile.Path -and $profile.Content) {
+                        Set-Content -Path $profile.Path -Value $profile.Content -Force
+                    }
+                }
+            }
+
             # Restart PowerShell host to apply changes
             Write-Host "`nPlease restart your PowerShell session to apply all changes" -ForegroundColor Yellow
             

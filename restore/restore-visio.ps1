@@ -29,20 +29,32 @@ function Restore-VisioSettings {
         if ($backupPath) {
             # Visio config locations
             $visioConfigs = @{
+                # Main settings
                 "Settings" = "$env:APPDATA\Microsoft\Visio"
+                # Visio 2016+ settings
+                "Settings2016" = "$env:APPDATA\Microsoft\Visio\16.0"
+                # Templates and custom content
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
+                # Quick access and recent items
+                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\Visio.lnk"
+                # Recent files
                 "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
-                "Stencils" = "$env:MYDOCUMENTS\My Shapes"
-                "AddIns" = "$env:APPDATA\Microsoft\Visio\AddOns"
+                # Custom toolbars and ribbons
                 "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Visio\Ribbons"
+                # Add-ins
+                "AddIns" = "$env:APPDATA\Microsoft\Visio\AddIns"
+                # Stencils
+                "Stencils" = "$env:APPDATA\Microsoft\Visio\Stencils"
+                # Custom templates
+                "My Shapes" = "$env:APPDATA\Microsoft\Visio\My Shapes"
+                # Custom themes
                 "Themes" = "$env:APPDATA\Microsoft\Visio\Themes"
-                "Workspace" = "$env:APPDATA\Microsoft\Visio\Workspace"
-                "Macros" = "$env:APPDATA\Microsoft\Visio\Macros"
             }
 
             # Restore registry settings first
             $registryPath = Join-Path $backupPath "Registry"
             if (Test-Path $registryPath) {
+                # Import each registry file found
                 Get-ChildItem -Path $registryPath -Filter "*.reg" | ForEach-Object {
                     Write-Host "Importing registry file: $($_.Name)" -ForegroundColor Yellow
                     reg import $_.FullName | Out-Null
@@ -60,10 +72,13 @@ function Restore-VisioSettings {
                     }
 
                     if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
-                        Copy-Item $backupItem $config.Value -Recurse -Force
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.vsd")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 

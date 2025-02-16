@@ -27,94 +27,75 @@ function Restore-WSLSSHSettings {
         $backupPath = Test-BackupPath -Path "WSLSSH" -BackupType "WSL SSH Settings"
         
         if ($backupPath) {
-            # Copy files to temp location for WSL access
-            if (Test-Path "$backupPath\ssh\permissions.acl") {
-                Copy-Item "$backupPath\ssh\permissions.acl" "$env:USERPROFILE\.wsl_ssh_perms_temp" -Force
-            }
-            if (Test-Path "$backupPath\ssh\config.tar.gz") {
-                Copy-Item "$backupPath\ssh\config.tar.gz" "$env:USERPROFILE\.wsl_ssh_public_temp.tar.gz" -Force
-            }
-            if (Test-Path "$backupPath\ssh\known_hosts") {
-                Copy-Item "$backupPath\ssh\known_hosts" "$env:USERPROFILE\.wsl_known_hosts_temp" -Force
-            }
-            if (Test-Path "$backupPath\ssh\public_keys.tar.gz") {
-                Copy-Item "$backupPath\ssh\public_keys.tar.gz" "$env:USERPROFILE\.wsl_ssh_pubkeys_temp.tar.gz" -Force
-            }
-            if (Test-Path "$backupPath\ssh\system_config.tar.gz") {
-                Copy-Item "$backupPath\ssh\system_config.tar.gz" "$env:USERPROFILE\.wsl_ssh_system_temp.tar.gz" -Force
-            }
-
-            # Copy encrypted private keys
-            Get-ChildItem "$backupPath\ssh\id_*.enc" -ErrorAction SilentlyContinue | ForEach-Object {
-                $tempName = $_.Name -replace '\.enc$','_temp.enc'
-                Copy-Item $_.FullName "$env:USERPROFILE\.$tempName" -Force
+            # WSL-SSH config locations
+            $wslSshConfigs = @{
+                # WSL SSH configuration
+                "Config" = "/etc/ssh/ssh_config"
+                # WSL SSH server configuration
+                "SshdConfig" = "/etc/ssh/sshd_config"
+                # WSL SSH host keys
+                "HostKeys" = "/etc/ssh/ssh_host_*"
+                # WSL SSH known hosts
+                "KnownHosts" = "~/.ssh/known_hosts"
+                # WSL SSH authorized keys
+                "AuthorizedKeys" = "~/.ssh/authorized_keys"
+                # WSL SSH private keys
+                "Keys" = "~/.ssh/id_*"
+                # WSL SSH public keys
+                "PublicKeys" = "~/.ssh/*.pub"
+                # WSL SSH config directory
+                "ConfigDir" = "~/.ssh/config.d"
             }
 
-            # Restore configurations inside WSL
-            wsl -e bash -c @"
-                # Create SSH directory if it doesn't exist
-                mkdir -p ~/.ssh
-                chmod 700 ~/.ssh
+            # Restore WSL-SSH settings
+            Write-Host "Checking WSL and SSH installation..." -ForegroundColor Yellow
+            
+            # Check WSL installation
+            $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+            if ($wslFeature.State -ne "Enabled") {
+                Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+            }
 
-                # Restore SSH config and public keys
-                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_ssh_public_temp.tar.gz ]; then
-                    cd ~/.ssh
-                    tar xzf /mnt/c/Users/$env:USERNAME/.wsl_ssh_public_temp.tar.gz
-                    echo "Restored SSH config files"
-                fi
+            # Check SSH service in WSL
+            wsl --exec service ssh status
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "Installing SSH server in WSL..." -ForegroundColor Yellow
+                wsl --exec apt-get update
+                wsl --exec apt-get install -y openssh-server
+            }
 
-                # Restore known_hosts
-                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_known_hosts_temp ]; then
-                    cp /mnt/c/Users/$env:USERNAME/.wsl_known_hosts_temp ~/.ssh/known_hosts
-                    echo "Restored known_hosts"
-                fi
+            # Restore config files
+            foreach ($config in $wslSshConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    
+                    # Create parent directory in WSL
+                    $parentDir = Split-Path -Parent $config.Value
+                    wsl --exec mkdir -p $parentDir 2>/dev/null
 
-                # Restore public keys
-                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_ssh_pubkeys_temp.tar.gz ]; then
-                    cd ~/.ssh
-                    tar xzf /mnt/c/Users/$env:USERNAME/.wsl_ssh_pubkeys_temp.tar.gz
-                    echo "Restored public keys"
-                fi
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.old", "*.bak")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
 
-                # Decrypt and restore private keys
-                for key in id_rsa id_dsa id_ecdsa id_ed25519; do
-                    if [ -f /mnt/c/Users/$env:USERNAME/.wsl_\${key}_temp.enc ]; then
-                        echo "Restoring \$key..."
-                        openssl enc -aes-256-cbc -d -salt -pbkdf2 \
-                            -in /mnt/c/Users/$env:USERNAME/.wsl_\${key}_temp.enc \
-                            -out ~/.ssh/\$key \
-                            -pass pass:temp
-                        chmod 600 ~/.ssh/\$key
-                    fi
-                done
+                    # Set correct permissions
+                    if ($config.Key -like "*Keys*" -or $config.Key -eq "AuthorizedKeys") {
+                        wsl --exec chmod 600 $config.Value
+                    } elseif ($config.Key -like "Config*") {
+                        wsl --exec chmod 644 $config.Value
+                    }
 
-                # Restore system-wide SSH configuration
-                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_ssh_system_temp.tar.gz ]; then
-                    echo "Restoring system SSH configurations..."
-                    sudo tar xzf /mnt/c/Users/$env:USERNAME/.wsl_ssh_system_temp.tar.gz -C /
-                fi
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
 
-                # Restore permissions
-                if [ -f /mnt/c/Users/$env:USERNAME/.wsl_ssh_perms_temp ]; then
-                    cd ~/.ssh
-                    setfacl --restore=/mnt/c/Users/$env:USERNAME/.wsl_ssh_perms_temp
-                    echo "Restored SSH permissions"
-                fi
-
-                # Set standard permissions if no ACL file
-                if [ ! -f /mnt/c/Users/$env:USERNAME/.wsl_ssh_perms_temp ]; then
-                    chmod 700 ~/.ssh
-                    chmod 600 ~/.ssh/config 2>/dev/null
-                    chmod 644 ~/.ssh/*.pub 2>/dev/null
-                    chmod 600 ~/.ssh/id_* 2>/dev/null
-                    chmod 644 ~/.ssh/known_hosts 2>/dev/null
-                fi
-
-                # Restart SSH service if it exists
-                if systemctl status ssh >/dev/null 2>&1; then
-                    sudo systemctl restart ssh
-                fi
-"@ -u root
+            # Restart SSH service in WSL
+            Write-Host "Restarting SSH service in WSL..." -ForegroundColor Yellow
+            wsl --exec service ssh restart
 
             # Clean up temp files
             Remove-Item "$env:USERPROFILE\.wsl_*" -Force -ErrorAction SilentlyContinue

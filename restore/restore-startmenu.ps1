@@ -27,46 +27,73 @@ function Restore-StartMenuSettings {
         $backupPath = Test-BackupPath -Path "StartMenu" -BackupType "Start Menu Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # StartMenu config locations
+            $startMenuConfigs = @{
+                # Start menu layout
+                "Layout" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount"
+                # Start menu settings
+                "Settings" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                # Taskbar settings
+                "Taskbar" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband"
+                # Jump lists
+                "JumpLists" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\JumpLists"
+                # Recent items
+                "Recent" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs"
+                # Pinned items
+                "PinnedItems" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\Favorites"
+                # Start menu folders
+                "Folders" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartPage"
+                # Live tiles
+                "LiveTiles" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartLayout"
             }
 
-            # Import Start Menu layout
-            $layoutFile = "$backupPath\startlayout.xml"
+            # Restore start menu settings
+            Write-Host "Checking StartMenu components..." -ForegroundColor Yellow
+            $startMenuServices = @(
+                "ShellExperienceHost", # Windows Shell Experience Host
+                "StartMenuExperienceHost", # Start Menu Experience Host
+                "TileDataModel"       # Tile Data Model Server
+            )
+            
+            foreach ($service in $startMenuServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
+
+            # Restore registry settings
+            foreach ($config in $startMenuConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore start menu layout
+            $layoutFile = Join-Path $backupPath "start_layout.xml"
             if (Test-Path $layoutFile) {
                 Import-StartLayout -LayoutPath $layoutFile -MountPath $env:SystemDrive\
             }
 
-            # Restore Start Menu folders
-            $startMenuPaths = @{
-                "User" = "$env:APPDATA\Microsoft\Windows\Start Menu"
-                "AllUsers" = "$env:ProgramData\Microsoft\Windows\Start Menu"
-            }
-
-            foreach ($startMenu in $startMenuPaths.GetEnumerator()) {
-                $sourcePath = Join-Path $backupPath $startMenu.Key
-                if (Test-Path $sourcePath) {
-                    if (!(Test-Path $startMenu.Value)) {
-                        New-Item -ItemType Directory -Path $startMenu.Value -Force | Out-Null
-                    }
-                    Copy-Item -Path "$sourcePath\*" -Destination $startMenu.Value -Recurse -Force
-                }
-            }
-
             # Restore pinned items
-            $pinnedItemsFile = "$backupPath\pinned_items.json"
+            $pinnedItemsFile = Join-Path $backupPath "pinned_items.json"
             if (Test-Path $pinnedItemsFile) {
                 $pinnedItems = Get-Content $pinnedItemsFile | ConvertFrom-Json
-                $shell = New-Object -Com Shell.Application
-                $pinnedFolder = $shell.NameSpace("shell:::{4234d49b-0245-4df3-b780-3893943456e1}")
-                
                 foreach ($item in $pinnedItems) {
                     if (Test-Path $item.Path) {
-                        $pinnedFolder.Items() | Where-Object { $_.Path -eq $item.Path } | ForEach-Object {
-                            $_.InvokeVerb("pintostartscreen")
-                        }
+                        $shell = New-Object -ComObject Shell.Application
+                        $folder = $shell.Namespace([System.IO.Path]::GetDirectoryName($item.Path))
+                        $file = $folder.ParseName([System.IO.Path]::GetFileName($item.Path))
+                        $verb = $file.Verbs() | Where-Object { $_.Name -eq "Pin to Start" }
+                        if ($verb) { $verb.DoIt() }
                     }
                 }
             }

@@ -27,43 +27,79 @@ function Restore-PowerSettings {
         $backupPath = Test-BackupPath -Path "Power" -BackupType "Power Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # Power config locations
+            $powerConfigs = @{
+                # Power schemes
+                "Schemes" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes"
+                # Power settings
+                "Settings" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\PowerSettings"
+                # Power buttons
+                "Buttons" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\4f971e89-eebd-4455-a8de-9e59040e7347"
+                # Sleep settings
+                "Sleep" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\238C9FA8-0AAD-41ED-83F4-97BE242C8F20"
+                # Battery settings
+                "Battery" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\9D7815A6-7EE4-497E-8888-515A05F02364"
+                # Display settings
+                "Display" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\7516B95F-F776-4464-8C53-06167F40CC99"
+                # Hard disk settings
+                "HardDisk" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\0012EE47-9041-4B5D-9B77-535FBA8B1442"
+                # USB settings
+                "USB" = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\2A737441-1930-4402-8D77-B2BEBBA308A3"
             }
 
-            # Import power schemes
-            $schemesFile = "$backupPath\power_schemes.json"
-            if (Test-Path $schemesFile) {
-                $powerSchemes = Get-Content $schemesFile | ConvertFrom-Json
+            # Restore power settings
+            Write-Host "Checking power components..." -ForegroundColor Yellow
+            $powerServices = @(
+                "Power",                # Power Service
+                "BatteryService",       # Battery Service
+                "UPS",                  # Uninterruptible Power Supply Service
+                "SysMain"              # Superfetch (impacts power settings)
+            )
+            
+            foreach ($service in $powerServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
 
-                # Import each power scheme
-                foreach ($scheme in $powerSchemes) {
-                    $schemeFile = "$backupPath\$($scheme.GUID).pow"
-                    if (Test-Path $schemeFile) {
-                        # Delete existing scheme if it exists
-                        powercfg /delete $scheme.GUID 2>$null
-
-                        # Import the scheme
-                        powercfg /import $schemeFile
-                        
-                        # Rename if needed (import might use a different GUID)
-                        $importedGuid = powercfg /list | Select-String $scheme.Name | ForEach-Object {
-                            if ($_ -match "Power Scheme GUID: (.*?) \(") {
-                                $matches[1]
-                            }
-                        }
-                        if ($importedGuid) {
-                            powercfg /changename $importedGuid $scheme.Name $scheme.Name
-                        }
-
-                        # Set as active if it was active in backup
-                        if ($scheme.IsActive) {
-                            Write-Host "Setting active power scheme: $($scheme.Name)" -ForegroundColor Yellow
-                            powercfg /setactive $importedGuid
-                        }
+            # Restore registry settings
+            foreach ($config in $powerConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore power schemes
+            $schemesFile = Join-Path $backupPath "power_schemes.json"
+            if (Test-Path $schemesFile) {
+                $schemes = Get-Content $schemesFile | ConvertFrom-Json
+                foreach ($scheme in $schemes) {
+                    # Import power scheme
+                    powercfg /import "$backupPath\$($scheme.GUID).pow"
+                    
+                    # Set as active if it was active in backup
+                    if ($scheme.IsActive) {
+                        powercfg /setactive $scheme.GUID
+                    }
+                }
+            }
+
+            # Restore advanced power settings
+            $advancedSettingsFile = Join-Path $backupPath "advanced_power_settings.json"
+            if (Test-Path $advancedSettingsFile) {
+                $advancedSettings = Get-Content $advancedSettingsFile | ConvertFrom-Json
+                foreach ($setting in $advancedSettings) {
+                    powercfg /setacvalueindex $setting.SchemeGUID $setting.SubGroupGUID $setting.SettingGUID $setting.ACValue
+                    powercfg /setdcvalueindex $setting.SchemeGUID $setting.SubGroupGUID $setting.SettingGUID $setting.DCValue
                 }
             }
 

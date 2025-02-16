@@ -27,18 +27,81 @@ function Restore-DefaultAppsSettings {
         $backupPath = Test-BackupPath -Path "DefaultApps" -BackupType "Default Apps Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # DefaultApps config locations
+            $defaultAppsConfigs = @{
+                # Default app associations
+                "Associations" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts"
+                # Default programs
+                "Programs" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts"
+                # App defaults
+                "AppDefaults" = "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations"
+                # Protocol handlers
+                "Protocols" = "HKLM:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\Shell\MuiCache"
+                # User choice defaults
+                "UserChoice" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\*\UserChoice"
+                # App capabilities
+                "Capabilities" = "HKLM:\SOFTWARE\RegisteredApplications"
+                # Content type associations
+                "ContentTypes" = "HKLM:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages"
             }
 
-            # Import default apps using DISM
-            $defaultAppsXml = "$backupPath\defaultapps.xml"
-            if (Test-Path $defaultAppsXml) {
-                Write-Host "Importing default app associations..." -ForegroundColor Yellow
-                Dism.exe /Online /Import-DefaultAppAssociations:$defaultAppsXml | Out-Null
+            # Restore default apps settings
+            Write-Host "Checking default apps components..." -ForegroundColor Yellow
+            
+            # Ensure Windows App Service is running
+            $appService = Get-Service "AppReadiness" -ErrorAction SilentlyContinue
+            if ($appService -and $appService.Status -ne "Running") {
+                Start-Service "AppReadiness"
             }
+
+            # Restore registry settings
+            foreach ($config in $defaultAppsConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore default apps XML configuration
+            $defaultAppsXml = Join-Path $backupPath "defaultapps.xml"
+            if (Test-Path $defaultAppsXml) {
+                # Import default apps configuration
+                Dism.exe /Online /Import-DefaultAppAssociations:"$defaultAppsXml"
+            }
+
+            # Restore app associations
+            $associationsFile = Join-Path $backupPath "app_associations.json"
+            if (Test-Path $associationsFile) {
+                $associations = Get-Content $associationsFile | ConvertFrom-Json
+                foreach ($assoc in $associations) {
+                    # Set file type association
+                    if ($assoc.FileType) {
+                        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$($assoc.FileType)\UserChoice" `
+                            -Name "ProgId" -Value $assoc.ProgId -Type String
+                    }
+                    # Set protocol association
+                    if ($assoc.Protocol) {
+                        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\$($assoc.Protocol)\UserChoice" `
+                            -Name "ProgId" -Value $assoc.ProgId -Type String
+                    }
+                }
+            }
+
+            # Refresh shell associations
+            $signature = @"
+                [DllImport("shell32.dll")]
+                public static extern void SHChangeNotify(int eventId, int flags, IntPtr item1, IntPtr item2);
+"@
+            $type = Add-Type -MemberDefinition $signature -Name WinAPI -Namespace Win32Functions -PassThru
+            $type::SHChangeNotify(0x8000000, 0x1000, [IntPtr]::Zero, [IntPtr]::Zero)
 
             # Restore user choice settings
             $userChoicesFile = "$backupPath\user_choices.json"

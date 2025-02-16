@@ -31,63 +31,91 @@ function Restore-Applications {
             if (Test-Path $applicationsFile) {
                 $applications = Get-Content $applicationsFile | ConvertFrom-Json
 
-                # Install packages in order of best package management
-                if (Get-Command choco -ErrorAction SilentlyContinue) {
-                    Write-Host "`nInstalling Chocolatey packages..." -ForegroundColor Yellow
-                    foreach ($app in $applications.Chocolatey) {
-                        Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
-                        choco install $app.Name -y
+                # Application config locations
+                $applicationConfigs = @{
+                    # Winget applications
+                    "Winget" = @{
+                        "Source" = "winget"
+                        "Config" = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState"
+                    }
+                    # Chocolatey applications
+                    "Chocolatey" = @{
+                        "Source" = "choco"
+                        "Config" = "$env:ChocolateyInstall\config"
+                        "Packages" = "$env:ChocolateyInstall\lib"
+                    }
+                    # Store applications
+                    "Store" = @{
+                        "Source" = "msstore"
+                        "Config" = "$env:LOCALAPPDATA\Packages"
                     }
                 }
 
-                if (Get-Command scoop -ErrorAction SilentlyContinue) {
-                    Write-Host "`nInstalling Scoop packages..." -ForegroundColor Yellow
-                    foreach ($app in $applications.Scoop) {
-                        Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
-                        scoop install $app.Name
+                # Restore application settings
+                Write-Host "Checking package managers..." -ForegroundColor Yellow
+
+                # Check and install Winget if needed
+                if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
+                    Write-Host "Installing Winget..." -ForegroundColor Yellow
+                    Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
+                }
+
+                # Check and install Chocolatey if needed
+                if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+                    Write-Host "Installing Chocolatey..." -ForegroundColor Yellow
+                    Set-ExecutionPolicy Bypass -Scope Process -Force
+                    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+                    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+                }
+
+                # Restore application configurations
+                foreach ($config in $applicationConfigs.GetEnumerator()) {
+                    $backupItem = Join-Path $applicationsPath $config.Key
+                    if (Test-Path $backupItem) {
+                        Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                        if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                            # Skip temporary files during restore
+                            $excludeFilter = @("*.tmp", "~*.*", "*.log", "*.old")
+                            Copy-Item $backupItem $config.Value.Config -Recurse -Force -Exclude $excludeFilter
+                        } else {
+                            Copy-Item $backupItem $config.Value.Config -Force
+                        }
+                        Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                     }
                 }
 
-                Write-Host "`nInstalling Store applications..." -ForegroundColor Yellow
-                foreach ($app in $applications.Store) {
-                    Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
-                    try {
-                        Add-AppxPackage -Name $app.ID
-                    } catch {
-                        Write-Host "Failed to install $($app.Name): $_" -ForegroundColor Red
+                # Restore installed applications
+                $applicationsFile = Join-Path $applicationsPath "applications.json"
+                if (Test-Path $applicationsFile) {
+                    $applications = Get-Content $applicationsFile | ConvertFrom-Json
+
+                    # Install Winget applications
+                    Write-Host "`nInstalling Winget applications..." -ForegroundColor Yellow
+                    foreach ($app in $applications.Winget) {
+                        if ($app.Id) {
+                            Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                            winget install --id $app.Id --source $app.Source --accept-package-agreements --accept-source-agreements
+                        }
                     }
-                }
 
-                Write-Host "`nInstalling Winget applications..." -ForegroundColor Yellow
-                foreach ($app in $applications.Winget) {
-                    Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
-                    winget install --id $app.ID --source winget --accept-package-agreements --accept-source-agreements
-                }
-
-                # List games and unmanaged applications that need manual attention
-                Write-Host "`nThe following applications need manual installation:" -ForegroundColor Yellow
-                Write-Host "=============================================" -ForegroundColor Yellow
-
-                if ($applications.Steam.Count -gt 0) {
-                    Write-Host "`nSteam Games:" -ForegroundColor Cyan
-                    foreach ($game in $applications.Steam) {
-                        Write-Host "  $($game.Name)" -ForegroundColor White
+                    # Install Chocolatey applications
+                    if (Get-Command choco -ErrorAction SilentlyContinue) {
+                        Write-Host "`nInstalling Chocolatey packages..." -ForegroundColor Yellow
+                        foreach ($app in $applications.Chocolatey) {
+                            Write-Host "Installing $($app.Name)..." -ForegroundColor Yellow
+                            choco install $app.Name -y
+                        }
                     }
-                }
 
-                if ($applications.Epic.Count -gt 0) {
-                    Write-Host "`nEpic Games:" -ForegroundColor Cyan
-                    foreach ($game in $applications.Epic) {
-                        Write-Host "  $($game.Name)" -ForegroundColor White
-                    }
-                }
-
-                if ($applications.Unmanaged.Count -gt 0) {
-                    Write-Host "`nUnmanaged Applications (some may already be installed by package managers):" -ForegroundColor Cyan
-                    foreach ($app in $applications.Unmanaged) {
-                        Write-Host "  $($app.Name)" -ForegroundColor White
-                        Write-Host "    Publisher: $($app.Publisher)" -ForegroundColor Gray
-                        Write-Host "    Version: $($app.Version)" -ForegroundColor Gray
+                    # List applications that need manual installation
+                    Write-Host "`nThe following applications need to be installed manually:" -ForegroundColor Yellow
+                    Write-Host "=============================================" -ForegroundColor Yellow
+                    foreach ($app in $applications.Other) {
+                        Write-Host "$($app.DisplayName)" -ForegroundColor White
+                        Write-Host "  Publisher: $($app.Publisher)" -ForegroundColor Gray
+                        Write-Host "  Version: $($app.DisplayVersion)" -ForegroundColor Gray
+                        Write-Host "  Install Date: $($app.InstallDate)" -ForegroundColor Gray
+                        Write-Host "---------------------------------------------" -ForegroundColor Gray
                     }
                 }
 

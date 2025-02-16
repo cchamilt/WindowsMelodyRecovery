@@ -27,11 +27,94 @@ function Restore-DisplaySettings {
         $backupPath = Test-BackupPath -Path "Display" -BackupType "Display Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # Display config locations
+            $displayConfigs = @{
+                # Display adapter settings
+                "Adapters" = "HKLM:\SYSTEM\CurrentControlSet\Control\Video"
+                # Display monitor settings
+                "Monitors" = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration"
+                # Display color settings
+                "ColorCalibration" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ICM\Calibration"
+                # Display DPI settings
+                "DPI" = "HKCU:\Control Panel\Desktop"
+                # Display HDR settings
+                "HDR" = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\FeatureSettings"
+                # Display scaling settings
+                "Scaling" = "HKCU:\Control Panel\Desktop\WindowMetrics"
+                # Display refresh rate settings
+                "RefreshRate" = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration"
+                # Display orientation settings
+                "Orientation" = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Rotation"
             }
+
+            # Restore display settings
+            Write-Host "Checking display components..." -ForegroundColor Yellow
+            $displayServices = @(
+                "DispBrokerDesktopSvc", # Display Enhancement Service
+                "ICSSvc"                # Windows Mobile Hotspot Service
+            )
+            
+            foreach ($service in $displayServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
+
+            # Restore registry settings
+            foreach ($config in $displayConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore display configurations
+            $displayConfigFile = Join-Path $backupPath "display_config.json"
+            if (Test-Path $displayConfigFile) {
+                $displayConfig = Get-Content $displayConfigFile | ConvertFrom-Json
+                
+                # Apply display settings
+                foreach ($display in $displayConfig.Displays) {
+                    # Set display resolution
+                    if ($display.Resolution) {
+                        Set-DisplayResolution -Width $display.Resolution.Width `
+                            -Height $display.Resolution.Height `
+                            -Force
+                    }
+                    
+                    # Set refresh rate
+                    if ($display.RefreshRate) {
+                        Set-DisplayRefreshRate -Frequency $display.RefreshRate -Force
+                    }
+                    
+                    # Set scaling
+                    if ($display.Scaling) {
+                        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" `
+                            -Name "LogPixels" -Value $display.Scaling
+                    }
+                }
+            }
+
+            # Notify display settings change
+            $signature = @"
+                [DllImport("user32.dll")]
+                public static extern int SendMessageTimeout(
+                    IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
+                    uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
+"@
+            $type = Add-Type -MemberDefinition $signature -Name WinAPI -Namespace Win32Functions -PassThru
+            [IntPtr]$HWND_BROADCAST = [IntPtr]0xffff
+            $WM_SETTINGCHANGE = 0x1a
+            $result = [UIntPtr]::Zero
+            $type::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [UIntPtr]::Zero, "Policy", 2, 5000, [ref]$result) | Out-Null
 
             # Restore video controller settings where possible
             $videoControllersFile = "$backupPath\video_controllers.json"
@@ -92,6 +175,7 @@ function Restore-DisplaySettings {
             Get-Process dwm -ErrorAction SilentlyContinue | Stop-Process -Force
             
             Write-Host "Display Settings restored successfully from: $backupPath" -ForegroundColor Green
+            Write-Host "`nNote: Some settings may require a system restart to take effect" -ForegroundColor Yellow
             return $true
         }
         return $false

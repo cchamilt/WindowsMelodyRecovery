@@ -27,24 +27,80 @@ function Restore-SoundSettings {
         $backupPath = Test-BackupPath -Path "Sound" -BackupType "Sound Settings"
         
         if ($backupPath) {
-            # Import registry settings first
-            $regFiles = Get-ChildItem -Path $backupPath -Filter "*.reg"
-            foreach ($regFile in $regFiles) {
-                reg import $regFile.FullName | Out-Null
+            # Sound config locations
+            $soundConfigs = @{
+                # Audio devices
+                "Devices" = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}"
+                # Sound settings
+                "Settings" = "HKCU:\Software\Microsoft\Multimedia\Audio"
+                # Sound scheme
+                "Scheme" = "HKCU:\AppEvents\Schemes"
+                # Sound effects
+                "Effects" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio"
+                # Volume mixer
+                "Mixer" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Multimedia\Audio"
+                # Communications settings
+                "Communications" = "HKCU:\Software\Microsoft\Multimedia\Audio\DeviceCpl"
+                # Spatial sound
+                "Spatial" = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Audio\SpatialSound"
+                # Audio enhancements
+                "Enhancements" = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEnhancements"
             }
 
-            # Restore audio devices configuration
-            $audioDevicesFile = "$backupPath\audio_devices.json"
-            if (Test-Path $audioDevicesFile) {
-                $savedDevices = Get-Content $audioDevicesFile | ConvertFrom-Json
-                $currentDevices = Get-WmiObject Win32_SoundDevice
+            # Restore sound settings
+            Write-Host "Checking audio components..." -ForegroundColor Yellow
+            $audioServices = @(
+                "Audiosrv",            # Windows Audio
+                "AudioEndpointBuilder", # Windows Audio Endpoint Builder
+                "MMCSS"                # Multimedia Class Scheduler
+            )
+            
+            foreach ($service in $audioServices) {
+                if ((Get-Service -Name $service -ErrorAction SilentlyContinue).Status -ne "Running") {
+                    Start-Service -Name $service
+                }
+            }
 
-                foreach ($current in $currentDevices) {
-                    $saved = $savedDevices | Where-Object { $_.DeviceID -eq $current.DeviceID }
-                    if ($saved) {
-                        # Update supported properties
-                        $current.Status = $saved.Status
-                        $current.Put()
+            # Restore registry settings
+            foreach ($config in $soundConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    Write-Host "Restoring $($config.Key) settings..." -ForegroundColor Yellow
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.bak", "*.old")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
+                    }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
+                }
+            }
+
+            # Restore audio devices
+            $devicesFile = Join-Path $backupPath "audio_devices.json"
+            if (Test-Path $devicesFile) {
+                $devices = Get-Content $devicesFile | ConvertFrom-Json
+                foreach ($device in $devices) {
+                    # Set default audio device
+                    if ($device.IsDefault) {
+                        $audioDevice = Get-AudioDevice -List | Where-Object { $_.ID -eq $device.ID }
+                        if ($audioDevice) {
+                            Set-AudioDevice -ID $device.ID
+                        }
+                    }
+                }
+            }
+
+            # Restore sound scheme
+            $schemeFile = Join-Path $backupPath "sound_scheme.json"
+            if (Test-Path $schemeFile) {
+                $scheme = Get-Content $schemeFile | ConvertFrom-Json
+                foreach ($sound in $scheme.Sounds) {
+                    $soundPath = Join-Path $backupPath "Sounds\$($sound.FileName)"
+                    if (Test-Path $soundPath) {
+                        Copy-Item $soundPath "$env:SystemRoot\Media\" -Force
+                        Set-ItemProperty -Path $sound.RegistryPath -Name $sound.Event -Value $sound.FileName
                     }
                 }
             }

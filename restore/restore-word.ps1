@@ -29,19 +29,34 @@ function Restore-WordSettings {
         if ($backupPath) {
             # Word config locations
             $wordConfigs = @{
+                # Main settings
                 "Settings" = "$env:APPDATA\Microsoft\Word"
+                # Word 2016+ settings
+                "Settings2016" = "$env:APPDATA\Microsoft\Word\16.0"
+                # Templates and custom content
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
+                # Quick access and recent items
+                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\Word.lnk"
+                # Recent files
                 "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
-                "Dictionaries" = "$env:APPDATA\Microsoft\UProof"
+                # Custom dictionaries
+                "Custom Dictionary" = "$env:APPDATA\Microsoft\UProof"
+                # AutoCorrect entries
                 "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
-                "BuildingBlocks" = "$env:APPDATA\Microsoft\Document Building Blocks"
-                "Styles" = "$env:APPDATA\Microsoft\QuickStyles"
+                # Custom toolbars and ribbons
                 "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Word\Ribbons"
+                # Add-ins
+                "AddIns" = "$env:APPDATA\Microsoft\Word\AddIns"
+                # Building Blocks
+                "Building Blocks" = "$env:APPDATA\Microsoft\Word\Building Blocks"
+                # Custom styles
+                "Styles" = "$env:APPDATA\Microsoft\Word\StyleGallery"
             }
 
             # Restore registry settings first
             $registryPath = Join-Path $backupPath "Registry"
             if (Test-Path $registryPath) {
+                # Import each registry file found
                 Get-ChildItem -Path $registryPath -Filter "*.reg" | ForEach-Object {
                     Write-Host "Importing registry file: $($_.Name)" -ForegroundColor Yellow
                     reg import $_.FullName | Out-Null
@@ -59,10 +74,13 @@ function Restore-WordSettings {
                     }
 
                     if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
-                        Copy-Item $backupItem $config.Value -Recurse -Force
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.asd")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 

@@ -30,12 +30,18 @@ function Restore-OutlookSettings {
             # Outlook config locations
             $outlookConfigs = @{
                 "Settings" = "$env:APPDATA\Microsoft\Outlook"
-                "Signatures" = "$env:APPDATA\Microsoft\Signatures"
-                "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
+                "Settings2016" = "$env:APPDATA\Microsoft\Outlook\16.0"
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
-                "Dictionaries" = "$env:APPDATA\Microsoft\UProof"
+                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\Outlook.lnk"
+                "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
+                "Custom Dictionary" = "$env:APPDATA\Microsoft\UProof"
                 "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
-                "Rules" = "$env:APPDATA\Microsoft\Outlook\RoamCache"
+                "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Outlook\Ribbons"
+                "AddIns" = "$env:APPDATA\Microsoft\Outlook\AddIns"
+                "Signatures" = "$env:APPDATA\Microsoft\Signatures"
+                "Rules" = "$env:APPDATA\Microsoft\Outlook\Rules"
+                "Forms" = "$env:APPDATA\Microsoft\Forms"
+                "Quick Parts" = "$env:APPDATA\Microsoft\Outlook\QuickParts"
             }
 
             # Restore registry settings first
@@ -58,10 +64,12 @@ function Restore-OutlookSettings {
                     }
 
                     if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
-                        Copy-Item $backupItem $config.Value -Recurse -Force
+                        $excludeFilter = @("*.tmp", "~*.*", "*.ost", "*.pst")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 

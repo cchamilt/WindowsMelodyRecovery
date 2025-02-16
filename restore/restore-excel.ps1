@@ -30,14 +30,14 @@ function Restore-ExcelSettings {
             # Excel config locations
             $excelConfigs = @{
                 "Settings" = "$env:APPDATA\Microsoft\Excel"
+                "Settings2016" = "$env:APPDATA\Microsoft\Excel\16.0"
                 "Templates" = "$env:APPDATA\Microsoft\Templates"
+                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\Excel.lnk"
                 "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
-                "Dictionaries" = "$env:APPDATA\Microsoft\UProof"
-                "AutoCorrect" = "$env:APPDATA\Microsoft\Office"
-                "AddIns" = "$env:APPDATA\Microsoft\AddIns"
                 "Ribbons" = "$env:APPDATA\Microsoft\Office\16.0\Excel\Ribbons"
+                "AddIns" = "$env:APPDATA\Microsoft\Excel\AddIns"
                 "Views" = "$env:APPDATA\Microsoft\Excel\Views"
-                "Personal" = "$env:APPDATA\Microsoft\Excel\XLSTART"
+                "Workspaces" = "$env:APPDATA\Microsoft\Excel\Workspaces"
             }
 
             # Restore registry settings first
@@ -60,10 +60,12 @@ function Restore-ExcelSettings {
                     }
 
                     if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
-                        Copy-Item $backupItem $config.Value -Recurse -Force
+                        $excludeFilter = @("*.tmp", "~*.*", "*.xlk")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
                     } else {
                         Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                 }
             }
 

@@ -33,92 +33,78 @@ function Restore-SSHSettings {
                 reg import $regFile.FullName | Out-Null
             }
 
-            # Restore SSH config and keys
-            $sshPaths = @{
-                "User" = "$env:USERPROFILE\.ssh"
-                "System" = "$env:ProgramData\ssh"
+            # SSH config locations
+            $sshConfigs = @{
+                # Main SSH configuration
+                "Config" = "$env:USERPROFILE\.ssh\config"
+                # Known hosts
+                "KnownHosts" = "$env:USERPROFILE\.ssh\known_hosts"
+                # Private keys
+                "Keys" = "$env:USERPROFILE\.ssh\id_*"
+                # Public keys
+                "PublicKeys" = "$env:USERPROFILE\.ssh\*.pub"
+                # Authorized keys
+                "AuthorizedKeys" = "$env:USERPROFILE\.ssh\authorized_keys"
+                # SSH agent configuration
+                "SshAgent" = "$env:USERPROFILE\.ssh\agent.conf"
+                # Custom key configurations
+                "KeyConfig" = "$env:USERPROFILE\.ssh\config.d"
+                # System-wide SSH configuration
+                "SystemConfig" = "$env:ProgramData\ssh\sshd_config"
             }
 
-            foreach ($ssh in $sshPaths.GetEnumerator()) {
-                $sourcePath = Join-Path $backupPath $ssh.Key
-                if (Test-Path $sourcePath) {
-                    if (!(Test-Path $ssh.Value)) {
-                        New-Item -ItemType Directory -Path $ssh.Value -Force | Out-Null
+            # Restore SSH settings
+            Write-Host "Checking SSH service installation..." -ForegroundColor Yellow
+            $sshFeatures = @(
+                "OpenSSH.Client~~~~0.0.1.0",
+                "OpenSSH.Server~~~~0.0.1.0"
+            )
+            
+            foreach ($feature in $sshFeatures) {
+                if (!(Get-WindowsCapability -Online -Name $feature).State -eq "Installed") {
+                    Add-WindowsCapability -Online -Name $feature
+                }
+            }
+
+            # Restore config files
+            foreach ($config in $sshConfigs.GetEnumerator()) {
+                $backupItem = Join-Path $backupPath $config.Key
+                if (Test-Path $backupItem) {
+                    # Create parent directory if it doesn't exist
+                    $parentDir = Split-Path $config.Value -Parent
+                    if (!(Test-Path $parentDir)) {
+                        New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
                     }
 
-                    # Restore non-private key files with their permissions
-                    Get-ChildItem -Path $sourcePath -Exclude "*.enc","*.acl" | ForEach-Object {
-                        Copy-Item -Path $_.FullName -Destination $ssh.Value -Force
-                        $aclFile = "$sourcePath\$($_.Name).acl"
-                        if (Test-Path $aclFile) {
-                            icacls "$($ssh.Value)\$($_.Name)" /restore $aclFile
-                        }
+                    if ((Get-Item $backupItem) -is [System.IO.DirectoryInfo]) {
+                        # Skip temporary files during restore
+                        $excludeFilter = @("*.tmp", "~*.*", "*.old", "*.bak")
+                        Copy-Item $backupItem $config.Value -Recurse -Force -Exclude $excludeFilter
+                    } else {
+                        Copy-Item $backupItem $config.Value -Force
                     }
+                    Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
 
-                    # Restore private keys with decryption and proper permissions
-                    $encryptedKeys = Get-ChildItem -Path $sourcePath -Filter "*.enc"
-                    foreach ($encKey in $encryptedKeys) {
-                        $keyName = $encKey.Name -replace '\.enc$',''
-                        $keyPath = Join-Path $ssh.Value $keyName
-                        
-                        # Decrypt and restore the key
-                        $encryptedBytes = [System.IO.File]::ReadAllBytes($encKey.FullName)
-                        $decryptedBytes = Unprotect-CmsMessage -Content $encryptedBytes
-                        [System.IO.File]::WriteAllBytes($keyPath, $decryptedBytes)
-
-                        # Restore original permissions
-                        $aclFile = "$sourcePath\$keyName.acl"
-                        if (Test-Path $aclFile) {
-                            icacls $keyPath /restore $aclFile
-                        } else {
-                            # Set default restrictive permissions if no ACL file exists
-                            icacls $keyPath /inheritance:r
-                            icacls $keyPath /grant:r "${env:USERNAME}:F"
-                        }
+                    # Set correct permissions
+                    if ($config.Key -like "*Keys*" -or $config.Key -eq "AuthorizedKeys") {
+                        icacls $config.Value /inheritance:r
+                        icacls $config.Value /grant:r "${env:USERNAME}:(R,W)"
                     }
                 }
             }
 
-            # Restore known_hosts files
-            $knownHostsFiles = Get-ChildItem -Path $backupPath -Filter "known_hosts_*"
-            foreach ($file in $knownHostsFiles) {
-                $originalPath = if ($file.Name -match "ProgramData") {
-                    "$env:ProgramData\ssh\known_hosts"
-                } else {
-                    "$env:USERPROFILE\.ssh\known_hosts"
-                }
-                
-                if (!(Test-Path (Split-Path $originalPath -Parent))) {
-                    New-Item -ItemType Directory -Path (Split-Path $originalPath -Parent) -Force | Out-Null
-                }
-                Copy-Item -Path $file.FullName -Destination $originalPath -Force
-            }
-
-            # Restore PuTTY settings
-            $puttyBackupPath = Join-Path $backupPath "PuTTY"
-            if (Test-Path $puttyBackupPath) {
-                $puttyPath = "$env:APPDATA\PuTTY"
-                if (!(Test-Path $puttyPath)) {
-                    New-Item -ItemType Directory -Path $puttyPath -Force | Out-Null
-                }
-                Copy-Item -Path "$puttyBackupPath\*" -Destination $puttyPath -Force -Recurse
-            }
-
-            # Restore WinSCP settings
-            $winscpBackupPath = Join-Path $backupPath "WinSCP"
-            if (Test-Path $winscpBackupPath) {
-                $winscpPath = "$env:APPDATA\WinSCP"
-                if (!(Test-Path $winscpPath)) {
-                    New-Item -ItemType Directory -Path $winscpPath -Force | Out-Null
-                }
-                Copy-Item -Path "$winscpBackupPath\*.ini" -Destination $winscpPath -Force
-                Copy-Item -Path "$winscpBackupPath\WinSCP.rnd" -Destination $winscpPath -Force -ErrorAction SilentlyContinue
-            }
-
-            # Restart SSH service if it exists
+            # Restore SSH service configuration
             $sshService = Get-Service -Name "sshd" -ErrorAction SilentlyContinue
             if ($sshService) {
-                Restart-Service -Name "sshd" -Force -ErrorAction SilentlyContinue
+                # Apply system-wide configuration
+                $systemConfigFile = Join-Path $backupPath "SystemConfig\sshd_config"
+                if (Test-Path $systemConfigFile) {
+                    Copy-Item $systemConfigFile -Destination "$env:ProgramData\ssh\sshd_config" -Force
+                    Write-Host "Restored system SSH configuration" -ForegroundColor Green
+                }
+
+                # Restart SSH service to apply changes
+                Restart-Service -Name "sshd" -Force
             }
             
             Write-Host "SSH Settings restored successfully from: $backupPath" -ForegroundColor Green
