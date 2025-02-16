@@ -3,11 +3,6 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backupPath = Join-Path $scriptPath "backup"
 . (Join-Path $scriptPath "scripts\load-environment.ps1")
 
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
-}
-
 # Now we have access to all environment variables including email settings
 # $env:BACKUP_EMAIL_FROM
 # $env:BACKUP_EMAIL_TO
@@ -100,7 +95,11 @@ try {
             $scriptFile = Join-Path $backupPath $backup.Script
             if (Test-Path $scriptFile) {
                 # Pass BackupRootPath when sourcing the script
-                $BackupRootPath = $MACHINE_BACKUP
+                $config = Get-WindowsConfig
+                if (!$config.BackupRoot) {
+                    throw "Backup root not configured. Please run Install-WindowsConfig first."
+                }
+                $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
                 . $scriptFile
                 # Verify the function was loaded
                 if (!(Get-Command $backup.Function -ErrorAction SilentlyContinue)) {

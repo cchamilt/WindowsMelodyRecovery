@@ -198,14 +198,28 @@ MACHINE_NAME="$env:COMPUTERNAME"
             New-Item -ItemType Directory -Path $machineBackupDir -Force | Out-Null
         }
 
-        # Create and populate windows.env
-        $windowsEnv = @"
-# Windows Configuration Environment Variables
-BACKUP_ROOT="$backupRoot"
-WINDOWS_CONFIG_PATH="$InstallPath"
-MACHINE_NAME="$env:COMPUTERNAME"
-"@
-        $windowsEnv | Out-File (Join-Path $InstallPath "windows.env") -Force
+        # Set module configuration
+        $emailParams = @{
+            BackupRoot = $backupRoot
+        }
+        
+        # Only prompt for email settings if we need to create a new machine config
+        Write-Host "`nConfigure email notification settings:" -ForegroundColor Blue
+        $fromAddress = Read-Host "Enter sender email address (Office 365)"
+        $toAddress = Read-Host "Enter recipient email address"
+        $emailPassword = Read-Host "Enter email app password" -AsSecureString
+        
+        # Convert secure string to plain text
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
+        $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+
+        if ($fromAddress) {
+            $emailParams['FromAddress'] = $fromAddress
+            $emailParams['ToAddress'] = $toAddress
+            $emailParams['EmailPassword'] = $emailPassword
+        }
+        
+        Set-WindowsConfig @emailParams
 
         # Create shared backup directory
         $sharedBackupDir = Join-Path $backupRoot "shared"

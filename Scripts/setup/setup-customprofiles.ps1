@@ -127,6 +127,182 @@ function Install-GithubCopilotCli {
     return $false
 }
 
+function Initialize-GabAPI {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$AuthToken
+    )
+
+    # Create base headers and API configuration
+    $script:GabConfig = @{
+        BaseUrl = "https://gab.ai"
+        Headers = @{
+            "Authorization" = "Bearer $AuthToken"
+            "Content-Type" = "application/json"
+        }
+    }
+
+    # Test connection with a simple user query
+    try {
+        $response = Invoke-RestMethod -Uri "$($GabConfig.BaseUrl)/users/test" `
+                                    -Headers $GabConfig.Headers `
+                                    -Method Get
+        return $true
+    }
+    catch {
+        Write-Host "Failed to initialize Gab API: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Get-GabAssistant {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Prompt
+    )
+
+    if (!$script:GabConfig) {
+        Write-Host "Would you like to configure Gab API access? (Y/N)" -ForegroundColor Yellow
+        $response = Read-Host
+        if ($response -eq 'Y') {
+            $authToken = Read-Host "Enter your Gab API auth token"
+            if (!(Initialize-GabAPI -AuthToken $authToken)) {
+                return $null
+            }
+        }
+        else {
+            return $null
+        }
+    }
+
+    try {
+        # This endpoint URL needs to be updated based on actual Gab API docs
+        $apiEndpoint = "$($GabConfig.BaseUrl)/api/ai/generate"
+        
+        $body = @{
+            prompt = $prompt
+            # Add other required parameters based on API docs
+        } | ConvertTo-Json
+
+        $response = Invoke-RestMethod -Uri $apiEndpoint `
+                                    -Headers $GabConfig.Headers `
+                                    -Method Post `
+                                    -Body $body
+
+        return $response.content
+    }
+    catch {
+        Write-Host "Failed to get response from Gab AI: $_" -ForegroundColor Red
+        return $null
+    }
+}
+
+function Initialize-AzureAI {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$false)]
+        [string]$DeploymentName = "gpt-4"
+    )
+
+    # Create base configuration for Azure OpenAI
+    $script:AzureConfig = @{
+        ApiKey = $ApiKey
+        Endpoint = $Endpoint
+        DeploymentName = $DeploymentName
+        Headers = @{
+            "api-key" = $ApiKey
+            "Content-Type" = "application/json"
+        }
+    }
+
+    # Test connection
+    try {
+        $testUrl = "$Endpoint/openai/deployments/$DeploymentName/chat/completions?api-version=2024-02-15-preview"
+        $testBody = @{
+            messages = @(
+                @{
+                    role = "user"
+                    content = "Test connection"
+                }
+            )
+            max_tokens = 50
+        } | ConvertTo-Json
+
+        $response = Invoke-RestMethod -Uri $testUrl `
+                                    -Headers $script:AzureConfig.Headers `
+                                    -Method Post `
+                                    -Body $testBody
+        return $true
+    }
+    catch {
+        Write-Host "Failed to initialize Azure OpenAI: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Get-AzureAIAssistant {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Prompt
+    )
+
+    if (!$script:AzureConfig) {
+        Write-Host "Would you like to configure Azure OpenAI? (Y/N)" -ForegroundColor Yellow
+        $response = Read-Host
+        if ($response -eq 'Y') {
+            $apiKey = Read-Host "Enter your Azure OpenAI API key"
+            $endpoint = Read-Host "Enter your Azure OpenAI endpoint (e.g., https://your-resource.openai.azure.com/)"
+            $deployment = Read-Host "Enter your deployment name (default: gpt-4)"
+            if ([string]::IsNullOrEmpty($deployment)) {
+                $deployment = "gpt-4"
+            }
+            
+            if (!(Initialize-AzureAI -ApiKey $apiKey -Endpoint $endpoint -DeploymentName $deployment)) {
+                return $null
+            }
+        }
+        else {
+            return $null
+        }
+    }
+
+    try {
+        $url = "$($script:AzureConfig.Endpoint)/openai/deployments/$($script:AzureConfig.DeploymentName)/chat/completions?api-version=2024-02-15-preview"
+        
+        $body = @{
+            messages = @(
+                @{
+                    role = "system"
+                    content = "You are a helpful assistant that creates shell profiles. Focus on security, performance, and developer productivity."
+                }
+                @{
+                    role = "user"
+                    content = $Prompt
+                }
+            )
+            max_tokens = 4000
+            temperature = 0.7
+            frequency_penalty = 0
+            presence_penalty = 0
+            top_p = 0.95
+        } | ConvertTo-Json
+
+        $response = Invoke-RestMethod -Uri $url `
+                                    -Headers $script:AzureConfig.Headers `
+                                    -Method Post `
+                                    -Body $body
+
+        return $response.choices[0].message.content
+    }
+    catch {
+        Write-Host "Failed to get response from Azure OpenAI: $_" -ForegroundColor Red
+        return $null
+    }
+}
+
 function Get-AvailableAIAssistants {
     $assistants = @()
     
@@ -175,6 +351,32 @@ function Get-AvailableAIAssistants {
         }
     }
 
+    # Check for Azure OpenAI
+    if ($env:AZURE_OPENAI_KEY -and $env:AZURE_OPENAI_ENDPOINT) {
+        if (Initialize-AzureAI -ApiKey $env:AZURE_OPENAI_KEY -Endpoint $env:AZURE_OPENAI_ENDPOINT) {
+            $assistants += "Azure OpenAI"
+        }
+    } else {
+        Write-Host "Would you like to set up Azure OpenAI? (Y/N)" -ForegroundColor Yellow
+        $response = Read-Host
+        if ($response -eq 'Y') {
+            $apiKey = Read-Host "Enter your Azure OpenAI API key"
+            $endpoint = Read-Host "Enter your Azure OpenAI endpoint"
+            [System.Environment]::SetEnvironmentVariable("AZURE_OPENAI_KEY", $apiKey, "User")
+            [System.Environment]::SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", $endpoint, "User")
+            $env:AZURE_OPENAI_KEY = $apiKey
+            $env:AZURE_OPENAI_ENDPOINT = $endpoint
+            if (Initialize-AzureAI -ApiKey $apiKey -Endpoint $endpoint) {
+                $assistants += "Azure OpenAI"
+            }
+        }
+    }
+
+    # Add Gab to the list of assistants
+    if ($script:GabConfig -or (Initialize-GabAPI)) {
+        $assistants += "Gab"
+    }
+
     return $assistants
 }
 
@@ -207,10 +409,13 @@ Create a $ProfileType shell profile with these requirements:
 8. Add comments explaining complex parts
 "@
 
-        # Try AI assistants in order of preference
         foreach ($assistant in $AIAssistants) {
             try {
                 switch ($assistant) {
+                    "Gab.ai" {
+                        $profileContent = Get-GabAssistant -Prompt $prompt
+                        break
+                    }
                     "GitHub Copilot CLI" {
                         $profileContent = github-copilot-cli --shell $prompt
                         break
@@ -245,6 +450,10 @@ Create a $ProfileType shell profile with these requirements:
                             })
                         } | ConvertTo-Json)
                         $profileContent = $response.content
+                        break
+                    }
+                    "Azure OpenAI" {
+                        $profileContent = Get-AzureAIAssistant -Prompt $prompt
                         break
                     }
                 }
