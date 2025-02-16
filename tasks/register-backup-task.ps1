@@ -159,15 +159,3 @@ try {
     Write-Host "Failed to register backup task: $_" -ForegroundColor Red
     exit 1
 }
-
-# Offer to run the backup now
-Write-Host "`nWould you like to run the backup now? (Y/N)" -ForegroundColor Yellow
-$response = Read-Host
-if ($response -eq "Y" -or $response -eq "y") {
-    try {
-        Write-Host "Running backup..." -ForegroundColor Blue
-        & $backupScript
-    } catch {
-        Write-Host "Failed to run backup: $_" -ForegroundColor Red
-    }
-} 

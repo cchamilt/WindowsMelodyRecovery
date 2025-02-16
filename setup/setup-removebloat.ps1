@@ -361,11 +361,95 @@ try {
     Write-Host "Failed to disable Lenovo UDC devices: $_" -ForegroundColor Red
 }
 
+# Disable suggestion notifications
+Write-Host "`nDisabling suggestion notifications..." -ForegroundColor Yellow
 
+$suggestionSettings = @{
+    # Windows Suggestions
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" = @{
+        "SubscribedContent-338388Enabled" = 0  # Suggestions on Start
+        "SubscribedContent-338389Enabled" = 0  # Suggestions in Settings
+        "SubscribedContent-353694Enabled" = 0  # Timeline suggestions
+        "SubscribedContent-353696Enabled" = 0  # Tips and tricks
+        "SubscribedContent-338387Enabled" = 0  # App suggestions
+        "SubscribedContent-310093Enabled" = 0  # General suggestions
+        "SystemPaneSuggestionsEnabled" = 0     # System suggestions
+        "SoftLandingEnabled" = 0               # Feature highlights
+        "FeatureManagementEnabled" = 0         # Feature suggestions
+        "ShowSyncProviderNotifications" = 0    # OneDrive suggestions
+        "PreInstalledAppsEnabled" = 0          # Pre-installed apps suggestions
+        "OemPreInstalledAppsEnabled" = 0       # OEM pre-installed apps suggestions
+    }
+    # Windows Explorer Suggestions
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" = @{
+        "ShowSyncProviderNotifications" = 0    # OneDrive notifications
+        "Start_TrackProgs" = 0                 # App launch tracking
+        "ShowInfoTip" = 0                      # Item tooltips
+    }
+    # # Notification Settings
+    # "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" = @{
+    #     "NOC_GLOBAL_SETTING_ALLOW_TOASTS_ABOVE_LOCK" = 0  # Notifications above lock screen
+    #     "NOC_GLOBAL_SETTING_ALLOW_CRITICAL_TOASTS_ABOVE_LOCK" = 0  # Critical notifications above lock screen
+    #     "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND" = 0  # Notification sounds
+    # }
+    # Notification Settings
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.Suggested" = @{
+        "Enabled" = 0                          # System suggested toast notifications
+    }
+    # # System Notifications
+    # "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" = @{
+    #     "ToastEnabled" = 0                     # Toast notifications
+    #     "NoToastApplicationNotification" = 1    # App notifications
+    #     "NoTileApplicationNotification" = 1     # Tile notifications
+    # }
+    # Start Menu Suggestions
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" = @{
+        "ShowAppsList" = 0                     # App suggestions in Start
+    }
+    # # Lock Screen Suggestions
+    # "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lock Screen" = @{
+    #     "SlideshowEnabled" = 0                 # Lock screen slideshow
+    # }
+    # Microsoft Store Suggestions
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Store" = @{
+        "AutoDownload" = 2                     # Disable automatic app updates
+    }
+    # Edge Browser Suggestions
+    "HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\ServiceUI" = @{
+        "EnableCortana" = 0                    # Cortana in Edge
+        "ShowSearchSuggestionsGlobal" = 0      # Search suggestions
+    }
+    # Windows Tips
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" = @{
+        "DisableAutoInstall" = 1               # Disable auto-install of suggested apps
+    }
+}
 
+foreach ($path in $suggestionSettings.Keys) {
+    try {
+        if (!(Test-Path $path)) {
+            New-Item -Path $path -Force | Out-Null
+        }
+        
+        $settings = $suggestionSettings[$path]
+        foreach ($name in $settings.Keys) {
+            Set-ItemProperty -Path $path -Name $name -Value $settings[$name] -Type DWord -ErrorAction Stop
+            Write-Host "Disabled $name" -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Host "Failed to set suggestion settings for $path : $_" -ForegroundColor Red
+        continue
+    }
+}
 
-
-
-
-
-
+# Disable Windows Spotlight
+Write-Host "`nDisabling Windows Spotlight..." -ForegroundColor Yellow
+try {
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "RotatingLockScreenEnabled" -Value 0 -Type DWord
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "RotatingLockScreenOverlayEnabled" -Value 0 -Type DWord
+    Write-Host "Windows Spotlight disabled" -ForegroundColor Green
+}
+catch {
+    Write-Host "Failed to disable Windows Spotlight: $_" -ForegroundColor Red
+}

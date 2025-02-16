@@ -230,6 +230,18 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
         }
     }
 
+    # Offer to run the backup now
+    $response = Read-Host "Would you like to run the backup now? (Y/N)"
+    if ($response -eq "Y" -or $response -eq "y") {
+        try {
+            $backupScript = Join-Path $InstallPath "Backup-WindowsConfig.ps1"
+            Write-Host "Running backup..." -ForegroundColor Blue
+            & $backupScript
+        } catch {
+            Write-Host "Failed to run backup: $_" -ForegroundColor Red
+        }
+    } 
+
     # Setup Package Managers
     if (!$NoPrompt) {
         $response = Read-Host "Would you like to set up Package Managers? (Y/N)"
