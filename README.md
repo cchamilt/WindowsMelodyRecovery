@@ -18,10 +18,10 @@ If during the recovery process the machine name directory is not found, it will 
 ├── tasks/          # Scheduled task registration scripts
 ├── templates/      # Configuration templates
 ├── scripts/        # Helper scripts
-├── Backup-WindowsConfig.ps1      # Main backup script
-├── Restore-WindowsConfig.ps1     # Main restore script
-├── Update-WindowsConfig.ps1      # Package update script
-└── Install-WindowsConfig.ps1     # Installation script
+├── Backup-WindowsRecovery.ps1      # Main backup script
+├── Restore-WindowsRecovery.ps1     # Main restore script
+├── Update-WindowsRecovery.ps1      # Package update script
+└── Install-WindowsRecovery.ps1     # Installation script
 ```
 
 ## Install the Windows Configuration Scripts
@@ -29,11 +29,11 @@ If during the recovery process the machine name directory is not found, it will 
 In a PowerShell prompt with admin privileges, run the following command to install the Windows Configuration.
 
 ```powershell
-Install-WindowsConfig.ps1 [-InstallPath <path>] [-NoScheduledTasks] [-NoPrompt]
+Install-WindowsRecovery.ps1 [-InstallPath <path>] [-NoScheduledTasks] [-NoPrompt]
 ```
 
 Parameters:
-- `-InstallPath`: Custom installation directory (default: `%USERPROFILE%\Scripts\WindowsConfig`)
+- `-InstallPath`: Custom installation directory (default: `%USERPROFILE%\Scripts\WindowsRecovery`)
 - `-NoScheduledTasks`: Skip scheduled task registration
 - `-NoPrompt`: Non-interactive installation
 
@@ -66,7 +66,7 @@ If the machine needs recovery, run the following command to restore the Windows 
 With admin privileges, run the following command to restore the Windows Configuration from One Drive.
 
 ```powershell
-Restore-WindowsConfig.ps1
+Restore-WindowsRecovery.ps1
 ```
 
 This will restore the Windows Configuration from One Drive.  If the machine name directory is not found for individual restore scripts, it will use the shared folder.
@@ -76,7 +76,7 @@ This will restore the Windows Configuration from One Drive.  If the machine name
 With admin privileges, run the following command to update the Windows Configuration.
 
 ```powershell
-Update-WindowsConfig.ps1
+Update-WindowsRecovery.ps1
 ```
 
 This will update applications and powershell packages through the package managers supported including inside WSL distributions.
@@ -86,7 +86,7 @@ This will update applications and powershell packages through the package manage
 With admin privileges, run the following command to backup the Windows Configuration to One Drive.
 
 ```powershell
-Backup-WindowsConfig.ps1
+Backup-WindowsRecovery.ps1
 ```
 
 This will backup the Windows Configuration to One Drive.

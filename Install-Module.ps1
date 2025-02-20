@@ -1,5 +1,5 @@
 # Install module to user's modules directory
-$modulePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\WindowsConfig"
+$modulePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\WindowsRecovery"
 if (!(Test-Path $modulePath)) {
     New-Item -ItemType Directory -Path $modulePath -Force
 }
@@ -8,7 +8,7 @@ if (!(Test-Path $modulePath)) {
 Copy-Item -Path ".\*" -Destination $modulePath -Recurse -Force
 
 # Import module
-Import-Module WindowsConfig -Force
+Import-Module WindowsRecovery -Force
 
-Write-Host "WindowsConfig module installed successfully!" -ForegroundColor Green
-Write-Host "You can now use Install-WindowsConfig to set up your Windows configuration." 
+Write-Host "WindowsRecovery module installed successfully!" -ForegroundColor Green
+Write-Host "You can now use Install-WindowsRecovery to set up your Windows recovery." 

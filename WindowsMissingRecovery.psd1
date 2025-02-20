@@ -1,16 +1,16 @@
 @{
-    RootModule = 'WindowsConfig.psm1'
+    RootModule = 'WindowsMissingRecovery.psm1'
     ModuleVersion = '1.0.0'
     GUID = 'new-guid' # Generate a new GUID
-    Author = 'Your Name'
-    Description = 'Windows Configuration Management and Backup Tools'
+    Author = 'Chris Hamilton'
+    Description = 'Windows Recovery Management and Backup Tools'
     PowerShellVersion = '5.1'
     RequiredModules = @()
     FunctionsToExport = @(
-        'Install-WindowsConfig',
-        'Update-WindowsConfig',
-        'Backup-WindowsConfig',
-        'Restore-WindowsConfig',
+        'Install-WindowsRecovery',
+        'Update-WindowsRecovery',
+        'Backup-WindowsRecovery',
+        'Restore-WindowsRecovery',
         'Backup-ExcelSettings',
         'Restore-ExcelSettings',
         'Backup-VisioSettings',

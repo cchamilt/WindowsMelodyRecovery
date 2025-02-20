@@ -1,11 +1,11 @@
 # Requires admin privileges
 #Requires -RunAsAdministrator
 
-function Install-WindowsConfig {
+function Install-WindowsRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
-        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsConfig",
+        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsRecovery",
         [switch]$NoScheduledTasks,
         [switch]$NoPrompt
     )
@@ -151,7 +151,7 @@ MACHINE_NAME=$machineName
                         if ($selection -eq "C") {
                             $backupRoot = Read-Host "Enter custom backup location"
                         } elseif ($selection -match '^\d+$' -and [int]$selection -lt $onedriveLocations.Count) {
-                            $backupRoot = Join-Path $onedriveLocations[$selection].FullName "WindowsConfig"
+                            $backupRoot = Join-Path $onedriveLocations[$selection].FullName "WindowsRecovery"
                         }
                     } while (!$backupRoot)
                 } else {
@@ -219,7 +219,7 @@ MACHINE_NAME="$env:COMPUTERNAME"
             $emailParams['EmailPassword'] = $emailPassword
         }
         
-        Set-WindowsConfig @emailParams
+        Set-WindowsRecovery @emailParams
 
         # Create shared backup directory
         $sharedBackupDir = Join-Path $backupRoot "shared"
@@ -326,7 +326,7 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
         $response = Read-Host "Would you like to run the backup now? (Y/N)"
         if ($response -eq "Y" -or $response -eq "y") {
             try {
-                $backupScript = Join-Path $InstallPath "Backup-WindowsConfig.ps1"
+                $backupScript = Join-Path $InstallPath "Backup-WindowsRecovery.ps1"
                 Write-Host "Running backup..." -ForegroundColor Blue
                 & $backupScript
             } catch {
@@ -334,83 +334,7 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
             }
         } 
 
-        # Setup Package Managers
-        if (!$NoPrompt) {
-            $response = Read-Host "Would you like to set up Package Managers? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                $setupScript = Join-Path $InstallPath "setup\setup-packagemanagers.ps1"
-                if (Test-Path $setupScript) {
-                    & $setupScript
-                }
-            }
-        }
-
-        # Setup KeePassXC if requested
-        if (!$NoPrompt) {
-            $response = Read-Host "Would you like to set up KeePassXC? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                $setupScript = Join-Path $InstallPath "setup\setup-keepassxc.ps1"
-                if (Test-Path $setupScript) {
-                    & $setupScript
-                }
-            }
-        }
-
-        # Bloatware removal
-        if (!$NoPrompt) {
-            $response = Read-Host "`nWould you like to remove Windows bloatware? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                $setupScript = Join-Path $InstallPath "setup\setup-removebloat.ps1"
-                if (Test-Path $setupScript) {
-                    Write-Host "Running bloatware removal..." -ForegroundColor Blue
-                    & $setupScript
-                } else {
-                    Write-Host "Bloatware removal script not found at: $setupScript" -ForegroundColor Red
-                }
-            }
-        }
-
-        # Setup Defender
-        if (!$NoPrompt) {
-            $response = Read-Host "`nWould you like to configure Windows Defender? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                $setupScript = Join-Path $InstallPath "setup\setup-defender.ps1"
-                if (Test-Path $setupScript) {
-                    Write-Host "Configuring Windows Defender..." -ForegroundColor Blue
-                    & $setupScript
-                } else {
-                    Write-Host "Windows Defender setup script not found at: $setupScript" -ForegroundColor Red
-                }
-            }
-        }
-
-        # Setup WSL Fonts
-        if (!$NoPrompt) {
-            $response = Read-Host "`nWould you like to configure WSL fonts? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                $setupScript = Join-Path $InstallPath "setup\setup-wsl-fonts.ps1"
-                if (Test-Path $setupScript) {
-                    Write-Host "Configuring WSL fonts..." -ForegroundColor Blue
-                    & $setupScript
-                } else {
-                    Write-Host "WSL fonts setup script not found at: $setupScript" -ForegroundColor Red
-                }
-            }
-        }
-
-        # Setup System Restore
-        if (!$NoPrompt) {
-            $response = Read-Host "`nWould you like to configure System Restore points? (Y/N)"
-            if ($response -eq "Y" -or $response -eq "y") {
-                $setupScript = Join-Path $InstallPath "setup\setup-restorepoints.ps1"
-                if (Test-Path $setupScript) {
-                    Write-Host "Configuring System Restore..." -ForegroundColor Blue
-                    & $setupScript
-                } else {
-                    Write-Host "System Restore setup script not found at: $setupScript" -ForegroundColor Red
-                }
-            }
-        }
+        
 
         # Update PowerShell profile to load windows.env
         $profileContent = @"

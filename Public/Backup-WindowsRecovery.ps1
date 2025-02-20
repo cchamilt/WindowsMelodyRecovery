@@ -95,9 +95,9 @@ try {
             $scriptFile = Join-Path $backupPath $backup.Script
             if (Test-Path $scriptFile) {
                 # Pass BackupRootPath when sourcing the script
-                $config = Get-WindowsConfig
+                $config = Get-WindowsRecovery
                 if (!$config.BackupRoot) {
-                    throw "Backup root not configured. Please run Install-WindowsConfig first."
+                    throw "Backup root not configured. Please run Install-WindowsRecovery first."
                 }
                 $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
                 . $scriptFile
