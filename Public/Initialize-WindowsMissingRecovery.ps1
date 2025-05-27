@@ -113,6 +113,17 @@ function Initialize-WindowsMissingRecovery {
         # Update module configuration
         Set-WindowsMissingRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider
         
+        # Create machine-specific directory
+        $machineBackupDir = Join-Path $backupRoot $machineName
+        if (!(Test-Path -Path $machineBackupDir)) {
+            try {
+                New-Item -ItemType Directory -Path $machineBackupDir -Force | Out-Null
+                Write-Host "Created machine-specific backup directory at: $machineBackupDir" -ForegroundColor Green
+            } catch {
+                Write-Warning "Failed to create machine-specific backup directory: $_"
+            }
+        }
+        
         Write-Host "Configuration saved to both local and backup locations." -ForegroundColor Green
     }
 

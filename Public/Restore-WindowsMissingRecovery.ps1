@@ -1,7 +1,34 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $modulePath = Split-Path -Parent $scriptPath
-$restoreDir = Join-Path $modulePath "Private\restore"
+
+# Detect if we're running from PowerShell or WindowsPowerShell path
+$psModulePaths = $env:PSModulePath -split ';'
+$windowsPowerShellPath = $psModulePaths | Where-Object { $_ -like "*WindowsPowerShell*" } | Select-Object -First 1
+$powerShellPath = $psModulePaths | Where-Object { $_ -like "*PowerShell*" -and $_ -notlike "*WindowsPowerShell*" } | Select-Object -First 1
+
+# Check if modulePath is in the expected location, if not try to find the correct path
+if (!(Test-Path (Join-Path $modulePath "Private\restore"))) {
+    # Try finding module in both PS and Windows PS paths
+    $possiblePaths = @()
+    if ($windowsPowerShellPath) {
+        $possiblePaths += Join-Path $windowsPowerShellPath "Modules\WindowsMissingRecovery"
+    }
+    if ($powerShellPath) {
+        $possiblePaths += Join-Path $powerShellPath "Modules\WindowsMissingRecovery"
+    }
+
+    foreach ($path in $possiblePaths) {
+        if (Test-Path $path) {
+            Write-Host "Found module at: $path" -ForegroundColor Green
+            $modulePath = $path
+            break
+        }
+    }
+}
+
+$restoreDir = Join-Path $modulePath "Public\restore"
+$privateRestoreDir = Join-Path $modulePath "Private\restore"
 
 # Get configuration from the module
 $config = Get-WindowsMissingRecovery
@@ -11,7 +38,14 @@ if (!$config.BackupRoot) {
 }
 
 # Now load environment with configuration available
-. (Join-Path $modulePath "Private\scripts\load-environment.ps1")
+$privateScriptsDir = Join-Path $modulePath "Private\scripts"
+$loadEnvPath = Join-Path $privateScriptsDir "load-environment.ps1"
+
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
+}
 
 # Define proper backup paths using config values
 $BACKUP_ROOT = $config.BackupRoot
@@ -53,14 +87,24 @@ function Test-BackupPath {
     return $null
 }
 
-# Check if restore directory exists
-if (!(Test-Path -Path $restoreDir)) {
-    try {
-        New-Item -ItemType Directory -Path $restoreDir -Force | Out-Null
-        Write-Host "Created restore scripts directory at: $restoreDir" -ForegroundColor Green
-        Write-Host "Note: You need to add restore scripts to this directory." -ForegroundColor Yellow
-    } catch {
-        Write-Host "Failed to create restore scripts directory: $_" -ForegroundColor Red
+# Check if restore directories exist - try both public and private locations
+$restoreDirs = @($restoreDir, $privateRestoreDir)
+$restoreScriptPaths = @()
+
+foreach ($dir in $restoreDirs) {
+    if (!(Test-Path -Path $dir)) {
+        try {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            Write-Host "Created restore scripts directory at: $dir" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to create restore scripts directory: $_" -ForegroundColor Red
+        }
+    } else {
+        # Find any scripts in this directory
+        Get-ChildItem -Path $dir -Filter "restore-*.ps1" | ForEach-Object {
+            $restoreScriptPaths += $_.FullName
+            Write-Host "Found restore script: $($_.Name)" -ForegroundColor Green
+        }
     }
 }
 
@@ -96,23 +140,48 @@ $restoreScripts = @(
 )
 
 $successfullyLoaded = 0
-foreach ($script in $restoreScripts) {
-    $scriptFile = Join-Path $restoreDir $script
-    if (Test-Path $scriptFile) {
-        try {
-            . $scriptFile
-            $successfullyLoaded++
-            Write-Host "Successfully loaded $script" -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to source $script : $_" -ForegroundColor Red
+
+# Try loading the scripts we found in the directories first
+foreach ($scriptPath in $restoreScriptPaths) {
+    try {
+        . $scriptPath
+        $successfullyLoaded++
+        Write-Host "Successfully loaded $(Split-Path -Leaf $scriptPath)" -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to source $(Split-Path -Leaf $scriptPath) : $_" -ForegroundColor Red
+    }
+}
+
+# If no scripts were found in the directories, try the default paths for each script
+if ($successfullyLoaded -eq 0) {
+    foreach ($script in $restoreScripts) {
+        $found = $false
+        foreach ($dir in $restoreDirs) {
+            $scriptFile = Join-Path $dir $script
+            if (Test-Path $scriptFile) {
+                try {
+                    . $scriptFile
+                    $successfullyLoaded++
+                    Write-Host "Successfully loaded $script" -ForegroundColor Green
+                    $found = $true
+                    break
+                } catch {
+                    Write-Host "Failed to source $script : $_" -ForegroundColor Red
+                }
+            }
         }
-    } else {
-        Write-Host "Restore script not found: $script" -ForegroundColor Yellow
+        
+        if (-not $found) {
+            Write-Host "Restore script not found: $script" -ForegroundColor Yellow
+        }
     }
 }
 
 if ($successfullyLoaded -eq 0) {
-    Write-Host "No restore scripts were found or loaded. Create scripts in: $restoreDir" -ForegroundColor Yellow
+    Write-Host "No restore scripts were found or loaded. Create scripts in: $restoreDir or $privateRestoreDir" -ForegroundColor Yellow
 } else {
     Write-Host "Settings restoration completed! ($successfullyLoaded scripts loaded)" -ForegroundColor Green
-} 
+}
+
+# Start system updates
+Write-Host "Starting system updates..." -ForegroundColor Green 

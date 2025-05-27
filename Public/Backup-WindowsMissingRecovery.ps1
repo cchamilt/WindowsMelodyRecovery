@@ -1,6 +1,32 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $modulePath = Split-Path -Parent $scriptPath
+
+# Detect if we're running from PowerShell or WindowsPowerShell path
+$psModulePaths = $env:PSModulePath -split ';'
+$windowsPowerShellPath = $psModulePaths | Where-Object { $_ -like "*WindowsPowerShell*" } | Select-Object -First 1
+$powerShellPath = $psModulePaths | Where-Object { $_ -like "*PowerShell*" -and $_ -notlike "*WindowsPowerShell*" } | Select-Object -First 1
+
+# Check if modulePath is in the expected location, if not try to find the correct path
+if (!(Test-Path (Join-Path $modulePath "Private\backup"))) {
+    # Try finding module in both PS and Windows PS paths
+    $possiblePaths = @()
+    if ($windowsPowerShellPath) {
+        $possiblePaths += Join-Path $windowsPowerShellPath "Modules\WindowsMissingRecovery"
+    }
+    if ($powerShellPath) {
+        $possiblePaths += Join-Path $powerShellPath "Modules\WindowsMissingRecovery"
+    }
+
+    foreach ($path in $possiblePaths) {
+        if (Test-Path $path) {
+            Write-Host "Found module at: $path" -ForegroundColor Green
+            $modulePath = $path
+            break
+        }
+    }
+}
+
 $backupScriptsDir = Join-Path $modulePath "Private\backup"
 
 # Check if configuration is properly set up
@@ -12,7 +38,14 @@ if (!$config.BackupRoot) {
 }
 
 # Now load environment
-. (Join-Path $modulePath "Private\scripts\load-environment.ps1")
+$privateScriptsDir = Join-Path $modulePath "Private\scripts"
+$loadEnvPath = Join-Path $privateScriptsDir "load-environment.ps1"
+
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
+}
 
 # Now we have access to all environment variables including email settings
 # $env:BACKUP_EMAIL_FROM
@@ -23,6 +56,18 @@ if (!$config.BackupRoot) {
 $BACKUP_ROOT = $config.BackupRoot
 $MACHINE_NAME = $config.MachineName
 $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
+
+# Verify machine name is correct (not the default when we want a specific machine)
+if ([string]::IsNullOrWhiteSpace($MACHINE_NAME) -or $MACHINE_NAME -eq "System.Collections.Hashtable") {
+    $MACHINE_NAME = $env:COMPUTERNAME
+    Write-Host "Machine name not properly configured. Using current computer name: $MACHINE_NAME" -ForegroundColor Yellow
+    
+    # Update configuration with proper machine name
+    Set-WindowsMissingRecovery -MachineName $MACHINE_NAME
+    
+    # Update the machine backup path
+    $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
+}
 
 # Ensure machine backup directory exists
 if (!(Test-Path -Path $MACHINE_BACKUP)) {

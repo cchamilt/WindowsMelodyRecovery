@@ -11,10 +11,12 @@
         'Update-WindowsMissingRecovery',
         'Backup-WindowsMissingRecovery',
         'Restore-WindowsMissingRecovery',
+        'Initialize-WindowsMissingRecovery',
         'Backup-ExcelSettings',
         'Restore-ExcelSettings',
         'Backup-VisioSettings',
-        'Restore-VisioSettings'
+        'Restore-VisioSettings',
+        'Find-ModulePath'
         # Add other functions to export
     )
     CmdletsToExport = @()

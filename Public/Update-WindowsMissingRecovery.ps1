@@ -121,29 +121,51 @@ try {
     # Update NuGet packages
     Write-Host "`nUpdating NuGet packages..." -ForegroundColor Yellow
     try {
-        # Update NuGet provider if needed
-        $nugetProvider = Get-PackageProvider -Name NuGet
-        $nugetLatest = Find-PackageProvider -Name NuGet
-        if ($nugetProvider.Version -lt $nugetLatest.Version) {
-            Write-Host "Updating NuGet provider..." -ForegroundColor Yellow
-            Install-PackageProvider -Name NuGet -Force
+        # Check if NuGet provider is installed, install if missing
+        $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+        
+        if (-not $nugetProvider) {
+            Write-Host "NuGet provider not found. Installing NuGet provider..." -ForegroundColor Yellow
+            Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+            $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+        } else {
+            # Try to check for updates if NuGet is already installed
+            try {
+                $nugetLatest = Find-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+                if ($nugetLatest -and $nugetProvider.Version -lt $nugetLatest.Version) {
+                    Write-Host "Updating NuGet provider..." -ForegroundColor Yellow
+                    Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+                }
+            } catch {
+                Write-Host "Unable to check for NuGet provider updates: $_" -ForegroundColor Yellow
+            }
         }
 
         # Update all installed NuGet packages
-        $packages = Get-Package -ProviderName NuGet
-        foreach ($package in $packages) {
-            try {
-                $latest = Find-Package -Name $package.Name -ProviderName NuGet
-                if ($latest.Version -gt $package.Version) {
-                    Write-Host "Updating $($package.Name) from $($package.Version) to $($latest.Version)..." -ForegroundColor Yellow
-                    Install-Package -Name $package.Name -ProviderName NuGet -Force
+        try {
+            $packages = Get-Package -ProviderName NuGet -ErrorAction SilentlyContinue
+            
+            if ($packages) {
+                foreach ($package in $packages) {
+                    try {
+                        $latest = Find-Package -Name $package.Name -ProviderName NuGet -ErrorAction SilentlyContinue
+                        if ($latest -and $latest.Version -gt $package.Version) {
+                            Write-Host "Updating $($package.Name) from $($package.Version) to $($latest.Version)..." -ForegroundColor Yellow
+                            Install-Package -Name $package.Name -ProviderName NuGet -Force
+                        }
+                    } catch {
+                        $errorMessage = "Failed to update package $($package.Name): $_"
+                        Write-Host $errorMessage -ForegroundColor Red
+                        $updateErrors += $errorMessage
+                    }
                 }
-            } catch {
-                $errorMessage = "Failed to update package $($package.Name): $_"
-                Write-Host $errorMessage -ForegroundColor Red
-                $updateErrors += $errorMessage
+            } else {
+                Write-Host "No NuGet packages found to update" -ForegroundColor Yellow
             }
+        } catch {
+            Write-Host "Unable to enumerate NuGet packages: $_" -ForegroundColor Yellow
         }
+        
         Write-Host "NuGet packages updated successfully" -ForegroundColor Green
     } catch {
         $errorMessage = "Failed to update NuGet packages: $_"
