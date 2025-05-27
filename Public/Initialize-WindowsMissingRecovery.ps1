@@ -1,10 +1,30 @@
-function Initialize-WindowsRecovery {
+function Initialize-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
-        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery",
+        [string]$CustomInstallPath,
         [switch]$NoPrompt
     )
+
+    # Get the current module configuration
+    $currentConfig = Get-WindowsMissingRecovery
+    
+    # Use the module's Config directory as the default
+    if (!$CustomInstallPath) {
+        $InstallPath = $currentConfig.WindowsMissingRecoveryPath
+    } else {
+        $InstallPath = $CustomInstallPath
+    }
+
+    # Ensure the installation path exists
+    if (!(Test-Path $InstallPath)) {
+        try {
+            New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+            Write-Host "Created directory: $InstallPath" -ForegroundColor Green
+        } catch {
+            Write-Warning "Failed to create directory: $InstallPath - $_"
+        }
+    }
 
     # Verify admin privileges
     if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -90,34 +110,10 @@ function Initialize-WindowsRecovery {
             $machineName = $env:COMPUTERNAME
         }
 
-        # Create config.env in both local and backup locations
-        $configContent = @"
-BACKUP_ROOT=$backupRoot
-MACHINE_NAME=$machineName
-WINDOWS_MISSING_RECOVERY_PATH=$InstallPath
-CLOUD_PROVIDER=$selectedProvider
-MODULE_VERSION=1.0.0
-LAST_CONFIGURED=$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-"@
-
-        # Save to local installation directory
-        $localConfigPath = Join-Path $InstallPath "config.env"
-        Set-Content -Path $localConfigPath -Value $configContent
-
-        # Save to backup directory
-        $backupConfigPath = Join-Path $backupRoot "config.env"
-        if (!(Test-Path (Split-Path $backupConfigPath -Parent))) {
-            New-Item -ItemType Directory -Path (Split-Path $backupConfigPath -Parent) -Force | Out-Null
-        }
-        Set-Content -Path $backupConfigPath -Value $configContent
-
+        # Update module configuration
+        Set-WindowsMissingRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider
+        
         Write-Host "Configuration saved to both local and backup locations." -ForegroundColor Green
-    }
-
-    # Load environment
-    if (!(Load-Environment)) {
-        Write-Host "Failed to load environment configuration" -ForegroundColor Red
-        return $false
     }
 
     return $true

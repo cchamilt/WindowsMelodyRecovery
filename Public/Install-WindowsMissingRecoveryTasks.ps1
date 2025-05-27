@@ -1,11 +1,11 @@
 # Requires admin privileges
 #Requires -RunAsAdministrator
 
-function Install-WindowsRecovery {
+function Install-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
-        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsRecovery",
+        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery",
         [switch]$NoScheduledTasks,
         [switch]$NoPrompt
     )
@@ -151,7 +151,7 @@ MACHINE_NAME=$machineName
                         if ($selection -eq "C") {
                             $backupRoot = Read-Host "Enter custom backup location"
                         } elseif ($selection -match '^\d+$' -and [int]$selection -lt $onedriveLocations.Count) {
-                            $backupRoot = Join-Path $onedriveLocations[$selection].FullName "WindowsRecovery"
+                            $backupRoot = Join-Path $onedriveLocations[$selection].FullName "WindowsMissingRecovery"
                         }
                     } while (!$backupRoot)
                 } else {
@@ -219,7 +219,7 @@ MACHINE_NAME="$env:COMPUTERNAME"
             $emailParams['EmailPassword'] = $emailPassword
         }
         
-        Set-WindowsRecovery @emailParams
+        Set-WindowsMissingRecovery @emailParams
 
         # Create shared backup directory
         $sharedBackupDir = Join-Path $backupRoot "shared"
@@ -326,7 +326,7 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
         $response = Read-Host "Would you like to run the backup now? (Y/N)"
         if ($response -eq "Y" -or $response -eq "y") {
             try {
-                $backupScript = Join-Path $InstallPath "Backup-WindowsRecovery.ps1"
+                $backupScript = Join-Path $InstallPath "Backup-WindowsMissingRecovery.ps1"
                 Write-Host "Running backup..." -ForegroundColor Blue
                 & $backupScript
             } catch {

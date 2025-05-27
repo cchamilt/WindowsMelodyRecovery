@@ -2,17 +2,21 @@
 
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path $scriptPath "scripts\load-environment.ps1")
 
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
+# Get configuration from the module
+$config = Get-WindowsMissingRecovery
+if (!$config.BackupRoot) {
+    Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+    return
 }
 
-# Now we have access to all environment variables
-# $env:WINDOWS_CONFIG_PATH
-# $env:BACKUP_ROOT
-# $env:MACHINE_NAME
+# Now load environment with configuration available
+. (Join-Path $scriptPath "scripts\load-environment.ps1")
+
+# Define proper backup paths using config values
+$BACKUP_ROOT = $config.BackupRoot
+$MACHINE_NAME = $config.MachineName
+$WINDOWS_CONFIG_PATH = $config.WindowsMissingRecoveryPath
 
 # Collect any errors during update
 $updateErrors = @()

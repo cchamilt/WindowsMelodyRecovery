@@ -1,6 +1,16 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backupPath = Join-Path $scriptPath "backup"
+
+# Check if configuration is properly set up
+$config = Get-WindowsMissingRecovery
+if (!$config.BackupRoot) {
+    Write-Host "Backup not configured. Please run Initialize-WindowsMissingRecovery and Install-WindowsMissingRecovery first." -ForegroundColor Yellow
+    Write-Host "Type 'Install-WindowsMissingRecovery' to set up your Windows recovery." -ForegroundColor Cyan
+    return
+}
+
+# Now load environment
 . (Join-Path $scriptPath "scripts\load-environment.ps1")
 
 # Now we have access to all environment variables including email settings
@@ -8,12 +18,21 @@ $backupPath = Join-Path $scriptPath "backup"
 # $env:BACKUP_EMAIL_TO
 # $env:BACKUP_EMAIL_PASSWORD
 
-# Then use the environment variables
-$MACHINE_BACKUP = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+# Define proper backup paths using config values
+$BACKUP_ROOT = $config.BackupRoot
+$MACHINE_NAME = $config.MachineName
+$MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
 
-# Define common paths
-$BACKUP_ROOT = "$env:USERPROFILE\OneDrive - Fyber Labs\PCbackup"
-$MACHINE_NAME = $env:COMPUTERNAME
+# Ensure machine backup directory exists
+if (!(Test-Path -Path $MACHINE_BACKUP)) {
+    try {
+        New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
+        Write-Host "Created machine backup directory at: $MACHINE_BACKUP" -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to create machine backup directory: $_" -ForegroundColor Red
+        return
+    }
+}
 
 function Initialize-BackupDirectory {
     param (
@@ -68,17 +87,6 @@ $backupFunctions = @(
     @{ Name = "Visio Settings"; Function = "Backup-VisioSettings"; Script = "backup-visio.ps1" }
 )
 
-# Create machine backup directory if it doesn't exist
-if (!(Test-Path -Path $MACHINE_BACKUP)) {
-    try {
-        New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
-        Write-Host "Created machine backup directory at: $MACHINE_BACKUP" -ForegroundColor Green
-    } catch {
-        Write-Host "Failed to create machine backup directory: $_" -ForegroundColor Red
-        exit 1
-    }
-}
-
 # Collect any errors during backup
 $backupErrors = @()
 
@@ -90,40 +98,30 @@ try {
     Start-Transcript -Path $tempLogFile -Append
 
     # Source all backup scripts first
+    $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+    $loadedScripts = @()
+    
     foreach ($backup in $backupFunctions) {
         try {
             $scriptFile = Join-Path $backupPath $backup.Script
             if (Test-Path $scriptFile) {
-                # Pass BackupRootPath when sourcing the script
-                $config = Get-WindowsRecovery
-                if (!$config.BackupRoot) {
-                    throw "Backup root not configured. Please run Install-WindowsRecovery first."
-                }
-                $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
                 . $scriptFile
                 # Verify the function was loaded
-                if (!(Get-Command $backup.Function -ErrorAction SilentlyContinue)) {
-                    throw "Function $($backup.Function) was not defined in $($backup.Script)"
+                if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
+                    $loadedScripts += $backup
+                } else {
+                    Write-Verbose "Function $($backup.Function) was not defined in $($backup.Script)"
                 }
             } else {
-                Write-Host "Failed to source $($backup.Script) : $scriptFile not found" -ForegroundColor Red
-                $backupErrors += "Failed to source $($backup.Script) : $scriptFile not found"
-                continue
+                Write-Verbose "Script not found: $scriptFile"
             }
         } catch {
-            $errorMessage = "Failed to source $($backup.Script) : $_"
-            Write-Host $errorMessage -ForegroundColor Red
-            $backupErrors += $errorMessage
-            continue
+            Write-Verbose "Error loading script $($backup.Script): $_"
         }
     }
 
     # Run all backup functions with backup path
-    foreach ($backup in $backupFunctions) {
-        # Skip if function is not available
-        if (!(Get-Command $backup.Function -ErrorAction SilentlyContinue)) {
-            continue
-        }
+    foreach ($backup in $loadedScripts) {
         try {
             $params = @{
                 BackupRootPath = $MACHINE_BACKUP
@@ -140,8 +138,14 @@ try {
 
     # Add timestamp to backup log
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logFile = "$MACHINE_BACKUP\backup_history.log"
-    Add-Content -Path $logFile -Value "Backup completed at: $timestamp"
+    $logFile = Join-Path $MACHINE_BACKUP "backup_history.log"
+
+    try {
+        Add-Content -Path $logFile -Value "Backup completed at: $timestamp" -ErrorAction Stop
+        Write-Host "Backup log updated at: $logFile" -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to update backup log: $_" -ForegroundColor Yellow
+    }
 
     # Git backup handling
     try {
@@ -186,10 +190,7 @@ try {
                 } finally {
                     Pop-Location
                 }
-
-
             }
-
         }
         
         # Check main backup root

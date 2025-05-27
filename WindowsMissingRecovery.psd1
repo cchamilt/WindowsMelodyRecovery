@@ -1,16 +1,16 @@
 @{
     RootModule = 'WindowsMissingRecovery.psm1'
     ModuleVersion = '1.0.0'
-    GUID = 'new-guid' # Generate a new GUID
+    GUID = '8a7f6674-c759-45f3-b26d-9a8e54d2eb14'
     Author = 'Chris Hamilton'
     Description = 'Windows Recovery Management and Backup Tools'
     PowerShellVersion = '5.1'
     RequiredModules = @()
     FunctionsToExport = @(
-        'Install-WindowsRecovery',
-        'Update-WindowsRecovery',
-        'Backup-WindowsRecovery',
-        'Restore-WindowsRecovery',
+        'Install-WindowsMissingRecovery',
+        'Update-WindowsMissingRecovery',
+        'Backup-WindowsMissingRecovery',
+        'Restore-WindowsMissingRecovery',
         'Backup-ExcelSettings',
         'Restore-ExcelSettings',
         'Backup-VisioSettings',

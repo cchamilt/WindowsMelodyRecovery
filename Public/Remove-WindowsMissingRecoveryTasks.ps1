@@ -1,15 +1,15 @@
 # Requires admin privileges
 #Requires -RunAsAdministrator
 
-function Remove-WindowsRecoveryTasks {
+function Remove-WindowsMissingRecoveryTasks {
     [CmdletBinding()]
     param(
         [switch]$Force
     )
 
     # Task names
-    $backupTaskName = "WindowsRecovery_Backup"
-    $updateTaskName = "WindowsRecovery_Update"
+    $backupTaskName = "WindowsMissingRecovery_Backup"
+    $updateTaskName = "WindowsMissingRecovery_Update"
     $taskPath = "\Custom Tasks"
 
     try {
@@ -51,5 +51,5 @@ function Remove-WindowsRecoveryTasks {
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
-    Remove-WindowsRecoveryTasks @PSBoundParameters
+    Remove-WindowsMissingRecoveryTasks @PSBoundParameters
 }

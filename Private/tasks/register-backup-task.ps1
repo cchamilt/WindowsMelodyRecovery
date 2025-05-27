@@ -58,9 +58,9 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
 }
 
 # Task settings
-$taskName = "WindowsRecovery_Backup"
+$taskName = "WindowsMissingRecovery_Backup"
 $taskDescription = "Backup Windows configuration settings to OneDrive"
-$backupScript = Join-Path $env:WINDOWS_CONFIG_PATH "Backup-WindowsRecovery.ps1"
+$backupScript = Join-Path $env:WINDOWS_CONFIG_PATH "Backup-WindowsMissingRecovery.ps1"
 
 # Verify backup script exists
 if (!(Test-Path $backupScript)) {

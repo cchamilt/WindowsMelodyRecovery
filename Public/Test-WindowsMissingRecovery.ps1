@@ -2,7 +2,7 @@
 #Also runs the private functions from the module individually
 
 # Initialize the module
-Initialize-WindowsRecovery
+Initialize-WindowsMissingRecovery
 
 # Get the current configuration
-Get-WindowsRecovery
+Get-WindowsMissingRecovery

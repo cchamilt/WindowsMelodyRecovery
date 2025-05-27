@@ -1,14 +1,31 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path $scriptPath "scripts\load-environment.ps1")
 
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
+# Get configuration from the module
+$config = Get-WindowsMissingRecovery
+if (!$config.BackupRoot) {
+    Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+    return
 }
 
-$MACHINE_BACKUP = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
-$SHARED_BACKUP = "$env:BACKUP_ROOT\shared"
+# Now load environment with configuration available
+. (Join-Path $scriptPath "scripts\load-environment.ps1")
+
+# Define proper backup paths using config values
+$BACKUP_ROOT = $config.BackupRoot
+$MACHINE_NAME = $config.MachineName
+$MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
+$SHARED_BACKUP = Join-Path $BACKUP_ROOT "shared"
+
+# Ensure shared backup directory exists
+if (!(Test-Path -Path $SHARED_BACKUP)) {
+    try {
+        New-Item -ItemType Directory -Path $SHARED_BACKUP -Force | Out-Null
+        Write-Host "Created shared backup directory at: $SHARED_BACKUP" -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to create shared backup directory: $_" -ForegroundColor Red
+    }
+}
 
 function Test-BackupPath {
     param (
@@ -17,14 +34,14 @@ function Test-BackupPath {
     )
     
     # First check machine-specific backup
-    $machinePath = "$MACHINE_BACKUP\$Path"
+    $machinePath = Join-Path $MACHINE_BACKUP $Path
     if (Test-Path $machinePath) {
         Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
         return $machinePath
     }
     
     # Fall back to shared backup
-    $sharedPath = "$SHARED_BACKUP\$Path"
+    $sharedPath = Join-Path $SHARED_BACKUP $Path
     if (Test-Path $sharedPath) {
         Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
         return $sharedPath

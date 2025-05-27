@@ -3,11 +3,11 @@
 
 # Import necessary functions
 . $PSScriptRoot\..\Scripts\load-environment.ps1
-. $PSScriptRoot\Initialize-WindowsRecovery.ps1
-. $PSScriptRoot\Install-WindowsRecoveryTasks.ps1
-. $PSScriptRoot\Remove-WindowsRecoveryTasks.ps1
+. $PSScriptRoot\Initialize-WindowsMissingRecovery.ps1
+. $PSScriptRoot\Install-WindowsMissingRecoveryTasks.ps1
+. $PSScriptRoot\Remove-WindowsMissingRecoveryTasks.ps1
 
-function Setup-WindowsRecovery {
+function Setup-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -21,7 +21,7 @@ function Setup-WindowsRecovery {
         Write-Host "Starting Windows Recovery Setup..." -ForegroundColor Blue
 
         # Step 1: Initialize configuration
-        if (!(Initialize-WindowsRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt)) {
+        if (!(Initialize-WindowsMissingRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt)) {
             throw "Failed to initialize Windows Recovery configuration"
         }
 
@@ -32,7 +32,7 @@ function Setup-WindowsRecovery {
                 
                 if ($response -eq 'Y') {
                     Write-Host "Installing scheduled tasks..." -ForegroundColor Yellow
-                    if (!(Install-WindowsRecoveryTasks -InstallPath $InstallPath -Force:$Force)) {
+                    if (!(Install-WindowsMissingRecoveryTasks -InstallPath $InstallPath -Force:$Force)) {
                         Write-Warning "Failed to install scheduled tasks"
                     }
                 }
@@ -45,8 +45,8 @@ function Setup-WindowsRecovery {
             Config = Test-Path (Join-Path $InstallPath "config.env")
             Tasks = if (!$NoScheduledTasks) {
                 @(
-                    Get-ScheduledTask -TaskName "WindowsRecovery_Backup" -ErrorAction SilentlyContinue,
-                    Get-ScheduledTask -TaskName "WindowsRecovery_Update" -ErrorAction SilentlyContinue
+                    Get-ScheduledTask -TaskName "WindowsMissingRecovery_Backup" -ErrorAction SilentlyContinue,
+                    Get-ScheduledTask -TaskName "WindowsMissingRecovery_Update" -ErrorAction SilentlyContinue
                 ) | Where-Object { $_ }
             } else { $null }
         }
@@ -68,7 +68,7 @@ function Setup-WindowsRecovery {
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
-    Setup-WindowsRecovery @PSBoundParameters
+    Setup-WindowsMissingRecovery @PSBoundParameters
 }
 
 # Setup Package Managers

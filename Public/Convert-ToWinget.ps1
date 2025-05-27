@@ -5,12 +5,16 @@
 
 # At the start after admin check
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
+# Get configuration from the module
+$config = Get-WindowsMissingRecovery
+if (!$config.BackupRoot) {
+    Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+    return
 }
+
+# Now load environment with configuration available
+. (Join-Path $scriptPath "scripts\load-environment.ps1")
 
 function Get-WingetId {
     param (

@@ -5,9 +5,9 @@ param(
 )
 
 # Get module configuration
-$config = Get-WindowsRecovery
+$config = Get-WindowsMissingRecovery
 if (!$config.IsInitialized) {
-    throw "Module not initialized. Please run Initialize-WindowsRecovery first."
+    throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
 }
 
 if (!$BackupRootPath) {

@@ -10,7 +10,7 @@ $Private = @(Get-ChildItem -Path "$PSScriptRoot\Private\*.ps1" -ErrorAction Sile
 $script:Config = @{
     BackupRoot = $null
     MachineName = $env:COMPUTERNAME
-    WindowsRecoveryPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery"
+    WindowsMissingRecoveryPath = Join-Path $PSScriptRoot "Config"
     CloudProvider = $null
     ModuleVersion = $ModuleVersion
     LastConfigured = $null
@@ -85,10 +85,25 @@ function Initialize-ModuleConfig {
     return $false
 }
 
+# Check if configuration is ready for use
+function Test-ConfigurationReady {
+    if (-not $script:Config.IsInitialized) {
+        Write-Warning "Configuration not initialized. Please run Initialize-WindowsMissingRecovery."
+        return $false
+    }
+    
+    if (-not $script:Config.BackupRoot) {
+        Write-Warning "Backup location not configured. Please run Install-WindowsMissingRecovery."
+        return $false
+    }
+    
+    return $true
+}
+
 # Save module configuration
 function Save-ModuleConfig {
     if (!$script:Config.BackupRoot) {
-        throw "BackupRoot not configured. Please run Initialize-WindowsRecovery first."
+        throw "BackupRoot not configured. Please run Initialize-WindowsMissingRecovery first."
     }
 
     $configContent = @()
@@ -98,28 +113,47 @@ function Save-ModuleConfig {
         }
     }
 
-    # Save to local installation directory
-    $localConfigPath = Join-Path $script:Config.WindowsRecoveryPath "config.env"
-    Set-Content -Path $localConfigPath -Value $configContent
+    # Save to local installation directory - ensure directory exists
+    $localConfigDir = $script:Config.WindowsMissingRecoveryPath
+    if (!(Test-Path -Path $localConfigDir)) {
+        try {
+            New-Item -ItemType Directory -Path $localConfigDir -Force | Out-Null
+            Write-Host "Created scripts directory: $localConfigDir" -ForegroundColor Green
+        } catch {
+            Write-Warning "Could not create directory: $localConfigDir - $_"
+        }
+    }
+    
+    $localConfigPath = Join-Path $localConfigDir "config.env"
+    try {
+        Set-Content -Path $localConfigPath -Value $configContent -ErrorAction Stop
+    } catch {
+        Write-Warning "Could not write to local config path: $localConfigPath - $_"
+    }
 
     # Save to backup directory
     $backupConfigPath = Join-Path $script:Config.BackupRoot "config.env"
     if (!(Test-Path (Split-Path $backupConfigPath -Parent))) {
         New-Item -ItemType Directory -Path (Split-Path $backupConfigPath -Parent) -Force | Out-Null
     }
-    Set-Content -Path $backupConfigPath -Value $configContent
+    
+    try {
+        Set-Content -Path $backupConfigPath -Value $configContent -ErrorAction Stop
+    } catch {
+        Write-Warning "Could not write to backup config path: $backupConfigPath - $_"
+    }
 }
 
 # Get current configuration
-function Get-WindowsRecovery {
+function Get-WindowsMissingRecovery {
     if (!(Initialize-ModuleConfig)) {
-        Write-Warning "Configuration not initialized. Please run Initialize-WindowsRecovery."
+        Write-Warning "Configuration not initialized. Please run Initialize-WindowsMissingRecovery."
     }
     return $script:Config
 }
 
 # Set configuration values
-function Set-WindowsRecovery {
+function Set-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -129,7 +163,7 @@ function Set-WindowsRecovery {
         [string]$MachineName,
         
         [Parameter(Mandatory=$false)]
-        [string]$WindowsRecoveryPath,
+        [string]$WindowsMissingRecoveryPath,
         
         [Parameter(Mandatory=$false)]
         [ValidateSet('OneDrive', 'GoogleDrive', 'Dropbox', 'Box', 'Custom')]
@@ -198,7 +232,7 @@ function Set-WindowsRecovery {
         }
     }
     if ($MachineName) { $script:Config.MachineName = $MachineName }
-    if ($WindowsRecoveryPath) { $script:Config.WindowsRecoveryPath = $WindowsRecoveryPath }
+    if ($WindowsMissingRecoveryPath) { $script:Config.WindowsMissingRecoveryPath = $WindowsMissingRecoveryPath }
     if ($CloudProvider) { $script:Config.CloudProvider = $CloudProvider }
     
     # Email Settings
@@ -242,21 +276,48 @@ function Set-WindowsRecovery {
     Save-ModuleConfig
 }
 
-# Dot source the files
-foreach ($import in @($Public + $Private)) {
-    try {
-        . $import.FullName
-    } catch {
-        Write-Error "Failed to import function $($import.FullName): $_"
-    }
-}
-
 # Initialize module configuration
 Initialize-ModuleConfig
 
+# Only load specific scripts to avoid errors
+# First load core scripts
+$CoreScripts = @(
+    "Initialize-WindowsMissingRecovery.ps1",
+    "Install-WindowsMissingRecoveryTasks.ps1",
+    "Remove-WindowsMissingRecoveryTasks.ps1",
+    "Test-WindowsMissingRecovery.ps1",
+    "Setup-WindowsMissingRecovery.ps1"
+)
+
+# Dot source core files
+foreach ($import in $Public) {
+    if ($CoreScripts -contains $import.Name) {
+        try {
+            . $import.FullName
+        } catch {
+            Write-Error "Failed to import core function $($import.FullName): $_"
+        }
+    }
+}
+
+# Dot source other files only if configuration is ready
+if (Test-ConfigurationReady) {
+    # Dot source the rest of the files
+    foreach ($import in @($Public + $Private)) {
+        if ($CoreScripts -notcontains $import.Name) {
+            try {
+                . $import.FullName
+            } catch {
+                Write-Error "Failed to import function $($import.FullName): $_"
+            }
+        }
+    }
+}
+
 # Export public functions
 Export-ModuleMember -Function ($Public.BaseName + @(
-    'Get-WindowsRecovery',
-    'Set-WindowsRecovery',
-    'Initialize-ModuleConfig'
+    'Get-WindowsMissingRecovery',
+    'Set-WindowsMissingRecovery',
+    'Initialize-ModuleConfig',
+    'Test-ConfigurationReady'
 )) 

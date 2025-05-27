@@ -14,7 +14,7 @@ try {
     Write-Host "Registering system update task..." -ForegroundColor Blue
 
     # Use environment variable for update script path
-    $updateScript = Join-Path $env:WINDOWS_CONFIG_PATH "Update-WindowsRecovery.ps1"
+    $updateScript = Join-Path $env:WINDOWS_CONFIG_PATH "Update-WindowsMissingRecovery.ps1"
 
     # Verify update script exists
     if (!(Test-Path $updateScript)) {
