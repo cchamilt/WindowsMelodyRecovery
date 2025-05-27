@@ -23,7 +23,11 @@ function Get-WingetId {
     
     try {
         $wingetSearch = winget search --exact $AppName | Out-String
-        if ($wingetSearch -match "$AppName\s+(\S+)\s+.*?(\w+)$") {
+        
+        # Escape special regex characters in the app name
+        $escapedAppName = [regex]::Escape($AppName)
+        
+        if ($wingetSearch -match "$escapedAppName\s+(\S+)\s+.*?(\w+)$") {
             return @{
                 Id = $matches[1]
                 Source = $matches[2]
