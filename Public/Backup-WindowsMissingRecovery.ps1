@@ -1,6 +1,7 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$backupPath = Join-Path $scriptPath "backup"
+$modulePath = Split-Path -Parent $scriptPath
+$backupScriptsDir = Join-Path $modulePath "Private\backup"
 
 # Check if configuration is properly set up
 $config = Get-WindowsMissingRecovery
@@ -11,7 +12,7 @@ if (!$config.BackupRoot) {
 }
 
 # Now load environment
-. (Join-Path $scriptPath "scripts\load-environment.ps1")
+. (Join-Path $modulePath "Private\scripts\load-environment.ps1")
 
 # Now we have access to all environment variables including email settings
 # $env:BACKUP_EMAIL_FROM
@@ -101,40 +102,59 @@ try {
     $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
     $loadedScripts = @()
     
+    # Check if backup directory exists
+    if (!(Test-Path -Path $backupScriptsDir)) {
+        try {
+            New-Item -ItemType Directory -Path $backupScriptsDir -Force | Out-Null
+            Write-Host "Created backup scripts directory at: $backupScriptsDir" -ForegroundColor Green
+            Write-Host "Note: You need to add backup scripts to this directory." -ForegroundColor Yellow
+        } catch {
+            Write-Host "Failed to create backup scripts directory: $_" -ForegroundColor Red
+        }
+    }
+
     foreach ($backup in $backupFunctions) {
         try {
-            $scriptFile = Join-Path $backupPath $backup.Script
+            $scriptFile = Join-Path $backupScriptsDir $backup.Script
             if (Test-Path $scriptFile) {
                 . $scriptFile
                 # Verify the function was loaded
                 if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
                     $loadedScripts += $backup
+                    Write-Host "Successfully loaded $($backup.Name) backup script" -ForegroundColor Green
                 } else {
-                    Write-Verbose "Function $($backup.Function) was not defined in $($backup.Script)"
+                    Write-Host "Function $($backup.Function) was not defined in $($backup.Script)" -ForegroundColor Yellow
                 }
             } else {
-                Write-Verbose "Script not found: $scriptFile"
+                Write-Host "Backup script not found: $($backup.Script)" -ForegroundColor Yellow
             }
         } catch {
-            Write-Verbose "Error loading script $($backup.Script): $_"
+            Write-Host "Error loading script $($backup.Script): $_" -ForegroundColor Red
         }
     }
 
     # Run all backup functions with backup path
-    foreach ($backup in $loadedScripts) {
-        try {
-            $params = @{
-                BackupRootPath = $MACHINE_BACKUP
+    if ($loadedScripts.Count -eq 0) {
+        Write-Host "No backup scripts were found or loaded. Create scripts in: $backupScriptsDir" -ForegroundColor Yellow
+    } else {
+        Write-Host "Loaded $($loadedScripts.Count) backup scripts successfully" -ForegroundColor Green
+        
+        # Run all backup functions with backup path
+        foreach ($backup in $loadedScripts) {
+            try {
+                $params = @{
+                    BackupRootPath = $MACHINE_BACKUP
+                }
+                & $backup.Function @params -ErrorAction Stop
+            } catch {
+                $errorMessage = "Failed to backup $($backup.Name): $_"
+                Write-Host $errorMessage -ForegroundColor Red
+                $backupErrors += $errorMessage
             }
-            & $backup.Function @params -ErrorAction Stop
-        } catch {
-            $errorMessage = "Failed to backup $($backup.Name): $_"
-            Write-Host $errorMessage -ForegroundColor Red
-            $backupErrors += $errorMessage
         }
-    }
 
-    Write-Host "Settings backup completed!" -ForegroundColor Green
+        Write-Host "Settings backup completed!" -ForegroundColor Green
+    }
 
     # Add timestamp to backup log
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"

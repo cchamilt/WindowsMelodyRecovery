@@ -1,5 +1,7 @@
 # At the start of the script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$modulePath = Split-Path -Parent $scriptPath
+$restoreDir = Join-Path $modulePath "Private\restore"
 
 # Get configuration from the module
 $config = Get-WindowsMissingRecovery
@@ -9,7 +11,7 @@ if (!$config.BackupRoot) {
 }
 
 # Now load environment with configuration available
-. (Join-Path $scriptPath "scripts\load-environment.ps1")
+. (Join-Path $modulePath "Private\scripts\load-environment.ps1")
 
 # Define proper backup paths using config values
 $BACKUP_ROOT = $config.BackupRoot
@@ -51,6 +53,17 @@ function Test-BackupPath {
     return $null
 }
 
+# Check if restore directory exists
+if (!(Test-Path -Path $restoreDir)) {
+    try {
+        New-Item -ItemType Directory -Path $restoreDir -Force | Out-Null
+        Write-Host "Created restore scripts directory at: $restoreDir" -ForegroundColor Green
+        Write-Host "Note: You need to add restore scripts to this directory." -ForegroundColor Yellow
+    } catch {
+        Write-Host "Failed to create restore scripts directory: $_" -ForegroundColor Red
+    }
+}
+
 # Source all restore scripts
 $restoreScripts = @(
     "restore-terminal.ps1",
@@ -82,12 +95,24 @@ $restoreScripts = @(
     "restore-visio.ps1"
 )
 
+$successfullyLoaded = 0
 foreach ($script in $restoreScripts) {
-    try {
-        . (Join-Path $scriptPath "restore\$script")
-    } catch {
-        Write-Host "Failed to source $script : $_" -ForegroundColor Red
+    $scriptFile = Join-Path $restoreDir $script
+    if (Test-Path $scriptFile) {
+        try {
+            . $scriptFile
+            $successfullyLoaded++
+            Write-Host "Successfully loaded $script" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to source $script : $_" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Restore script not found: $script" -ForegroundColor Yellow
     }
 }
 
-Write-Host "Settings restoration completed!" -ForegroundColor Green 
+if ($successfullyLoaded -eq 0) {
+    Write-Host "No restore scripts were found or loaded. Create scripts in: $restoreDir" -ForegroundColor Yellow
+} else {
+    Write-Host "Settings restoration completed! ($successfullyLoaded scripts loaded)" -ForegroundColor Green
+} 
