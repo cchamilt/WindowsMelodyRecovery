@@ -1,19 +1,69 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$BackupRootPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$MachineBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
 
 # Load environment if not provided
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+$parentPath = Split-Path $scriptPath -Parent
+$loadEnvPath = Join-Path $parentPath "load-environment.ps1"
+$backupUtilsPath = Join-Path $parentPath "scripts\backup-utilities.ps1"
 
-if (!$BackupRootPath) {
-    if (!(Load-Environment)) {
-        Write-Host "Failed to load environment configuration" -ForegroundColor Red
-        exit 1
+# Source the load-environment script
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+    exit 1
+}
+
+# Source the backup utilities script that contains Initialize-BackupDirectory
+if (Test-Path $backupUtilsPath) {
+    . $backupUtilsPath
+} else {
+    Write-Host "Cannot find backup-utilities.ps1 at: $backupUtilsPath" -ForegroundColor Red
+    
+    # Define Initialize-BackupDirectory function if the script is not found
+    function Initialize-BackupDirectory {
+        param (
+            [Parameter(Mandatory=$true)]
+            [string]$Path,
+            
+            [Parameter(Mandatory=$true)]
+            [string]$BackupType,
+            
+            [Parameter(Mandatory=$true)]
+            [string]$BackupRootPath
+        )
+        
+        # Create machine-specific backup directory if it doesn't exist
+        $backupPath = Join-Path $BackupRootPath $Path
+        if (!(Test-Path -Path $backupPath)) {
+            try {
+                New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+                Write-Host "Created backup directory for $BackupType at: $backupPath" -ForegroundColor Green
+            } catch {
+                Write-Host "Failed to create backup directory for $BackupType : $_" -ForegroundColor Red
+                return $null
+            }
+        }
+        
+        return $backupPath
     }
-    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+}
+
+# Set a default BackupRootPath if not provided
+if (!$BackupRootPath) {
+    # Try to read from the environment or use a default
+    $BackupRootPath = "$env:USERPROFILE\OneDrive - Fyber Labs\WindowsMissingRecovery\$env:COMPUTERNAME"
+    Write-Host "Using default backup path: $BackupRootPath" -ForegroundColor Yellow
 }
 
 function Backup-TerminalSettings {
@@ -46,7 +96,7 @@ function Backup-TerminalSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Terminal Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"

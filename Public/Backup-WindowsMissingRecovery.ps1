@@ -189,6 +189,8 @@ try {
             try {
                 $params = @{
                     BackupRootPath = $MACHINE_BACKUP
+                    MachineBackupPath = $MACHINE_BACKUP  # Add explicit machine backup path
+                    SharedBackupPath = Join-Path $BACKUP_ROOT "shared"  # Add explicit shared backup path
                 }
                 & $backup.Function @params -ErrorAction Stop
             } catch {

@@ -63,10 +63,20 @@ if (!(Test-Path -Path $SHARED_BACKUP)) {
     }
 }
 
+# Define this function directly in the script to avoid dependency issues
 function Test-BackupPath {
     param (
+        [Parameter(Mandatory=$true)]
         [string]$Path,
-        [string]$BackupType
+        
+        [Parameter(Mandatory=$true)]
+        [string]$BackupType,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$MACHINE_BACKUP,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$SHARED_BACKUP
     )
     
     # First check machine-specific backup
@@ -144,7 +154,8 @@ $successfullyLoaded = 0
 # Try loading the scripts we found in the directories first
 foreach ($scriptPath in $restoreScriptPaths) {
     try {
-        . $scriptPath
+        # Define the Test-BackupPath function with explicit parameters
+        & $scriptPath
         $successfullyLoaded++
         Write-Host "Successfully loaded $(Split-Path -Leaf $scriptPath)" -ForegroundColor Green
     } catch {
@@ -160,7 +171,8 @@ if ($successfullyLoaded -eq 0) {
             $scriptFile = Join-Path $dir $script
             if (Test-Path $scriptFile) {
                 try {
-                    . $scriptFile
+                    # Load the script directly, with direct variables
+                    & $scriptFile -BackupRootPath "$BACKUP_ROOT\$MACHINE_NAME" -MachineBackupPath $MACHINE_BACKUP -SharedBackupPath $SHARED_BACKUP
                     $successfullyLoaded++
                     Write-Host "Successfully loaded $script" -ForegroundColor Green
                     $found = $true
