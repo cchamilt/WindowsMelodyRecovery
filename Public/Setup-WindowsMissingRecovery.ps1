@@ -2,10 +2,19 @@
 #Requires -RunAsAdministrator
 
 # Import necessary functions
-. $PSScriptRoot\..\Scripts\load-environment.ps1
-. $PSScriptRoot\Initialize-WindowsMissingRecovery.ps1
-. $PSScriptRoot\Install-WindowsMissingRecoveryTasks.ps1
-. $PSScriptRoot\Remove-WindowsMissingRecoveryTasks.ps1
+$modulePath = Split-Path -Parent $PSScriptRoot
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
+
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
+}
+
+# Direct reference to files in the same directory
+. "$PSScriptRoot\Initialize-WindowsMissingRecovery.ps1"
+. "$PSScriptRoot\Install-WindowsMissingRecoveryTasks.ps1"
+. "$PSScriptRoot\Remove-WindowsMissingRecoveryTasks.ps1"
 
 function Setup-WindowsMissingRecovery {
     [CmdletBinding()]

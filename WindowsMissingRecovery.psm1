@@ -2,88 +2,9 @@
 $ModuleName = "WindowsMissingRecovery"
 $ModuleVersion = "1.0.0"
 
-# Try to load path detection utility first
-$pathDetectionScript = Join-Path $PSScriptRoot "Private\scripts\detect-module-paths.ps1"
-
-# Create the scripts directory if it doesn't exist
-if (!(Test-Path (Split-Path $pathDetectionScript -Parent))) {
-    New-Item -ItemType Directory -Path (Split-Path $pathDetectionScript -Parent) -Force | Out-Null
-}
-
-# Check if path detection script exists, if not create it
-if (!(Test-Path $pathDetectionScript)) {
-    @'
-function Find-ModulePath {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$false)]
-        [string]$ModuleName = "WindowsMissingRecovery",
-        
-        [Parameter(Mandatory=$false)]
-        [string]$CallerPath = $null
-    )
-    
-    # If we have a caller path, try to find the module relative to that
-    if ($CallerPath) {
-        $scriptPath = Split-Path -Parent $CallerPath
-        $modulePath = Split-Path -Parent $scriptPath
-        
-        # Check if this path looks like a valid module path
-        if ((Test-Path (Join-Path $modulePath "Private")) -or 
-            (Test-Path (Join-Path $modulePath "Public"))) {
-            return $modulePath
-        }
-    }
-    
-    # Try to find module in both PowerShell and WindowsPowerShell paths
-    $psModulePaths = $env:PSModulePath -split ";"
-    $windowsPowerShellPath = $psModulePaths | Where-Object { $_ -like "*WindowsPowerShell*" } | Select-Object -First 1
-    $powerShellPath = $psModulePaths | Where-Object { $_ -like "*PowerShell*" -and $_ -notlike "*WindowsPowerShell*" } | Select-Object -First 1
-    
-    $possiblePaths = @()
-    if ($windowsPowerShellPath) {
-        $possiblePaths += Join-Path $windowsPowerShellPath "Modules\$ModuleName"
-    }
-    if ($powerShellPath) {
-        $possiblePaths += Join-Path $powerShellPath "Modules\$ModuleName"
-    }
-    
-    # Try any custom paths that might be set in the environment
-    if ($env:PSModuleCustomPath) {
-        $possiblePaths += Join-Path $env:PSModuleCustomPath $ModuleName
-    }
-    
-    # Add the standard program files paths
-    $possiblePaths += @(
-        "$env:ProgramFiles\WindowsPowerShell\Modules\$ModuleName",
-        "${env:ProgramFiles(x86)}\WindowsPowerShell\Modules\$ModuleName",
-        "$env:ProgramFiles\PowerShell\Modules\$ModuleName",
-        "${env:ProgramFiles(x86)}\PowerShell\Modules\$ModuleName"
-    )
-    
-    foreach ($path in $possiblePaths) {
-        if (Test-Path $path) {
-            Write-Verbose "Found module at: $path"
-            return $path
-        }
-    }
-    
-    # If we get here, we couldn't find the module
-    Write-Warning "Could not find module path for: $ModuleName"
-    return $null
-}
-
-# Export the function for use in other scripts
-Export-ModuleMember -Function Find-ModulePath
-'@ | Set-Content -Path $pathDetectionScript
-}
-
-# Load the path detection utility
-. $pathDetectionScript
-
 # Define public and private functions
 $Public = @(Get-ChildItem -Path "$PSScriptRoot\Public\*.ps1" -ErrorAction SilentlyContinue)
-$Private = @(Get-ChildItem -Path "$PSScriptRoot\Private\*.ps1" -ErrorAction SilentlyContinue)
+$Private = @(Get-ChildItem -Path "$PSScriptRoot\Private\*.ps1" -ErrorAction SilentlyContinue -Recurse)
 
 # Module configuration (in-memory state)
 $script:Config = @{
@@ -384,40 +305,21 @@ function Set-WindowsMissingRecovery {
 # Initialize module configuration
 Initialize-ModuleConfig
 
-# Only load specific scripts to avoid errors
-# First load core scripts
-$CoreScripts = @(
-    "Initialize-WindowsMissingRecovery.ps1",
-    "Install-WindowsMissingRecoveryTasks.ps1",
-    "Remove-WindowsMissingRecoveryTasks.ps1",
-    "Test-WindowsMissingRecovery.ps1",
-    "Setup-WindowsMissingRecovery.ps1",
-    "Repair-WindowsMissingRecoveryConfig.ps1",
-    "Repair-WindowsMissingRecoveryPaths.ps1"
-)
-
-# Dot source core files
-foreach ($import in $Public) {
-    if ($CoreScripts -contains $import.Name) {
-        try {
-            . $import.FullName
-        } catch {
-            Write-Error "Failed to import core function $($import.FullName): $_"
-        }
+# Dot source the Private files first
+foreach ($import in $Private) {
+    try {
+        . $import.FullName
+    } catch {
+        Write-Error "Failed to import Private function $($import.FullName): $_"
     }
 }
 
-# Dot source other files only if configuration is ready
-if (Test-ConfigurationReady) {
-    # Dot source the rest of the files
-    foreach ($import in @($Public + $Private)) {
-        if ($CoreScripts -notcontains $import.Name) {
-            try {
-                . $import.FullName
-            } catch {
-                Write-Error "Failed to import function $($import.FullName): $_"
-            }
-        }
+# Then dot source the Public files
+foreach ($import in $Public) {
+    try {
+        . $import.FullName
+    } catch {
+        Write-Error "Failed to import Public function $($import.FullName): $_"
     }
 }
 

@@ -36,37 +36,13 @@ if (!(Test-Path $modulesPath)) {
     Write-Host "Created module directory: $modulesPath" -ForegroundColor Green
 }
 
-# Create scripts directory in the module
-$scriptsPath = Join-Path $modulesPath "Scripts"
-if (!(Test-Path $scriptsPath)) {
-    New-Item -ItemType Directory -Path $scriptsPath -Force | Out-Null
-    Write-Host "Created Scripts directory: $scriptsPath" -ForegroundColor Green
-}
-
-# Create Config directory in the module
-$configPath = Join-Path $modulesPath "Config"
-if (!(Test-Path $configPath)) {
-    New-Item -ItemType Directory -Path $configPath -Force | Out-Null
-    Write-Host "Created Config directory: $configPath" -ForegroundColor Green
-}
-
-# Copy only essential module files
-Copy-Item -Path "$moduleName.psd1" -Destination $modulesPath -Force
-Copy-Item -Path "$moduleName.psm1" -Destination $modulesPath -Force
-
-# Check if Private/load-environment.ps1 exists and copy it to Scripts directory
-$loadEnvSourcePath = Join-Path (Get-Location) "Private\load-environment.ps1"
-if (Test-Path $loadEnvSourcePath) {
-    Copy-Item -Path $loadEnvSourcePath -Destination $scriptsPath -Force
-    Write-Host "Copied load-environment.ps1 to Scripts directory" -ForegroundColor Green
-}
-
-# Create required directories
+# Create required module directories
 $requiredDirs = @(
-    "backup", "restore", "setup", "tasks", 
-    "Public", "Private", "Templates",
-    "Public\scripts", "Private\scripts",
-    "Public\backup", "Public\restore", "Public\setup", "Public\tasks"
+    "Public",
+    "Private",
+    "Config",
+    "Templates",
+    "docs"
 )
 
 foreach ($dir in $requiredDirs) {
@@ -77,15 +53,12 @@ foreach ($dir in $requiredDirs) {
     }
 }
 
-# Copy Private/load-environment.ps1 to the scripts directories
-if (Test-Path $loadEnvSourcePath) {
-    Copy-Item -Path $loadEnvSourcePath -Destination (Join-Path $modulesPath "Public\scripts") -Force
-    Copy-Item -Path $loadEnvSourcePath -Destination (Join-Path $modulesPath "Private\scripts") -Force
-    Write-Host "Copied load-environment.ps1 to scripts directories" -ForegroundColor Green
-}
+# Copy module files
+Copy-Item -Path "$moduleName.psd1" -Destination $modulesPath -Force
+Copy-Item -Path "$moduleName.psm1" -Destination $modulesPath -Force
 
-# Copy Private and Public subdirectories
-foreach ($dir in @("Public", "Private", "Templates")) {
+# Copy Public and Private directories
+foreach ($dir in @("Public", "Private", "Templates", "docs")) {
     if (Test-Path ".\$dir") {
         $sourceDir = Join-Path (Get-Location) $dir
         $targetDir = Join-Path $modulesPath $dir
@@ -104,20 +77,8 @@ foreach ($dir in @("Public", "Private", "Templates")) {
                 New-Item -ItemType Directory -Path $targetSubDir -Force | Out-Null
             }
             
-            # Copy all files from subdirectory
             Copy-Item -Path "$($_.FullName)\*" -Destination $targetSubDir -Recurse -Force
         }
-    }
-}
-
-# Special handling for backup scripts - copy from Private\backup to Public\backup
-$privateBackupDir = Join-Path (Get-Location) "Private\backup"
-$publicBackupDir = Join-Path $modulesPath "Public\backup"
-
-if (Test-Path $privateBackupDir) {
-    Get-ChildItem -Path $privateBackupDir -File | ForEach-Object {
-        Copy-Item -Path $_.FullName -Destination $publicBackupDir -Force
-        Write-Host "Copied backup script: $($_.Name) to Public\backup" -ForegroundColor Green
     }
 }
 
@@ -139,10 +100,13 @@ try {
     try {
         Import-Module $moduleName -Force
         Write-Host "$moduleName module installed and imported successfully!" -ForegroundColor Green
-        Write-Host "You can now use Install-WindowsMissingRecovery to set up your Windows recovery."
+        Write-Host "`nNext steps:" -ForegroundColor Yellow
+        Write-Host "1. Run Initialize-WindowsMissingRecovery to configure the module" -ForegroundColor Cyan
+        Write-Host "2. Follow the prompts to set up your backup location and machine name" -ForegroundColor Cyan
+        Write-Host "3. Use Backup-WindowsMissingRecovery to create your first backup" -ForegroundColor Cyan
     } catch {
         Write-Host "Module imported with some warnings - this is normal for first-time use." -ForegroundColor Yellow
-        Write-Host "You can now use Initialize-WindowsMissingRecovery and Install-WindowsMissingRecovery to set up your Windows recovery." -ForegroundColor Green
+        Write-Host "Please run Initialize-WindowsMissingRecovery to complete the setup." -ForegroundColor Green
     }
 } 
 catch {

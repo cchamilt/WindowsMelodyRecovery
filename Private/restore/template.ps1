@@ -1,8 +1,26 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$BackupRootPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$MachineBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
+
+# Load environment script from the correct location
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
+
+# Source the load-environment script
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+}
 
 # Get module configuration
 $config = Get-WindowsMissingRecovery
@@ -12,6 +30,36 @@ if (!$config.IsInitialized) {
 
 if (!$BackupRootPath) {
     $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+}
+
+# Define Test-BackupPath function directly in the script
+function Test-BackupPath {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$BackupType
+    )
+    
+    # First check machine-specific backup
+    $machinePath = Join-Path $BackupRootPath $Path
+    if (Test-Path $machinePath) {
+        Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
+        return $machinePath
+    }
+    
+    # Fall back to shared backup if available
+    if ($SharedBackupPath) {
+        $sharedPath = Join-Path $SharedBackupPath $Path
+        if (Test-Path $sharedPath) {
+            Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
+            return $sharedPath
+        }
+    }
+    
+    Write-Host "No $BackupType backup found" -ForegroundColor Yellow
+    return $null
 }
 
 function Restore-[Feature] {

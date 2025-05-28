@@ -15,8 +15,7 @@
         'Backup-ExcelSettings',
         'Restore-ExcelSettings',
         'Backup-VisioSettings',
-        'Restore-VisioSettings',
-        'Find-ModulePath'
+        'Restore-VisioSettings'
         # Add other functions to export
     )
     CmdletsToExport = @()

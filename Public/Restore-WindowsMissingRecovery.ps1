@@ -1,33 +1,9 @@
 # At the start of the script
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptPath = $PSScriptRoot
 $modulePath = Split-Path -Parent $scriptPath
 
-# Detect if we're running from PowerShell or WindowsPowerShell path
-$psModulePaths = $env:PSModulePath -split ';'
-$windowsPowerShellPath = $psModulePaths | Where-Object { $_ -like "*WindowsPowerShell*" } | Select-Object -First 1
-$powerShellPath = $psModulePaths | Where-Object { $_ -like "*PowerShell*" -and $_ -notlike "*WindowsPowerShell*" } | Select-Object -First 1
-
-# Check if modulePath is in the expected location, if not try to find the correct path
-if (!(Test-Path (Join-Path $modulePath "Private\restore"))) {
-    # Try finding module in both PS and Windows PS paths
-    $possiblePaths = @()
-    if ($windowsPowerShellPath) {
-        $possiblePaths += Join-Path $windowsPowerShellPath "Modules\WindowsMissingRecovery"
-    }
-    if ($powerShellPath) {
-        $possiblePaths += Join-Path $powerShellPath "Modules\WindowsMissingRecovery"
-    }
-
-    foreach ($path in $possiblePaths) {
-        if (Test-Path $path) {
-            Write-Host "Found module at: $path" -ForegroundColor Green
-            $modulePath = $path
-            break
-        }
-    }
-}
-
-$restoreDir = Join-Path $modulePath "Public\restore"
+# Simple path references using $PSScriptRoot and $modulePath
+$restoreDir = Join-Path $scriptPath "restore"
 $privateRestoreDir = Join-Path $modulePath "Private\restore"
 
 # Get configuration from the module
@@ -37,9 +13,8 @@ if (!$config.BackupRoot) {
     return
 }
 
-# Now load environment with configuration available
-$privateScriptsDir = Join-Path $modulePath "Private\scripts"
-$loadEnvPath = Join-Path $privateScriptsDir "load-environment.ps1"
+# Now load environment if needed
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
 
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath

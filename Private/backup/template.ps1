@@ -1,8 +1,26 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$BackupRootPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$MachineBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
+
+# Load environment script from the correct location
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
+
+# Source the load-environment script
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+}
 
 # Get module configuration
 $config = Get-WindowsMissingRecovery
@@ -12,6 +30,34 @@ if (!$config.IsInitialized) {
 
 if (!$BackupRootPath) {
     $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+}
+
+# Define Initialize-BackupDirectory function directly in the script
+function Initialize-BackupDirectory {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$BackupType,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath
+    )
+    
+    # Create machine-specific backup directory if it doesn't exist
+    $backupPath = Join-Path $BackupRootPath $Path
+    if (!(Test-Path -Path $backupPath)) {
+        try {
+            New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+            Write-Host "Created backup directory for $BackupType at: $backupPath" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to create backup directory for $BackupType : $_" -ForegroundColor Red
+            return $null
+        }
+    }
+    
+    return $backupPath
 }
 
 function Backup-[Feature] {

@@ -1,132 +1,134 @@
-# Windows 11 Desktop Configuration
+# WindowsMissingRecovery PowerShell Module
 
-Inspired by the recent instability of Windows 11, we are trying to replicate a desktop for Windows based on One Drive and other backup tools.
+A comprehensive PowerShell module for managing Windows system recovery, backup, and restoration of critical system settings and applications.
 
-The default One Drive location is `C:\Users\<username>\OneDrive\backup\shared` for common shared files.
+## Overview
 
-Backup files are stored in `C:\Users\<username>\OneDrive\backup\<machine name>`
+The WindowsMissingRecovery module provides a robust set of tools for:
 
-If during the recovery process the machine name directory is not found, it will use the shared folder.  Please see the LIMITS.md file for a better idea of what can be restored.
+- Managing Windows system recovery points
+- Backing up and restoring critical system settings
+- Managing application settings (Excel, Visio, etc.)
+- Automated backup scheduling and maintenance
+- System configuration management
 
-## Directory Structure
+## Installation
 
-```text
-.
-├── backup/         # Backup operation scripts
-├── restore/        # Restore operation scripts
-├── setup/          # Setup scripts for applications
-├── tasks/          # Scheduled task registration scripts
-├── templates/      # Configuration templates
-├── scripts/        # Helper scripts
-├── Backup-WindowsMissingRecovery.ps1      # Main backup script
-├── Restore-WindowsMissingRecovery.ps1     # Main restore script
-├── Update-WindowsMissingRecovery.ps1      # Package update script
-└── Install-WindowsMissingRecovery.ps1     # Installation script
-```
+### Prerequisites
 
-## Install the Windows Configuration Scripts
+- Windows PowerShell 5.1 or later
+- Administrative privileges
 
-In a PowerShell prompt with admin privileges, run the following command to install the Windows Configuration.
+### Installation Methods
+
+1. **Using the Install Script**
 
 ```powershell
-Install-WindowsMissingRecovery.ps1 [-InstallPath <path>] [-NoScheduledTasks] [-NoPrompt]
+.\Install-Module.ps1
 ```
 
-Parameters:
-
-- `-InstallPath`: Custom installation directory (default: `%USERPROFILE%\Scripts\WindowsMissingRecovery`)
-- `-NoScheduledTasks`: Skip scheduled task registration
-- `-NoPrompt`: Non-interactive installation
-
-This will install the Windows Configuration and create a scheduled task to backup the Windows Configuration to One Drive.  It will install an update task to update win-get and chocolatey packages to the latest version.
-
-## Features
-
-- Automatic backup of Windows settings
-- Detailed list of backed up settings can be found in [BACKUP_DETAILS.md](docs/BACKUP_DETAILS.md)
-- System updates management
-- Browser profile backup
-- KeePassXC configuration
-- OneNote settings and templates
-- Outlook configuration (excluding PST files)
-- Word settings and templates
-- Excel settings and macros
-- Visio settings and stencils
-- Network and printer settings
-- And more...
-
-## Post-Installation
-
-1. Restart PowerShell
-2. Configure backup email notifications (optional):
-
-## Recover Windows 11
-
-If the machine needs recovery, run the following command to restore the Windows Configuration from One Drive.  (We recommend verifying the user has set the Windows license and has setup one drive to sync the backup folder before running this script.)
-
-With admin privileges, run the following command to restore the Windows Configuration from One Drive.
+2. **Manual Installation**
 
 ```powershell
-Restore-WindowsMissingRecovery.ps1
+# Copy the module to your PowerShell modules directory
+Copy-Item -Path "WindowsMissingRecovery" -Destination "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\" -Recurse
 ```
 
-This will restore the Windows Configuration from One Drive.  If the machine name directory is not found for individual restore scripts, it will use the shared folder.
+## Core Functions
 
-## Package Updates through Windows Configuration
+### Initialization and Setup
 
-With admin privileges, run the following command to update the Windows Configuration.
+- `Initialize-WindowsMissingRecovery` - Initializes the module configuration
+- `Setup-WindowsMissingRecovery` - Sets up the module with custom configuration
+- `Install-WindowsMissingRecoveryTasks` - Installs scheduled tasks for automated operations
+
+### Backup and Recovery
+
+- `Backup-WindowsMissingRecovery` - Creates system backups
+- `Restore-WindowsMissingRecovery` - Restores from backup
+- `Update-WindowsMissingRecovery` - Updates module components and configurations
+
+### Application-Specific Functions
+
+- `Backup-ExcelSettings` / `Restore-ExcelSettings` - Manages Excel application settings
+- `Backup-VisioSettings` / `Restore-VisioSettings` - Manages Visio application settings
+
+### Utility Functions
+
+- `Convert-ToWinget` - Converts package installations to Winget format
+- `Test-WindowsMissingRecovery` - Tests module functionality
+- `Remove-WindowsMissingRecoveryTasks` - Removes scheduled tasks
+
+## Configuration
+
+The module uses a configuration system that can be managed through:
+
+- Environment variables
+- Configuration files
+- PowerShell commands
+
+Key configuration areas include:
+
+- Backup settings
+- Email notifications
+- Scheduling
+- Recovery options
+- Logging preferences
+
+## Usage Examples
+
+### Basic Setup
 
 ```powershell
-Update-WindowsMissingRecovery.ps1
+# Initialize the module
+Initialize-WindowsMissingRecovery
+
+# Configure backup location
+Set-WindowsMissingRecovery -BackupRoot "D:\Backups"
+
+# Install scheduled tasks
+Install-WindowsMissingRecoveryTasks
 ```
 
-This will update applications and powershell packages through the package managers supported including inside WSL distributions.
-
-## Backup the Windows Configuration
-
-With admin privileges, run the following command to backup the Windows Configuration to One Drive.
+### Backup Operations
 
 ```powershell
-Backup-WindowsMissingRecovery.ps1
+# Create a backup
+Backup-WindowsMissingRecovery
+
+# Restore from backup
+Restore-WindowsMissingRecovery -BackupDate "2024-03-20"
 ```
 
-This will backup the Windows Configuration to One Drive.
-
-## Convert to Win-get
-
-With admin privileges, run the following command to search for all the packages installed and convert them to win-get packages if possible.
+### Application Settings
 
 ```powershell
-Convert-ToWinGet.ps1
+# Backup Excel settings
+Backup-ExcelSettings
+
+# Restore Visio settings
+Restore-VisioSettings
 ```
 
-## Example backup directory structure on One Drive
+## Module Structure
 
-```text
-C:\Users\<username>\OneDrive\backup\
-├── LAPTOP-XYZ123\              # Machine-specific backup directory
-│   ├── Applications\           # Installed apps and package manager configs
-│   ├── Browsers\              # Browser profiles and settings
-│   │   ├── Chrome\
-│   │   ├── Edge\
-│   │   └── Firefox\
-│   ├── Excel\                 # Excel settings and templates
-│   ├── KeePassXC\             # KeePassXC configurations
-│   ├── Network\               # Network and VPN settings
-│   ├── OneNote\               # OneNote settings
-│   ├── Outlook\               # Outlook settings (no PST files)
-│   ├── PowerShell\            # PowerShell profiles and modules
-│   ├── SSH\                   # SSH keys and configs
-│   ├── System\                # Windows system settings
-│   ├── Terminal\              # Windows Terminal settings
-│   ├── Visio\                 # Visio settings and stencils
-│   ├── Word\                  # Word settings and templates
-│   └── WSL\                   # WSL configurations
-│
-└── shared\                    # Shared settings across machines
-    ├── Applications\          # Common application settings
-    ├── Browsers\              # Shared browser bookmarks/settings
-    ├── SSH\                   # Shared SSH configurations
-    ├── Templates\             # Common document templates
-    └── WSL\                   # Common WSL configurations
 ```
+WindowsMissingRecovery/
+├── Public/           # Public functions
+├── Private/          # Private functions
+├── Config/           # Configuration files
+├── Templates/        # Template files
+└── docs/            # Documentation
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For issues and feature requests, please use the GitHub issue tracker.

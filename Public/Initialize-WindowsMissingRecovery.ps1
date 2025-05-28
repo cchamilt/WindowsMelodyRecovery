@@ -6,26 +6,6 @@ function Initialize-WindowsMissingRecovery {
         [switch]$NoPrompt
     )
 
-    # Get the current module configuration
-    $currentConfig = Get-WindowsMissingRecovery
-    
-    # Use the module's Config directory as the default
-    if (!$CustomInstallPath) {
-        $InstallPath = $currentConfig.WindowsMissingRecoveryPath
-    } else {
-        $InstallPath = $CustomInstallPath
-    }
-
-    # Ensure the installation path exists
-    if (!(Test-Path $InstallPath)) {
-        try {
-            New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
-            Write-Host "Created directory: $InstallPath" -ForegroundColor Green
-        } catch {
-            Write-Warning "Failed to create directory: $InstallPath - $_"
-        }
-    }
-
     # Verify admin privileges
     if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw "This function requires elevation. Please run PowerShell as Administrator."
@@ -110,21 +90,104 @@ function Initialize-WindowsMissingRecovery {
             $machineName = $env:COMPUTERNAME
         }
 
-        # Update module configuration
-        Set-WindowsMissingRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider
-        
-        # Create machine-specific directory
+        # Create machine-specific directory structure
         $machineBackupDir = Join-Path $backupRoot $machineName
-        if (!(Test-Path -Path $machineBackupDir)) {
+        $configDir = Join-Path $machineBackupDir "Config"
+        $configFile = Join-Path $configDir "config.json"
+        
+        # Check if configuration already exists
+        $existingConfig = $null
+        if (Test-Path $configFile) {
             try {
-                New-Item -ItemType Directory -Path $machineBackupDir -Force | Out-Null
-                Write-Host "Created machine-specific backup directory at: $machineBackupDir" -ForegroundColor Green
+                $existingConfig = Get-Content -Path $configFile -Raw | ConvertFrom-Json
+                Write-Host "`nExisting configuration found for machine '$machineName' at:" -ForegroundColor Yellow
+                Write-Host "Backup location: $($existingConfig.MachineBackupDir)" -ForegroundColor Cyan
+                Write-Host "Last configured: $($existingConfig.LastConfigured)" -ForegroundColor Cyan
+                
+                do {
+                    $choice = Read-Host "`nDo you want to: [K]eep existing configuration, [R]eplace it, or [C]ancel? (K/R/C)"
+                    switch ($choice.ToUpper()) {
+                        'K' { 
+                            Write-Host "Keeping existing configuration." -ForegroundColor Green
+                            return $true 
+                        }
+                        'R' { 
+                            Write-Host "Replacing existing configuration..." -ForegroundColor Yellow
+                            break
+                        }
+                        'C' { 
+                            Write-Host "Operation cancelled." -ForegroundColor Yellow
+                            return $false
+                        }
+                        default { 
+                            Write-Host "Invalid choice. Please select K, R, or C." -ForegroundColor Red
+                            continue
+                        }
+                    }
+                } while ($choice -notmatch '^[KRC]$')
             } catch {
-                Write-Warning "Failed to create machine-specific backup directory: $_"
+                Write-Warning "Error reading existing configuration: $_"
+                Write-Host "Will create new configuration." -ForegroundColor Yellow
             }
         }
         
-        Write-Host "Configuration saved to both local and backup locations." -ForegroundColor Green
+        # Create directories if they don't exist
+        foreach ($dir in @($machineBackupDir, $configDir)) {
+            if (!(Test-Path -Path $dir)) {
+                try {
+                    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+                    Write-Host "Created directory: $dir" -ForegroundColor Green
+                } catch {
+                    Write-Warning "Failed to create directory: $dir - $_"
+                    throw
+                }
+            }
+        }
+
+        # Create local module config directory
+        $moduleConfigDir = Join-Path $PSScriptRoot "..\Config"
+        if (!(Test-Path -Path $moduleConfigDir)) {
+            try {
+                New-Item -ItemType Directory -Path $moduleConfigDir -Force | Out-Null
+                Write-Host "Created module config directory: $moduleConfigDir" -ForegroundColor Green
+            } catch {
+                Write-Warning "Failed to create module config directory: $_"
+                throw
+            }
+        }
+
+        # Update module configuration
+        $config = @{
+            BackupRoot = $backupRoot
+            MachineName = $machineName
+            CloudProvider = $selectedProvider
+            MachineBackupDir = $machineBackupDir
+            ConfigDir = $configDir
+            LastConfigured = Get-Date
+            IsInitialized = $true
+        }
+
+        # Save configuration to both locations
+        $configJson = $config | ConvertTo-Json
+        $configFiles = @(
+            (Join-Path $moduleConfigDir "config.json"),
+            $configFile
+        )
+
+        foreach ($configFile in $configFiles) {
+            try {
+                Set-Content -Path $configFile -Value $configJson -Force
+                Write-Host "Saved configuration to: $configFile" -ForegroundColor Green
+            } catch {
+                Write-Warning "Failed to save configuration to $configFile - $_"
+                throw
+            }
+        }
+        
+        Write-Host "`nConfiguration completed successfully!" -ForegroundColor Green
+        Write-Host "Backup location: $machineBackupDir" -ForegroundColor Cyan
+        Write-Host "Machine name: $machineName" -ForegroundColor Cyan
+        Write-Host "`nYou can now use Backup-WindowsMissingRecovery to create your first backup." -ForegroundColor Yellow
     }
 
     return $true

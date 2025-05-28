@@ -10,6 +10,18 @@ param(
     [switch]$NoPrompt
 )
 
+# Load environment script from the correct location
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
+
+# Source the load-environment script
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+}
+
 # Get module configuration
 $config = Get-WindowsMissingRecovery
 if (!$config.IsInitialized) {
@@ -86,7 +98,8 @@ function Setup-[Feature] {
             
             # Setup logic here
             if ($Force -or $PSCmdlet.ShouldProcess("[Feature]", "Setup")) {
-                $itemsToSetup = $Components ?? (Get-DefaultItems)
+                # Fix for PowerShell 5.1 which doesn't support ??
+                $itemsToSetup = if ($Components) { $Components } else { Get-DefaultItems }
                 
                 foreach ($item in $itemsToSetup) {
                     try {
@@ -112,7 +125,8 @@ function Setup-[Feature] {
                         }
                     }
                     catch {
-                        $result.Errors += "Failed to configure $item: $_"
+                        $error_message = "Failed to configure $item: " + $_.Exception.Message
+                        $result.Errors += $error_message
                         if (!$Force) { throw }
                     }
                 }
@@ -135,13 +149,13 @@ function Setup-[Feature] {
             $errorRecord = $_
             $errorMessage = @(
                 "Failed to setup [Feature]"
-                "Error Message: $($errorRecord.Exception.Message)"
-                "Error Type: $($errorRecord.Exception.GetType().FullName)"
-                "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
-                "Script Name: $($errorRecord.InvocationInfo.ScriptName)"
-                "Statement: $($errorRecord.InvocationInfo.Line.Trim())"
-                if ($errorRecord.Exception.StackTrace) { "Stack Trace: $($errorRecord.Exception.StackTrace)" }
-                if ($errorRecord.Exception.InnerException) { "Inner Exception: $($errorRecord.Exception.InnerException.Message)" }
+                "Error Message: " + $errorRecord.Exception.Message
+                "Error Type: " + $errorRecord.Exception.GetType().FullName
+                "Script Line Number: " + $errorRecord.InvocationInfo.ScriptLineNumber
+                "Script Name: " + $errorRecord.InvocationInfo.ScriptName
+                "Statement: " + $errorRecord.InvocationInfo.Line.Trim()
+                if ($errorRecord.Exception.StackTrace) { "Stack Trace: " + $errorRecord.Exception.StackTrace }
+                if ($errorRecord.Exception.InnerException) { "Inner Exception: " + $errorRecord.Exception.InnerException.Message }
             ) -join "`n"
             
             Write-Error $errorMessage
@@ -186,7 +200,7 @@ function Get-CurrentState {
     catch {
         return @{
             HasErrors = $true
-            ErrorMessage = "State verification failed: $_"
+            ErrorMessage = "State verification failed: " + $_.Exception.Message
             State = $null
         }
     }
@@ -232,35 +246,10 @@ Test cases to consider:
 8. NoPrompt behavior
 9. Force parameter behavior
 10. Change tracking validation
+#>
 
-.TESTCASES
-# Mock test examples:
-Describe "Setup-[Feature]" {
-    BeforeAll {
-        $script:TestMode = $true
-        Mock Test-Path { return $true }
-        Mock Get-CurrentState { return @{ HasErrors = $false; ErrorMessage = $null; State = @{} } }
-        Mock Get-DefaultItems { return @("TestItem1", "TestItem2") }
-    }
-
-    AfterAll {
-        $script:TestMode = $false
-    }
-
-    It "Should track configuration changes" {
-        $result = Setup-[Feature] -SetupPath "TestPath" -NoPrompt
-        $result.Success | Should -Be $true
-        $result.Changes.Added.Count | Should -BeGreaterThan 0
-    }
-
-    It "Should handle reconfiguration" {
-        Mock Get-CurrentState { return @{ 
-            HasErrors = $false; 
-            ErrorMessage = $null; 
-            State = @{ Existing = $true } 
-        }}
-        $result = Setup-[Feature] -SetupPath "TestPath" -Force
-        $result.Changes.Modified.Count | Should -BeGreaterThan 0
-    }
-}
-#> 
+# Allow script to be run directly or sourced
+if ($MyInvocation.InvocationName -ne '.') {
+    # Script was run directly
+    Setup-[Feature] -SetupPath $SetupPath -Force:$Force -NoPrompt:$NoPrompt
+} 
