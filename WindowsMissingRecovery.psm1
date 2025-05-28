@@ -29,8 +29,8 @@ function Find-ModulePath {
         $modulePath = Split-Path -Parent $scriptPath
         
         # Check if this path looks like a valid module path
-        if (Test-Path (Join-Path $modulePath "Private") -or 
-            Test-Path (Join-Path $modulePath "Public")) {
+        if ((Test-Path (Join-Path $modulePath "Private")) -or 
+            (Test-Path (Join-Path $modulePath "Public"))) {
             return $modulePath
         }
     }

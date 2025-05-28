@@ -45,7 +45,10 @@ try {
     # Update Winget packages
     Write-Host "`nUpdating Winget packages..." -ForegroundColor Yellow
     try {
-        winget upgrade --all --accept-source-agreements --accept-package-agreements --include-unknown
+        # Some packages like FreeCAD may still prompt despite --accept-package-agreements
+        # Add extra flags to ensure a fully non-interactive experience
+        winget upgrade --all --accept-source-agreements --accept-package-agreements --include-unknown --silent
+
         Write-Host "Winget packages updated successfully" -ForegroundColor Green
     } catch {
         $errorMessage = "Failed to update Winget packages: $_"
