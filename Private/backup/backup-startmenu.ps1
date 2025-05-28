@@ -1,30 +1,35 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$MachineBackupPath = $null,
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
 
 # Load environment if not provided
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
-if (!$BackupRootPath) {
+if (!$MachineBackupPath -or !$SharedBackupPath) {
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
         exit 1
     }
-    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $MachineBackupPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $SharedBackupPath = "$env:BACKUP_ROOT\shared"
 }
 
 function Backup-StartMenuSettings {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$BackupRootPath
+        [string]$MachineBackupPath,
+        [Parameter(Mandatory=$true)]
+        [string]$SharedBackupPath
     )
     
     try {
         Write-Host "Backing up Start Menu Settings..." -ForegroundColor Blue
-        $backupPath = Initialize-BackupDirectory -Path "StartMenu" -BackupType "Start Menu Settings" -BackupRootPath $BackupRootPath
+        $backupPath = Initialize-BackupDirectory -Path "StartMenu" -BackupType "Start Menu Settings" -BackupRootPath $MachineBackupPath
         
         if ($backupPath) {
             # Export Start Menu registry settings
@@ -151,5 +156,5 @@ function Backup-StartMenuSettings {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-StartMenuSettings -BackupRootPath $BackupRootPath
+    Backup-StartMenuSettings -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
 } 

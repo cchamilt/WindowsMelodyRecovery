@@ -60,7 +60,7 @@ function Initialize-BackupDirectory {
     return $backupPath
 }
 
-function Backup-GogGames {
+function Backup-UbisoftGames {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -83,69 +83,73 @@ function Backup-GogGames {
     
     process {
         try {
-            Write-Verbose "Starting backup of GOG Games..."
-            Write-Host "Backing up GOG Games..." -ForegroundColor Blue
+            Write-Verbose "Starting backup of Ubisoft Games..."
+            Write-Host "Backing up Ubisoft Games..." -ForegroundColor Blue
             
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "GOG Games" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "Ubisoft Games" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
-                $gogGames = @()
+                $ubisoftGames = @()
                 
-                # Check for GOG Galaxy installation
-                $gogPath = "C:\Program Files (x86)\GOG Galaxy"
-                if (Test-Path $gogPath) {
-                    Write-Host "Found GOG Galaxy installation" -ForegroundColor Green
+                # Check for Ubisoft Connect installation
+                $ubisoftPath = "C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher"
+                if (Test-Path $ubisoftPath) {
+                    Write-Host "Found Ubisoft Connect installation" -ForegroundColor Green
                     
-                    # Get installed games from GOG Galaxy database
-                    $dbPath = "$env:ProgramData\GOG.com\Galaxy\storage\galaxy-2.0.db"
-                    if (Test-Path $dbPath) {
+                    # Get installed games from Ubisoft Connect
+                    $manifestPath = Join-Path $ubisoftPath "games"
+                    if (Test-Path $manifestPath) {
                         if ($WhatIf) {
-                            Write-Host "WhatIf: Would scan GOG Galaxy database for games"
+                            Write-Host "WhatIf: Would scan Ubisoft Connect games directory"
                         } else {
                             try {
-                                # We need SQLite to read the database
-                                if (!(Get-Command sqlite3 -ErrorAction SilentlyContinue)) {
-                                    Write-Host "Installing SQLite..." -ForegroundColor Yellow
-                                    scoop install sqlite
-                                }
-
-                                $query = "SELECT gamePieceId, title FROM GamePieces WHERE gamePieceTypeId = 'original_title'"
-                                $games = sqlite3 $dbPath $query
-
-                                foreach ($game in $games) {
-                                    $id, $title = $game -split '\|'
-                                    $gogGames += @{
-                                        Name = $title
-                                        Id = $id
-                                        Platform = "GOG"
+                                $gameDirs = Get-ChildItem -Path $manifestPath -Directory
+                                foreach ($gameDir in $gameDirs) {
+                                    try {
+                                        $manifestFile = Join-Path $gameDir.FullName "manifest.yml"
+                                        if (Test-Path $manifestFile) {
+                                            $content = Get-Content $manifestFile -Raw
+                                            if ($content -match "name:\s*'([^']+)'") {
+                                                $gameName = $matches[1]
+                                                $ubisoftGames += @{
+                                                    Name = $gameName
+                                                    Id = $gameDir.Name
+                                                    Platform = "Ubisoft"
+                                                    InstallLocation = $gameDir.FullName
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch {
+                                        $errors += "Error reading game directory $($gameDir.Name): $_"
                                     }
                                 }
-                                $backedUpItems += "GOG games from database"
+                                $backedUpItems += "Ubisoft games from manifests"
                             }
                             catch {
-                                $errors += "Error reading GOG Galaxy database: $_"
+                                $errors += "Error reading Ubisoft games directory: $_"
                             }
                         }
                     } else {
-                        $errors += "GOG Galaxy database not found at: $dbPath"
+                        $errors += "Ubisoft games directory not found at: $manifestPath"
                     }
                 } else {
-                    Write-Host "GOG Galaxy not found at: $gogPath" -ForegroundColor Yellow
+                    Write-Host "Ubisoft Connect not found at: $ubisoftPath" -ForegroundColor Yellow
                 }
 
                 # Update applications.json
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would update GOG applications.json"
+                    Write-Host "WhatIf: Would update Ubisoft applications.json"
                 } else {
                     try {
-                        $applicationsPath = Join-Path $backupPath "gog-applications.json"
+                        $applicationsPath = Join-Path $backupPath "ubisoft-applications.json"
                         if (Test-Path $applicationsPath) {
                             $applications = Get-Content $applicationsPath | ConvertFrom-Json
                         }
@@ -153,11 +157,11 @@ function Backup-GogGames {
                             $applications = @{}
                         }
 
-                        $applications.GOG = $gogGames
+                        $applications.Ubisoft = $ubisoftGames
                         $applications | ConvertTo-Json -Depth 10 | Set-Content $applicationsPath
-                        $backedUpItems += "GOG applications.json"
+                        $backedUpItems += "Ubisoft applications.json"
                     } catch {
-                        $errors += "Failed to update GOG applications.json: $_"
+                        $errors += "Failed to update Ubisoft applications.json: $_"
                     }
                 }
                 
@@ -165,14 +169,14 @@ function Backup-GogGames {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "GOG Games"
+                    Feature = "Ubisoft Games"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
-                    GameCount = $gogGames.Count
+                    GameCount = $ubisoftGames.Count
                 }
                 
-                Write-Host "Backed up $($gogGames.Count) GOG games to: $backupPath" -ForegroundColor Green
+                Write-Host "Backed up $($ubisoftGames.Count) Ubisoft games to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -180,7 +184,7 @@ function Backup-GogGames {
         } catch {
             $errorRecord = $_
             $errorMessage = @(
-                "Failed to backup GOG Games"
+                "Failed to backup Ubisoft Games"
                 "Error Message: $($errorRecord.Exception.Message)"
                 "Error Type: $($errorRecord.Exception.GetType().FullName)"
                 "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -199,18 +203,18 @@ function Backup-GogGames {
 
 # Export the function if being imported as a module
 if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-GogGames
+    Export-ModuleMember -Function Backup-UbisoftGames
 }
 
 <#
 .SYNOPSIS
-Backs up GOG Games settings and configurations.
+Backs up Ubisoft Games settings and configurations.
 
 .DESCRIPTION
-Creates a backup of GOG Games information, including game titles and IDs from the GOG Galaxy database.
+Creates a backup of Ubisoft Games information, including game titles, IDs, and installation locations from Ubisoft Connect.
 
 .EXAMPLE
-Backup-GogGames -BackupRootPath "C:\Backups"
+Backup-UbisoftGames -BackupRootPath "C:\Backups"
 
 .NOTES
 Test cases to consider:
@@ -218,25 +222,31 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. GOG Galaxy installation exists/doesn't exist
-6. GOG Galaxy database exists/doesn't exist
-7. SQLite installation success/failure
-8. Database query success/failure
-9. JSON parsing success/failure
-10. Applications.json update success/failure
+5. Ubisoft Connect installation exists/doesn't exist
+6. Ubisoft games directory exists/doesn't exist
+7. Game manifest parsing success/failure
+8. JSON parsing success/failure
+9. Applications.json update success/failure
+10. Multiple games with different configurations
 
 .TESTCASES
 # Mock test examples:
-Describe "Backup-GogGames" {
+Describe "Backup-UbisoftGames" {
     BeforeAll {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock Get-Command { return $true }
-        Mock sqlite3 { return "123|Test Game" }
-        Mock Get-Content { return '{}' }
+        Mock Get-ChildItem { 
+            return @(
+                [PSCustomObject]@{
+                    FullName = "TestPath\game1"
+                    Name = "game1"
+                }
+            )
+        }
+        Mock Get-Content { return "name: 'Test Game'" }
         Mock ConvertFrom-Json { return @{} }
-        Mock ConvertTo-Json { return '{"GOG":[{"Name":"Test Game","Id":"123","Platform":"GOG"}]}' }
+        Mock ConvertTo-Json { return '{"Ubisoft":[{"Name":"Test Game","Id":"game1","Platform":"Ubisoft","InstallLocation":"TestPath\game1"}]}' }
         Mock Set-Content { }
     }
 
@@ -245,16 +255,16 @@ Describe "Backup-GogGames" {
     }
 
     It "Should return a valid result object" {
-        $result = Backup-GogGames -BackupRootPath "TestPath"
+        $result = Backup-UbisoftGames -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "GOG Games"
+        $result.Feature | Should -Be "Ubisoft Games"
         $result.GameCount | Should -Be 1
     }
 
-    It "Should handle missing GOG Galaxy gracefully" {
+    It "Should handle missing Ubisoft Connect gracefully" {
         Mock Test-Path { return $false }
-        $result = Backup-GogGames -BackupRootPath "TestPath"
+        $result = Backup-UbisoftGames -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.GameCount | Should -Be 0
     }
@@ -264,5 +274,5 @@ Describe "Backup-GogGames" {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-GogGames -BackupRootPath $BackupRootPath
+    Backup-UbisoftGames -BackupRootPath $BackupRootPath
 } 

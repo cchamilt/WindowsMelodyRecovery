@@ -60,7 +60,7 @@ function Initialize-BackupDirectory {
     return $backupPath
 }
 
-function Backup-RDPSettings {
+function Backup-PrinterSettings {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -83,38 +83,36 @@ function Backup-RDPSettings {
     
     process {
         try {
-            Write-Verbose "Starting backup of RDP Settings..."
-            Write-Host "Backing up RDP Settings..." -ForegroundColor Blue
+            Write-Verbose "Starting backup of Printer Settings..."
+            Write-Host "Backing up Printer Settings..." -ForegroundColor Blue
             
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "RDP" -BackupType "RDP" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Printer" -BackupType "Printer" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
                 
-                # Registry paths for RDP settings
+                # Registry paths for printer settings
                 $registryPaths = @(
-                    "HKCU\Software\Microsoft\Terminal Server Client",
-                    "HKLM\SOFTWARE\Microsoft\Terminal Server Client",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server",
-                    "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp",
-                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData"
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Print\Providers",
+                    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Printers",
+                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Printer Cache"
                 )
 
                 # Export registry settings
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export registry settings for RDP"
+                    Write-Host "WhatIf: Would export registry settings for printers"
                 } else {
                     foreach ($path in $registryPaths) {
                         try {
-                            $regFile = Join-Path $backupPath "rdp_$($path.Split('\')[-1]).reg"
+                            $regFile = Join-Path $backupPath "printer_$($path.Split('\')[-1]).reg"
                             reg export $path $regFile /y | Out-Null
                             $backedUpItems += "Registry: $path"
                         } catch {
@@ -123,83 +121,58 @@ function Backup-RDPSettings {
                     }
                 }
 
-                # Export RDP connection files
+                # Get printer information
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export RDP connection files"
+                    Write-Host "WhatIf: Would export printer information"
                 } else {
-                    $rdpPaths = @(
-                        "$env:USERPROFILE\Documents\*.rdp",
-                        "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations\*.rdp",
-                        "$env:USERPROFILE\Documents\Remote Desktop Connection Manager\*.rdp"
-                    )
-
-                    foreach ($rdpPath in $rdpPaths) {
-                        try {
-                            if (Test-Path $rdpPath) {
-                                $rdpFiles = Get-ChildItem -Path $rdpPath
-                                if ($rdpFiles) {
-                                    $rdpBackupPath = Join-Path $backupPath "Connections"
-                                    New-Item -ItemType Directory -Path $rdpBackupPath -Force | Out-Null
-                                    Copy-Item -Path $rdpPath -Destination $rdpBackupPath -Force
-                                    $backedUpItems += "RDP connections from: $rdpPath"
-                                }
-                            }
-                        } catch {
-                            $errors += "Failed to backup RDP connections from $rdpPath : $_"
-                        }
+                    try {
+                        $printers = Get-Printer | Select-Object Name, DriverName, PortName, Shared, ShareName, Published, DeviceType, Status
+                        $printers | ConvertTo-Json | Out-File "$backupPath\printers.json" -Force
+                        $backedUpItems += "Printer information"
+                    } catch {
+                        $errors += "Failed to get printer information: $_"
                     }
                 }
 
-                # Export RDP certificates
+                # Get printer ports
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export RDP certificates"
+                    Write-Host "WhatIf: Would export printer ports"
                 } else {
                     try {
-                        $rdpCerts = Get-ChildItem -Path "Cert:\LocalMachine\Remote Desktop" -ErrorAction SilentlyContinue
-                        if ($rdpCerts) {
-                            $certsPath = Join-Path $backupPath "Certificates"
-                            New-Item -ItemType Directory -Path $certsPath -Force | Out-Null
-                            
-                            foreach ($cert in $rdpCerts) {
-                                $certFile = Join-Path $certsPath "$($cert.Thumbprint).pfx"
-                                Export-PfxCertificate -Cert $cert -FilePath $certFile -Password (ConvertTo-SecureString -String "temp" -Force -AsPlainText) | Out-Null
-                            }
-                            $backedUpItems += "RDP certificates"
-                        }
+                        $printerPorts = Get-PrinterPort | Select-Object Name, HostAddress, PortNumber, Protocol
+                        $printerPorts | ConvertTo-Json | Out-File "$backupPath\printer_ports.json" -Force
+                        $backedUpItems += "Printer ports"
                     } catch {
-                        $errors += "Failed to export RDP certificates: $_"
+                        $errors += "Failed to get printer ports: $_"
                     }
                 }
 
-                # Export RDP configuration
+                # Get printer drivers
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export RDP configuration"
+                    Write-Host "WhatIf: Would export printer drivers"
                 } else {
                     try {
-                        $rdpSettings = @{
-                            Enabled = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections").fDenyTSConnections -eq 0
-                            UserAuthentication = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication").UserAuthentication
-                            SecurityLayer = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer").SecurityLayer
-                        }
-                        $rdpSettings | ConvertTo-Json | Out-File "$backupPath\rdp_settings.json" -Force
-                        $backedUpItems += "RDP configuration"
+                        $printerDrivers = Get-PrinterDriver | Select-Object Name, Manufacturer, DriverVersion, Environment
+                        $printerDrivers | ConvertTo-Json | Out-File "$backupPath\printer_drivers.json" -Force
+                        $backedUpItems += "Printer drivers"
                     } catch {
-                        $errors += "Failed to export RDP configuration: $_"
+                        $errors += "Failed to get printer drivers: $_"
                     }
                 }
 
-                # Export RDP authorized hosts
+                # Export printer preferences
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export RDP authorized hosts"
+                    Write-Host "WhatIf: Would export printer preferences"
                 } else {
                     try {
-                        $authorizedHosts = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "SecurityLayer" -ErrorAction SilentlyContinue
-                        if ($authorizedHosts) {
-                            $authorizedHosts | ConvertTo-Json | Out-File "$backupPath\authorized_hosts.json" -Force
-                            $backedUpItems += "RDP authorized hosts"
+                        $printerPreferences = @{
+                            DefaultPrinter = (Get-Printer | Where-Object {$_.IsDefault}).Name
+                            PrinterPreferences = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows" -Name "Device" -ErrorAction SilentlyContinue
                         }
+                        $printerPreferences | ConvertTo-Json | Out-File "$backupPath\printer_preferences.json" -Force
+                        $backedUpItems += "Printer preferences"
                     } catch {
-                        $errors += "Failed to export RDP authorized hosts: $_"
+                        $errors += "Failed to get printer preferences: $_"
                     }
                 }
                 
@@ -207,13 +180,13 @@ function Backup-RDPSettings {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "RDP"
+                    Feature = "Printer"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
                 }
                 
-                Write-Host "RDP settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "Printer settings backed up successfully to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -221,7 +194,7 @@ function Backup-RDPSettings {
         } catch {
             $errorRecord = $_
             $errorMessage = @(
-                "Failed to backup RDP Settings"
+                "Failed to backup Printer Settings"
                 "Error Message: $($errorRecord.Exception.Message)"
                 "Error Type: $($errorRecord.Exception.GetType().FullName)"
                 "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -240,18 +213,18 @@ function Backup-RDPSettings {
 
 # Export the function if being imported as a module
 if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-RDPSettings
+    Export-ModuleMember -Function Backup-PrinterSettings
 }
 
 <#
 .SYNOPSIS
-Backs up Remote Desktop Protocol (RDP) settings and configurations.
+Backs up printer settings and configurations.
 
 .DESCRIPTION
-Creates a backup of RDP settings including registry settings, connection files, certificates, and authorized hosts.
+Creates a backup of printer settings including registry settings, printer information, ports, drivers, and preferences.
 
 .EXAMPLE
-Backup-RDPSettings -BackupRootPath "C:\Backups"
+Backup-PrinterSettings -BackupRootPath "C:\Backups"
 
 .NOTES
 Test cases to consider:
@@ -260,33 +233,54 @@ Test cases to consider:
 3. Empty backup path
 4. No permissions to write
 5. Registry export success/failure
-6. RDP connection files backup success/failure
-7. RDP certificates export success/failure
-8. RDP configuration export success/failure
-9. RDP authorized hosts export success/failure
+6. Printer information retrieval success/failure
+7. Printer ports retrieval success/failure
+8. Printer drivers retrieval success/failure
+9. Printer preferences retrieval success/failure
 10. JSON serialization success/failure
 
 .TESTCASES
 # Mock test examples:
-Describe "Backup-RDPSettings" {
+Describe "Backup-PrinterSettings" {
     BeforeAll {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock Get-ChildItem { return @(
+        Mock Get-Printer { return @(
             [PSCustomObject]@{
-                FullName = "Test.rdp"
+                Name = "Test Printer"
+                DriverName = "Test Driver"
+                PortName = "Test Port"
+                Shared = $true
+                ShareName = "TestShare"
+                Published = $true
+                DeviceType = "Local"
+                Status = "Ready"
+                IsDefault = $true
+            }
+        )}
+        Mock Get-PrinterPort { return @(
+            [PSCustomObject]@{
+                Name = "Test Port"
+                HostAddress = "192.168.1.100"
+                PortNumber = 9100
+                Protocol = "RAW"
+            }
+        )}
+        Mock Get-PrinterDriver { return @(
+            [PSCustomObject]@{
+                Name = "Test Driver"
+                Manufacturer = "Test Manufacturer"
+                DriverVersion = "1.0.0.0"
+                Environment = "Windows x64"
             }
         )}
         Mock Get-ItemProperty { return @{
-            fDenyTSConnections = 0
-            UserAuthentication = 1
-            SecurityLayer = 2
+            Device = "Test Printer,winspool,Test Port"
         }}
         Mock ConvertTo-Json { return '{"test":"value"}' }
         Mock Out-File { }
         Mock reg { }
-        Mock Export-PfxCertificate { }
     }
 
     AfterAll {
@@ -294,15 +288,15 @@ Describe "Backup-RDPSettings" {
     }
 
     It "Should return a valid result object" {
-        $result = Backup-RDPSettings -BackupRootPath "TestPath"
+        $result = Backup-PrinterSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "RDP"
+        $result.Feature | Should -Be "Printer"
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Failed to export registry" }
-        $result = Backup-RDPSettings -BackupRootPath "TestPath"
+        $result = Backup-PrinterSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0
     }
@@ -312,5 +306,5 @@ Describe "Backup-RDPSettings" {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-RDPSettings -BackupRootPath $BackupRootPath
+    Backup-PrinterSettings -BackupRootPath $BackupRootPath
 } 

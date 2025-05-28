@@ -1,161 +1,303 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$BackupRootPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$MachineBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
 
-# Load environment if not provided
+# Load environment script from the correct location
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
 
-if (!$BackupRootPath) {
-    if (!(Load-Environment)) {
-        Write-Host "Failed to load environment configuration" -ForegroundColor Red
-        exit 1
-    }
-    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+# Source the load-environment script
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
 }
 
-function Backup-OneNoteSettings {
-    param(
+# Get module configuration
+$config = Get-WindowsMissingRecovery
+if (!$config.IsInitialized) {
+    throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+}
+
+if (!$BackupRootPath) {
+    $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+}
+
+# Define Initialize-BackupDirectory function directly in the script
+function Initialize-BackupDirectory {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$BackupType,
+        
         [Parameter(Mandatory=$true)]
         [string]$BackupRootPath
     )
     
-    try {
-        Write-Host "Backing up OneNote Settings..." -ForegroundColor Blue
-        $backupPath = Initialize-BackupDirectory -Path "OneNote" -BackupType "OneNote Settings" -BackupRootPath $BackupRootPath
+    # Create machine-specific backup directory if it doesn't exist
+    $backupPath = Join-Path $BackupRootPath $Path
+    if (!(Test-Path -Path $backupPath)) {
+        try {
+            New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+            Write-Host "Created backup directory for $BackupType at: $backupPath" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to create backup directory for $BackupType : $_" -ForegroundColor Red
+            return $null
+        }
+    }
+    
+    return $backupPath
+}
+
+function Backup-OneNoteSettings {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath,
         
-        if ($backupPath) {
-            # OneNote config locations
-            $oneNoteConfigs = @{
-                # OneNote 2016 settings
-                "Settings2016" = "$env:APPDATA\Microsoft\OneNote\16.0"
-                # OneNote for Windows 10/11 settings
-                "SettingsUWP" = "$env:LOCALAPPDATA\Packages\Microsoft.Office.OneNote_8wekyb3d8bbwe\LocalState"
-                # Quick Access locations
-                "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\OneNote.lnk"
-                # Recent files list
-                "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
-                # Templates
-                "Templates" = "$env:APPDATA\Microsoft\Templates"
+        [Parameter(Mandatory=$false)]
+        [switch]$Force,
+
+        # For testing purposes
+        [Parameter(DontShow)]
+        [switch]$WhatIf
+    )
+    
+    begin {
+        # Test hook for mocking
+        if ($script:TestMode) {
+            Write-Verbose "Running in test mode"
+        }
+    }
+    
+    process {
+        try {
+            Write-Verbose "Starting backup of OneNote Settings..."
+            Write-Host "Backing up OneNote Settings..." -ForegroundColor Blue
+            
+            # Validate inputs before proceeding
+            if (!(Test-Path $BackupRootPath)) {
+                throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
-
-            # Export OneNote registry settings
-            $regPaths = @(
-                # OneNote 2016 registry settings
-                "HKCU\Software\Microsoft\Office\16.0\OneNote",
-                # OneNote UWP settings
-                "HKCU\Software\Microsoft\Office\16.0\Common\OneNote",
-                # File associations
-                "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one",
-                # OneNote 2016 registry settings
-                "HKLM\SOFTWARE\Microsoft\Office\16.0\OneNote",
-                # OneNote UWP settings
-                "HKCU\Software\Microsoft\Office\16.0\Common\OneNote",
-                # File associations
-                "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one",
-                "HKCU\Software\Microsoft\OneNote",
-                "HKLM\SOFTWARE\Microsoft\OneNote"
-            )
-
-            # Create registry backup directory
-            $registryPath = Join-Path $backupPath "Registry"
-            New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
-
-            $registryBackupExists = $false
-            foreach ($regPath in $regPaths) {
-                # Check if registry key exists before trying to export
-                $keyExists = $false
-                if ($regPath -match '^HKCU\\') {
-                    $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
-                } elseif ($regPath -match '^HKLM\\') {
-                    $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
-                }
+            
+            $backupPath = Initialize-BackupDirectory -Path "OneNote" -BackupType "OneNote Settings" -BackupRootPath $BackupRootPath
+            
+            if ($backupPath) {
+                $backedUpItems = @()
+                $errors = @()
                 
-                if ($keyExists) {
-                    try {
+                # OneNote config locations
+                $oneNoteConfigs = @{
+                    # OneNote 2016 settings
+                    "Settings2016" = "$env:APPDATA\Microsoft\OneNote\16.0"
+                    # OneNote for Windows 10/11 settings
+                    "SettingsUWP" = "$env:LOCALAPPDATA\Packages\Microsoft.Office.OneNote_8wekyb3d8bbwe\LocalState"
+                    # Quick Access locations
+                    "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\OneNote.lnk"
+                    # Recent files list
+                    "RecentFiles" = "$env:APPDATA\Microsoft\Office\Recent"
+                    # Templates
+                    "Templates" = "$env:APPDATA\Microsoft\Templates"
+                }
+
+                # Export OneNote registry settings
+                $regPaths = @(
+                    # OneNote 2016 registry settings
+                    "HKCU\Software\Microsoft\Office\16.0\OneNote",
+                    # OneNote UWP settings
+                    "HKCU\Software\Microsoft\Office\16.0\Common\OneNote",
+                    # File associations
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one",
+                    # OneNote 2016 registry settings
+                    "HKLM\SOFTWARE\Microsoft\Office\16.0\OneNote",
+                    # OneNote UWP settings
+                    "HKCU\Software\Microsoft\Office\16.0\Common\OneNote",
+                    # File associations
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one",
+                    "HKCU\Software\Microsoft\OneNote",
+                    "HKLM\SOFTWARE\Microsoft\OneNote"
+                )
+
+                # Create registry backup directory
+                $registryPath = Join-Path $backupPath "Registry"
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would create registry backup directory at $registryPath"
+                } else {
+                    New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+                }
+
+                foreach ($regPath in $regPaths) {
+                    # Check if registry key exists before trying to export
+                    $keyExists = $false
+                    if ($regPath -match '^HKCU\\') {
+                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                    } elseif ($regPath -match '^HKLM\\') {
+                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                    }
+                    
+                    if ($keyExists) {
                         $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
-                        $result = reg export $regPath $regFile /y 2>&1
-                        if ($LASTEXITCODE -eq 0) {
-                            $registryBackupExists = $true
-                            Write-Host "Registry key exported: $regPath" -ForegroundColor Green
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would export registry key $regPath to $regFile"
                         } else {
-                            Write-Host "Warning: Could not export registry key: $regPath" -ForegroundColor Yellow
+                            try {
+                                reg export $regPath $regFile /y 2>$null
+                                $backedUpItems += "$($regPath.Split('\')[-1]).reg"
+                            } catch {
+                                $errors += "Failed to export $regPath : $_"
+                            }
+                        }
+                    } else {
+                        Write-Verbose "Registry key not found: $regPath"
+                    }
+                }
+
+                # Backup OneNote configuration files
+                $configPaths = @{
+                    "AppData" = "$env:LOCALAPPDATA\Microsoft\OneNote"
+                    "Templates" = "$env:APPDATA\Microsoft\Templates"
+                    "Settings" = "$env:APPDATA\Microsoft\OneNote"
+                }
+
+                foreach ($config in $configPaths.GetEnumerator()) {
+                    if (Test-Path $config.Value) {
+                        $destPath = Join-Path $backupPath $config.Key
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would copy configuration from $($config.Value) to $destPath"
+                        } else {
+                            try {
+                                New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+                                Copy-Item -Path "$($config.Value)\*" -Destination $destPath -Recurse -Force
+                                $backedUpItems += $config.Key
+                            } catch {
+                                $errors += "Failed to backup $($config.Key) : $_"
+                            }
+                        }
+                    }
+                }
+
+                # Export notebook list and locations
+                if (Test-Path "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml") {
+                    $notebooks = @()
+                    try {
+                        $notebooks += Get-Content "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml"
+                        if ($notebooks.Count -gt 0) {
+                            $notebookFile = Join-Path $backupPath "notebook_locations.txt"
+                            if ($WhatIf) {
+                                Write-Host "WhatIf: Would export notebook locations to $notebookFile"
+                            } else {
+                                $notebooks | Out-File $notebookFile
+                                $backedUpItems += "notebook_locations.txt"
+                            }
                         }
                     } catch {
-                        Write-Host "Warning: Failed to export registry key: $regPath" -ForegroundColor Yellow
+                        $errors += "Failed to backup notebook locations : $_"
                     }
-                } else {
-                    Write-Host "Registry key not found: $regPath" -ForegroundColor Yellow
                 }
-            }
-
-            # Backup OneNote configuration files
-            $configPaths = @{
-                "AppData" = "$env:LOCALAPPDATA\Microsoft\OneNote"
-                "Templates" = "$env:APPDATA\Microsoft\Templates"
-                "Settings" = "$env:APPDATA\Microsoft\OneNote"
-            }
-
-            $configBackupExists = $false
-            foreach ($config in $configPaths.GetEnumerator()) {
-                if (Test-Path $config.Value) {
-                    $destPath = Join-Path $backupPath $config.Key
-                    New-Item -ItemType Directory -Path $destPath -Force | Out-Null
-                    Copy-Item -Path "$($config.Value)\*" -Destination $destPath -Recurse -Force
-                    $configBackupExists = $true
-                    Write-Host "Configuration backed up: $($config.Key)" -ForegroundColor Green
+                
+                # Return object for better testing and validation
+                $result = [PSCustomObject]@{
+                    Success = $true
+                    BackupPath = $backupPath
+                    Feature = "OneNote Settings"
+                    Timestamp = Get-Date
+                    Items = $backedUpItems
+                    Errors = $errors
                 }
+                
+                Write-Host "OneNote Settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Verbose "Backup completed successfully"
+                return $result
             }
-
-            # Export notebook list and locations
-            $notebooks = @()
-            if (Test-Path "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml") {
-                $notebooks += Get-Content "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml"
-                Write-Host "Notebook list backed up successfully" -ForegroundColor Green
-            }
-            if ($notebooks.Count -gt 0) {
-                $notebooks | Out-File (Join-Path $backupPath "notebook_locations.txt")
-            }
-
-            Write-Host "`nOneNote Settings Backup Summary:" -ForegroundColor Green
-            if ($registryBackupExists) {
-                Write-Host "Registry Settings: $(Test-Path $registryPath)" -ForegroundColor Yellow
-            } else {
-                Write-Host "Registry Settings: No registry keys found to backup" -ForegroundColor Yellow
-            }
-            if ($configBackupExists) {
-                foreach ($configName in $configPaths.Keys) {
-                    $configPath = Join-Path $backupPath $configName
-                    Write-Host ("$configName" + ": $(Test-Path $configPath)") -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "Configuration: No configuration files found to backup" -ForegroundColor Yellow
-            }
-            Write-Host "Notebook Locations: $(Test-Path (Join-Path $backupPath "notebook_locations.txt"))" -ForegroundColor Yellow
+            return $false
+        } catch {
+            $errorRecord = $_
+            $errorMessage = @(
+                "Failed to backup OneNote Settings"
+                "Error Message: $($errorRecord.Exception.Message)"
+                "Error Type: $($errorRecord.Exception.GetType().FullName)"
+                "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
+                "Script Name: $($errorRecord.InvocationInfo.ScriptName)"
+                "Statement: $($errorRecord.InvocationInfo.Line.Trim())"
+                if ($errorRecord.Exception.StackTrace) { "Stack Trace: $($errorRecord.Exception.StackTrace)" }
+                if ($errorRecord.Exception.InnerException) { "Inner Exception: $($errorRecord.Exception.InnerException.Message)" }
+            ) -join "`n"
             
-            Write-Host "OneNote Settings backed up successfully to: $backupPath" -ForegroundColor Green
-            return $true
+            Write-Error $errorMessage
+            Write-Verbose "Backup failed"
+            throw  # Re-throw for proper error handling
         }
-        return $false
-    } catch {
-        $errorRecord = $_
-        $errorMessage = @(
-            "Failed to backup [Feature]"
-            "Error Message: $($errorRecord.Exception.Message)"
-            "Error Type: $($errorRecord.Exception.GetType().FullName)"
-            "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
-            "Script Name: $($errorRecord.InvocationInfo.ScriptName)"
-            "Statement: $($errorRecord.InvocationInfo.Line.Trim())"
-            if ($errorRecord.Exception.StackTrace) { "Stack Trace: $($errorRecord.Exception.StackTrace)" }
-            if ($errorRecord.Exception.InnerException) { "Inner Exception: $($errorRecord.Exception.InnerException.Message)" }
-        ) -join "`n"
-        
-        Write-Host $errorMessage -ForegroundColor Red
-        return $false
     }
 }
+
+# Export the function if being imported as a module
+if ($MyInvocation.Line -eq "") {
+    Export-ModuleMember -Function Backup-OneNoteSettings
+}
+
+<#
+.SYNOPSIS
+Backs up OneNote settings and configuration.
+
+.DESCRIPTION
+Creates a backup of OneNote settings, including registry settings, configuration files, templates, and notebook locations.
+
+.EXAMPLE
+Backup-OneNoteSettings -BackupRootPath "C:\Backups"
+
+.NOTES
+Test cases to consider:
+1. Valid backup path with proper permissions
+2. Invalid/nonexistent backup path
+3. Empty backup path
+4. No permissions to write
+5. Registry export success/failure for each key
+6. Configuration file backup success/failure
+7. Notebook list export success/failure
+
+.TESTCASES
+# Mock test examples:
+Describe "Backup-OneNoteSettings" {
+    BeforeAll {
+        $script:TestMode = $true
+        Mock Test-Path { return $true }
+        Mock Initialize-BackupDirectory { return "TestPath" }
+        Mock reg { }
+        Mock Get-Content { return "<notebooks><notebook path='test'/></notebooks>" }
+        Mock Out-File { }
+        Mock Copy-Item { }
+    }
+
+    AfterAll {
+        $script:TestMode = $false
+    }
+
+    It "Should return a valid result object" {
+        $result = Backup-OneNoteSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.BackupPath | Should -Be "TestPath"
+        $result.Feature | Should -Be "OneNote Settings"
+    }
+
+    It "Should handle registry export failure gracefully" {
+        Mock reg { throw "Registry export failed" }
+        $result = Backup-OneNoteSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+}
+#>
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {

@@ -1,6 +1,11 @@
 # Load environment variables and settings for WindowsMissingRecovery
 # This script should be sourced using dot-sourcing, not executed directly
 
+# Check if environment is already loaded
+if ($script:EnvironmentLoaded) {
+    return $true
+}
+
 # Default locations - all based on environment variables, nothing hardcoded
 $DEFAULT_USER_PROFILE = $env:USERPROFILE
 $DEFAULT_WINDOWS_CONFIG_PATH = Join-Path $DEFAULT_USER_PROFILE "Scripts\WindowsConfig"
@@ -105,6 +110,9 @@ $env:BACKUP_ROOT = $BACKUP_ROOT
 $env:MACHINE_NAME = $MACHINE_NAME
 $env:WINDOWS_MISSING_RECOVERY_PATH = $WINDOWS_MISSING_RECOVERY_PATH
 $env:CLOUD_PROVIDER = $CLOUD_PROVIDER
+
+# Mark environment as loaded
+$script:EnvironmentLoaded = $true
 
 # Return success/failure
 return $configLoaded 

@@ -60,7 +60,7 @@ function Initialize-BackupDirectory {
     return $backupPath
 }
 
-function Backup-TouchscreenSettings {
+function Backup-MouseSettings {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -83,89 +83,74 @@ function Backup-TouchscreenSettings {
     
     process {
         try {
-            Write-Verbose "Starting backup of Touchscreen Settings..."
-            Write-Host "Backing up Touchscreen Settings..." -ForegroundColor Blue
+            Write-Verbose "Starting backup of Mouse Settings..."
+            Write-Host "Backing up Mouse Settings..." -ForegroundColor Blue
             
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "Touchscreen" -BackupType "Touchscreen Settings" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Mouse" -BackupType "Mouse" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
                 
-                # Export touchscreen registry settings
-                $regPaths = @(
-                    # Windows Touchscreen settings
-                    "HKCU\Software\Microsoft\TouchPrediction",
-                    "HKLM\SOFTWARE\Microsoft\TouchPrediction",
-                    
-                    # Touchscreen calibration
-                    "HKCU\Software\Microsoft\Touchscreen",
-                    "HKLM\SOFTWARE\Microsoft\Touchscreen",
-                    
-                    # Tablet PC settings
-                    "HKCU\Software\Microsoft\TabletTip",
-                    "HKLM\SOFTWARE\Microsoft\TabletTip",
-                    
-                    # Windows Ink settings
-                    "HKCU\Software\Microsoft\Windows\CurrentVersion\PenWorkspace",
-                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PenWorkspace",
-                    
-                    # Touch input settings
-                    "HKLM\SYSTEM\CurrentControlSet\Services\Touchscreen",
-                    "HKLM\SYSTEM\CurrentControlSet\Services\HID\TouchScreen"
+                # Registry paths for mouse settings
+                $registryPaths = @(
+                    "HKCU\Control Panel\Mouse",
+                    "HKCU\Control Panel\Cursors",
+                    "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters",
+                    "HKLM\SYSTEM\CurrentControlSet\Services\mouhid\Parameters"
                 )
 
-                foreach ($regPath in $regPaths) {
-                    # Check if registry key exists before trying to export
-                    $keyExists = $false
-                    if ($regPath -match '^HKCU\\') {
-                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
-                    } elseif ($regPath -match '^HKLM\\') {
-                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
-                    }
-                    
-                    if ($keyExists) {
-                        $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
-                        if ($WhatIf) {
-                            Write-Host "WhatIf: Would export registry key $regPath to $regFile"
-                        } else {
-                            try {
-                                reg export $regPath $regFile /y 2>$null
-                                $backedUpItems += "$($regPath.Split('\')[-1]).reg"
-                            } catch {
-                                $errors += "Failed to export $regPath : $_"
-                            }
+                # Export registry settings
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export registry settings for mouse"
+                } else {
+                    foreach ($path in $registryPaths) {
+                        try {
+                            $regFile = Join-Path $backupPath "mouse_$($path.Split('\')[-1]).reg"
+                            reg export $path $regFile /y | Out-Null
+                            $backedUpItems += "Registry: $path"
+                        } catch {
+                            $errors += "Failed to export registry path $path : $_"
                         }
-                    } else {
-                        Write-Verbose "Registry key not found: $regPath"
                     }
                 }
 
-                # Get all touchscreen devices, including disabled ones
-                $touchscreenDevices = Get-PnpDevice | Where-Object { 
-                    ($_.Class -eq "Touchscreen" -or $_.Class -eq "HIDClass") -and 
-                    ($_.FriendlyName -match "touch|screen|digitizer|pen" -or
-                     $_.Manufacturer -match "wacom|synaptics|elan|hid")
-                } | Select-Object -Property @(
-                    'InstanceId',
-                    'FriendlyName',
-                    'Manufacturer',
-                    'Status',
-                    @{Name='IsEnabled'; Expression={$_.Status -eq 'OK'}}
-                )
-                
-                if ($touchscreenDevices) {
-                    $jsonFile = "$backupPath\touchscreen_devices.json"
-                    if ($WhatIf) {
-                        Write-Host "WhatIf: Would export touchscreen devices to $jsonFile"
-                    } else {
-                        $touchscreenDevices | ConvertTo-Json | Out-File $jsonFile -Force
-                        $backedUpItems += "touchscreen_devices.json"
+                # Get mouse device information
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export mouse device information"
+                } else {
+                    try {
+                        $mouseInfo = Get-CimInstance -ClassName Win32_PointingDevice | Select-Object Name, Manufacturer, DeviceID, Status
+                        $mouseInfo | ConvertTo-Json | Out-File "$backupPath\mouse_devices.json" -Force
+                        $backedUpItems += "Mouse devices information"
+                    } catch {
+                        $errors += "Failed to get mouse device information: $_"
+                    }
+                }
+
+                # Get mouse settings from Control Panel
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export mouse control panel settings"
+                } else {
+                    try {
+                        $mouseSettings = @{
+                            DoubleClickSpeed = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name DoubleClickSpeed).DoubleClickSpeed
+                            MouseSpeed = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSpeed).MouseSpeed
+                            MouseThreshold1 = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseThreshold1).MouseThreshold1
+                            MouseThreshold2 = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseThreshold2).MouseThreshold2
+                            MouseSensitivity = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSensitivity).MouseSensitivity
+                            SnapToDefaultButton = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name SnapToDefaultButton).SnapToDefaultButton
+                            SwapMouseButtons = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name SwapMouseButtons).SwapMouseButtons
+                        }
+                        $mouseSettings | ConvertTo-Json | Out-File "$backupPath\mouse_settings.json" -Force
+                        $backedUpItems += "Mouse control panel settings"
+                    } catch {
+                        $errors += "Failed to get mouse control panel settings: $_"
                     }
                 }
                 
@@ -173,13 +158,13 @@ function Backup-TouchscreenSettings {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "Touchscreen Settings"
+                    Feature = "Mouse"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
                 }
                 
-                Write-Host "Touchscreen Settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "Mouse settings backed up successfully to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -187,7 +172,7 @@ function Backup-TouchscreenSettings {
         } catch {
             $errorRecord = $_
             $errorMessage = @(
-                "Failed to backup Touchscreen Settings"
+                "Failed to backup Mouse Settings"
                 "Error Message: $($errorRecord.Exception.Message)"
                 "Error Type: $($errorRecord.Exception.GetType().FullName)"
                 "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -206,18 +191,18 @@ function Backup-TouchscreenSettings {
 
 # Export the function if being imported as a module
 if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-TouchscreenSettings
+    Export-ModuleMember -Function Backup-MouseSettings
 }
 
 <#
 .SYNOPSIS
-Backs up Windows Touchscreen settings and configuration.
+Backs up mouse settings and configurations.
 
 .DESCRIPTION
-Creates a backup of Windows Touchscreen settings, including touch prediction settings, calibration data, tablet PC settings, Windows Ink settings, and device information.
+Creates a backup of mouse settings including registry settings, device information, and control panel configurations.
 
 .EXAMPLE
-Backup-TouchscreenSettings -BackupRootPath "C:\Backups"
+Backup-MouseSettings -BackupRootPath "C:\Backups"
 
 .NOTES
 Test cases to consider:
@@ -225,28 +210,38 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. Registry export success/failure for each key
-6. Device detection success/failure
-7. JSON export success/failure
+5. Registry export success/failure
+6. Device information retrieval success/failure
+7. Control panel settings retrieval success/failure
+8. JSON serialization success/failure
 
 .TESTCASES
 # Mock test examples:
-Describe "Backup-TouchscreenSettings" {
+Describe "Backup-MouseSettings" {
     BeforeAll {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock reg { }
-        Mock Get-PnpDevice { return @(
+        Mock Get-CimInstance { return @(
             [PSCustomObject]@{
-                Class = "Touchscreen"
-                FriendlyName = "HID Touchscreen"
-                Manufacturer = "HID"
+                Name = "Test Mouse"
+                Manufacturer = "Test Manufacturer"
+                DeviceID = "TestDeviceID"
                 Status = "OK"
             }
         )}
-        Mock ConvertTo-Json { return '{"InstanceId":"test","FriendlyName":"test"}' }
+        Mock Get-ItemProperty { return @{
+            DoubleClickSpeed = 500
+            MouseSpeed = 1
+            MouseThreshold1 = 6
+            MouseThreshold2 = 10
+            MouseSensitivity = 10
+            SnapToDefaultButton = 1
+            SwapMouseButtons = 0
+        }}
+        Mock ConvertTo-Json { return '{"test":"value"}' }
         Mock Out-File { }
+        Mock reg { }
     }
 
     AfterAll {
@@ -254,15 +249,15 @@ Describe "Backup-TouchscreenSettings" {
     }
 
     It "Should return a valid result object" {
-        $result = Backup-TouchscreenSettings -BackupRootPath "TestPath"
+        $result = Backup-MouseSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "Touchscreen Settings"
+        $result.Feature | Should -Be "Mouse"
     }
 
     It "Should handle registry export failure gracefully" {
-        Mock reg { throw "Registry export failed" }
-        $result = Backup-TouchscreenSettings -BackupRootPath "TestPath"
+        Mock reg { throw "Failed to export registry" }
+        $result = Backup-MouseSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0
     }
@@ -272,5 +267,5 @@ Describe "Backup-TouchscreenSettings" {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-TouchscreenSettings -BackupRootPath $BackupRootPath
+    Backup-MouseSettings -BackupRootPath $BackupRootPath
 } 

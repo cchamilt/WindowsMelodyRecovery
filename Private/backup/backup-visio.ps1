@@ -1,30 +1,35 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$MachineBackupPath = $null,
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
 
 # Load environment if not provided
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
-if (!$BackupRootPath) {
+if (!$MachineBackupPath -or !$SharedBackupPath) {
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
         exit 1
     }
-    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $MachineBackupPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $SharedBackupPath = "$env:BACKUP_ROOT\shared"
 }
 
 function Backup-VisioSettings {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$BackupRootPath
+        [string]$MachineBackupPath,
+        [Parameter(Mandatory=$true)]
+        [string]$SharedBackupPath
     )
     
     try {
         Write-Host "Backing up Visio Settings..." -ForegroundColor Blue
-        $backupPath = Initialize-BackupDirectory -Path "Visio" -BackupType "Visio Settings" -BackupRootPath $BackupRootPath
+        $backupPath = Initialize-BackupDirectory -Path "Visio" -BackupType "Visio Settings" -BackupRootPath $MachineBackupPath
         
         if ($backupPath) {
             # Visio config locations
@@ -131,7 +136,7 @@ function Backup-VisioSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup Visio Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -149,5 +154,5 @@ function Backup-VisioSettings {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-VisioSettings -BackupRootPath $BackupRootPath
+    Backup-VisioSettings -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
 } 

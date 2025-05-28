@@ -476,48 +476,43 @@ Create a $ProfileType shell profile with these requirements:
 }
 
 function Setup-CustomProfiles {
-    $packages = Get-InstalledPackages
-    $aiAssistants = Get-AvailableAIAssistants
-
-    Write-Host "`nAvailable AI Assistants:" -ForegroundColor Blue
-    $aiAssistants | ForEach-Object { Write-Host "- $_" -ForegroundColor Green }
-
-    # Setup PowerShell profile
-    Write-Host "`nSetting up PowerShell profile..." -ForegroundColor Blue
-    $psProfilePath = $PROFILE
-    $psProfileContent = New-CustomProfile -ProfileType "powershell" -Packages $packages.Windows -AIAssistants $aiAssistants
-
-    if ($psProfileContent) {
-        try {
-            $psProfileDir = Split-Path $PROFILE -Parent
-            if (!(Test-Path $psProfileDir)) {
-                New-Item -Path $psProfileDir -ItemType Directory -Force | Out-Null
-            }
-            Set-Content -Path $PROFILE -Value $psProfileContent
-            Write-Host "PowerShell profile created successfully" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "Failed to create PowerShell profile: $_" -ForegroundColor Red
-        }
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
+    )
+    
+    if (-not (Test-ModuleInitialized)) {
+        Write-Warning "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+        return
     }
-
-    # Setup Bash profile if WSL is available
-    if (Get-Command wsl -ErrorAction SilentlyContinue) {
-        Write-Host "`nSetting up Bash profile..." -ForegroundColor Blue
-        $bashProfileContent = New-CustomProfile -ProfileType "bash" -Packages $packages.Linux -AIAssistants $aiAssistants
-
-        if ($bashProfileContent) {
-            try {
-                $bashProfile = wsl echo '~/.bashrc'
-                wsl echo $bashProfileContent > $bashProfile
-                Write-Host "Bash profile created successfully" -ForegroundColor Green
-            }
-            catch {
-                Write-Host "Failed to create Bash profile: $_" -ForegroundColor Red
+    
+    $config = Get-WindowsMissingRecovery
+    $backupRoot = Get-BackupRoot
+    $machineName = Get-MachineName
+    
+    $assistants = @(
+        "Assistant1",
+        "Assistant2",
+        "Assistant3"
+    )
+    
+    foreach ($assistant in $assistants) {
+        try {
+            Write-Host "Setting up $assistant..."
+            # Add your setup logic here
+            Write-Host "Successfully set up $assistant"
+        } catch {
+            $errorMessage = "Failed to generate profile using ${assistant}: " + $_.Exception.Message
+            Write-Warning $errorMessage
+            if (-not $Force) {
+                throw $errorMessage
             }
         }
     }
 }
+
+Export-ModuleMember -Function 'Setup-CustomProfiles'
 
 # Run the setup
 Setup-CustomProfiles

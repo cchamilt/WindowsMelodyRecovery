@@ -1,30 +1,35 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$MachineBackupPath = $null,
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
 
 # Load environment if not provided
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
-if (!$BackupRootPath) {
+if (!$MachineBackupPath -or !$SharedBackupPath) {
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
         exit 1
     }
-    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $MachineBackupPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $SharedBackupPath = "$env:BACKUP_ROOT\shared"
 }
 
 function Backup-SSHSettings {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$BackupRootPath
+        [string]$MachineBackupPath,
+        [Parameter(Mandatory=$true)]
+        [string]$SharedBackupPath
     )
     
     try {
         Write-Host "Backing up SSH Settings..." -ForegroundColor Blue
-        $backupPath = Initialize-BackupDirectory -Path "SSH" -BackupType "SSH Settings" -BackupRootPath $BackupRootPath
+        $backupPath = Initialize-BackupDirectory -Path "SSH" -BackupType "SSH Settings" -BackupRootPath $MachineBackupPath
         
         if ($backupPath) {
             # Export SSH registry settings
@@ -166,7 +171,7 @@ function Backup-SSHSettings {
     } catch {
         $errorRecord = $_
         $errorMessage = @(
-            "Failed to backup [Feature]"
+            "Failed to backup SSH Settings"
             "Error Message: $($errorRecord.Exception.Message)"
             "Error Type: $($errorRecord.Exception.GetType().FullName)"
             "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -184,5 +189,5 @@ function Backup-SSHSettings {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-SSHSettings -BackupRootPath $BackupRootPath
+    Backup-SSHSettings -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
 } 

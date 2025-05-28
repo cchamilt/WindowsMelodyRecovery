@@ -60,7 +60,7 @@ function Initialize-BackupDirectory {
     return $backupPath
 }
 
-function Backup-GogGames {
+function Backup-EpicGames {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -83,69 +83,68 @@ function Backup-GogGames {
     
     process {
         try {
-            Write-Verbose "Starting backup of GOG Games..."
-            Write-Host "Backing up GOG Games..." -ForegroundColor Blue
+            Write-Verbose "Starting backup of Epic Games..."
+            Write-Host "Backing up Epic Games..." -ForegroundColor Blue
             
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "GOG Games" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "Epic Games" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
-                $gogGames = @()
+                $epicGames = @()
                 
-                # Check for GOG Galaxy installation
-                $gogPath = "C:\Program Files (x86)\GOG Galaxy"
-                if (Test-Path $gogPath) {
-                    Write-Host "Found GOG Galaxy installation" -ForegroundColor Green
+                # Check for Epic Games Launcher installation
+                $epicPath = "C:\Program Files\Epic Games\Launcher"
+                if (Test-Path $epicPath) {
+                    Write-Host "Found Epic Games Launcher installation" -ForegroundColor Green
                     
-                    # Get installed games from GOG Galaxy database
-                    $dbPath = "$env:ProgramData\GOG.com\Galaxy\storage\galaxy-2.0.db"
-                    if (Test-Path $dbPath) {
+                    # Get installed games from Epic Games Launcher
+                    $manifestPath = "$env:ProgramData\Epic\EpicGamesLauncher\Data\Manifests"
+                    if (Test-Path $manifestPath) {
                         if ($WhatIf) {
-                            Write-Host "WhatIf: Would scan GOG Galaxy database for games"
+                            Write-Host "WhatIf: Would scan Epic Games manifests for games"
                         } else {
                             try {
-                                # We need SQLite to read the database
-                                if (!(Get-Command sqlite3 -ErrorAction SilentlyContinue)) {
-                                    Write-Host "Installing SQLite..." -ForegroundColor Yellow
-                                    scoop install sqlite
-                                }
-
-                                $query = "SELECT gamePieceId, title FROM GamePieces WHERE gamePieceTypeId = 'original_title'"
-                                $games = sqlite3 $dbPath $query
-
-                                foreach ($game in $games) {
-                                    $id, $title = $game -split '\|'
-                                    $gogGames += @{
-                                        Name = $title
-                                        Id = $id
-                                        Platform = "GOG"
+                                $manifestFiles = Get-ChildItem -Path $manifestPath -Filter "*.item"
+                                foreach ($manifest in $manifestFiles) {
+                                    try {
+                                        $content = Get-Content $manifest.FullName | ConvertFrom-Json
+                                        $epicGames += @{
+                                            Name = $content.DisplayName
+                                            Id = $content.AppName
+                                            Platform = "Epic"
+                                            InstallLocation = $content.InstallLocation
+                                            Version = $content.AppVersionString
+                                        }
+                                    }
+                                    catch {
+                                        $errors += "Error reading manifest $($manifest.Name): $_"
                                     }
                                 }
-                                $backedUpItems += "GOG games from database"
+                                $backedUpItems += "Epic games from manifests"
                             }
                             catch {
-                                $errors += "Error reading GOG Galaxy database: $_"
+                                $errors += "Error reading Epic Games manifests: $_"
                             }
                         }
                     } else {
-                        $errors += "GOG Galaxy database not found at: $dbPath"
+                        $errors += "Epic Games manifests not found at: $manifestPath"
                     }
                 } else {
-                    Write-Host "GOG Galaxy not found at: $gogPath" -ForegroundColor Yellow
+                    Write-Host "Epic Games Launcher not found at: $epicPath" -ForegroundColor Yellow
                 }
 
                 # Update applications.json
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would update GOG applications.json"
+                    Write-Host "WhatIf: Would update Epic applications.json"
                 } else {
                     try {
-                        $applicationsPath = Join-Path $backupPath "gog-applications.json"
+                        $applicationsPath = Join-Path $backupPath "epic-applications.json"
                         if (Test-Path $applicationsPath) {
                             $applications = Get-Content $applicationsPath | ConvertFrom-Json
                         }
@@ -153,11 +152,11 @@ function Backup-GogGames {
                             $applications = @{}
                         }
 
-                        $applications.GOG = $gogGames
+                        $applications.Epic = $epicGames
                         $applications | ConvertTo-Json -Depth 10 | Set-Content $applicationsPath
-                        $backedUpItems += "GOG applications.json"
+                        $backedUpItems += "Epic applications.json"
                     } catch {
-                        $errors += "Failed to update GOG applications.json: $_"
+                        $errors += "Failed to update Epic applications.json: $_"
                     }
                 }
                 
@@ -165,14 +164,14 @@ function Backup-GogGames {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "GOG Games"
+                    Feature = "Epic Games"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
-                    GameCount = $gogGames.Count
+                    GameCount = $epicGames.Count
                 }
                 
-                Write-Host "Backed up $($gogGames.Count) GOG games to: $backupPath" -ForegroundColor Green
+                Write-Host "Backed up $($epicGames.Count) Epic games to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -180,7 +179,7 @@ function Backup-GogGames {
         } catch {
             $errorRecord = $_
             $errorMessage = @(
-                "Failed to backup GOG Games"
+                "Failed to backup Epic Games"
                 "Error Message: $($errorRecord.Exception.Message)"
                 "Error Type: $($errorRecord.Exception.GetType().FullName)"
                 "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -199,18 +198,18 @@ function Backup-GogGames {
 
 # Export the function if being imported as a module
 if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-GogGames
+    Export-ModuleMember -Function Backup-EpicGames
 }
 
 <#
 .SYNOPSIS
-Backs up GOG Games settings and configurations.
+Backs up Epic Games settings and configurations.
 
 .DESCRIPTION
-Creates a backup of GOG Games information, including game titles and IDs from the GOG Galaxy database.
+Creates a backup of Epic Games information, including game titles, IDs, and installation locations from the Epic Games Launcher manifests.
 
 .EXAMPLE
-Backup-GogGames -BackupRootPath "C:\Backups"
+Backup-EpicGames -BackupRootPath "C:\Backups"
 
 .NOTES
 Test cases to consider:
@@ -218,25 +217,37 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. GOG Galaxy installation exists/doesn't exist
-6. GOG Galaxy database exists/doesn't exist
-7. SQLite installation success/failure
-8. Database query success/failure
-9. JSON parsing success/failure
-10. Applications.json update success/failure
+5. Epic Games Launcher installation exists/doesn't exist
+6. Epic Games manifests exist/don't exist
+7. Manifest parsing success/failure
+8. JSON parsing success/failure
+9. Applications.json update success/failure
+10. Multiple games with different configurations
 
 .TESTCASES
 # Mock test examples:
-Describe "Backup-GogGames" {
+Describe "Backup-EpicGames" {
     BeforeAll {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock Get-Command { return $true }
-        Mock sqlite3 { return "123|Test Game" }
-        Mock Get-Content { return '{}' }
-        Mock ConvertFrom-Json { return @{} }
-        Mock ConvertTo-Json { return '{"GOG":[{"Name":"Test Game","Id":"123","Platform":"GOG"}]}' }
+        Mock Get-ChildItem { 
+            return @(
+                [PSCustomObject]@{
+                    FullName = "TestPath\game1.item"
+                }
+            )
+        }
+        Mock Get-Content { return '{"DisplayName":"Test Game","AppName":"testgame","InstallLocation":"C:\Games\Test","AppVersionString":"1.0"}' }
+        Mock ConvertFrom-Json { 
+            return [PSCustomObject]@{
+                DisplayName = "Test Game"
+                AppName = "testgame"
+                InstallLocation = "C:\Games\Test"
+                AppVersionString = "1.0"
+            }
+        }
+        Mock ConvertTo-Json { return '{"Epic":[{"Name":"Test Game","Id":"testgame","Platform":"Epic","InstallLocation":"C:\Games\Test","Version":"1.0"}]}' }
         Mock Set-Content { }
     }
 
@@ -245,16 +256,16 @@ Describe "Backup-GogGames" {
     }
 
     It "Should return a valid result object" {
-        $result = Backup-GogGames -BackupRootPath "TestPath"
+        $result = Backup-EpicGames -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "GOG Games"
+        $result.Feature | Should -Be "Epic Games"
         $result.GameCount | Should -Be 1
     }
 
-    It "Should handle missing GOG Galaxy gracefully" {
+    It "Should handle missing Epic Games Launcher gracefully" {
         Mock Test-Path { return $false }
-        $result = Backup-GogGames -BackupRootPath "TestPath"
+        $result = Backup-EpicGames -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.GameCount | Should -Be 0
     }
@@ -264,5 +275,5 @@ Describe "Backup-GogGames" {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-GogGames -BackupRootPath $BackupRootPath
+    Backup-EpicGames -BackupRootPath $BackupRootPath
 } 

@@ -1,30 +1,35 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$BackupRootPath = $null
+    [string]$MachineBackupPath = $null,
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null
 )
 
 # Load environment if not provided
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
-if (!$BackupRootPath) {
+if (!$MachineBackupPath -or !$SharedBackupPath) {
     if (!(Load-Environment)) {
         Write-Host "Failed to load environment configuration" -ForegroundColor Red
         exit 1
     }
-    $BackupRootPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $MachineBackupPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
+    $SharedBackupPath = "$env:BACKUP_ROOT\shared"
 }
 
 function Backup-WSLSettings {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$BackupRootPath
+        [string]$MachineBackupPath,
+        [Parameter(Mandatory=$true)]
+        [string]$SharedBackupPath
     )
     
     try {
         Write-Host "Backing up WSL Settings..." -ForegroundColor Blue
-        $backupPath = Initialize-BackupDirectory -Path "WSL" -BackupType "WSL Settings" -BackupRootPath $BackupRootPath
+        $backupPath = Initialize-BackupDirectory -Path "WSL" -BackupType "WSL Settings" -BackupRootPath $MachineBackupPath
         
         if ($backupPath) {
             # Export WSL registry settings
@@ -255,5 +260,5 @@ function Backup-WSLSettings {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-WSLSettings -BackupRootPath $BackupRootPath
+    Backup-WSLSettings -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
 } 

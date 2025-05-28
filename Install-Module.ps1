@@ -84,9 +84,8 @@ foreach ($dir in @("Public", "Private", "Templates", "docs")) {
 
 Write-Host "$moduleName files copied to $modulesPath" -ForegroundColor Green
 
-# Verify the module can be imported
+# Verify the module manifest is valid
 try {
-    # Test the module manifest before importing
     $testResult = Test-ModuleManifest -Path (Join-Path $modulesPath "$moduleName.psd1") -ErrorAction Stop
     Write-Host "Module manifest is valid." -ForegroundColor Green
 
@@ -96,18 +95,11 @@ try {
         $Env:PSModulePath = "$modulesRoot;$Env:PSModulePath"
     }
 
-    # Import the module with error handling
-    try {
-        Import-Module $moduleName -Force
-        Write-Host "$moduleName module installed and imported successfully!" -ForegroundColor Green
-        Write-Host "`nNext steps:" -ForegroundColor Yellow
-        Write-Host "1. Run Initialize-WindowsMissingRecovery to configure the module" -ForegroundColor Cyan
-        Write-Host "2. Follow the prompts to set up your backup location and machine name" -ForegroundColor Cyan
-        Write-Host "3. Use Backup-WindowsMissingRecovery to create your first backup" -ForegroundColor Cyan
-    } catch {
-        Write-Host "Module imported with some warnings - this is normal for first-time use." -ForegroundColor Yellow
-        Write-Host "Please run Initialize-WindowsMissingRecovery to complete the setup." -ForegroundColor Green
-    }
+    Write-Host "$moduleName module installed successfully!" -ForegroundColor Green
+    Write-Host "`nNext steps:" -ForegroundColor Yellow
+    Write-Host "1. Run Initialize-WindowsMissingRecovery to configure the module" -ForegroundColor Cyan
+    Write-Host "2. Follow the prompts to set up your backup location and machine name" -ForegroundColor Cyan
+    Write-Host "3. Use Backup-WindowsMissingRecovery to create your first backup" -ForegroundColor Cyan
 } 
 catch {
     Write-Host "Error: $_" -ForegroundColor Red

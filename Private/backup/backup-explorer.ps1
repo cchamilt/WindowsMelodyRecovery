@@ -95,44 +95,128 @@ function Backup-ExplorerSettings {
             
             if ($backupPath) {
                 $backedUpItems = @()
+                $errors = @()
                 
-                # Export Explorer view settings
-                $explorerKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer"
-                $advancedKey = "$explorerKey\Advanced"
-                
-                # Create registry backup
-                $regFile = "$backupPath\explorer-settings.reg"
+                # Export Explorer registry settings
+                $regPaths = @(
+                    # Explorer settings
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StreamMRU",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers",
+                    
+                    # Quick Access settings
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\HomeFolder",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\HomeFolderDesktop",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\HomeFolderNameSpace",
+                    
+                    # Recent items
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU",
+                    
+                    # System-wide Explorer settings
+                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
+                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                )
+
+                # Create registry backup directory
+                $registryPath = Join-Path $backupPath "Registry"
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export registry key $explorerKey to $regFile"
+                    Write-Host "WhatIf: Would create registry backup directory at $registryPath"
                 } else {
-                    reg export "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer" $regFile /y | Out-Null
-                    $backedUpItems += "explorer-settings.reg"
+                    New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
                 }
 
-                # Export Quick Access locations
-                $quickAccess = @{
-                    Pinned = @()
-                    Recent = @()
-                }
-
-                # Get Quick Access shell application
-                $shell = New-Object -ComObject Shell.Application
-                $quickAccessShell = $shell.Namespace("shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}")
-
-                # Export pinned folders
-                foreach ($folder in $quickAccessShell.Items()) {
-                    if ($folder.IsPinnedToNameSpaceTree) {
-                        $quickAccess.Pinned += $folder.Path
+                foreach ($regPath in $regPaths) {
+                    # Check if registry key exists before trying to export
+                    $keyExists = $false
+                    if ($regPath -match '^HKCU\\') {
+                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($regPath.Substring(5))"
+                    } elseif ($regPath -match '^HKLM\\') {
+                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($regPath.Substring(5))"
+                    }
+                    
+                    if ($keyExists) {
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would export registry key $regPath to $regFile"
+                        } else {
+                            try {
+                                reg export $regPath $regFile /y 2>$null
+                                $backedUpItems += "$($regPath.Split('\')[-1]).reg"
+                            } catch {
+                                $errors += "Failed to export $regPath : $_"
+                            }
+                        }
+                    } else {
+                        Write-Verbose "Registry key not found: $regPath"
                     }
                 }
 
-                # Export Quick Access settings to JSON
-                $jsonFile = "$backupPath\quick-access.json"
+                # Backup Explorer configuration files
+                $configPaths = @{
+                    "QuickAccess" = "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations"
+                    "RecentItems" = "$env:APPDATA\Microsoft\Windows\Recent"
+                    "Favorites" = "$env:USERPROFILE\Favorites"
+                    "Desktop" = "$env:USERPROFILE\Desktop"
+                    "StartMenu" = "$env:APPDATA\Microsoft\Windows\Start Menu"
+                }
+
+                foreach ($config in $configPaths.GetEnumerator()) {
+                    if (Test-Path $config.Value) {
+                        $destPath = Join-Path $backupPath $config.Key
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would copy configuration from $($config.Value) to $destPath"
+                        } else {
+                            try {
+                                New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+                                Copy-Item -Path "$($config.Value)\*" -Destination $destPath -Recurse -Force
+                                $backedUpItems += $config.Key
+                            } catch {
+                                $errors += "Failed to backup $($config.Key) : $_"
+                            }
+                        }
+                    }
+                }
+
+                # Export folder view settings
+                $folderViews = @{
+                    "Desktop" = "$env:USERPROFILE\Desktop"
+                    "Documents" = "$env:USERPROFILE\Documents"
+                    "Downloads" = "$env:USERPROFILE\Downloads"
+                    "Pictures" = "$env:USERPROFILE\Pictures"
+                    "Music" = "$env:USERPROFILE\Music"
+                    "Videos" = "$env:USERPROFILE\Videos"
+                }
+
+                $viewsPath = Join-Path $backupPath "FolderViews"
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export Quick Access settings to $jsonFile"
+                    Write-Host "WhatIf: Would create folder views directory at $viewsPath"
                 } else {
-                    $quickAccess | ConvertTo-Json | Out-File $jsonFile -Force
-                    $backedUpItems += "quick-access.json"
+                    New-Item -ItemType Directory -Force -Path $viewsPath | Out-Null
+                }
+
+                foreach ($view in $folderViews.GetEnumerator()) {
+                    if (Test-Path $view.Value) {
+                        $viewFile = Join-Path $viewsPath "$($view.Key).json"
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would export folder view settings for $($view.Key) to $viewFile"
+                        } else {
+                            try {
+                                $viewSettings = Get-ItemProperty -Path $view.Value -Name "Attributes" -ErrorAction SilentlyContinue
+                                if ($viewSettings) {
+                                    $viewSettings | ConvertTo-Json | Out-File $viewFile
+                                    $backedUpItems += "FolderViews\$($view.Key).json"
+                                }
+                            } catch {
+                                $errors += "Failed to backup folder view settings for $($view.Key) : $_"
+                            }
+                        }
+                    }
                 }
                 
                 # Return object for better testing and validation
@@ -142,7 +226,7 @@ function Backup-ExplorerSettings {
                     Feature = "Explorer Settings"
                     Timestamp = Get-Date
                     Items = $backedUpItems
-                    Errors = @()
+                    Errors = $errors
                 }
                 
                 Write-Host "Explorer Settings backed up successfully to: $backupPath" -ForegroundColor Green
@@ -180,7 +264,7 @@ if ($MyInvocation.Line -eq "") {
 Backs up Windows Explorer settings and configuration.
 
 .DESCRIPTION
-Creates a backup of Windows Explorer settings, including view preferences, Quick Access locations, and pinned folders.
+Creates a backup of Windows Explorer settings, including registry settings, Quick Access, Recent Items, Favorites, and folder view settings.
 
 .EXAMPLE
 Backup-ExplorerSettings -BackupRootPath "C:\Backups"
@@ -191,9 +275,9 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. Registry export success/failure
-6. Quick Access export success/failure
-7. Shell COM object creation success/failure
+5. Registry export success/failure for each key
+6. Configuration file backup success/failure
+7. Folder view settings export success/failure
 
 .TESTCASES
 # Mock test examples:
@@ -203,8 +287,10 @@ Describe "Backup-ExplorerSettings" {
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
         Mock reg { }
-        Mock ConvertTo-Json { return '{"Pinned":[],"Recent":[]}' }
-        Mock Out-File { }
+        Mock Get-ItemProperty { return @{
+            Attributes = "Normal"
+        }}
+        Mock Copy-Item { }
     }
 
     AfterAll {
@@ -220,7 +306,9 @@ Describe "Backup-ExplorerSettings" {
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Registry export failed" }
-        { Backup-ExplorerSettings -BackupRootPath "TestPath" } | Should -Throw
+        $result = Backup-ExplorerSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
     }
 }
 #>

@@ -1,21 +1,6 @@
 # Requires admin privileges
 #Requires -RunAsAdministrator
 
-# Import necessary functions
-$modulePath = Split-Path -Parent $PSScriptRoot
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
-
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-} else {
-    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
-}
-
-# Direct reference to files in the same directory
-. "$PSScriptRoot\Initialize-WindowsMissingRecovery.ps1"
-. "$PSScriptRoot\Install-WindowsMissingRecoveryTasks.ps1"
-. "$PSScriptRoot\Remove-WindowsMissingRecoveryTasks.ps1"
-
 function Setup-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
@@ -30,7 +15,8 @@ function Setup-WindowsMissingRecovery {
         Write-Host "Starting Windows Recovery Setup..." -ForegroundColor Blue
 
         # Step 1: Initialize configuration
-        if (!(Initialize-WindowsMissingRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt)) {
+        $config = Initialize-WindowsMissingRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt -Force:$Force
+        if (!$config) {
             throw "Failed to initialize Windows Recovery configuration"
         }
 
