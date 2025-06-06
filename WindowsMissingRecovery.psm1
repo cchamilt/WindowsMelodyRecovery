@@ -132,21 +132,37 @@ if (-not (Test-Path $PublicPath)) {
     $Public = @(Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue)
 }
 
-# Load public functions
+# Load public functions and track successfully loaded ones
+$LoadedFunctions = @()
 foreach ($import in $Public) {
+    $functionName = $import.BaseName
+    Write-Verbose "Attempting to load: $functionName from $($import.FullName)"
+    
     try {
         . $import.FullName
-        Write-Verbose "Successfully loaded public function: $($import.FullName)"
+        
+        # Small delay to ensure function is registered
+        Start-Sleep -Milliseconds 10
+        
+        # Verify the function was actually loaded
+        if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+            $LoadedFunctions += $functionName
+            Write-Verbose "Successfully loaded public function: $functionName"
+        } else {
+            Write-Warning "Function $functionName not found after loading $($import.FullName)"
+        }
     } catch {
-        Write-Warning "Failed to import public function $($import.FullName): $_"
+        Write-Warning "Failed to import public function $($import.FullName): $($_.Exception.Message)"
+        Write-Verbose "Stack trace: $($_.ScriptStackTrace)"
     }
 }
 
-# Export public functions
-if ($Public.Count -gt 0) {
-    Export-ModuleMember -Function $Public.BaseName
+# Export only successfully loaded functions
+if ($LoadedFunctions.Count -gt 0) {
+    Export-ModuleMember -Function $LoadedFunctions
+    Write-Verbose "Exported $($LoadedFunctions.Count) functions: $($LoadedFunctions -join ', ')"
 } else {
-    Write-Warning "No public functions found to export"
+    Write-Warning "No public functions were successfully loaded to export"
 }
 
 # Export the helper function for use by public functions

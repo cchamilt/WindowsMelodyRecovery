@@ -11,7 +11,8 @@ function Test-WindowsMissingRecovery {
 
     # Verify admin privileges
     if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "This function requires elevation. Please run PowerShell as Administrator."
+        Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
+        return $false
     }
 
     $results = @{

@@ -63,14 +63,18 @@ function Initialize-WindowsMissingRecovery {
         do {
             $choice = Read-Host "Select provider (O/G/D/B/C)"
             switch ($choice.ToUpper()) {
-                'O' { 'OneDrive'; break }
-                'G' { 'GoogleDrive'; break }
-                'D' { 'Dropbox'; break }
-                'B' { 'Box'; break }
-                'C' { 'Custom'; break }
-                default { $null }
+                'O' { $selectedProvider = 'OneDrive'; break }
+                'G' { $selectedProvider = 'GoogleDrive'; break }
+                'D' { $selectedProvider = 'Dropbox'; break }
+                'B' { $selectedProvider = 'Box'; break }
+                'C' { $selectedProvider = 'Custom'; break }
+                default { 
+                    Write-Host "Invalid selection. Please choose O, G, D, B, or C." -ForegroundColor Red
+                    $selectedProvider = $null 
+                }
             }
         } while (-not $selectedProvider)
+        $selectedProvider
     }
 
     # Get backup location
@@ -92,7 +96,7 @@ function Initialize-WindowsMissingRecovery {
             } while (-not $valid)
             $path
         }
-    } else {
+    } elseif ($selectedProvider -eq 'OneDrive') {
         # Find OneDrive paths
         $onedrivePaths = @(
             "$env:USERPROFILE\OneDrive",
@@ -128,6 +132,10 @@ function Initialize-WindowsMissingRecovery {
             Write-Warning "No OneDrive paths found. Using default backup location."
             $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
         }
+    } else {
+        # For other cloud providers, use a default location with provider name
+        $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMissingRecovery"
+        Write-Host "Using default location for $selectedProvider : $backupRoot" -ForegroundColor Yellow
     }
 
     # Create configuration
@@ -148,6 +156,11 @@ function Initialize-WindowsMissingRecovery {
     $configContent = $config.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
     Set-Content -Path $configFile -Value $configContent -Force
 
+    # Update module configuration state
+    Set-WindowsMissingRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider -WindowsMissingRecoveryPath $InstallPath
+    
     Write-Host "`nConfiguration saved to: $configFile" -ForegroundColor Green
+    Write-Host "Module configuration updated in memory" -ForegroundColor Green
+    
     return $config
 }

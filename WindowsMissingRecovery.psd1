@@ -7,16 +7,15 @@
     PowerShellVersion = '5.1'
     RequiredModules = @()
     FunctionsToExport = @(
-        'Install-WindowsMissingRecovery',
-        'Update-WindowsMissingRecovery',
         'Backup-WindowsMissingRecovery',
-        'Restore-WindowsMissingRecovery',
+        'Convert-ToWinget',
         'Initialize-WindowsMissingRecovery',
-        'Backup-ExcelSettings',
-        'Restore-ExcelSettings',
-        'Backup-VisioSettings',
-        'Restore-VisioSettings'
-        # Add other functions to export
+        'Install-WindowsMissingRecoveryTasks',
+        'Remove-WindowsMissingRecoveryTasks',
+        'Restore-WindowsMissingRecovery',
+        'Setup-WindowsMissingRecovery',
+        'Test-WindowsMissingRecovery',
+        'Update-WindowsMissingRecovery'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
