@@ -264,10 +264,24 @@ if ($MyInvocation.Line -eq "") {
 Backs up Windows Explorer settings and configuration.
 
 .DESCRIPTION
-Creates a backup of Windows Explorer settings, including registry settings, Quick Access, Recent Items, Favorites, and folder view settings.
+Creates a backup of Windows Explorer settings, including registry settings, Quick Access, Recent Items, 
+Favorites, Desktop items, Start Menu, and folder view settings. Supports comprehensive Explorer 
+customizations and user preferences.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "Explorer" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-ExplorerSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-ExplorerSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -278,6 +292,14 @@ Test cases to consider:
 5. Registry export success/failure for each key
 6. Configuration file backup success/failure
 7. Folder view settings export success/failure
+8. Quick Access items backup
+9. Recent items backup
+10. Favorites backup
+11. Desktop items backup
+12. Start Menu backup
+13. Explorer process running during backup
+14. Large Desktop/Favorites folders
+15. Network path scenarios
 
 .TESTCASES
 # Mock test examples:
@@ -291,6 +313,9 @@ Describe "Backup-ExplorerSettings" {
             Attributes = "Normal"
         }}
         Mock Copy-Item { }
+        Mock New-Item { }
+        Mock Out-File { }
+        Mock ConvertTo-Json { return '{"test": "data"}' }
     }
 
     AfterAll {
@@ -302,10 +327,30 @@ Describe "Backup-ExplorerSettings" {
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
         $result.Feature | Should -Be "Explorer Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Registry export failed" }
+        $result = Backup-ExplorerSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle missing configuration paths gracefully" {
+        Mock Test-Path { return $false } -ParameterFilter { $Path -like "*\Recent*" }
+        $result = Backup-ExplorerSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-ExplorerSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle folder view settings backup failure gracefully" {
+        Mock Get-ItemProperty { throw "Access denied" }
         $result = Backup-ExplorerSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0

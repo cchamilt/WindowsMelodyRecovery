@@ -168,7 +168,55 @@ if ($successfullyLoaded -eq 0) {
     Write-Host "No restore scripts were found or loaded. Create scripts in: $restoreDir or $privateRestoreDir" -ForegroundColor Yellow
 } else {
     Write-Host "Settings restoration completed! ($successfullyLoaded scripts loaded)" -ForegroundColor Green
+    
+    # Run final post-restore applications analysis
+    Write-Host "`nRunning final post-restore applications analysis..." -ForegroundColor Blue
+    try {
+        $analyzeScript = Join-Path $modulePath "Private\backup\analyze-unmanaged.ps1"
+        if (Test-Path $analyzeScript) {
+            . $analyzeScript
+            if (Get-Command Compare-PostRestoreApplications -ErrorAction SilentlyContinue) {
+                $params = @{
+                    BackupRootPath = $MACHINE_BACKUP
+                    MachineBackupPath = $MACHINE_BACKUP
+                    SharedBackupPath = $SHARED_BACKUP
+                }
+                $analysisResult = & Compare-PostRestoreApplications @params -ErrorAction Stop
+                if ($analysisResult.Success) {
+                    Write-Host "`n=== RESTORE COMPLETE - POST-RESTORE ANALYSIS ===" -ForegroundColor Yellow
+                    Write-Host "Post-restore analysis saved to: $($analysisResult.BackupPath)" -ForegroundColor Green
+                    
+                    # Show summary if available
+                    if ($analysisResult.Analysis -and $analysisResult.Analysis.Summary) {
+                        $summary = $analysisResult.Analysis.Summary
+                        Write-Host "`nFinal Application Restore Summary:" -ForegroundColor Green
+                        Write-Host "  Original Unmanaged Apps: $($summary.OriginalUnmanagedApps)" -ForegroundColor White
+                        Write-Host "  Successfully Restored: $($summary.RestoredApps)" -ForegroundColor Green
+                        Write-Host "  Still Need Manual Install: $($summary.StillUnmanagedApps)" -ForegroundColor Red
+                        Write-Host "  Restore Success Rate: $($summary.RestoreSuccessRate)%" -ForegroundColor Cyan
+                        
+                        if ($summary.StillUnmanagedApps -gt 0) {
+                            Write-Host "`nIMPORTANT: Check the following files for applications that still need manual installation:" -ForegroundColor Yellow
+                            Write-Host "  - still-unmanaged-apps.json: Technical details for scripts" -ForegroundColor Cyan
+                            Write-Host "  - still-unmanaged-apps.csv: Excel-friendly format for review" -ForegroundColor Cyan
+                            Write-Host "  - restored-apps.json: List of successfully restored applications" -ForegroundColor Green
+                            Write-Host "`nThese applications were not restored by any package manager and must be installed manually." -ForegroundColor Yellow
+                        } else {
+                            Write-Host "`n🎉 CONGRATULATIONS: All originally unmanaged applications have been successfully restored!" -ForegroundColor Green
+                            Write-Host "Check 'restored-apps.json' to see what was automatically restored." -ForegroundColor Cyan
+                        }
+                    }
+                }
+            } else {
+                Write-Host "Compare-PostRestoreApplications function not found" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "Analysis script not found - skipping final post-restore analysis" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "Failed to run final post-restore applications analysis: $_" -ForegroundColor Red
+    }
 }
 
 # Start system updates
-Write-Host "Starting system updates..." -ForegroundColor Green 
+Write-Host "`nStarting system updates..." -ForegroundColor Green 

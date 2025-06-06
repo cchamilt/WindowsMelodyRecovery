@@ -62,35 +62,35 @@ function Test-BackupPath {
     return $null
 }
 
-function Test-PowerService {
+function Test-PrintSpoolerService {
     param(
         [Parameter(Mandatory=$false)]
         [switch]$StartIfStopped
     )
     
     if ($script:TestMode) {
-        Write-Verbose "Test mode: Would check power service"
+        Write-Verbose "Test mode: Would check print spooler service"
         return $true
     }
     
     try {
-        $powerService = Get-Service -Name "Power" -ErrorAction SilentlyContinue
-        if ($powerService) {
-            if ($powerService.Status -ne "Running" -and $StartIfStopped) {
-                Write-Host "Starting Power service..." -ForegroundColor Yellow
-                Start-Service -Name "Power"
-                Start-Sleep -Seconds 2
+        $spoolerService = Get-Service -Name "Spooler" -ErrorAction SilentlyContinue
+        if ($spoolerService) {
+            if ($spoolerService.Status -ne "Running" -and $StartIfStopped) {
+                Write-Host "Starting Print Spooler service..." -ForegroundColor Yellow
+                Start-Service -Name "Spooler"
+                Start-Sleep -Seconds 3
             }
-            return $powerService.Status -eq "Running"
+            return $spoolerService.Status -eq "Running"
         }
         return $false
     } catch {
-        Write-Warning "Could not check Power service status: $_"
+        Write-Warning "Could not check Print Spooler service status: $_"
         return $false
     }
 }
 
-function Restore-PowerSettings {
+function Restore-PrinterSettings {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
@@ -120,7 +120,7 @@ function Restore-PowerSettings {
         $result = [PSCustomObject]@{
             Success = $false
             RestorePath = $null
-            Feature = "Power Settings"
+            Feature = "Printer Settings"
             Timestamp = Get-Date
             ItemsRestored = @()
             ItemsSkipped = @()
@@ -130,32 +130,32 @@ function Restore-PowerSettings {
     
     process {
         try {
-            Write-Verbose "Starting restore of Power Settings..."
-            Write-Host "Restoring Power Settings..." -ForegroundColor Blue
+            Write-Verbose "Starting restore of Printer Settings..."
+            Write-Host "Restoring Printer Settings..." -ForegroundColor Blue
             
             # Validate inputs
             if (!(Test-Path $BackupRootPath)) {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Test-BackupPath -Path "Power" -BackupType "Power Settings"
+            $backupPath = Test-BackupPath -Path "Printer" -BackupType "Printer Settings"
             if (!$backupPath) {
-                throw "No valid backup found for Power Settings"
+                throw "No valid backup found for Printer Settings"
             }
             $result.RestorePath = $backupPath
             
-            # Check and start power service if needed
-            if ($Force -or $PSCmdlet.ShouldProcess("Power Service", "Check and Start")) {
-                $serviceRunning = Test-PowerService -StartIfStopped
+            # Check and start print spooler service if needed
+            if ($Force -or $PSCmdlet.ShouldProcess("Print Spooler Service", "Check and Start")) {
+                $serviceRunning = Test-PrintSpoolerService -StartIfStopped
                 if (!$serviceRunning -and !$Force) {
-                    Write-Warning "Power service is not running. Some settings may not be restored properly."
+                    Write-Warning "Print Spooler service is not running. Printer restoration may not work properly."
                 }
             }
             
             # Restore registry settings first
             $registryPath = Join-Path $backupPath "Registry"
             if (Test-Path $registryPath) {
-                if ($Force -or $PSCmdlet.ShouldProcess("Power Registry Settings", "Restore")) {
+                if ($Force -or $PSCmdlet.ShouldProcess("Printer Registry Settings", "Restore")) {
                     Get-ChildItem -Path $registryPath -Filter "*.reg" | ForEach-Object {
                         try {
                             Write-Host "Importing registry file: $($_.Name)" -ForegroundColor Yellow
@@ -174,94 +174,86 @@ function Restore-PowerSettings {
                 $result.ItemsSkipped += "Registry (not found in backup)"
             }
 
-            # Note: Power schemes, active scheme, capabilities, and reports are informational only
-            # They cannot be directly restored as they are system-generated or require specific powercfg commands
+            # Note: Printer configurations, ports, drivers, and queues are informational only
+            # They require specific printer management commands and driver installations
             
             $informationalFiles = @(
-                "power_schemes.txt",
-                "active_scheme.txt", 
-                "power_capabilities.txt",
-                "battery_report.html",
-                "energy_report.html"
+                "printers.json",
+                "printer_ports.json", 
+                "printer_drivers.json",
+                "print_queues.json",
+                "spooler_config.json"
             )
             
             foreach ($file in $informationalFiles) {
                 $filePath = Join-Path $backupPath $file
                 if (Test-Path $filePath) {
-                    $result.ItemsSkipped += "$file (informational only)"
+                    $result.ItemsSkipped += "$file (informational only - requires manual printer setup)"
                 } else {
                     $result.ItemsSkipped += "$file (not found in backup)"
                 }
             }
-            
-            # Skip scheme files as they are also informational
-            Get-ChildItem -Path $backupPath -Filter "scheme_*.txt" -ErrorAction SilentlyContinue | ForEach-Object {
-                $result.ItemsSkipped += "$($_.Name) (informational only)"
-            }
 
-            # Restore power button and lid settings
-            $buttonSettingsFile = Join-Path $backupPath "button_settings.json"
-            if (Test-Path $buttonSettingsFile) {
-                if ($Force -or $PSCmdlet.ShouldProcess("Power Button and Lid Settings", "Restore")) {
+            # Restore printer preferences (default printer setting)
+            $preferencesFile = Join-Path $backupPath "printer_preferences.json"
+            if (Test-Path $preferencesFile) {
+                if ($Force -or $PSCmdlet.ShouldProcess("Printer Preferences", "Restore")) {
                     try {
-                        $buttonSettings = Get-Content $buttonSettingsFile | ConvertFrom-Json
+                        $preferences = Get-Content $preferencesFile | ConvertFrom-Json
                         
                         if (!$script:TestMode) {
-                            # Apply power button settings
-                            if ($buttonSettings.PowerButton) {
+                            # Restore default printer setting if the printer exists
+                            if ($preferences.DefaultPrinter) {
                                 try {
-                                    # Note: These are complex to restore as they require parsing the original powercfg output
-                                    # For now, we'll log that they were found but skip actual restoration
-                                    Write-Verbose "Power button settings found in backup but restoration requires manual configuration"
+                                    $existingPrinter = Get-Printer -Name $preferences.DefaultPrinter -ErrorAction SilentlyContinue
+                                    if ($existingPrinter) {
+                                        # Set as default printer
+                                        $existingPrinter | Set-Printer -Default
+                                        Write-Verbose "Set default printer to: $($preferences.DefaultPrinter)"
+                                    } else {
+                                        Write-Verbose "Default printer '$($preferences.DefaultPrinter)' not found - skipping"
+                                    }
                                 } catch {
-                                    Write-Verbose "Could not restore power button settings"
+                                    Write-Verbose "Could not set default printer: $_"
                                 }
                             }
                             
-                            # Apply sleep button settings
-                            if ($buttonSettings.SleepButton) {
+                            # Restore device setting in registry
+                            if ($preferences.DeviceSetting) {
                                 try {
-                                    Write-Verbose "Sleep button settings found in backup but restoration requires manual configuration"
+                                    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows" -Name "Device" -Value $preferences.DeviceSetting -ErrorAction SilentlyContinue
+                                    Write-Verbose "Restored device setting"
                                 } catch {
-                                    Write-Verbose "Could not restore sleep button settings"
-                                }
-                            }
-                            
-                            # Apply lid close settings
-                            if ($buttonSettings.LidClose) {
-                                try {
-                                    Write-Verbose "Lid close settings found in backup but restoration requires manual configuration"
-                                } catch {
-                                    Write-Verbose "Could not restore lid close settings"
+                                    Write-Verbose "Could not restore device setting: $_"
                                 }
                             }
                         }
                         
-                        $result.ItemsSkipped += "button_settings.json (requires manual configuration)"
+                        $result.ItemsRestored += "printer_preferences.json"
                     } catch {
-                        $result.Errors += "Failed to process power button and lid settings: $_"
-                        $result.ItemsSkipped += "button_settings.json"
+                        $result.Errors += "Failed to restore printer preferences: $_"
+                        $result.ItemsSkipped += "printer_preferences.json"
                         if (!$Force) { throw }
                     }
                 }
             } else {
-                $result.ItemsSkipped += "button_settings.json (not found in backup)"
+                $result.ItemsSkipped += "printer_preferences.json (not found in backup)"
             }
                 
             $result.Success = ($result.Errors.Count -eq 0)
             
             # Display summary
-            Write-Host "`nPower Settings Restore Summary:" -ForegroundColor Green
+            Write-Host "`nPrinter Settings Restore Summary:" -ForegroundColor Green
             Write-Host "Items Restored: $($result.ItemsRestored.Count)" -ForegroundColor Yellow
             Write-Host "Items Skipped: $($result.ItemsSkipped.Count)" -ForegroundColor Yellow
             Write-Host "Errors: $($result.Errors.Count)" -ForegroundColor $(if ($result.Errors.Count -gt 0) { "Red" } else { "Yellow" })
             
             if ($result.Success) {
-                Write-Host "Power Settings restored successfully from: $backupPath" -ForegroundColor Green
-                Write-Host "`nNote: Power schemes and button settings may require manual reconfiguration" -ForegroundColor Yellow
-                Write-Host "Registry changes will take effect after system restart" -ForegroundColor Yellow
+                Write-Host "Printer Settings restored successfully from: $backupPath" -ForegroundColor Green
+                Write-Host "`nNote: Printers, drivers, and ports require manual reinstallation" -ForegroundColor Yellow
+                Write-Host "Registry changes will take effect after Print Spooler service restart" -ForegroundColor Yellow
             } else {
-                Write-Warning "Power Settings restore completed with errors"
+                Write-Warning "Printer Settings restore completed with errors"
             }
             
             Write-Verbose "Restore completed successfully"
@@ -269,7 +261,7 @@ function Restore-PowerSettings {
         } catch {
             $errorRecord = $_
             $errorMessage = @(
-                "Failed to restore Power Settings"
+                "Failed to restore Printer Settings"
                 "Error Message: $($errorRecord.Exception.Message)"
                 "Error Type: $($errorRecord.Exception.GetType().FullName)"
                 "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
@@ -297,20 +289,20 @@ function Restore-PowerSettings {
 
 # Export the function if being imported as a module
 if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Restore-PowerSettings
+    Export-ModuleMember -Function Restore-PrinterSettings
 }
 
 <#
 .SYNOPSIS
-Restores Windows Power settings and configuration from backup.
+Restores Windows Printer settings and configuration from backup.
 
 .DESCRIPTION
-Restores Windows Power configuration and associated data from a previous backup, including registry settings.
-Note that power schemes, capabilities, and button settings are primarily informational and may require 
-manual reconfiguration due to the complexity of power management restoration.
+Restores Windows Printer configuration and associated data from a previous backup, including registry settings
+and printer preferences. Note that printers, drivers, ports, and queues are primarily informational and require 
+manual reinstallation due to the complexity of printer driver management and hardware dependencies.
 
 .PARAMETER BackupRootPath
-The root path where the backup is located. The script will look for a "Power" subdirectory within this path.
+The root path where the backup is located. The script will look for a "Printer" subdirectory within this path.
 
 .PARAMETER Force
 Forces the restore operation without prompting for confirmation and continues even if some items fail to restore.
@@ -325,13 +317,13 @@ Array of item names to exclude from the restore operation.
 Skips backup integrity verification (useful for testing).
 
 .EXAMPLE
-Restore-PowerSettings -BackupRootPath "C:\Backups"
+Restore-PrinterSettings -BackupRootPath "C:\Backups"
 
 .EXAMPLE
-Restore-PowerSettings -BackupRootPath "C:\Backups" -Force
+Restore-PrinterSettings -BackupRootPath "C:\Backups" -Force
 
 .EXAMPLE
-Restore-PowerSettings -BackupRootPath "C:\Backups" -WhatIf
+Restore-PrinterSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -342,36 +334,44 @@ Test cases to consider:
 5. Backup with invalid format
 6. Permission issues during restore
 7. Registry import failures
-8. Power service availability
+8. Print Spooler service availability
 9. Administrative privileges scenarios
-10. Desktop vs laptop scenarios
-11. Custom power schemes
-12. Modified power settings
-13. Button and lid settings
-14. Battery configurations
-15. UPS configurations
-16. Network path backup scenarios
-17. WhatIf scenario
-18. Force parameter behavior
-19. Include/Exclude filters
-20. Service management scenarios
+10. No printers installed scenario
+11. Network printers scenario
+12. Local printers scenario
+13. Mixed printer types scenario
+14. Print spooler service stopped
+15. Driver installation requirements
+16. Network connectivity issues
+17. Default printer restoration
+18. Printer preferences restoration
+19. WhatIf scenario
+20. Force parameter behavior
+21. Include/Exclude filters
+22. Service management scenarios
 
 .TESTCASES
 # Mock test examples:
-Describe "Restore-PowerSettings" {
+Describe "Restore-PrinterSettings" {
     BeforeAll {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Test-BackupPath { return "TestPath" }
-        Mock Test-PowerService { return $true }
+        Mock Test-PrintSpoolerService { return $true }
         Mock Get-ChildItem { 
             return @(
-                [PSCustomObject]@{ Name = "Power.reg"; FullName = "TestPath\Registry\Power.reg" },
-                [PSCustomObject]@{ Name = "PowerSettings.reg"; FullName = "TestPath\Registry\PowerSettings.reg" }
+                [PSCustomObject]@{ Name = "Printers.reg"; FullName = "TestPath\Registry\Printers.reg" },
+                [PSCustomObject]@{ Name = "Monitors.reg"; FullName = "TestPath\Registry\Monitors.reg" }
             )
         }
-        Mock Get-Content { return '{"PowerButton":{"AC":"test","DC":"test"}}' }
-        Mock ConvertFrom-Json { return @{ PowerButton = @{ AC = "test"; DC = "test" } } }
+        Mock Get-Content { return '{"DefaultPrinter":"Test Printer","DeviceSetting":"Test Printer,winspool,Test Port"}' }
+        Mock ConvertFrom-Json { return @{ DefaultPrinter = "Test Printer"; DeviceSetting = "Test Printer,winspool,Test Port" } }
+        Mock Get-Printer { return @{
+            Name = "Test Printer"
+            IsDefault = $false
+        }}
+        Mock Set-Printer { }
+        Mock Set-ItemProperty { }
         Mock reg { }
     }
 
@@ -380,47 +380,53 @@ Describe "Restore-PowerSettings" {
     }
 
     It "Should return a valid result object" {
-        $result = Restore-PowerSettings -BackupRootPath "TestPath"
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.RestorePath | Should -Be "TestPath"
-        $result.Feature | Should -Be "Power Settings"
+        $result.Feature | Should -Be "Printer Settings"
         $result.ItemsRestored | Should -BeOfType [System.Array]
         $result.ItemsSkipped | Should -BeOfType [System.Array]
         $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle WhatIf properly" {
-        $result = Restore-PowerSettings -BackupRootPath "TestPath" -WhatIf
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath" -WhatIf
         $result.ItemsRestored.Count | Should -BeGreaterOrEqual 0
     }
 
     It "Should handle registry import failure gracefully with Force" {
         Mock reg { throw "Registry import failed" }
-        $result = Restore-PowerSettings -BackupRootPath "TestPath" -Force
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath" -Force
         $result.Errors.Count | Should -BeGreaterThan 0
         $result.ItemsSkipped.Count | Should -BeGreaterThan 0
     }
 
     It "Should handle missing backup gracefully" {
         Mock Test-BackupPath { return $null }
-        { Restore-PowerSettings -BackupRootPath "TestPath" } | Should -Throw
+        { Restore-PrinterSettings -BackupRootPath "TestPath" } | Should -Throw
     }
 
     It "Should skip verification when specified" {
-        $result = Restore-PowerSettings -BackupRootPath "TestPath" -SkipVerification
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath" -SkipVerification
         $result.Success | Should -Be $true
     }
 
-    It "Should handle power service check failure" {
-        Mock Test-PowerService { return $false }
-        $result = Restore-PowerSettings -BackupRootPath "TestPath" -Force
+    It "Should handle print spooler service check failure" {
+        Mock Test-PrintSpoolerService { return $false }
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath" -Force
         $result.Success | Should -Be $true
     }
 
-    It "Should handle button settings processing failure" {
+    It "Should handle printer preferences processing failure" {
         Mock ConvertFrom-Json { throw "JSON parsing failed" }
-        $result = Restore-PowerSettings -BackupRootPath "TestPath" -Force
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath" -Force
         $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle missing default printer gracefully" {
+        Mock Get-Printer { return $null }
+        $result = Restore-PrinterSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
     }
 }
 #>
@@ -428,5 +434,5 @@ Describe "Restore-PowerSettings" {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Restore-PowerSettings -BackupRootPath $BackupRootPath
+    Restore-PrinterSettings -BackupRootPath $BackupRootPath
 } 

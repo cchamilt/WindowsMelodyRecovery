@@ -1,405 +1,343 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$MachineBackupPath = $null,
+    [string]$BackupRootPath = $null,
+    
     [Parameter(Mandatory=$false)]
-    [string]$SharedBackupPath = $null
+    [string]$MachineBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$SharedBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$Force,
+
+    # For testing purposes
+    [Parameter(DontShow)]
+    [switch]$WhatIf
 )
 
-# Load environment if not provided
+# Load environment script from the correct location
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
+$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
 
-if (!$MachineBackupPath -or !$SharedBackupPath) {
-    if (!(Load-Environment)) {
-        Write-Host "Failed to load environment configuration" -ForegroundColor Red
-        exit 1
-    }
-    $MachineBackupPath = "$env:BACKUP_ROOT\$env:MACHINE_NAME"
-    $SharedBackupPath = "$env:BACKUP_ROOT\shared"
+# Source the load-environment script
+if (Test-Path $loadEnvPath) {
+    . $loadEnvPath
+} else {
+    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
 }
 
-# Main backup function that can be called by master script
-function Backup-Applications {
-    param(
+# Get module configuration
+$config = Get-WindowsMissingRecovery
+if (!$config.IsInitialized) {
+    throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+}
+
+# Set default paths if not provided
+if (!$BackupRootPath) {
+    $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+}
+if (!$MachineBackupPath) {
+    $MachineBackupPath = $BackupRootPath
+}
+if (!$SharedBackupPath) {
+    $SharedBackupPath = Join-Path $config.BackupRoot "shared"
+}
+
+# Define Initialize-BackupDirectory function directly in the script
+function Initialize-BackupDirectory {
+    param (
         [Parameter(Mandatory=$true)]
-        [string]$MachineBackupPath,
+        [string]$Path,
+        
         [Parameter(Mandatory=$true)]
-        [string]$SharedBackupPath
+        [string]$BackupType,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$IsShared
     )
     
-    try {
-        Write-Host "Backing up Application List..." -ForegroundColor Blue
-        $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "Applications" -BackupRootPath $MachineBackupPath
+    # Create backup directory if it doesn't exist
+    $backupPath = Join-Path $BackupRootPath $Path
+    if (!(Test-Path -Path $backupPath)) {
+        try {
+            New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+            Write-Host "Created backup directory for $BackupType at: $backupPath" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to create backup directory for $BackupType : $_" -ForegroundColor Red
+            return $null
+        }
+    }
+    
+    return $backupPath
+}
+
+function Backup-Applications {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$BackupRootPath,
         
-        if ($backupPath) {
-            # Initialize collections for each package manager
-            $applications = @{
-                Store = @()
-                Scoop = @()
-                Chocolatey = @()
-                Winget = @()
-                Unmanaged = @()
-            }
+        [Parameter(Mandatory=$true)]
+        [string]$MachineBackupPath,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$SharedBackupPath,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$Force,
 
-            # Get Store applications first
-            Write-Host "Scanning Windows Store applications..." -ForegroundColor Blue
-            $applications.Store = Get-AppxPackage | Select-Object Name, PackageFullName, Version | ForEach-Object {
-                @{
-                    Name = $_.Name
-                    ID = $_.PackageFullName
-                    Version = $_.Version
-                    Source = "store"
+        # For testing purposes
+        [Parameter(DontShow)]
+        [switch]$WhatIf
+    )
+    
+    begin {
+        # Test hook for mocking
+        if ($script:TestMode) {
+            Write-Verbose "Running in test mode"
+        }
+    }
+    
+    process {
+        try {
+            Write-Verbose "Starting backup of Package Managers..."
+            Write-Host "Backing up Package Managers..." -ForegroundColor Blue
+            
+            # Validate inputs before proceeding
+            if (!(Test-Path $BackupRootPath)) {
+                throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
+            }
+            if (!(Test-Path $MachineBackupPath)) {
+                throw [System.IO.DirectoryNotFoundException]"Machine backup path not found: $MachineBackupPath"
+            }
+            if (!(Test-Path $SharedBackupPath)) {
+                throw [System.IO.DirectoryNotFoundException]"Shared backup path not found: $SharedBackupPath"
+            }
+            
+            $backupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "Package Managers" -BackupRootPath $MachineBackupPath
+            $sharedBackupPath = Initialize-BackupDirectory -Path "Applications" -BackupType "Shared Package Managers" -BackupRootPath $SharedBackupPath -IsShared
+            $backedUpItems = @()
+            $errors = @()
+            
+            if ($backupPath -and $sharedBackupPath) {
+                # Initialize collections for each package manager
+                $applications = @{
+                    Store = @()
+                    Scoop = @()
+                    Chocolatey = @()
+                    Winget = @()
                 }
-            }
 
-            # Get Scoop applications if available
-            Write-Host "Scanning Scoop applications..." -ForegroundColor Blue
-            if (Get-Command scoop -ErrorAction SilentlyContinue) {
-                $applications.Scoop = scoop list | ForEach-Object {
-                    if ($_ -match "(?<name>.*?)\s+(?<version>[\d\.]+)") {
-                        @{
-                            Name = $matches.name.Trim()
-                            Version = $matches.version
-                            Source = "scoop"
-                        }
-                    }
-                }
-            }
-
-            # Get Chocolatey applications if available
-            Write-Host "Scanning Chocolatey applications..." -ForegroundColor Blue
-            if (Get-Command choco -ErrorAction SilentlyContinue) {
-                $applications.Chocolatey = choco list -lo -r | ForEach-Object {
-                    $parts = $_ -split '\|'
+                # Get Store applications first
+                Write-Host "Scanning Windows Store applications..." -ForegroundColor Blue
+                $applications.Store = Get-AppxPackage | Select-Object Name, PackageFullName, Version | ForEach-Object {
                     @{
-                        Name = $parts[0]
-                        Version = $parts[1]
-                        Source = "chocolatey"
+                        Name = $_.Name
+                        ID = $_.PackageFullName
+                        Version = $_.Version
+                        Source = "store"
                     }
                 }
-            }
 
-            # Get all applications recognized by Winget
-            Write-Host "Scanning Winget applications..." -ForegroundColor Blue
-            $wingetApps = @()
-            $wingetSearch = winget list
-            
-            try {
-                $wingetLines = $wingetSearch -split "`n" | Select-Object -Skip 3
-                foreach ($line in $wingetLines) {
-                    if ($line -match "^(.+?)\s{2,}([^\s]+)\s{2,}(.+)$") {
-                        $wingetApps += @{
-                            Name = $Matches[1].Trim()
-                            ID = $Matches[2]
-                            Version = $Matches[3].Trim()
-                            Source = "winget"
-                        }
-                        Write-Host "Found winget app: $($Matches[1].Trim())" -ForegroundColor Cyan
-                    }
-                }
-            } catch {
-                Write-Host "Warning: Error parsing winget output - $($_.Exception.Message)" -ForegroundColor Yellow
-            }
-
-            # Remove apps from winget list that are managed by other package managers
-            $managedApps = @()
-            $managedApps += $applications.Store.Name
-            $managedApps += $applications.Scoop.Name
-            $managedApps += $applications.Chocolatey.Name
-
-            $applications.Winget = $wingetApps | Where-Object { $_.Name -notin $managedApps }
-
-            # Get traditional Windows applications
-            Write-Host "Scanning traditional Windows applications..." -ForegroundColor Blue
-            $uninstallKeys = @(
-                "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-                "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
-                "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
-            )
-
-            # Known Windows/System Component Publishers to filter out
-            $systemPublishers = @(
-                "Microsoft Corporation",
-                "Microsoft Windows",
-                "Windows",
-                "Microsoft"
-            )
-
-            # Known Windows/System Component patterns to filter out
-            $systemPatterns = @(
-                "Windows \w+ Runtime",
-                "Microsoft \.NET",
-                "Microsoft Visual C\+\+",
-                "Microsoft Edge",
-                "Microsoft Defender",
-                "Microsoft Office",
-                "Office 16 Click-to-Run",
-                "Windows SDK",
-                "Windows Software Development Kit",
-                "Windows Driver Kit",
-                "Microsoft Update Health Tools",
-                "Microsoft Teams"
-            )
-
-            $traditionalApps = Get-ItemProperty $uninstallKeys | 
-                Where-Object { 
-                    $_.DisplayName -and 
-                    # Filter out system components based on patterns
-                    ($systemPatterns | ForEach-Object { $_.DisplayName -notmatch $_ }) -notcontains $false -and
-                    # Only include Microsoft published items that aren't system components
-                    !($_.Publisher -in $systemPublishers -and 
-                      ($_.SystemComponent -eq 1 -or $_.ParentKeyName -or $_.ReleaseType -eq "Runtime" -or $_.DisplayName -like "*Runtime*"))
-                } |
-                Select-Object @{N='Name';E={$_.DisplayName}}, 
-                            @{N='Version';E={$_.DisplayVersion}},
-                            @{N='Publisher';E={$_.Publisher}},
-                            @{N='InstallDate';E={$_.InstallDate}}
-
-            # Improved name matching function
-            function Compare-AppNames {
-                param(
-                    $name1, 
-                    $name2,
-                    $publisher = $null
-                )
-                
-                # Normalize names for comparison
-                $clean1 = $name1
-                $clean1 = $clean1 -replace '[\(\)\[\]\{\}]', ''
-                $clean1 = $clean1 -replace '\s+', ' '
-                $clean1 = $clean1 -replace ' - ', ' '
-                $clean1 = $clean1 -replace '64-bit|32-bit|\(x64\)|\(x86\)', ''
-                $clean1 = $clean1 -replace 'Executables', ''
-                $clean1 = $clean1 -replace '®|™', ''
-                $clean1 = $clean1 -replace '\s+$', ''
-                $clean1 = $clean1 -replace '\s*\(?git [a-f0-9]+\)?', ''
-                $clean1 = $clean1 -replace '\s+\d+(\.\d+)*(\s+|$)', ''
-                $clean1 = $clean1 -replace 'Installed for Current User', ''
-                $clean1 = $clean1 -replace '\(User\)', ''
-                $clean1 = $clean1 -replace '\(remove only\)', ''
-                $clean1 = $clean1 -replace 'version', ''
-                $clean1 = $clean1.Trim()
-
-                $clean2 = $name2
-                $clean2 = $clean2 -replace '[\(\)\[\]\{\}]', ''
-                $clean2 = $clean2 -replace '\s+', ' '
-                $clean2 = $clean2 -replace ' - ', ' '
-                $clean2 = $clean2 -replace '64-bit|32-bit|\(x64\)|\(x86\)', ''
-                $clean2 = $clean2 -replace 'Executables', ''
-                $clean2 = $clean2 -replace '®|™', ''
-                $clean2 = $clean2 -replace '\s+$', ''
-                $clean2 = $clean2 -replace '\s*\(?git [a-f0-9]+\)?', ''
-                $clean2 = $clean2 -replace '\s+\d+(\.\d+)*(\s+|$)', ''
-                $clean2 = $clean2 -replace 'Installed for Current User', ''
-                $clean2 = $clean2 -replace '\(User\)', ''
-                $clean2 = $clean2 -replace '\(remove only\)', ''
-                $clean2 = $clean2 -replace 'version', ''
-                $clean2 = $clean2.Trim()
-
-                return $clean1 -eq $clean2
-            }
-
-            function Parse-KeyValues {
-                param([string]$content)
-                
-                function Parse-KeyValuesInternal {
-                    param([string[]]$lines, [ref]$currentIndex)
-                    
-                    $result = @{}
-                    while ($currentIndex.Value -lt $lines.Count) {
-                        $line = $lines[$currentIndex.Value].Trim()
-                        $currentIndex.Value++
-                        
-                        if ($line -eq "{") {
-                            continue
-                        }
-                        if ($line -eq "}") {
-                            break
-                        }
-                        if ([string]::IsNullOrWhiteSpace($line)) {
-                            continue
-                        }
-                        
-                        # Extract key and value, handling quoted strings
-                        if ($line -match '^"([^"]+)"\s+"([^"]+)"') {
-                            $key = $matches[1].Trim()
-                            $value = $matches[2].Trim()
-                            $result[$key] = $value
-                        }
-                        elseif ($line -match '^"([^"]+)"') {
-                            $key = $matches[1].Trim()
-                            # Next item is an object
-                            $subObject = Parse-KeyValuesInternal $lines $currentIndex
-                            $result[$key] = $subObject
-                        }
-                    }
-                    return $result
-                }
-                
-                $lines = $content -split "`n" | ForEach-Object { $_.Trim() }
-                $index = [ref]0
-                return Parse-KeyValuesInternal $lines $index
-            }
-
-            # Get Steam games if installed
-            Write-Host "Scanning Steam games..." -ForegroundColor Blue
-            $steamGames = @()
-            $defaultSteamPath = "C:\Program Files (x86)\Steam"
-            $steamPaths = @()
-
-            # Try registry first
-            $steamRegistry = Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue
-            if ($steamRegistry -and $steamRegistry.InstallPath) {
-                Write-Host "Found Steam registry path: $($steamRegistry.InstallPath)" -ForegroundColor Cyan
-                $steamPaths += $steamRegistry.InstallPath
-            }
-            
-            # Add default path if it exists and isn't already included
-            if ((Test-Path $defaultSteamPath) -and ($steamPaths -notcontains $defaultSteamPath)) {
-                Write-Host "Found default Steam path: $defaultSteamPath" -ForegroundColor Cyan
-                $steamPaths += $defaultSteamPath
-            }
-
-            Write-Host "Steam installation paths found: $($steamPaths.Count)" -ForegroundColor Cyan
-
-            # For each Steam installation
-            foreach ($steamPath in $steamPaths) {
-                Write-Host "Processing Steam path: $steamPath" -ForegroundColor Cyan
-                $manifestPath = Join-Path $steamPath "steamapps"
-                if (Test-Path $manifestPath) {
-                    Write-Host "Scanning manifest path: $manifestPath" -ForegroundColor Cyan
-                    $manifestFiles = Get-ChildItem "$manifestPath\appmanifest_*.acf"
-                    Write-Host "Found $($manifestFiles.Count) manifest files" -ForegroundColor Cyan
-                    
-                    foreach ($manifest in $manifestFiles) {
-                        Write-Host "Processing manifest: $($manifest.Name)" -ForegroundColor Cyan
-                        $content = Get-Content $manifest -Raw
-                        try {
-                            $appState = Parse-KeyValues $content
-                            if ($appState.AppState) {
-                                $steamGames += @{
-                                    Name = $appState.AppState.name
-                                    ID = $appState.AppState.appid
-                                    Source = "steam"
-                                    InstallPath = Join-Path $manifestPath "common\$($appState.AppState.installdir)"
-                                }
-                                Write-Host "Found game: $($appState.AppState.name) (ID: $($appState.AppState.appid))" -ForegroundColor Cyan
+                # Get Scoop applications if available
+                Write-Host "Scanning Scoop applications..." -ForegroundColor Blue
+                if (Get-Command scoop -ErrorAction SilentlyContinue) {
+                    $applications.Scoop = scoop list | ForEach-Object {
+                        if ($_ -match "(?<name>.*?)\s+(?<version>[\d\.]+)") {
+                            @{
+                                Name = $matches.name.Trim()
+                                Version = $matches.version
+                                Source = "scoop"
                             }
                         }
-                        catch {
-                            Write-Host "Failed to parse manifest: $_" -ForegroundColor Yellow
-                            Write-Host "Manifest content: $($content.Substring(0, [Math]::Min($content.Length, 200)))..." -ForegroundColor Yellow
+                    }
+                }
+
+                # Get Chocolatey applications if available
+                Write-Host "Scanning Chocolatey applications..." -ForegroundColor Blue
+                if (Get-Command choco -ErrorAction SilentlyContinue) {
+                    $applications.Chocolatey = choco list -lo -r | ForEach-Object {
+                        $parts = $_ -split '\|'
+                        @{
+                            Name = $parts[0]
+                            Version = $parts[1]
+                            Source = "chocolatey"
                         }
                     }
                 }
-            }
 
-            # Get Epic Games if installed
-            Write-Host "Scanning Epic Games..." -ForegroundColor Blue
-            $epicGames = @()
-            $epicManifestPath = "$env:ProgramData\Epic\EpicGamesLauncher\Data\Manifests"
-            if (Test-Path $epicManifestPath) {
-                Get-ChildItem "$epicManifestPath\*.item" | ForEach-Object {
-                    $manifest = Get-Content $_.FullName | ConvertFrom-Json
-                    if ($manifest.DisplayName) {
-                        $epicGames += @{
-                            Name = $manifest.DisplayName
-                            ID = $manifest.CatalogItemId
-                            Source = "epic"
-                            InstallPath = $manifest.InstallLocation
-                            Version = $manifest.AppVersion
+                # Get all applications recognized by Winget
+                Write-Host "Scanning Winget applications..." -ForegroundColor Blue
+                $wingetApps = @()
+                $wingetSearch = winget list
+                
+                try {
+                    $wingetLines = $wingetSearch -split "`n" | Select-Object -Skip 3
+                    foreach ($line in $wingetLines) {
+                        if ($line -match "^(.+?)\s{2,}([^\s]+)\s{2,}(.+)$") {
+                            $wingetApps += @{
+                                Name = $Matches[1].Trim()
+                                ID = $Matches[2]
+                                Version = $Matches[3].Trim()
+                                Source = "winget"
+                            }
+                            Write-Host "Found winget app: $($Matches[1].Trim())" -ForegroundColor Cyan
                         }
                     }
+                } catch {
+                    Write-Host "Warning: Error parsing winget output - $($_.Exception.Message)" -ForegroundColor Yellow
                 }
-            }
 
-            # Add games to applications collection
-            $applications["Steam"] = $steamGames
-            $applications["Epic"] = $epicGames
+                # Remove apps from winget list that are managed by other package managers
+                $managedApps = @()
+                $managedApps += $applications.Store.Name
+                $managedApps += $applications.Scoop.Name
+                $managedApps += $applications.Chocolatey.Name
 
-            # Add game names to managed apps list to exclude from unmanaged
-            $managedApps += $steamGames.Name
-            $managedApps += $epicGames.Name
+                $applications.Winget = $wingetApps | Where-Object { $_.Name -notin $managedApps }
 
-            # Filter out apps that are managed by package managers with improved matching
-            $applications.Unmanaged = $traditionalApps | Where-Object { 
-                $app = $_
-                $isManaged = $false
-                
-                # Check against all managed apps with improved name matching
-                foreach ($managedApp in $managedApps) {
-                    if (Compare-AppNames $app.Name $managedApp -Publisher $app.Publisher) {
-                        $isManaged = $true
-                        break
+                # Export each list to separate JSON files in both machine and shared paths
+                $applications.GetEnumerator() | ForEach-Object {
+                    $jsonContent = $_.Value | ConvertTo-Json -Depth 10
+                    $machineOutputPath = Join-Path $backupPath "$($_.Key.ToLower())-applications.json"
+                    $sharedOutputPath = Join-Path $sharedBackupPath "$($_.Key.ToLower())-applications.json"
+                    
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export $($_.Key) applications to $machineOutputPath and $sharedOutputPath"
+                    } else {
+                        $jsonContent | Out-File $machineOutputPath -Force
+                        $jsonContent | Out-File $sharedOutputPath -Force
+                        $backedUpItems += "$($_.Key.ToLower())-applications.json"
                     }
                 }
+
+                # Output summary
+                Write-Host "`nPackage Manager Summary:" -ForegroundColor Green
+                Write-Host "Store Applications: $($applications.Store.Count)" -ForegroundColor Yellow
+                Write-Host "Scoop Packages: $($applications.Scoop.Count)" -ForegroundColor Yellow
+                Write-Host "Chocolatey Packages: $($applications.Chocolatey.Count)" -ForegroundColor Yellow
+                Write-Host "Winget Packages: $($applications.Winget.Count)" -ForegroundColor Yellow
                 
-                # Check against winget apps
-                if (!$isManaged) {
-                    foreach ($wingetApp in $applications.Winget) {
-                        if (Compare-AppNames $app.Name $wingetApp.Name -Publisher $app.Publisher) {
-                            $isManaged = $true
-                            break
-                        }
-                    }
+                # Return object for better testing and validation
+                $result = [PSCustomObject]@{
+                    Success = $true
+                    BackupPath = $backupPath
+                    SharedBackupPath = $sharedBackupPath
+                    Feature = "Package Managers"
+                    Timestamp = Get-Date
+                    Items = $backedUpItems
+                    Errors = $errors
                 }
                 
-                !$isManaged
-            } | ForEach-Object {
-                @{
-                    Name = $_.Name
-                    Version = $_.Version
-                    Publisher = $_.Publisher
-                    InstallDate = $_.InstallDate
-                    Source = "manual"
-                }
+                Write-Host "Package Managers backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "Shared Package Managers backed up successfully to: $sharedBackupPath" -ForegroundColor Green
+                Write-Verbose "Backup completed successfully"
+                return $result
             }
-
-            # Update summary to include games
-            Write-Host "Steam Games: $($steamGames.Count)" -ForegroundColor Yellow
-            Write-Host "Epic Games: $($epicGames.Count)" -ForegroundColor Yellow
-
-            # Export each list to separate JSON files
-            $applications.GetEnumerator() | ForEach-Object {
-                $_.Value | ConvertTo-Json -Depth 10 | 
-                Out-File (Join-Path $backupPath "$($_.Key.ToLower())-applications.json") -Force
-            }
-
-            # Output summary
-            Write-Host "`nApplication Summary:" -ForegroundColor Green
-            Write-Host "Store Applications: $($applications.Store.Count)" -ForegroundColor Yellow
-            Write-Host "Scoop Packages: $($applications.Scoop.Count)" -ForegroundColor Yellow
-            Write-Host "Chocolatey Packages: $($applications.Chocolatey.Count)" -ForegroundColor Yellow
-            Write-Host "Winget Packages: $($applications.Winget.Count)" -ForegroundColor Yellow
-            Write-Host "Steam Games: $($applications.Steam.Count)" -ForegroundColor Yellow
-            Write-Host "Epic Games: $($applications.Epic.Count)" -ForegroundColor Yellow
-            Write-Host "Unmanaged Applications: $($applications.Unmanaged.Count)" -ForegroundColor Yellow
+            return $false
+        } catch {
+            $errorRecord = $_
+            $errorMessage = @(
+                "Failed to backup Applications"
+                "Error Message: $($errorRecord.Exception.Message)"
+                "Error Type: $($errorRecord.Exception.GetType().FullName)"
+                "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
+                "Script Name: $($errorRecord.InvocationInfo.ScriptName)"
+                "Statement: $($errorRecord.InvocationInfo.Line.Trim())"
+                if ($errorRecord.Exception.StackTrace) { "Stack Trace: $($errorRecord.Exception.StackTrace)" }
+                if ($errorRecord.Exception.InnerException) { "Inner Exception: $($errorRecord.Exception.InnerException.Message)" }
+            ) -join "`n"
             
-            Write-Host "Applications list backed up successfully to: $backupPath" -ForegroundColor Green
-            return $true
+            Write-Error $errorMessage
+            Write-Verbose "Backup failed"
+            throw  # Re-throw for proper error handling
         }
-        return $false
-    } catch {
-        $errorRecord = $_
-        $errorMessage = @(
-            "Failed to backup Applications"
-            "Error Message: $($errorRecord.Exception.Message)"
-            "Error Type: $($errorRecord.Exception.GetType().FullName)"
-            "Script Line Number: $($errorRecord.InvocationInfo.ScriptLineNumber)"
-            "Script Name: $($errorRecord.InvocationInfo.ScriptName)"
-            "Statement: $($errorRecord.InvocationInfo.Line.Trim())"
-            if ($errorRecord.Exception.StackTrace) { "Stack Trace: $($errorRecord.Exception.StackTrace)" }
-            if ($errorRecord.Exception.InnerException) { "Inner Exception: $($errorRecord.Exception.InnerException.Message)" }
-        ) -join "`n"
-        
-        Write-Host $errorMessage -ForegroundColor Red
-        return $false
     }
 }
+
+# Export the function if being imported as a module
+if ($MyInvocation.Line -eq "") {
+    Export-ModuleMember -Function Backup-Applications
+}
+
+<#
+.SYNOPSIS
+Backs up package manager configurations and installed packages.
+
+.DESCRIPTION
+Creates a backup of package manager configurations and installed packages including:
+- Windows Store apps
+- Scoop packages and buckets
+- Chocolatey packages and sources
+- Winget packages and sources
+- Package lists exported as JSON files for each manager
+- Both machine-specific and shared settings
+
+Note: Game managers are handled by backup-gamemanagers.ps1
+Note: Unmanaged applications analysis is handled by analyze-unmanaged.ps1
+
+.EXAMPLE
+Backup-Applications -BackupRootPath "C:\Backups" -MachineBackupPath "C:\Backups\Machine" -SharedBackupPath "C:\Backups\Shared"
+
+.NOTES
+Test cases to consider:
+1. Valid backup paths with proper permissions
+2. Invalid/nonexistent backup paths
+3. Empty backup paths
+4. No permissions to write
+5. Package managers installed/not installed
+6. Package manager command availability
+7. Package export success/failure
+8. JSON export success/failure
+
+.TESTCASES
+# Mock test examples:
+Describe "Backup-Applications" {
+    BeforeAll {
+        $script:TestMode = $true
+        Mock Test-Path { return $true }
+        Mock Initialize-BackupDirectory { return "TestPath" }
+        Mock Get-AppxPackage { return @() }
+        Mock Get-Command { return $true }
+        Mock Invoke-Expression { return "Test Output" }
+        Mock ConvertTo-Json { return "{}" }
+        Mock Out-File { }
+    }
+
+    AfterAll {
+        $script:TestMode = $false
+    }
+
+    It "Should return a valid result object" {
+        $result = Backup-Applications -BackupRootPath "TestPath" -MachineBackupPath "TestPath\Machine" -SharedBackupPath "TestPath\Shared"
+        $result.Success | Should -Be $true
+        $result.BackupPath | Should -Be "TestPath"
+        $result.SharedBackupPath | Should -Be "TestPath\Shared"
+        $result.Feature | Should -Be "Package Managers"
+    }
+
+    It "Should handle missing package managers gracefully" {
+        Mock Get-Command { return $false }
+        $result = Backup-Applications -BackupRootPath "TestPath" -MachineBackupPath "TestPath\Machine" -SharedBackupPath "TestPath\Shared"
+        $result.Success | Should -Be $true
+    }
+
+    It "Should export package manager lists" {
+        Mock Get-AppxPackage { return @([PSCustomObject]@{Name="TestApp";Version="1.0"}) }
+        $result = Backup-Applications -BackupRootPath "TestPath" -MachineBackupPath "TestPath\Machine" -SharedBackupPath "TestPath\Shared"
+        $result.Items | Should -Contain "store-applications.json"
+    }
+}
+#>
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-Applications -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
+    Backup-Applications -BackupRootPath $BackupRootPath -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
 } 

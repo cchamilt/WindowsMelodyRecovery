@@ -7,7 +7,14 @@ param(
     [string]$MachineBackupPath = $null,
     
     [Parameter(Mandatory=$false)]
-    [string]$SharedBackupPath = $null
+    [string]$SharedBackupPath = $null,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$Force,
+
+    # For testing purposes
+    [Parameter(DontShow)]
+    [switch]$WhatIf
 )
 
 # Load environment script from the correct location
@@ -28,8 +35,15 @@ if (!$config.IsInitialized) {
     throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
 }
 
+# Set default paths if not provided
 if (!$BackupRootPath) {
     $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+}
+if (!$MachineBackupPath) {
+    $MachineBackupPath = $BackupRootPath
+}
+if (!$SharedBackupPath) {
+    $SharedBackupPath = Join-Path $config.BackupRoot "shared"
 }
 
 # Define Initialize-BackupDirectory function directly in the script
@@ -42,10 +56,13 @@ function Initialize-BackupDirectory {
         [string]$BackupType,
         
         [Parameter(Mandatory=$true)]
-        [string]$BackupRootPath
+        [string]$BackupRootPath,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$IsShared
     )
     
-    # Create machine-specific backup directory if it doesn't exist
+    # Create backup directory if it doesn't exist
     $backupPath = Join-Path $BackupRootPath $Path
     if (!(Test-Path -Path $backupPath)) {
         try {
@@ -65,6 +82,12 @@ function Backup-DisplaySettings {
     param(
         [Parameter(Mandatory=$true)]
         [string]$BackupRootPath,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$MachineBackupPath,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$SharedBackupPath,
         
         [Parameter(Mandatory=$false)]
         [switch]$Force,
@@ -90,13 +113,19 @@ function Backup-DisplaySettings {
             if (!(Test-Path $BackupRootPath)) {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
+            if (!(Test-Path $MachineBackupPath)) {
+                throw [System.IO.DirectoryNotFoundException]"Machine backup path not found: $MachineBackupPath"
+            }
+            if (!(Test-Path $SharedBackupPath)) {
+                throw [System.IO.DirectoryNotFoundException]"Shared backup path not found: $SharedBackupPath"
+            }
             
-            $backupPath = Initialize-BackupDirectory -Path "Display" -BackupType "Display Settings" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Display" -BackupType "Display Settings" -BackupRootPath $MachineBackupPath
+            $sharedBackupPath = Initialize-BackupDirectory -Path "Display" -BackupType "Shared Display Settings" -BackupRootPath $SharedBackupPath -IsShared
+            $backedUpItems = @()
+            $errors = @()
             
-            if ($backupPath) {
-                $backedUpItems = @()
-                $errors = @()
-                
+            if ($backupPath -and $sharedBackupPath) {
                 # Export display registry settings
                 $regPaths = @(
                     # Display settings
@@ -133,11 +162,14 @@ function Backup-DisplaySettings {
                     
                     if ($keyExists) {
                         $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                        $sharedRegFile = "$sharedBackupPath\$($regPath.Split('\')[-1]).reg"
+                        
                         if ($WhatIf) {
-                            Write-Host "WhatIf: Would export registry key $regPath to $regFile"
+                            Write-Host "WhatIf: Would export registry key $regPath to $regFile and $sharedRegFile"
                         } else {
                             try {
                                 reg export $regPath $regFile /y 2>$null
+                                reg export $regPath $sharedRegFile /y 2>$null
                                 $backedUpItems += "$($regPath.Split('\')[-1]).reg"
                             } catch {
                                 $errors += "Failed to export $regPath : $_"
@@ -150,11 +182,13 @@ function Backup-DisplaySettings {
 
                 # Export Win32_VideoController configuration
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export video controllers to $backupPath\video_controllers.json"
+                    Write-Host "WhatIf: Would export video controllers to $backupPath\video_controllers.json and $sharedBackupPath\video_controllers.json"
                 } else {
                     try {
                         $videoControllers = Get-CimInstance -Namespace root\cimv2 -ClassName Win32_VideoController | Select-Object -Property *
-                        $videoControllers | ConvertTo-Json -Depth 10 | Out-File "$backupPath\video_controllers.json" -Force
+                        $videoControllersJson = $videoControllers | ConvertTo-Json -Depth 10
+                        $videoControllersJson | Out-File "$backupPath\video_controllers.json" -Force
+                        $videoControllersJson | Out-File "$sharedBackupPath\video_controllers.json" -Force
                         $backedUpItems += "video_controllers.json"
                     } catch {
                         $errors += "Failed to export video controllers: $_"
@@ -163,7 +197,7 @@ function Backup-DisplaySettings {
 
                 # Get display configuration using WMI
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export display information to $backupPath\displays.json"
+                    Write-Host "WhatIf: Would export display information to $backupPath\displays.json and $sharedBackupPath\displays.json"
                 } else {
                     try {
                         $displays = Get-WmiObject -Namespace root\wmi -Class WmiMonitorID | ForEach-Object {
@@ -175,7 +209,9 @@ function Backup-DisplaySettings {
                                 Settings = Get-WmiObject -Namespace root\wmi -Class WmiMonitorBasicDisplayParams | Where-Object { $_.InstanceName -eq $_.InstanceName }
                             }
                         }
-                        $displays | ConvertTo-Json -Depth 10 | Out-File "$backupPath\displays.json" -Force
+                        $displaysJson = $displays | ConvertTo-Json -Depth 10
+                        $displaysJson | Out-File "$backupPath\displays.json" -Force
+                        $displaysJson | Out-File "$sharedBackupPath\displays.json" -Force
                         $backedUpItems += "displays.json"
                     } catch {
                         $errors += "Failed to export display information: $_"
@@ -184,19 +220,22 @@ function Backup-DisplaySettings {
 
                 # Export CCD profiles
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export color profiles to $backupPath\ColorProfiles"
+                    Write-Host "WhatIf: Would export color profiles to $backupPath\ColorProfiles and $sharedBackupPath\ColorProfiles"
                 } else {
                     try {
                         $ccdPath = "$env:SystemRoot\System32\spool\drivers\color"
                         if (Test-Path $ccdPath) {
                             $ccdBackupPath = Join-Path $backupPath "ColorProfiles"
+                            $sharedCcdBackupPath = Join-Path $sharedBackupPath "ColorProfiles"
                             New-Item -ItemType Directory -Path $ccdBackupPath -Force | Out-Null
+                            New-Item -ItemType Directory -Path $sharedCcdBackupPath -Force | Out-Null
                             $colorProfiles = @()
                             
                             # Copy ICM files
                             $icmFiles = Get-ChildItem -Path "$ccdPath\*.icm" -ErrorAction SilentlyContinue
                             if ($icmFiles) {
                                 Copy-Item -Path $icmFiles.FullName -Destination $ccdBackupPath -Force
+                                Copy-Item -Path $icmFiles.FullName -Destination $sharedCcdBackupPath -Force
                                 $colorProfiles += $icmFiles.Name
                             }
                             
@@ -204,6 +243,7 @@ function Backup-DisplaySettings {
                             $iccFiles = Get-ChildItem -Path "$ccdPath\*.icc" -ErrorAction SilentlyContinue
                             if ($iccFiles) {
                                 Copy-Item -Path $iccFiles.FullName -Destination $ccdBackupPath -Force
+                                Copy-Item -Path $iccFiles.FullName -Destination $sharedCcdBackupPath -Force
                                 $colorProfiles += $iccFiles.Name
                             }
                             
@@ -220,6 +260,7 @@ function Backup-DisplaySettings {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
+                    SharedBackupPath = $sharedBackupPath
                     Feature = "Display Settings"
                     Timestamp = Get-Date
                     Items = $backedUpItems
@@ -227,6 +268,7 @@ function Backup-DisplaySettings {
                 }
                 
                 Write-Host "Display Settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "Shared Display Settings backed up successfully to: $sharedBackupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -262,9 +304,10 @@ Backs up Windows Display settings and configuration.
 
 .DESCRIPTION
 Creates a backup of Windows Display settings, including display configuration, video controller settings, color profiles, and monitor information.
+- Both machine-specific and shared settings
 
 .EXAMPLE
-Backup-DisplaySettings -BackupRootPath "C:\Backups"
+Backup-DisplaySettings -BackupRootPath "C:\Backups" -MachineBackupPath "C:\Backups\Machine" -SharedBackupPath "C:\Backups\Shared"
 
 .NOTES
 Test cases to consider:
@@ -317,15 +360,16 @@ Describe "Backup-DisplaySettings" {
     }
 
     It "Should return a valid result object" {
-        $result = Backup-DisplaySettings -BackupRootPath "TestPath"
+        $result = Backup-DisplaySettings -BackupRootPath "TestPath" -MachineBackupPath "TestPath\Machine" -SharedBackupPath "TestPath\Shared"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
+        $result.SharedBackupPath | Should -Be "TestPath\Shared"
         $result.Feature | Should -Be "Display Settings"
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Registry export failed" }
-        $result = Backup-DisplaySettings -BackupRootPath "TestPath"
+        $result = Backup-DisplaySettings -BackupRootPath "TestPath" -MachineBackupPath "TestPath\Machine" -SharedBackupPath "TestPath\Shared"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0
     }
@@ -335,5 +379,5 @@ Describe "Backup-DisplaySettings" {
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     # Script was run directly
-    Backup-DisplaySettings -BackupRootPath $BackupRootPath
+    Backup-DisplaySettings -BackupRootPath $BackupRootPath -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
 } 

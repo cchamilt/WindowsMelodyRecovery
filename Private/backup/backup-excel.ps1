@@ -251,6 +251,16 @@ Backs up Excel settings and configuration.
 
 .DESCRIPTION
 Creates a backup of Excel settings, including registry settings, configuration files, templates, and recent files list.
+Supports multiple Excel versions (2010, 2013, 2016/365) and backs up both user-specific and system-wide settings.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "Excel" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-ExcelSettings -BackupRootPath "C:\Backups"
@@ -264,6 +274,9 @@ Test cases to consider:
 5. Registry export success/failure for each key
 6. Configuration file backup success/failure
 7. Recent files list export success/failure
+8. Multiple Excel versions installed
+9. No Excel installation present
+10. Partial Excel installation (some components missing)
 
 .TESTCASES
 # Mock test examples:
@@ -280,6 +293,8 @@ Describe "Backup-ExcelSettings" {
             }
         )}
         Mock Copy-Item { }
+        Mock New-Item { }
+        Mock Out-File { }
     }
 
     AfterAll {
@@ -291,6 +306,8 @@ Describe "Backup-ExcelSettings" {
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
         $result.Feature | Should -Be "Excel Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
@@ -298,6 +315,17 @@ Describe "Backup-ExcelSettings" {
         $result = Backup-ExcelSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle missing configuration paths gracefully" {
+        Mock Test-Path { return $false } -ParameterFilter { $Path -like "*Microsoft\Excel*" }
+        $result = Backup-ExcelSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-ExcelSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
     }
 }
 #>

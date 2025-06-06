@@ -245,10 +245,24 @@ if ($MyInvocation.Line -eq "") {
 Backs up KeePassXC settings and configuration.
 
 .DESCRIPTION
-Creates a backup of KeePassXC settings, including registry settings, configuration files, plugins, key files, and browser integration settings.
+Creates a backup of KeePassXC settings, including registry settings, configuration files, plugins, 
+key files, auto-type settings, and browser integration settings for Chrome, Firefox, and Edge.
+Supports comprehensive KeePassXC customizations and user preferences.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "KeePassXC" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-KeePassXCSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-KeePassXCSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -259,6 +273,14 @@ Test cases to consider:
 5. Registry export success/failure for each key
 6. Configuration file backup success/failure
 7. Browser integration settings backup success/failure
+8. KeePassXC not installed scenario
+9. Partial KeePassXC installation
+10. Multiple browser configurations
+11. Plugin backup scenarios
+12. Key files backup
+13. Auto-type settings backup
+14. Large configuration files
+15. Network path scenarios
 
 .TESTCASES
 # Mock test examples:
@@ -269,6 +291,7 @@ Describe "Backup-KeePassXCSettings" {
         Mock Initialize-BackupDirectory { return "TestPath" }
         Mock reg { }
         Mock Copy-Item { }
+        Mock New-Item { }
     }
 
     AfterAll {
@@ -280,10 +303,30 @@ Describe "Backup-KeePassXCSettings" {
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
         $result.Feature | Should -Be "KeePassXC Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Registry export failed" }
+        $result = Backup-KeePassXCSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle missing configuration paths gracefully" {
+        Mock Test-Path { return $false } -ParameterFilter { $Path -like "*KeePassXC*" }
+        $result = Backup-KeePassXCSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-KeePassXCSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle browser integration backup failure gracefully" {
+        Mock Copy-Item { throw "Access denied" } -ParameterFilter { $Path -like "*Extension Settings*" }
         $result = Backup-KeePassXCSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0

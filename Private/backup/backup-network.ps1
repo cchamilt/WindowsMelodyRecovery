@@ -91,33 +91,56 @@ function Backup-NetworkSettings {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "Network" -BackupType "Network" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Network" -BackupType "Network Settings" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
                 
+                # Create registry backup directory
+                $registryPath = Join-Path $backupPath "Registry"
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would create registry backup directory at $registryPath"
+                } else {
+                    New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+                }
+
                 # Registry paths for network settings
                 $registryPaths = @(
                     "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
                     "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
                     "HKLM\SYSTEM\CurrentControlSet\Services\Dhcp\Parameters",
                     "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters",
-                    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkCards"
+                    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkCards",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Network",
+                    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList",
+                    "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
                 )
 
                 # Export registry settings
-                if ($WhatIf) {
-                    Write-Host "WhatIf: Would export registry settings for network"
-                } else {
-                    foreach ($path in $registryPaths) {
-                        try {
-                            $regFile = Join-Path $backupPath "network_$($path.Split('\')[-1]).reg"
-                            reg export $path $regFile /y | Out-Null
-                            $backedUpItems += "Registry: $path"
-                        } catch {
-                            $errors += "Failed to export registry path $path : $_"
+                foreach ($path in $registryPaths) {
+                    # Check if registry key exists before trying to export
+                    $keyExists = $false
+                    if ($path -match '^HKCU\\') {
+                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($path.Substring(5))"
+                    } elseif ($path -match '^HKLM\\') {
+                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($path.Substring(5))"
+                    }
+                    
+                    if ($keyExists) {
+                        $regFile = Join-Path $registryPath "$($path.Split('\')[-1]).reg"
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would export registry key $path to $regFile"
+                        } else {
+                            try {
+                                reg export $path $regFile /y 2>$null
+                                $backedUpItems += "$($path.Split('\')[-1]).reg"
+                            } catch {
+                                $errors += "Failed to export registry path $path : $_"
+                            }
                         }
+                    } else {
+                        Write-Verbose "Registry key not found: $path"
                     }
                 }
 
@@ -126,9 +149,9 @@ function Backup-NetworkSettings {
                     Write-Host "WhatIf: Would export network adapter information"
                 } else {
                     try {
-                        $networkAdapters = Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed
-                        $networkAdapters | ConvertTo-Json | Out-File "$backupPath\network_adapters.json" -Force
-                        $backedUpItems += "Network adapters information"
+                        $networkAdapters = Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed, InterfaceIndex
+                        $networkAdapters | ConvertTo-Json -Depth 10 | Out-File "$backupPath\network_adapters.json" -Force
+                        $backedUpItems += "network_adapters.json"
                     } catch {
                         $errors += "Failed to get network adapter information: $_"
                     }
@@ -146,7 +169,7 @@ function Backup-NetworkSettings {
                             Firewall = Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction
                         }
                         $networkConfig | ConvertTo-Json -Depth 10 | Out-File "$backupPath\network_config.json" -Force
-                        $backedUpItems += "Network configuration"
+                        $backedUpItems += "network_config.json"
                     } catch {
                         $errors += "Failed to get network configuration: $_"
                     }
@@ -166,9 +189,65 @@ function Backup-NetworkSettings {
                             }
                         }
                         $wirelessProfiles | ConvertTo-Json -Depth 10 | Out-File "$backupPath\wireless_profiles.json" -Force
-                        $backedUpItems += "Wireless network profiles"
+                        $backedUpItems += "wireless_profiles.json"
                     } catch {
                         $errors += "Failed to get wireless network profiles: $_"
+                    }
+                }
+
+                # Get firewall rules
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export firewall rules"
+                } else {
+                    try {
+                        $firewallRules = Get-NetFirewallRule | Select-Object Name, DisplayName, Description, Enabled, Action, Direction
+                        $firewallRules | ConvertTo-Json -Depth 10 | Out-File "$backupPath\firewall_rules.json" -Force
+                        $backedUpItems += "firewall_rules.json"
+                    } catch {
+                        $errors += "Failed to get firewall rules: $_"
+                    }
+                }
+
+                # Get network shares
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export network shares"
+                } else {
+                    try {
+                        $networkShares = Get-SmbShare | Select-Object Name, Path, Description, ShareType
+                        $networkShares | ConvertTo-Json -Depth 10 | Out-File "$backupPath\network_shares.json" -Force
+                        $backedUpItems += "network_shares.json"
+                    } catch {
+                        $errors += "Failed to get network shares: $_"
+                    }
+                }
+
+                # Get proxy settings
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export proxy settings"
+                } else {
+                    try {
+                        $proxySettings = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -ErrorAction SilentlyContinue
+                        if ($proxySettings) {
+                            $proxySettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\proxy_settings.json" -Force
+                            $backedUpItems += "proxy_settings.json"
+                        }
+                    } catch {
+                        $errors += "Failed to get proxy settings: $_"
+                    }
+                }
+
+                # Backup hosts file
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would backup hosts file"
+                } else {
+                    try {
+                        $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
+                        if (Test-Path $hostsFile) {
+                            Copy-Item -Path $hostsFile -Destination "$backupPath\hosts" -Force
+                            $backedUpItems += "hosts"
+                        }
+                    } catch {
+                        $errors += "Failed to backup hosts file: $_"
                     }
                 }
                 
@@ -176,13 +255,13 @@ function Backup-NetworkSettings {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "Network"
+                    Feature = "Network Settings"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
                 }
                 
-                Write-Host "Network settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "Network Settings backed up successfully to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -214,13 +293,27 @@ if ($MyInvocation.Line -eq "") {
 
 <#
 .SYNOPSIS
-Backs up network settings and configurations.
+Backs up Windows Network settings and configurations.
 
 .DESCRIPTION
-Creates a backup of network settings including registry settings, adapter information, network configuration, and wireless profiles.
+Creates a backup of Windows Network settings, including network adapters, IP configurations, DNS settings,
+firewall rules, wireless profiles, network shares, proxy settings, and the hosts file. Supports comprehensive
+network configuration backup for both wired and wireless connections.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "Network" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-NetworkSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-NetworkSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -228,11 +321,19 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. Registry export success/failure
+5. Registry export success/failure for each key
 6. Network adapter information retrieval success/failure
 7. Network configuration retrieval success/failure
 8. Wireless profile retrieval success/failure
-9. JSON serialization success/failure
+9. Firewall rules retrieval success/failure
+10. Network shares retrieval success/failure
+11. Proxy settings retrieval success/failure
+12. Hosts file backup success/failure
+13. JSON serialization success/failure
+14. Multiple network adapters scenario
+15. VPN connections scenario
+16. Domain vs workgroup scenarios
+17. Network path scenarios
 
 .TESTCASES
 # Mock test examples:
@@ -241,6 +342,7 @@ Describe "Backup-NetworkSettings" {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
+        Mock New-Item { }
         Mock Get-NetAdapter { return @(
             [PSCustomObject]@{
                 Name = "Ethernet"
@@ -248,6 +350,7 @@ Describe "Backup-NetworkSettings" {
                 Status = "Up"
                 MacAddress = "00:11:22:33:44:55"
                 LinkSpeed = "1 Gbps"
+                InterfaceIndex = 1
             }
         )}
         Mock Get-NetIPConfiguration { return @(
@@ -281,12 +384,32 @@ Describe "Backup-NetworkSettings" {
                 DefaultOutboundAction = "Allow"
             }
         )}
+        Mock Get-NetFirewallRule { return @(
+            [PSCustomObject]@{
+                Name = "TestRule"
+                DisplayName = "Test Firewall Rule"
+                Description = "Test rule description"
+                Enabled = $true
+                Action = "Allow"
+                Direction = "Inbound"
+            }
+        )}
+        Mock Get-SmbShare { return @(
+            [PSCustomObject]@{
+                Name = "TestShare"
+                Path = "C:\TestShare"
+                Description = "Test share"
+                ShareType = "FileSystemDirectory"
+            }
+        )}
+        Mock Get-ItemProperty { return @{ ProxyEnable = 0; ProxyServer = "" } }
         Mock netsh { return @"
 All User Profile     : TestNetwork
 "@
         }
         Mock ConvertTo-Json { return '{"test":"value"}' }
         Mock Out-File { }
+        Mock Copy-Item { }
         Mock reg { }
     }
 
@@ -298,11 +421,32 @@ All User Profile     : TestNetwork
         $result = Backup-NetworkSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "Network"
+        $result.Feature | Should -Be "Network Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Failed to export registry" }
+        $result = Backup-NetworkSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle network adapter query failure gracefully" {
+        Mock Get-NetAdapter { throw "Network adapter query failed" }
+        $result = Backup-NetworkSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-NetworkSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle wireless profile export failure gracefully" {
+        Mock netsh { throw "Wireless profile export failed" }
         $result = Backup-NetworkSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0

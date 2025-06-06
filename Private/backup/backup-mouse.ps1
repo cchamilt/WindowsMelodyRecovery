@@ -91,32 +91,54 @@ function Backup-MouseSettings {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "Mouse" -BackupType "Mouse" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "Mouse" -BackupType "Mouse Settings" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
                 
+                # Create registry backup directory
+                $registryPath = Join-Path $backupPath "Registry"
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would create registry backup directory at $registryPath"
+                } else {
+                    New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+                }
+
                 # Registry paths for mouse settings
                 $registryPaths = @(
                     "HKCU\Control Panel\Mouse",
                     "HKCU\Control Panel\Cursors",
+                    "HKCU\Control Panel\Accessibility\MouseKeys",
                     "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters",
-                    "HKLM\SYSTEM\CurrentControlSet\Services\mouhid\Parameters"
+                    "HKLM\SYSTEM\CurrentControlSet\Services\mouhid\Parameters",
+                    "HKLM\SYSTEM\CurrentControlSet\Services\i8042prt\Parameters"
                 )
 
                 # Export registry settings
-                if ($WhatIf) {
-                    Write-Host "WhatIf: Would export registry settings for mouse"
-                } else {
-                    foreach ($path in $registryPaths) {
-                        try {
-                            $regFile = Join-Path $backupPath "mouse_$($path.Split('\')[-1]).reg"
-                            reg export $path $regFile /y | Out-Null
-                            $backedUpItems += "Registry: $path"
-                        } catch {
-                            $errors += "Failed to export registry path $path : $_"
+                foreach ($path in $registryPaths) {
+                    # Check if registry key exists before trying to export
+                    $keyExists = $false
+                    if ($path -match '^HKCU\\') {
+                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($path.Substring(5))"
+                    } elseif ($path -match '^HKLM\\') {
+                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($path.Substring(5))"
+                    }
+                    
+                    if ($keyExists) {
+                        $regFile = Join-Path $registryPath "$($path.Split('\')[-1]).reg"
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would export registry key $path to $regFile"
+                        } else {
+                            try {
+                                reg export $path $regFile /y 2>$null
+                                $backedUpItems += "$($path.Split('\')[-1]).reg"
+                            } catch {
+                                $errors += "Failed to export registry path $path : $_"
+                            }
                         }
+                    } else {
+                        Write-Verbose "Registry key not found: $path"
                     }
                 }
 
@@ -125,9 +147,9 @@ function Backup-MouseSettings {
                     Write-Host "WhatIf: Would export mouse device information"
                 } else {
                     try {
-                        $mouseInfo = Get-CimInstance -ClassName Win32_PointingDevice | Select-Object Name, Manufacturer, DeviceID, Status
-                        $mouseInfo | ConvertTo-Json | Out-File "$backupPath\mouse_devices.json" -Force
-                        $backedUpItems += "Mouse devices information"
+                        $mouseInfo = Get-CimInstance -ClassName Win32_PointingDevice | Select-Object Name, Manufacturer, DeviceID, Status, HardwareType
+                        $mouseInfo | ConvertTo-Json -Depth 10 | Out-File "$backupPath\mouse_devices.json" -Force
+                        $backedUpItems += "mouse_devices.json"
                     } catch {
                         $errors += "Failed to get mouse device information: $_"
                     }
@@ -138,19 +160,60 @@ function Backup-MouseSettings {
                     Write-Host "WhatIf: Would export mouse control panel settings"
                 } else {
                     try {
-                        $mouseSettings = @{
-                            DoubleClickSpeed = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name DoubleClickSpeed).DoubleClickSpeed
-                            MouseSpeed = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSpeed).MouseSpeed
-                            MouseThreshold1 = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseThreshold1).MouseThreshold1
-                            MouseThreshold2 = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseThreshold2).MouseThreshold2
-                            MouseSensitivity = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSensitivity).MouseSensitivity
-                            SnapToDefaultButton = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name SnapToDefaultButton).SnapToDefaultButton
-                            SwapMouseButtons = (Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name SwapMouseButtons).SwapMouseButtons
+                        $mouseSettings = @{}
+                        
+                        # Get mouse settings with error handling for each property
+                        $mouseProperties = @(
+                            "DoubleClickSpeed", "MouseSpeed", "MouseThreshold1", "MouseThreshold2", 
+                            "MouseSensitivity", "SnapToDefaultButton", "SwapMouseButtons", 
+                            "MouseHoverTime", "MouseTrails", "ActiveWindowTracking"
+                        )
+                        
+                        foreach ($property in $mouseProperties) {
+                            try {
+                                $value = Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name $property -ErrorAction SilentlyContinue
+                                if ($value) {
+                                    $mouseSettings[$property] = $value.$property
+                                }
+                            } catch {
+                                Write-Verbose "Could not retrieve mouse property: $property"
+                            }
                         }
-                        $mouseSettings | ConvertTo-Json | Out-File "$backupPath\mouse_settings.json" -Force
-                        $backedUpItems += "Mouse control panel settings"
+                        
+                        $mouseSettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\mouse_settings.json" -Force
+                        $backedUpItems += "mouse_settings.json"
                     } catch {
                         $errors += "Failed to get mouse control panel settings: $_"
+                    }
+                }
+
+                # Get cursor scheme information
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export cursor scheme information"
+                } else {
+                    try {
+                        $cursorSettings = Get-ItemProperty -Path "HKCU:\Control Panel\Cursors" -ErrorAction SilentlyContinue
+                        if ($cursorSettings) {
+                            $cursorSettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\cursor_settings.json" -Force
+                            $backedUpItems += "cursor_settings.json"
+                        }
+                    } catch {
+                        $errors += "Failed to get cursor settings: $_"
+                    }
+                }
+
+                # Get mouse accessibility settings
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export mouse accessibility settings"
+                } else {
+                    try {
+                        $accessibilitySettings = Get-ItemProperty -Path "HKCU:\Control Panel\Accessibility\MouseKeys" -ErrorAction SilentlyContinue
+                        if ($accessibilitySettings) {
+                            $accessibilitySettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\mouse_accessibility.json" -Force
+                            $backedUpItems += "mouse_accessibility.json"
+                        }
+                    } catch {
+                        $errors += "Failed to get mouse accessibility settings: $_"
                     }
                 }
                 
@@ -158,13 +221,13 @@ function Backup-MouseSettings {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "Mouse"
+                    Feature = "Mouse Settings"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
                 }
                 
-                Write-Host "Mouse settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "Mouse Settings backed up successfully to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -196,13 +259,26 @@ if ($MyInvocation.Line -eq "") {
 
 <#
 .SYNOPSIS
-Backs up mouse settings and configurations.
+Backs up Windows Mouse settings and configurations.
 
 .DESCRIPTION
-Creates a backup of mouse settings including registry settings, device information, and control panel configurations.
+Creates a backup of Windows Mouse settings, including registry settings, device information, control panel configurations,
+cursor schemes, and accessibility settings. Supports comprehensive mouse customizations and user preferences.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "Mouse" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-MouseSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-MouseSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -210,10 +286,17 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. Registry export success/failure
+5. Registry export success/failure for each key
 6. Device information retrieval success/failure
 7. Control panel settings retrieval success/failure
-8. JSON serialization success/failure
+8. Cursor scheme retrieval success/failure
+9. Accessibility settings retrieval success/failure
+10. JSON serialization success/failure
+11. Multiple mouse devices scenario
+12. Gaming mouse with custom settings
+13. Accessibility features enabled
+14. Custom cursor themes
+15. Network path scenarios
 
 .TESTCASES
 # Mock test examples:
@@ -222,12 +305,14 @@ Describe "Backup-MouseSettings" {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
+        Mock New-Item { }
         Mock Get-CimInstance { return @(
             [PSCustomObject]@{
                 Name = "Test Mouse"
                 Manufacturer = "Test Manufacturer"
                 DeviceID = "TestDeviceID"
                 Status = "OK"
+                HardwareType = "USB"
             }
         )}
         Mock Get-ItemProperty { return @{
@@ -252,11 +337,32 @@ Describe "Backup-MouseSettings" {
         $result = Backup-MouseSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "Mouse"
+        $result.Feature | Should -Be "Mouse Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Failed to export registry" }
+        $result = Backup-MouseSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle device information failure gracefully" {
+        Mock Get-CimInstance { throw "Device query failed" }
+        $result = Backup-MouseSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-MouseSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle control panel settings failure gracefully" {
+        Mock Get-ItemProperty { throw "Registry access denied" }
         $result = Backup-MouseSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0

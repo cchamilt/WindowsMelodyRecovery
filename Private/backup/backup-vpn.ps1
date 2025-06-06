@@ -325,13 +325,36 @@ if ($MyInvocation.Line -eq "") {
 
 <#
 .SYNOPSIS
-Backs up VPN settings and configuration.
+Backs up comprehensive VPN settings, connections, and configurations.
 
 .DESCRIPTION
-Creates a backup of VPN settings, including registry settings, VPN connections, certificates, and configuration files for various VPN clients.
+Creates a comprehensive backup of VPN settings including registry settings, VPN connections,
+certificates, phonebook files, OpenVPN configurations, and Azure VPN settings. Supports
+multiple VPN client types including Windows built-in VPN, OpenVPN, Cisco VPN, and Azure VPN.
+
+The backup includes:
+- Registry settings for RAS/VPN, credentials, and various VPN clients
+- VPN connection configurations and settings
+- VPN certificates (both public and private keys where exportable)
+- Phonebook files (rasphone.pbk) from user and system locations
+- OpenVPN configuration files
+- Azure VPN configurations
+- Cisco VPN settings
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "VPN" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-VPNSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-VPNSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -342,8 +365,24 @@ Test cases to consider:
 5. Registry export success/failure for each key
 6. Azure VPN export success/failure
 7. VPN connections export success/failure
-8. Certificate export success/failure
+8. Certificate export success/failure (CER and PFX)
 9. OpenVPN config export success/failure
+10. Phonebook file backup success/failure
+11. Cisco VPN settings backup
+12. Multiple VPN client scenarios
+13. Certificate private key exportability
+14. Azure VPN client present vs absent
+15. OpenVPN client present vs absent
+16. Cisco VPN client present vs absent
+17. Administrative privileges scenarios
+18. Network path scenarios
+19. Certificate store access failure
+20. VPN service access failure
+21. File system permissions issues
+22. Large configuration file scenarios
+23. Corrupted configuration files
+24. Multiple certificate scenarios
+25. Mixed VPN client environments
 
 .TESTCASES
 # Mock test examples:
@@ -352,11 +391,14 @@ Describe "Backup-VPNSettings" {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock reg { }
+        Mock New-Item { }
+        Mock reg { $global:LASTEXITCODE = 0 }
         Mock Get-VpnConnection { return @(
             [PSCustomObject]@{
                 Name = "Test VPN"
                 ServerAddress = "vpn.example.com"
+                TunnelType = "IKEv2"
+                EncryptionLevel = "Required"
             }
         )}
         Mock Get-ChildItem { return @(
@@ -369,11 +411,17 @@ Describe "Backup-VPNSettings" {
                         Exportable = $true
                     }
                 }
+                EnhancedKeyUsageList = @(
+                    @{FriendlyName = "Client Authentication"}
+                )
             }
         )}
         Mock Export-Certificate { }
         Mock Export-PfxCertificate { }
         Mock Copy-Item { }
+        Mock ConvertTo-Json { return '{"test":"value"}' }
+        Mock Out-File { }
+        Mock Start-Process { return @{ExitCode=0} }
     }
 
     AfterAll {
@@ -385,10 +433,76 @@ Describe "Backup-VPNSettings" {
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
         $result.Feature | Should -Be "VPN Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
-        Mock reg { throw "Registry export failed" }
+        Mock reg { $global:LASTEXITCODE = 1; return "Error" }
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle VPN connections export failure gracefully" {
+        Mock Get-VpnConnection { throw "VPN access failed" }
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle certificate export failure gracefully" {
+        Mock Export-Certificate { throw "Certificate export failed" }
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-VPNSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle Azure VPN export failure gracefully" {
+        Mock Start-Process { return @{ExitCode=1} }
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle OpenVPN config backup failure gracefully" {
+        Mock Copy-Item { throw "File copy failed" }
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle missing VPN clients gracefully" {
+        Mock Test-Path { param($Path) return $Path -notlike "*OpenVPN*" -and $Path -notlike "*AzureVpn*" }
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle certificate private key non-exportable gracefully" {
+        Mock Get-ChildItem { return @(
+            [PSCustomObject]@{
+                Subject = "CN=Test VPN"
+                Thumbprint = "test123"
+                HasPrivateKey = $true
+                PrivateKey = @{
+                    CspKeyContainerInfo = @{
+                        Exportable = $false
+                    }
+                }
+            }
+        )}
+        $result = Backup-VPNSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle phonebook file backup failure gracefully" {
+        Mock Copy-Item { param($Path) if ($Path -like "*.pbk") { throw "PBK copy failed" } }
         $result = Backup-VPNSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0

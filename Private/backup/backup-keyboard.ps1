@@ -124,6 +124,14 @@ function Backup-KeyboardSettings {
                     "HKCU\Control Panel\Accessibility\FilterKeys"
                 )
 
+                # Create registry backup directory
+                $registryPath = Join-Path $backupPath "Registry"
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would create registry backup directory at $registryPath"
+                } else {
+                    New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+                }
+
                 foreach ($regPath in $regPaths) {
                     # Check if registry key exists before trying to export
                     $keyExists = $false
@@ -134,7 +142,7 @@ function Backup-KeyboardSettings {
                     }
                     
                     if ($keyExists) {
-                        $regFile = "$backupPath\$($regPath.Split('\')[-1]).reg"
+                        $regFile = Join-Path $registryPath "$($regPath.Split('\')[-1]).reg"
                         if ($WhatIf) {
                             Write-Host "WhatIf: Would export registry key $regPath to $regFile"
                         } else {
@@ -253,10 +261,24 @@ if ($MyInvocation.Line -eq "") {
 Backs up Windows Keyboard settings and configuration.
 
 .DESCRIPTION
-Creates a backup of Windows Keyboard settings, including keyboard layouts, input methods, accessibility options, device information, and custom mappings.
+Creates a backup of Windows Keyboard settings, including keyboard layouts, input methods, accessibility options,
+device information, custom key mappings, scan code mappings, and keyboard speed settings. Supports comprehensive
+keyboard customizations and user preferences across multiple languages and input methods.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "Keyboard" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-KeyboardSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-KeyboardSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -269,6 +291,12 @@ Test cases to consider:
 7. Input settings export success/failure
 8. Scan code mappings export success/failure
 9. Keyboard speed settings export success/failure
+10. Multiple keyboard layouts scenario
+11. Custom key mappings scenario
+12. Accessibility options enabled
+13. AutoHotkey configurations
+14. Multiple input methods
+15. Network path scenarios
 
 .TESTCASES
 # Mock test examples:
@@ -291,6 +319,7 @@ Describe "Backup-KeyboardSettings" {
         Mock Get-ItemProperty { return @{ "Scancode Map" = $null } }
         Mock ConvertTo-Json { return '{"test":"value"}' }
         Mock Out-File { }
+        Mock New-Item { }
     }
 
     AfterAll {
@@ -302,10 +331,31 @@ Describe "Backup-KeyboardSettings" {
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
         $result.Feature | Should -Be "Keyboard Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
         Mock reg { throw "Registry export failed" }
+        $result = Backup-KeyboardSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle WMI query failure gracefully" {
+        Mock Get-WmiObject { throw "WMI query failed" }
+        $result = Backup-KeyboardSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-KeyboardSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle input settings export failure gracefully" {
+        Mock Get-WinUserLanguageList { throw "Language list access denied" }
         $result = Backup-KeyboardSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0

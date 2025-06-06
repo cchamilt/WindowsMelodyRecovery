@@ -93,6 +93,7 @@ $backupFunctions = @(
     @{ Name = "PowerShell Settings"; Function = "Backup-PowerShellSettings"; Script = "backup-powershell.ps1" },
     @{ Name = "Windows Features"; Function = "Backup-WindowsFeatures"; Script = "backup-windows-features.ps1" },
     @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" },
+    @{ Name = "Game Managers"; Function = "Backup-GameManagers"; Script = "backup-gamemanagers.ps1" },
     @{ Name = "System Settings"; Function = "Backup-SystemSettings"; Script = "backup-system-settings.ps1" },
     @{ Name = "Browser Settings"; Function = "Backup-BrowserSettings"; Script = "backup-browsers.ps1" },
     @{ Name = "KeePassXC Settings"; Function = "Backup-KeePassXCSettings"; Script = "backup-keepassxc.ps1" },
@@ -171,6 +172,36 @@ try {
         }
 
         Write-Host "Settings backup completed!" -ForegroundColor Green
+        
+        # Run unmanaged applications analysis at the end
+        Write-Host "`nRunning unmanaged applications analysis..." -ForegroundColor Blue
+        try {
+            $analyzeScript = Join-Path $backupScriptsDir "analyze-unmanaged.ps1"
+            if (Test-Path $analyzeScript) {
+                . $analyzeScript
+                if (Get-Command Analyze-UnmanagedApplications -ErrorAction SilentlyContinue) {
+                    $params = @{
+                        BackupRootPath = $MACHINE_BACKUP
+                        MachineBackupPath = $MACHINE_BACKUP
+                        SharedBackupPath = Join-Path $BACKUP_ROOT "shared"
+                    }
+                    $analysisResult = & Analyze-UnmanagedApplications @params -ErrorAction Stop
+                    if ($analysisResult.Success) {
+                        Write-Host "Unmanaged applications analysis completed successfully!" -ForegroundColor Green
+                        Write-Host "Results saved to: $($analysisResult.BackupPath)" -ForegroundColor Green
+                        Write-Host "`nIMPORTANT: Review 'unmanaged-apps.json' to see what you need to manually install!" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Analyze-UnmanagedApplications function not found in script" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "Unmanaged analysis script not found: analyze-unmanaged.ps1" -ForegroundColor Yellow
+            }
+        } catch {
+            $errorMessage = "Failed to run unmanaged applications analysis: $_"
+            Write-Host $errorMessage -ForegroundColor Red
+            $backupErrors += $errorMessage
+        }
     }
 
     # Add timestamp to backup log

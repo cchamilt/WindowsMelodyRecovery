@@ -12,6 +12,40 @@ The WindowsMissingRecovery module provides a robust set of tools for:
 - Automated backup scheduling and maintenance
 - System configuration management
 
+graph TD
+    A["🔍 BACKUP: Analyze-UnmanagedApplications"] --> B["Original System State"]
+    B --> C["📝 unmanaged-analysis.json<br/>List of unmanaged apps"]
+    
+    D["💾 BACKUP PROCESS"] --> E["Package Manager Data<br/>(Store, Scoop, Choco, Winget)"]
+    D --> F["Game Manager Data<br/>(Steam, Epic, GOG, etc.)"]
+    D --> C
+    
+    G["🔄 RESTORE PROCESS"] --> H["Install Package Managers"]
+    G --> I["Install Game Managers"]
+    G --> J["Install Applications"]
+    
+    K["🔍 POST-RESTORE: Compare-PostRestoreApplications"] --> L["Load Original Analysis"]
+    K --> M["Scan Current System"]
+    K --> N["Compare Original vs Current"]
+    
+    L --> C
+    M --> O["Current System State<br/>(after restore)"]
+    
+    N --> P["✅ Successfully Restored<br/>(were unmanaged, now installed)"]
+    N --> Q["❌ Still Unmanaged<br/>(need manual install)"]
+    
+    P --> R["📊 restored-apps.json"]
+    Q --> S["📋 still-unmanaged-apps.json"]
+    Q --> T["📈 still-unmanaged-apps.csv"]
+    
+    N --> U["📈 Post-Restore Analysis<br/>Success Rate: X%"]
+    
+    style A fill:#e3f2fd
+    style K fill:#e8f5e8
+    style P fill:#c8e6c9
+    style Q fill:#ffcdd2
+    style U fill:#fff3e0
+
 ## Installation
 
 ### Prerequisites

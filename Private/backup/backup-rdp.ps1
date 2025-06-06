@@ -91,35 +91,60 @@ function Backup-RDPSettings {
                 throw [System.IO.DirectoryNotFoundException]"Backup root path not found: $BackupRootPath"
             }
             
-            $backupPath = Initialize-BackupDirectory -Path "RDP" -BackupType "RDP" -BackupRootPath $BackupRootPath
+            $backupPath = Initialize-BackupDirectory -Path "RDP" -BackupType "RDP Settings" -BackupRootPath $BackupRootPath
             
             if ($backupPath) {
                 $backedUpItems = @()
                 $errors = @()
                 
+                # Create registry backup directory
+                $registryPath = Join-Path $backupPath "Registry"
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would create registry backup directory at $registryPath"
+                } else {
+                    New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
+                }
+
                 # Registry paths for RDP settings
                 $registryPaths = @(
                     "HKCU\Software\Microsoft\Terminal Server Client",
+                    "HKCU\Software\Microsoft\Terminal Server Client\Servers",
+                    "HKCU\Software\Microsoft\Terminal Server Client\Default",
                     "HKLM\SOFTWARE\Microsoft\Terminal Server Client",
                     "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultUserConfiguration",
                     "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services",
                     "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp",
-                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData"
+                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData",
+                    "HKLM\SYSTEM\CurrentControlSet\Services\TermService\Parameters",
+                    "HKLM\SYSTEM\CurrentControlSet\Services\UmRdpService\Parameters"
                 )
 
                 # Export registry settings
-                if ($WhatIf) {
-                    Write-Host "WhatIf: Would export registry settings for RDP"
-                } else {
-                    foreach ($path in $registryPaths) {
-                        try {
-                            $regFile = Join-Path $backupPath "rdp_$($path.Split('\')[-1]).reg"
-                            reg export $path $regFile /y | Out-Null
-                            $backedUpItems += "Registry: $path"
-                        } catch {
-                            $errors += "Failed to export registry path $path : $_"
+                foreach ($path in $registryPaths) {
+                    # Check if registry key exists before trying to export
+                    $keyExists = $false
+                    if ($path -match '^HKCU\\') {
+                        $keyExists = Test-Path "Registry::HKEY_CURRENT_USER\$($path.Substring(5))"
+                    } elseif ($path -match '^HKLM\\') {
+                        $keyExists = Test-Path "Registry::HKEY_LOCAL_MACHINE\$($path.Substring(5))"
+                    }
+                    
+                    if ($keyExists) {
+                        $regFile = Join-Path $registryPath "$($path.Split('\')[-1]).reg"
+                        if ($WhatIf) {
+                            Write-Host "WhatIf: Would export registry key $path to $regFile"
+                        } else {
+                            try {
+                                reg export $path $regFile /y 2>$null
+                                $backedUpItems += "Registry\$($path.Split('\')[-1]).reg"
+                            } catch {
+                                $errors += "Failed to export registry path $path : $_"
+                            }
                         }
+                    } else {
+                        Write-Verbose "Registry key not found: $path"
                     }
                 }
 
@@ -130,23 +155,35 @@ function Backup-RDPSettings {
                     $rdpPaths = @(
                         "$env:USERPROFILE\Documents\*.rdp",
                         "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations\*.rdp",
-                        "$env:USERPROFILE\Documents\Remote Desktop Connection Manager\*.rdp"
+                        "$env:USERPROFILE\Documents\Remote Desktop Connection Manager\*.rdp",
+                        "$env:USERPROFILE\Desktop\*.rdp"
                     )
+
+                    $connectionsPath = Join-Path $backupPath "Connections"
+                    $foundConnections = $false
 
                     foreach ($rdpPath in $rdpPaths) {
                         try {
-                            if (Test-Path $rdpPath) {
-                                $rdpFiles = Get-ChildItem -Path $rdpPath
-                                if ($rdpFiles) {
-                                    $rdpBackupPath = Join-Path $backupPath "Connections"
-                                    New-Item -ItemType Directory -Path $rdpBackupPath -Force | Out-Null
-                                    Copy-Item -Path $rdpPath -Destination $rdpBackupPath -Force
-                                    $backedUpItems += "RDP connections from: $rdpPath"
+                            $rdpFiles = Get-ChildItem -Path $rdpPath -ErrorAction SilentlyContinue
+                            if ($rdpFiles) {
+                                if (!$foundConnections) {
+                                    New-Item -ItemType Directory -Path $connectionsPath -Force | Out-Null
+                                    $foundConnections = $true
                                 }
+                                
+                                foreach ($file in $rdpFiles) {
+                                    $destFile = Join-Path $connectionsPath $file.Name
+                                    Copy-Item -Path $file.FullName -Destination $destFile -Force
+                                }
+                                $backedUpItems += "Connections from: $(Split-Path $rdpPath -Parent)"
                             }
                         } catch {
                             $errors += "Failed to backup RDP connections from $rdpPath : $_"
                         }
+                    }
+                    
+                    if (!$foundConnections) {
+                        Write-Verbose "No RDP connection files found"
                     }
                 }
 
@@ -161,13 +198,19 @@ function Backup-RDPSettings {
                             New-Item -ItemType Directory -Path $certsPath -Force | Out-Null
                             
                             foreach ($cert in $rdpCerts) {
-                                $certFile = Join-Path $certsPath "$($cert.Thumbprint).pfx"
-                                Export-PfxCertificate -Cert $cert -FilePath $certFile -Password (ConvertTo-SecureString -String "temp" -Force -AsPlainText) | Out-Null
+                                try {
+                                    $certFile = Join-Path $certsPath "$($cert.Thumbprint).pfx"
+                                    Export-PfxCertificate -Cert $cert -FilePath $certFile -Password (ConvertTo-SecureString -String "backup" -Force -AsPlainText) | Out-Null
+                                    $backedUpItems += "Certificates\$($cert.Thumbprint).pfx"
+                                } catch {
+                                    $errors += "Failed to export certificate $($cert.Thumbprint): $_"
+                                }
                             }
-                            $backedUpItems += "RDP certificates"
+                        } else {
+                            Write-Verbose "No RDP certificates found"
                         }
                     } catch {
-                        $errors += "Failed to export RDP certificates: $_"
+                        $errors += "Failed to access RDP certificates: $_"
                     }
                 }
 
@@ -176,30 +219,95 @@ function Backup-RDPSettings {
                     Write-Host "WhatIf: Would export RDP configuration"
                 } else {
                     try {
-                        $rdpSettings = @{
-                            Enabled = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections").fDenyTSConnections -eq 0
-                            UserAuthentication = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication").UserAuthentication
-                            SecurityLayer = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer").SecurityLayer
+                        $rdpSettings = @{}
+                        
+                        # Get RDP enabled status
+                        try {
+                            $rdpSettings.Enabled = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -ErrorAction SilentlyContinue).fDenyTSConnections -eq 0
+                        } catch {
+                            $rdpSettings.Enabled = $null
                         }
-                        $rdpSettings | ConvertTo-Json | Out-File "$backupPath\rdp_settings.json" -Force
-                        $backedUpItems += "RDP configuration"
+                        
+                        # Get authentication settings
+                        try {
+                            $rdpSettings.UserAuthentication = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -ErrorAction SilentlyContinue).UserAuthentication
+                        } catch {
+                            $rdpSettings.UserAuthentication = $null
+                        }
+                        
+                        # Get security layer
+                        try {
+                            $rdpSettings.SecurityLayer = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -ErrorAction SilentlyContinue).SecurityLayer
+                        } catch {
+                            $rdpSettings.SecurityLayer = $null
+                        }
+                        
+                        # Get port number
+                        try {
+                            $rdpSettings.PortNumber = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "PortNumber" -ErrorAction SilentlyContinue).PortNumber
+                        } catch {
+                            $rdpSettings.PortNumber = $null
+                        }
+                        
+                        # Get encryption level
+                        try {
+                            $rdpSettings.MinEncryptionLevel = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "MinEncryptionLevel" -ErrorAction SilentlyContinue).MinEncryptionLevel
+                        } catch {
+                            $rdpSettings.MinEncryptionLevel = $null
+                        }
+                        
+                        $rdpSettings | ConvertTo-Json -Depth 10 | Out-File "$backupPath\rdp_settings.json" -Force
+                        $backedUpItems += "rdp_settings.json"
                     } catch {
                         $errors += "Failed to export RDP configuration: $_"
                     }
                 }
 
-                # Export RDP authorized hosts
+                # Export RDP service configuration
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export RDP authorized hosts"
+                    Write-Host "WhatIf: Would export RDP service configuration"
                 } else {
                     try {
-                        $authorizedHosts = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "SecurityLayer" -ErrorAction SilentlyContinue
-                        if ($authorizedHosts) {
-                            $authorizedHosts | ConvertTo-Json | Out-File "$backupPath\authorized_hosts.json" -Force
-                            $backedUpItems += "RDP authorized hosts"
+                        $rdpServices = @("TermService", "UmRdpService", "SessionEnv")
+                        $serviceConfig = @{}
+                        
+                        foreach ($serviceName in $rdpServices) {
+                            try {
+                                $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+                                if ($service) {
+                                    $serviceConfig[$serviceName] = @{
+                                        Status = $service.Status
+                                        StartType = $service.StartType
+                                        DisplayName = $service.DisplayName
+                                    }
+                                }
+                            } catch {
+                                Write-Verbose "Could not get service information for: $serviceName"
+                            }
+                        }
+                        
+                        if ($serviceConfig.Count -gt 0) {
+                            $serviceConfig | ConvertTo-Json -Depth 10 | Out-File "$backupPath\rdp_services.json" -Force
+                            $backedUpItems += "rdp_services.json"
                         }
                     } catch {
-                        $errors += "Failed to export RDP authorized hosts: $_"
+                        $errors += "Failed to export RDP service configuration: $_"
+                    }
+                }
+
+                # Export firewall rules for RDP
+                if ($WhatIf) {
+                    Write-Host "WhatIf: Would export RDP firewall rules"
+                } else {
+                    try {
+                        $rdpFirewallRules = Get-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+                        if ($rdpFirewallRules) {
+                            $firewallConfig = $rdpFirewallRules | Select-Object DisplayName, Enabled, Direction, Action, Profile
+                            $firewallConfig | ConvertTo-Json -Depth 10 | Out-File "$backupPath\rdp_firewall.json" -Force
+                            $backedUpItems += "rdp_firewall.json"
+                        }
+                    } catch {
+                        $errors += "Failed to export RDP firewall rules: $_"
                     }
                 }
                 
@@ -207,13 +315,13 @@ function Backup-RDPSettings {
                 $result = [PSCustomObject]@{
                     Success = $true
                     BackupPath = $backupPath
-                    Feature = "RDP"
+                    Feature = "RDP Settings"
                     Timestamp = Get-Date
                     Items = $backedUpItems
                     Errors = $errors
                 }
                 
-                Write-Host "RDP settings backed up successfully to: $backupPath" -ForegroundColor Green
+                Write-Host "RDP Settings backed up successfully to: $backupPath" -ForegroundColor Green
                 Write-Verbose "Backup completed successfully"
                 return $result
             }
@@ -245,13 +353,27 @@ if ($MyInvocation.Line -eq "") {
 
 <#
 .SYNOPSIS
-Backs up Remote Desktop Protocol (RDP) settings and configurations.
+Backs up Windows Remote Desktop Protocol (RDP) settings and configurations.
 
 .DESCRIPTION
-Creates a backup of RDP settings including registry settings, connection files, certificates, and authorized hosts.
+Creates a comprehensive backup of Windows RDP settings, including registry settings, connection files, 
+certificates, service configuration, and firewall rules. Supports both client and server RDP configurations
+with detailed security and authentication settings preservation.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "RDP" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-RDPSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-RDPSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -259,12 +381,22 @@ Test cases to consider:
 2. Invalid/nonexistent backup path
 3. Empty backup path
 4. No permissions to write
-5. Registry export success/failure
+5. Registry export success/failure for each key
 6. RDP connection files backup success/failure
 7. RDP certificates export success/failure
 8. RDP configuration export success/failure
-9. RDP authorized hosts export success/failure
-10. JSON serialization success/failure
+9. RDP service configuration export success/failure
+10. RDP firewall rules export success/failure
+11. JSON serialization success/failure
+12. No RDP connections scenario
+13. No RDP certificates scenario
+14. RDP disabled scenario
+15. RDP enabled with custom settings
+16. Certificate export failures
+17. Service access failures
+18. Firewall rule access failures
+19. Network path scenarios
+20. Administrative privileges scenarios
 
 .TESTCASES
 # Mock test examples:
@@ -273,20 +405,41 @@ Describe "Backup-RDPSettings" {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock Get-ChildItem { return @(
-            [PSCustomObject]@{
-                FullName = "Test.rdp"
+        Mock New-Item { }
+        Mock Get-ChildItem { 
+            param($Path)
+            if ($Path -like "*Cert:*") {
+                return @([PSCustomObject]@{ Thumbprint = "1234567890ABCDEF" })
+            } else {
+                return @([PSCustomObject]@{ FullName = "Test.rdp"; Name = "Test.rdp" })
             }
-        )}
+        }
         Mock Get-ItemProperty { return @{
             fDenyTSConnections = 0
             UserAuthentication = 1
             SecurityLayer = 2
+            PortNumber = 3389
+            MinEncryptionLevel = 3
         }}
+        Mock Get-Service { return @{
+            Status = "Running"
+            StartType = "Automatic"
+            DisplayName = "Remote Desktop Services"
+        }}
+        Mock Get-NetFirewallRule { return @(
+            [PSCustomObject]@{
+                DisplayName = "Remote Desktop - User Mode (TCP-In)"
+                Enabled = $true
+                Direction = "Inbound"
+                Action = "Allow"
+                Profile = "Any"
+            }
+        )}
         Mock ConvertTo-Json { return '{"test":"value"}' }
         Mock Out-File { }
-        Mock reg { }
+        Mock Copy-Item { }
         Mock Export-PfxCertificate { }
+        Mock reg { }
     }
 
     AfterAll {
@@ -297,7 +450,9 @@ Describe "Backup-RDPSettings" {
         $result = Backup-RDPSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
-        $result.Feature | Should -Be "RDP"
+        $result.Feature | Should -Be "RDP Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle registry export failure gracefully" {
@@ -305,6 +460,38 @@ Describe "Backup-RDPSettings" {
         $result = Backup-RDPSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle certificate export failure gracefully" {
+        Mock Export-PfxCertificate { throw "Certificate export failed" }
+        $result = Backup-RDPSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-RDPSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle connection files backup failure gracefully" {
+        Mock Copy-Item { throw "File copy failed" }
+        $result = Backup-RDPSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle service configuration failure gracefully" {
+        Mock Get-Service { throw "Service access denied" }
+        $result = Backup-RDPSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle no connections scenario" {
+        Mock Get-ChildItem { return @() }
+        $result = Backup-RDPSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
     }
 }
 #>

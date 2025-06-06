@@ -97,63 +97,6 @@ function Backup-PowerSettings {
                 $backedUpItems = @()
                 $errors = @()
                 
-                # Export power settings
-                $powerSchemes = @()
-                try {
-                    $powerSchemes = powercfg /list
-                    $schemeFile = Join-Path $backupPath "power_schemes.txt"
-                    if ($WhatIf) {
-                        Write-Host "WhatIf: Would export power schemes to $schemeFile"
-                    } else {
-                        $powerSchemes | Out-File $schemeFile
-                        $backedUpItems += "power_schemes.txt"
-                    }
-                } catch {
-                    $errors += "Failed to export power schemes : $_"
-                }
-
-                # Export active power scheme
-                try {
-                    $activeScheme = powercfg /getactivescheme
-                    $activeFile = Join-Path $backupPath "active_scheme.txt"
-                    if ($WhatIf) {
-                        Write-Host "WhatIf: Would export active power scheme to $activeFile"
-                    } else {
-                        $activeScheme | Out-File $activeFile
-                        $backedUpItems += "active_scheme.txt"
-                    }
-                } catch {
-                    $errors += "Failed to export active power scheme : $_"
-                }
-
-                # Export power settings for each scheme
-                foreach ($scheme in $powerSchemes) {
-                    if ($scheme -match "Power Scheme GUID: ([^(]+)") {
-                        $guid = $matches[1].Trim()
-                        $schemeName = $scheme -replace ".*\((.*)\).*", '$1'
-                        $schemeFile = Join-Path $backupPath "$schemeName.txt"
-                        if ($WhatIf) {
-                            Write-Host "WhatIf: Would export power settings for scheme $schemeName to $schemeFile"
-                        } else {
-                            try {
-                                powercfg /query $guid | Out-File $schemeFile
-                                $backedUpItems += "$schemeName.txt"
-                            } catch {
-                                $errors += "Failed to export power settings for scheme $schemeName : $_"
-                            }
-                        }
-                    }
-                }
-
-                # Export power settings registry
-                $regPaths = @(
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Power",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling\PowerThrottlingOff",
-                    "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling\PowerThrottlingOn"
-                )
-
                 # Create registry backup directory
                 $registryPath = Join-Path $backupPath "Registry"
                 if ($WhatIf) {
@@ -161,6 +104,116 @@ function Backup-PowerSettings {
                 } else {
                     New-Item -ItemType Directory -Force -Path $registryPath | Out-Null
                 }
+
+                # Export power schemes list
+                try {
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export power schemes list"
+                    } else {
+                        $powerSchemes = powercfg /list
+                        $schemeFile = Join-Path $backupPath "power_schemes.txt"
+                        $powerSchemes | Out-File $schemeFile -Force
+                        $backedUpItems += "power_schemes.txt"
+                    }
+                } catch {
+                    $errors += "Failed to export power schemes list: $_"
+                }
+
+                # Export active power scheme
+                try {
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export active power scheme"
+                    } else {
+                        $activeScheme = powercfg /getactivescheme
+                        $activeFile = Join-Path $backupPath "active_scheme.txt"
+                        $activeScheme | Out-File $activeFile -Force
+                        $backedUpItems += "active_scheme.txt"
+                    }
+                } catch {
+                    $errors += "Failed to export active power scheme: $_"
+                }
+
+                # Export detailed power settings for each scheme
+                if (!$WhatIf) {
+                    try {
+                        $powerSchemes = powercfg /list
+                        foreach ($scheme in $powerSchemes) {
+                            if ($scheme -match "Power Scheme GUID: ([a-fA-F0-9\-]+)\s+\((.+)\)") {
+                                $guid = $matches[1].Trim()
+                                $schemeName = $matches[2].Trim()
+                                # Sanitize filename
+                                $safeFileName = $schemeName -replace '[\\/:*?"<>|]', '_'
+                                $schemeFile = Join-Path $backupPath "scheme_$safeFileName.txt"
+                                
+                                try {
+                                    powercfg /query $guid | Out-File $schemeFile -Force
+                                    $backedUpItems += "scheme_$safeFileName.txt"
+                                } catch {
+                                    $errors += "Failed to export power settings for scheme $schemeName : $_"
+                                }
+                            }
+                        }
+                    } catch {
+                        $errors += "Failed to process power schemes for detailed export: $_"
+                    }
+                } else {
+                    Write-Host "WhatIf: Would export detailed power settings for each scheme"
+                }
+
+                # Export power capabilities
+                try {
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export power capabilities"
+                    } else {
+                        $capabilities = powercfg /availablesleepstates
+                        $capFile = Join-Path $backupPath "power_capabilities.txt"
+                        $capabilities | Out-File $capFile -Force
+                        $backedUpItems += "power_capabilities.txt"
+                    }
+                } catch {
+                    $errors += "Failed to export power capabilities: $_"
+                }
+
+                # Export battery report (if available)
+                try {
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export battery report"
+                    } else {
+                        $batteryFile = Join-Path $backupPath "battery_report.html"
+                        powercfg /batteryreport /output $batteryFile 2>$null
+                        if (Test-Path $batteryFile) {
+                            $backedUpItems += "battery_report.html"
+                        }
+                    }
+                } catch {
+                    Write-Verbose "Battery report not available (likely desktop system)"
+                }
+
+                # Export energy report
+                try {
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export energy report"
+                    } else {
+                        $energyFile = Join-Path $backupPath "energy_report.html"
+                        powercfg /energy /output $energyFile 2>$null
+                        if (Test-Path $energyFile) {
+                            $backedUpItems += "energy_report.html"
+                        }
+                    }
+                } catch {
+                    Write-Verbose "Energy report generation failed or not available"
+                }
+
+                # Export power settings registry
+                $regPaths = @(
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Power",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling",
+                    "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power",
+                    "HKCU\Control Panel\PowerCfg",
+                    "HKCU\System\CurrentControlSet\Control\Power",
+                    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\PowerOptions"
+                )
 
                 foreach ($regPath in $regPaths) {
                     # Check if registry key exists before trying to export
@@ -178,14 +231,67 @@ function Backup-PowerSettings {
                         } else {
                             try {
                                 reg export $regPath $regFile /y 2>$null
-                                $backedUpItems += "$($regPath.Split('\')[-1]).reg"
+                                $backedUpItems += "Registry\$($regPath.Split('\')[-1]).reg"
                             } catch {
-                                $errors += "Failed to export $regPath : $_"
+                                $errors += "Failed to export registry path $regPath : $_"
                             }
                         }
                     } else {
                         Write-Verbose "Registry key not found: $regPath"
                     }
+                }
+
+                # Export power button and lid settings
+                try {
+                    if ($WhatIf) {
+                        Write-Host "WhatIf: Would export power button and lid settings"
+                    } else {
+                        $buttonSettings = @{}
+                        
+                        # Get power button settings
+                        try {
+                            $powerButtonAC = powercfg /query SCHEME_CURRENT SUB_BUTTONS PBUTTONACTION
+                            $powerButtonDC = powercfg /query SCHEME_CURRENT SUB_BUTTONS PBUTTONACTION
+                            $buttonSettings["PowerButton"] = @{
+                                "AC" = $powerButtonAC
+                                "DC" = $powerButtonDC
+                            }
+                        } catch {
+                            Write-Verbose "Could not retrieve power button settings"
+                        }
+                        
+                        # Get sleep button settings
+                        try {
+                            $sleepButtonAC = powercfg /query SCHEME_CURRENT SUB_BUTTONS SBUTTONACTION
+                            $sleepButtonDC = powercfg /query SCHEME_CURRENT SUB_BUTTONS SBUTTONACTION
+                            $buttonSettings["SleepButton"] = @{
+                                "AC" = $sleepButtonAC
+                                "DC" = $sleepButtonDC
+                            }
+                        } catch {
+                            Write-Verbose "Could not retrieve sleep button settings"
+                        }
+                        
+                        # Get lid close settings
+                        try {
+                            $lidCloseAC = powercfg /query SCHEME_CURRENT SUB_BUTTONS LIDACTION
+                            $lidCloseDC = powercfg /query SCHEME_CURRENT SUB_BUTTONS LIDACTION
+                            $buttonSettings["LidClose"] = @{
+                                "AC" = $lidCloseAC
+                                "DC" = $lidCloseDC
+                            }
+                        } catch {
+                            Write-Verbose "Could not retrieve lid close settings"
+                        }
+                        
+                        if ($buttonSettings.Count -gt 0) {
+                            $buttonFile = Join-Path $backupPath "button_settings.json"
+                            $buttonSettings | ConvertTo-Json -Depth 10 | Out-File $buttonFile -Force
+                            $backedUpItems += "button_settings.json"
+                        }
+                    }
+                } catch {
+                    $errors += "Failed to export power button and lid settings: $_"
                 }
                 
                 # Return object for better testing and validation
@@ -230,13 +336,27 @@ if ($MyInvocation.Line -eq "") {
 
 <#
 .SYNOPSIS
-Backs up Windows power settings and configuration.
+Backs up Windows Power settings and configuration.
 
 .DESCRIPTION
-Creates a backup of Windows power settings, including power schemes, active scheme, and registry settings.
+Creates a comprehensive backup of Windows Power settings, including power schemes, active scheme configuration,
+power capabilities, battery reports, energy reports, registry settings, and power button/lid configurations.
+Supports both desktop and laptop power management settings.
+
+.PARAMETER BackupRootPath
+The root path where the backup will be created. A subdirectory named "Power" will be created within this path.
+
+.PARAMETER Force
+Forces the backup operation even if the destination already exists.
+
+.PARAMETER WhatIf
+Shows what would be backed up without actually performing the backup operation.
 
 .EXAMPLE
 Backup-PowerSettings -BackupRootPath "C:\Backups"
+
+.EXAMPLE
+Backup-PowerSettings -BackupRootPath "C:\Backups" -WhatIf
 
 .NOTES
 Test cases to consider:
@@ -246,7 +366,20 @@ Test cases to consider:
 4. No permissions to write
 5. Power scheme export success/failure
 6. Active scheme export success/failure
-7. Registry export success/failure
+7. Registry export success/failure for each key
+8. Battery report generation (laptop vs desktop)
+9. Energy report generation success/failure
+10. Power capabilities export success/failure
+11. Button and lid settings export success/failure
+12. Custom power schemes
+13. Modified power settings
+14. Laptop-specific settings (battery, lid)
+15. Desktop-specific settings
+16. UPS configurations
+17. Network path scenarios
+18. Administrative privileges scenarios
+19. Power service availability
+20. Corrupted power configuration
 
 .TESTCASES
 # Mock test examples:
@@ -255,7 +388,18 @@ Describe "Backup-PowerSettings" {
         $script:TestMode = $true
         Mock Test-Path { return $true }
         Mock Initialize-BackupDirectory { return "TestPath" }
-        Mock powercfg { return "Power Scheme GUID: 12345678-1234-1234-1234-123456789012 (Balanced)" }
+        Mock New-Item { }
+        Mock powercfg { 
+            param($Command)
+            switch ($Command) {
+                "/list" { return "Power Scheme GUID: 12345678-1234-1234-1234-123456789012 (Balanced)" }
+                "/getactivescheme" { return "Power Scheme GUID: 12345678-1234-1234-1234-123456789012 (Balanced)" }
+                "/availablesleepstates" { return "Sleep states available: S1 S3 S4 S5" }
+                default { return "Mock powercfg output" }
+            }
+        }
+        Mock Out-File { }
+        Mock ConvertTo-Json { return '{"test":"value"}' }
         Mock reg { }
     }
 
@@ -268,10 +412,42 @@ Describe "Backup-PowerSettings" {
         $result.Success | Should -Be $true
         $result.BackupPath | Should -Be "TestPath"
         $result.Feature | Should -Be "Power Settings"
+        $result.Items | Should -BeOfType [System.Array]
+        $result.Errors | Should -BeOfType [System.Array]
     }
 
     It "Should handle power scheme export failure gracefully" {
         Mock powercfg { throw "Power scheme export failed" }
+        $result = Backup-PowerSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle registry export failure gracefully" {
+        Mock reg { throw "Registry export failed" }
+        $result = Backup-PowerSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should support WhatIf parameter" {
+        $result = Backup-PowerSettings -BackupRootPath "TestPath" -WhatIf
+        $result.Success | Should -Be $true
+    }
+
+    It "Should handle button settings export failure gracefully" {
+        Mock ConvertTo-Json { throw "JSON conversion failed" }
+        $result = Backup-PowerSettings -BackupRootPath "TestPath"
+        $result.Success | Should -Be $true
+        $result.Errors.Count | Should -BeGreaterThan 0
+    }
+
+    It "Should handle missing power capabilities gracefully" {
+        Mock powercfg { 
+            param($Command)
+            if ($Command -eq "/availablesleepstates") { throw "Not available" }
+            return "Mock output"
+        }
         $result = Backup-PowerSettings -BackupRootPath "TestPath"
         $result.Success | Should -Be $true
         $result.Errors.Count | Should -BeGreaterThan 0
