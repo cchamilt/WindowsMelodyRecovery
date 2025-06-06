@@ -9,10 +9,13 @@
     FunctionsToExport = @(
         'Backup-WindowsMissingRecovery',
         'Convert-ToWinget',
+        'Get-WindowsMissingRecovery',
+        'Import-PrivateScripts',
         'Initialize-WindowsMissingRecovery',
         'Install-WindowsMissingRecoveryTasks',
         'Remove-WindowsMissingRecoveryTasks',
         'Restore-WindowsMissingRecovery',
+        'Set-WindowsMissingRecovery',
         'Setup-WindowsMissingRecovery',
         'Test-WindowsMissingRecovery',
         'Update-WindowsMissingRecovery',

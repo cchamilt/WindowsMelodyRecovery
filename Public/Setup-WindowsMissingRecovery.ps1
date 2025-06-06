@@ -39,7 +39,12 @@ function Setup-WindowsMissingRecovery {
         }
 
         # Load setup scripts on demand
+        Write-Host "Loading setup scripts..." -ForegroundColor Yellow
         Import-PrivateScripts -Category 'setup'
+        
+        # Verify setup functions are loaded
+        $loadedFunctions = Get-Command -Name "Setup-*" -ErrorAction SilentlyContinue
+        Write-Host "Found $($loadedFunctions.Count) setup functions: $($loadedFunctions.Name -join ', ')" -ForegroundColor Green
 
         # Step 2: Run setup scripts (configurable)
         $setupFunctions = Get-ScriptsConfig -Category 'setup'
@@ -83,7 +88,7 @@ function Setup-WindowsMissingRecovery {
                 
                 if ($response -eq 'Y') {
                     Write-Host "Installing scheduled tasks..." -ForegroundColor Yellow
-                    if (!(Install-WindowsMissingRecoveryTasks -InstallPath $InstallPath -Force:$Force)) {
+                    if (!(Install-WindowsMissingRecoveryTasks -NoPrompt:$NoPrompt)) {
                         Write-Warning "Failed to install scheduled tasks"
                     }
                 }

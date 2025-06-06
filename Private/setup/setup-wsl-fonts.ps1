@@ -10,10 +10,11 @@ function Setup-WSLFonts {
         return $false
     }
 
-    # Load environment configuration
-    if (!(Load-Environment)) {
-        Write-Warning "Failed to load environment configuration"
-        return $false
+    # Load environment configuration (optional - module will use fallback configuration)
+    try {
+        Load-Environment | Out-Null
+    } catch {
+        Write-Verbose "Using module configuration fallback"
     }
 
     try {
@@ -178,3 +179,4 @@ function Setup-WSLFonts {
         return $false
     }
 }
+

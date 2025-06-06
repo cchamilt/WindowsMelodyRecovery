@@ -2,10 +2,11 @@ function Setup-PackageManagers {
     [CmdletBinding()]
     param()
 
-    # Load environment configuration
-    if (!(Load-Environment)) {
-        Write-Warning "Failed to load environment configuration"
-        return $false
+    # Load environment configuration (optional - module will use fallback configuration)
+    try {
+        Load-Environment | Out-Null
+    } catch {
+        Write-Verbose "Using module configuration fallback"
     }
 
     try {
@@ -85,3 +86,4 @@ Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.
         return $false
     }
 }
+

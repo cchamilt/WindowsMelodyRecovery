@@ -4,7 +4,7 @@ function Load-Environment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
-        [string]$ConfigPath
+        [string]$ConfigPath = $null
     )
     
     # If no ConfigPath provided, try to use module's configuration

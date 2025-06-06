@@ -94,18 +94,23 @@ function Import-PrivateScripts {
     )
     
     $categoryPath = Join-Path $PSScriptRoot "Private\$Category"
+    Write-Verbose "Looking for $Category scripts in: $categoryPath"
+    
     if (Test-Path $categoryPath) {
         $scripts = Get-ChildItem -Path "$categoryPath\*.ps1" -ErrorAction SilentlyContinue
+        Write-Verbose "Found $($scripts.Count) $Category scripts"
+        
         foreach ($script in $scripts) {
             try {
+                Write-Verbose "Loading script: $($script.FullName)"
                 . $script.FullName
-                Write-Verbose "Successfully loaded $Category script: $($script.Name)"
+                Write-Host "Successfully loaded $Category script: $($script.Name)" -ForegroundColor Green
             } catch {
                 Write-Warning "Failed to load $Category script $($script.Name): $_"
             }
         }
     } else {
-        Write-Verbose "$Category scripts directory not found at: $categoryPath"
+        Write-Warning "$Category scripts directory not found at: $categoryPath"
     }
 }
 
@@ -160,13 +165,23 @@ foreach ($import in $Public) {
     }
 }
 
-# Export only successfully loaded functions
-if ($LoadedFunctions.Count -gt 0) {
-    Export-ModuleMember -Function $LoadedFunctions
-    Write-Verbose "Exported $($LoadedFunctions.Count) functions: $($LoadedFunctions -join ', ')"
-} else {
-    Write-Warning "No public functions were successfully loaded to export"
+# Export all functions together
+$ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMissingRecovery', 'Set-WindowsMissingRecovery')
+$AllFunctions = $LoadedFunctions + $ModuleFunctions
+
+# Only export functions that actually exist
+$ExistingFunctions = @()
+foreach ($funcName in $AllFunctions) {
+    if (Get-Command $funcName -ErrorAction SilentlyContinue) {
+        $ExistingFunctions += $funcName
+    } else {
+        Write-Warning "Function $funcName not found, skipping export"
+    }
 }
 
-# Export the helper function for use by public functions
-Export-ModuleMember -Function 'Import-PrivateScripts' 
+if ($ExistingFunctions.Count -gt 0) {
+    Export-ModuleMember -Function $ExistingFunctions
+    Write-Verbose "Exported $($ExistingFunctions.Count) functions: $($ExistingFunctions -join ', ')"
+} else {
+    Write-Warning "No functions were successfully loaded to export"
+} 
