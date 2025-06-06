@@ -78,9 +78,11 @@ function Initialize-WindowsMissingRecovery {
     }
 
     # Get backup location
-    $backupRoot = if ($selectedProvider -eq 'Custom') {
+    $backupRoot = $null
+    
+    if ($selectedProvider -eq 'Custom') {
         if ($NoPrompt) {
-            Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
+            $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
         } else {
             do {
                 $input = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMissingRecovery)"
@@ -94,7 +96,7 @@ function Initialize-WindowsMissingRecovery {
                     Write-Host "Parent directory does not exist. Please enter a valid path." -ForegroundColor Red
                 }
             } while (-not $valid)
-            $path
+            $backupRoot = $path
         }
     } elseif ($selectedProvider -eq 'OneDrive') {
         # Find OneDrive paths
@@ -122,11 +124,14 @@ function Initialize-WindowsMissingRecovery {
                     if ($selection -eq "C") {
                         $backupRoot = Read-Host "Enter custom backup location"
                     } elseif ($selection -match '^\d+$' -and [int]$selection -lt $possiblePaths.Count) {
-                        $backupRoot = $possiblePaths[$selection].FullName
+                        $selectedOneDrive = $possiblePaths[$selection].FullName
+                        $backupRoot = Join-Path $selectedOneDrive "WindowsMissingRecovery"
+                    } else {
+                        Write-Host "Invalid selection. Please choose a valid number or C." -ForegroundColor Red
                     }
                 } while (-not $backupRoot)
             } else {
-                $backupRoot = $possiblePaths[0].FullName
+                $backupRoot = Join-Path $possiblePaths[0].FullName "WindowsMissingRecovery"
             }
         } else {
             Write-Warning "No OneDrive paths found. Using default backup location."

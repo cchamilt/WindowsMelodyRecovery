@@ -6,14 +6,16 @@ param(
     [switch]$UseAI
 )
 
-# Load environment
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
-
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
+# Check if module is properly initialized
+if (-not (Test-ModuleInitialized)) {
+    Write-Warning "Module not properly initialized. Please run Initialize-WindowsMissingRecovery first."
+    return $false
 }
+
+# Get module configuration
+$config = Get-WindowsMissingRecovery
+$backupRoot = Get-BackupRoot
+$machineName = Get-MachineName
 
 # If neither flag is specified, ask the user
 if (!$UseExamples -and !$UseAI) {
@@ -461,7 +463,7 @@ Create a $ProfileType shell profile with these requirements:
                 if ($profileContent) { break }
             }
             catch {
-                Write-Host "Failed to generate profile using $assistant: $_" -ForegroundColor Red
+                Write-Host "Failed to generate profile using ${assistant}: $_" -ForegroundColor Red
                 continue
             }
         }
@@ -475,44 +477,5 @@ Create a $ProfileType shell profile with these requirements:
     return $profileContent
 }
 
-function Setup-CustomProfiles {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$false)]
-        [switch]$Force
-    )
-    
-    if (-not (Test-ModuleInitialized)) {
-        Write-Warning "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
-        return
-    }
-    
-    $config = Get-WindowsMissingRecovery
-    $backupRoot = Get-BackupRoot
-    $machineName = Get-MachineName
-    
-    $assistants = @(
-        "Assistant1",
-        "Assistant2",
-        "Assistant3"
-    )
-    
-    foreach ($assistant in $assistants) {
-        try {
-            Write-Host "Setting up $assistant..."
-            # Add your setup logic here
-            Write-Host "Successfully set up $assistant"
-        } catch {
-            $errorMessage = "Failed to generate profile using ${assistant}: " + $_.Exception.Message
-            Write-Warning $errorMessage
-            if (-not $Force) {
-                throw $errorMessage
-            }
-        }
-    }
-}
-
-Export-ModuleMember -Function 'Setup-CustomProfiles'
-
-# Run the setup
-Setup-CustomProfiles
+# Main execution logic would go here if this was run as a script
+# When loaded by the Setup-WindowsMissingRecovery function, the functions above will be available

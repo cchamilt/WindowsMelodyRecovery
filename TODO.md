@@ -23,6 +23,9 @@
   - ✅ Private scripts are now loaded on-demand only when their respective public functions are called
   - ✅ Fixed OneDrive provider selection logic in Initialize function
   - ✅ Module now loads cleanly without admin requirements, errors, or unwanted script execution
+  - ✅ Fixed Install-Module.ps1 to properly handle file overwriting with -Force and -CleanInstall parameters
+  - ✅ Fixed BACKUP_ROOT configuration issue in Initialize-WindowsMissingRecovery function
+  - ✅ Removed Load-Environment dependencies from setup-customprofiles.ps1 and fixed syntax errors
 
 
 - Make all the backup/restore script lists optional config so not all the components need be backed up or restored.  Same with setup and breakout the remove tasks as scripts too

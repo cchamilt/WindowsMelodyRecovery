@@ -1,3 +1,12 @@
+# Install-Module.ps1 - Install the WindowsMissingRecovery module
+param(
+    [Parameter(Mandatory=$false)]
+    [switch]$Force,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$CleanInstall
+)
+
 # Define module name
 $moduleName = "WindowsMissingRecovery"
 
@@ -30,10 +39,35 @@ if ($documentsPath -notmatch "OneDrive" -and $userProfile -match "OneDrive") {
 
 $modulesPath = Join-Path $documentsPath "$moduleRoot\Modules\$moduleName"
 
+# Handle clean install option
+if ($CleanInstall -and (Test-Path $modulesPath)) {
+    Write-Host "Clean install requested. Removing existing module..." -ForegroundColor Yellow
+    try {
+        # Try to remove the module from memory first
+        if (Get-Module $moduleName -ErrorAction SilentlyContinue) {
+            Remove-Module $moduleName -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -Path $modulesPath -Recurse -Force
+        Write-Host "Existing module removed successfully." -ForegroundColor Green
+    }
+    catch {
+        Write-Warning "Failed to completely remove existing module: $_"
+        if (-not $Force) {
+            Write-Host "Use -Force to continue anyway, or close all PowerShell sessions using the module." -ForegroundColor Yellow
+            return
+        }
+    }
+}
+
 # Create module directory
 if (!(Test-Path $modulesPath)) {
     New-Item -ItemType Directory -Path $modulesPath -Force | Out-Null
     Write-Host "Created module directory: $modulesPath" -ForegroundColor Green
+} elseif ($Force -or $CleanInstall) {
+    Write-Host "Module directory exists. Updating files..." -ForegroundColor Yellow
+} else {
+    Write-Host "Module directory exists: $modulesPath" -ForegroundColor Yellow
+    Write-Host "Use -Force to overwrite existing files or -CleanInstall for a fresh installation." -ForegroundColor Cyan
 }
 
 # Create required module directories
@@ -54,18 +88,30 @@ foreach ($dir in $requiredDirs) {
 }
 
 # Copy module files
-Copy-Item -Path "$moduleName.psd1" -Destination $modulesPath -Force
-Copy-Item -Path "$moduleName.psm1" -Destination $modulesPath -Force
+if ($Force -or $CleanInstall -or !(Test-Path $modulesPath)) {
+    Write-Host "Copying module manifest and main module file..." -ForegroundColor Cyan
+    Copy-Item -Path "$moduleName.psd1" -Destination $modulesPath -Force
+    Copy-Item -Path "$moduleName.psm1" -Destination $modulesPath -Force
+} else {
+    Write-Host "Skipping module files (use -Force to overwrite)" -ForegroundColor Yellow
+}
 
 # Copy Public and Private directories
 foreach ($dir in @("Public", "Private", "Templates", "docs")) {
     if (Test-Path ".\$dir") {
-        $sourceDir = Join-Path (Get-Location) $dir
-        $targetDir = Join-Path $modulesPath $dir
-        
-        # Copy all files in the directory
-        Get-ChildItem -Path $sourceDir -File | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination $targetDir -Force
+        if ($Force -or $CleanInstall -or !(Test-Path (Join-Path $modulesPath $dir))) {
+            Write-Host "Copying $dir directory..." -ForegroundColor Cyan
+            $sourceDir = Join-Path (Get-Location) $dir
+            $targetDir = Join-Path $modulesPath $dir
+            
+            # Copy all files in the directory
+            Get-ChildItem -Path $sourceDir -File | ForEach-Object {
+                Write-Host "  Copying $($_.Name)..." -ForegroundColor Gray
+                Copy-Item -Path $_.FullName -Destination $targetDir -Force
+            }
+        } else {
+            Write-Host "Skipping $dir directory (use -Force to overwrite)" -ForegroundColor Yellow
+            continue
         }
         
         # Copy subdirectories recursively
@@ -73,11 +119,17 @@ foreach ($dir in @("Public", "Private", "Templates", "docs")) {
             $subDirName = $_.Name
             $targetSubDir = Join-Path $targetDir $subDirName
             
+            Write-Host "  Copying subdirectory $subDirName..." -ForegroundColor Gray
             if (!(Test-Path $targetSubDir)) {
                 New-Item -ItemType Directory -Path $targetSubDir -Force | Out-Null
             }
             
-            Copy-Item -Path "$($_.FullName)\*" -Destination $targetSubDir -Recurse -Force
+            # Use robocopy for better file overwriting
+            if (Get-Command robocopy -ErrorAction SilentlyContinue) {
+                & robocopy "$($_.FullName)" "$targetSubDir" /E /IS /IT /IM > $null
+            } else {
+                Copy-Item -Path "$($_.FullName)\*" -Destination $targetSubDir -Recurse -Force
+            }
         }
     }
 }
@@ -100,6 +152,9 @@ try {
     Write-Host "1. Run Initialize-WindowsMissingRecovery to configure the module" -ForegroundColor Cyan
     Write-Host "2. Run Setup-WindowsMissingRecovery to set up optional components" -ForegroundColor Cyan
     Write-Host "3. Use Backup-WindowsMissingRecovery to create your first backup" -ForegroundColor Cyan
+    Write-Host "`nInstall options for updates:" -ForegroundColor Green
+    Write-Host "- Use '.\Install-Module.ps1 -Force' to overwrite existing files" -ForegroundColor White
+    Write-Host "- Use '.\Install-Module.ps1 -CleanInstall' for a fresh installation" -ForegroundColor White
     Write-Host "`nClean separation achieved:" -ForegroundColor Green
     Write-Host "- Install: Only installs the module files" -ForegroundColor White
     Write-Host "- Initialize: Only handles configuration" -ForegroundColor White
