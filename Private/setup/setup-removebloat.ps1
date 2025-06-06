@@ -2,8 +2,8 @@
 # This does some of the same stuff but not all of it.
 # But want to keep copilot and some others
 
+# Setup-RemoveBloat.ps1 - Remove unwanted pre-installed Windows applications and features
 # Requires admin privileges
-#Requires -RunAsAdministrator
 
 # At the start after admin check
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path

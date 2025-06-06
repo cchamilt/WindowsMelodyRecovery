@@ -1,23 +1,4 @@
 # Setup-CustomProfiles.ps1 - Configure chezmoi for dotfile management
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory=$false)]
-    [switch]$Force
-)
-
-# Check if module is properly initialized
-if (-not (Test-ModuleInitialized)) {
-    Write-Warning "Module not properly initialized. Please run Initialize-WindowsMissingRecovery first."
-    return $false
-}
-
-# Get module configuration
-$config = Get-WindowsMissingRecovery
-$backupRoot = Get-BackupRoot
-$machineName = Get-MachineName
-
-Write-Host "Setting up chezmoi for dotfile management..." -ForegroundColor Cyan
-Write-Host "This will help you manage your configuration files (dotfiles) across machines." -ForegroundColor Gray
 
 function Test-ChezmoiInstalled {
     return (Get-Command chezmoi -ErrorAction SilentlyContinue) -ne $null
@@ -33,7 +14,8 @@ function Install-Chezmoi {
             winget install twpayne.chezmoi --accept-source-agreements --accept-package-agreements
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "Chezmoi installed successfully via winget!" -ForegroundColor Green
-                return $true
+                Write-Host "Please restart PowerShell and run this script again." -ForegroundColor Yellow
+                return $false  # Return false to indicate restart needed
             }
         }
         
@@ -43,7 +25,8 @@ function Install-Chezmoi {
             choco install chezmoi -y
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "Chezmoi installed successfully via Chocolatey!" -ForegroundColor Green
-                return $true
+                Write-Host "Please restart PowerShell and run this script again." -ForegroundColor Yellow
+                return $false  # Return false to indicate restart needed
             }
         }
         
@@ -53,7 +36,8 @@ function Install-Chezmoi {
             scoop install chezmoi
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "Chezmoi installed successfully via Scoop!" -ForegroundColor Green
-                return $true
+                Write-Host "Please restart PowerShell and run this script again." -ForegroundColor Yellow
+                return $false  # Return false to indicate restart needed
             }
         }
         
@@ -208,6 +192,26 @@ function Show-ChezmoiUsage {
     Write-Host "This location is backed up with your other Windows recovery data." -ForegroundColor Gray
 }
 
+function Setup-CustomProfiles {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
+    )
+
+    # Get module configuration
+    $config = Get-WindowsMissingRecovery
+    if (-not $config -or -not $config.BackupRoot) {
+        Write-Warning "Module not properly initialized. Please run Initialize-WindowsMissingRecovery first."
+        return $false
+    }
+
+    $backupRoot = $config.BackupRoot
+    $machineName = $config.MachineName
+
+    Write-Host "Setting up chezmoi for dotfile management..." -ForegroundColor Cyan
+    Write-Host "This will help you manage your configuration files (dotfiles) across machines." -ForegroundColor Gray
+
 # Main execution
 try {
     # Check if chezmoi is installed
@@ -266,6 +270,4 @@ try {
     Write-Error "Error during chezmoi setup: $($_.Exception.Message)"
     return $false
 }
-
-# Main execution logic would go here if this was run as a script
-# When loaded by the Setup-WindowsMissingRecovery function, the functions above will be available
+}

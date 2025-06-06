@@ -3,9 +3,27 @@
 function Load-Environment {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$ConfigPath
     )
+    
+    # If no ConfigPath provided, try to use module's configuration
+    if (-not $ConfigPath) {
+        $moduleConfig = Get-WindowsMissingRecovery
+        if ($moduleConfig -and $moduleConfig.BackupRoot) {
+            # Set up environment variables from module configuration
+            $script:BACKUP_ROOT = $moduleConfig.BackupRoot
+            $script:MACHINE_NAME = $moduleConfig.MachineName
+            $script:CLOUD_PROVIDER = $moduleConfig.CloudProvider
+            $script:WINDOWS_MISSING_RECOVERY_PATH = $moduleConfig.WindowsMissingRecoveryPath
+            
+            Write-Verbose "Environment loaded from module configuration"
+            return $true
+        } else {
+            Write-Warning "Module not initialized and no ConfigPath provided. Please run Initialize-WindowsMissingRecovery first."
+            return $false
+        }
+    }
     
     if (-not (Test-Path $ConfigPath)) {
         Write-Warning "Configuration file not found at: $ConfigPath"

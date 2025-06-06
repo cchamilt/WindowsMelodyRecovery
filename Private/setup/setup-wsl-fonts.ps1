@@ -1,5 +1,5 @@
 # Requires admin privileges
-#Requires -RunAsAdministrator
+# Setup-WSLFonts.ps1 - Install development fonts for WSL
 
 # At the start after admin check
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path

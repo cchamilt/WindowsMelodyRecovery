@@ -1,14 +1,20 @@
-# Requires admin privileges
-#Requires -RunAsAdministrator
+# Setup-Defender.ps1 - Configure Windows Defender settings
 
-# At the start after admin check
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+function Setup-Defender {
+    [CmdletBinding()]
+    param()
 
-if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
-    exit 1
-}
+    # Check for admin privileges
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
+        return $false
+    }
+
+    # Load environment configuration
+    if (!(Load-Environment)) {
+        Write-Warning "Failed to load environment configuration"
+        return $false
+    }
 
 try {
     Write-Host "Configuring Windows Defender..." -ForegroundColor Blue
@@ -79,7 +85,7 @@ try {
     Write-Host "Windows Defender configuration completed!" -ForegroundColor Green
 } catch {
     Write-Host "Failed to configure Windows Defender: $_" -ForegroundColor Red
-    exit 1
+    return $false
 }
 
 # Minimize defender notifications
@@ -97,4 +103,6 @@ if ((Get-Command Set-MpPreference).Parameters.Keys -contains "DisableEnhancedNot
 }
 
 Write-Host "Windows Defender configuration completed!" -ForegroundColor Green
+return $true
+}
 

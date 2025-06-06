@@ -1,5 +1,5 @@
 # Requires admin privileges
-#Requires -RunAsAdministrator
+# Setup-KeePassXC.ps1 - Install and configure KeePassXC password manager
 
 # At the start after admin check
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path

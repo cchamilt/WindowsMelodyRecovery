@@ -1,5 +1,5 @@
 # Requires admin privileges
-#Requires -RunAsAdministrator
+# Setup-RestorePoints.ps1 - Configure automatic system restore points
 
 # At the start after admin check
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path

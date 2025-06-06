@@ -125,7 +125,7 @@ function Setup-[Feature] {
                         }
                     }
                     catch {
-                        $error_message = "Failed to configure $item: " + $_.Exception.Message
+                        $error_message = "Failed to configure ${item}: " + $_.Exception.Message
                         $result.Errors += $error_message
                         if (!$Force) { throw }
                     }
