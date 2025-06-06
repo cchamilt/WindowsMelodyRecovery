@@ -15,7 +15,9 @@
         'Restore-WindowsMissingRecovery',
         'Setup-WindowsMissingRecovery',
         'Test-WindowsMissingRecovery',
-        'Update-WindowsMissingRecovery'
+        'Update-WindowsMissingRecovery',
+        'Set-WindowsMissingRecoveryScripts',
+        'Sync-WindowsMissingRecoveryScripts'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

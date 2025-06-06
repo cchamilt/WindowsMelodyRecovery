@@ -1,0 +1,574 @@
+{
+  "backup": {
+    "enabled": [
+      {
+        "name": "Terminal Settings",
+        "function": "Backup-TerminalSettings",
+        "script": "backup-terminal.ps1",
+        "category": "System",
+        "description": "Windows Terminal and console settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Explorer Settings",
+        "function": "Backup-ExplorerSettings",
+        "script": "backup-explorer.ps1",
+        "category": "System",
+        "description": "File Explorer settings and preferences",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Touchpad Settings",
+        "function": "Backup-TouchpadSettings",
+        "script": "backup-touchpad.ps1",
+        "category": "Hardware",
+        "description": "Touchpad configuration and gestures",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Touchscreen Settings",
+        "function": "Backup-TouchscreenSettings",
+        "script": "backup-touchscreen.ps1",
+        "category": "Hardware",
+        "description": "Touchscreen settings and calibration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Power Settings",
+        "function": "Backup-PowerSettings",
+        "script": "backup-power.ps1",
+        "category": "System",
+        "description": "Power plans and energy settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Display Settings",
+        "function": "Backup-DisplaySettings",
+        "script": "backup-display.ps1",
+        "category": "Hardware",
+        "description": "Monitor configuration and display settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Sound Settings",
+        "function": "Backup-SoundSettings",
+        "script": "backup-sound.ps1",
+        "category": "Hardware",
+        "description": "Audio devices and sound configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Keyboard Settings",
+        "function": "Backup-KeyboardSettings",
+        "script": "backup-keyboard.ps1",
+        "category": "Hardware",
+        "description": "Keyboard layout and input settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Start Menu Settings",
+        "function": "Backup-StartMenuSettings",
+        "script": "backup-startmenu.ps1",
+        "category": "UI",
+        "description": "Start menu layout and taskbar settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Default Apps Settings",
+        "function": "Backup-DefaultAppsSettings",
+        "script": "backup-defaultapps.ps1",
+        "category": "System",
+        "description": "Default application associations",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Network Settings",
+        "function": "Backup-NetworkSettings",
+        "script": "backup-network.ps1",
+        "category": "Network",
+        "description": "Network profiles and WiFi settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Remote Desktop Settings",
+        "function": "Backup-RDPSettings",
+        "script": "backup-rdp.ps1",
+        "category": "Network",
+        "description": "Remote Desktop configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "VPN Settings",
+        "function": "Backup-VPNSettings",
+        "script": "backup-vpn.ps1",
+        "category": "Network",
+        "description": "VPN connections and settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "SSH Settings",
+        "function": "Backup-SSHSettings",
+        "script": "backup-ssh.ps1",
+        "category": "Security",
+        "description": "SSH keys and configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "PowerShell Settings",
+        "function": "Backup-PowerShellSettings",
+        "script": "backup-powershell.ps1",
+        "category": "Development",
+        "description": "PowerShell profiles and modules",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Windows Features",
+        "function": "Backup-WindowsFeatures",
+        "script": "backup-windows-features.ps1",
+        "category": "System",
+        "description": "Enabled Windows optional features",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Applications",
+        "function": "Backup-Applications",
+        "script": "backup-applications.ps1",
+        "category": "Applications",
+        "description": "Installed applications and package managers",
+        "enabled": true,
+        "required": true
+      },
+      {
+        "name": "Game Managers",
+        "function": "Backup-GameManagers",
+        "script": "backup-gamemanagers.ps1",
+        "category": "Gaming",
+        "description": "Steam, Epic, etc. game platform settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "System Settings",
+        "function": "Backup-SystemSettings",
+        "script": "backup-system-settings.ps1",
+        "category": "System",
+        "description": "General system configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Browser Settings",
+        "function": "Backup-BrowserSettings",
+        "script": "backup-browsers.ps1",
+        "category": "Applications",
+        "description": "Web browser bookmarks and settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "KeePassXC Settings",
+        "function": "Backup-KeePassXCSettings",
+        "script": "backup-keepassxc.ps1",
+        "category": "Security",
+        "description": "Password manager configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "OneNote Settings",
+        "function": "Backup-OneNoteSettings",
+        "script": "backup-onenote.ps1",
+        "category": "Productivity",
+        "description": "Microsoft OneNote configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Outlook Settings",
+        "function": "Backup-OutlookSettings",
+        "script": "backup-outlook.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Outlook email settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Word Settings",
+        "function": "Backup-WordSettings",
+        "script": "backup-word.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Word configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Excel Settings",
+        "function": "Backup-ExcelSettings",
+        "script": "backup-excel.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Excel configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Visio Settings",
+        "function": "Backup-VisioSettings",
+        "script": "backup-visio.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Visio configuration",
+        "enabled": true,
+        "required": false
+      }
+    ]
+  },
+  "restore": {
+    "enabled": [
+      {
+        "name": "Terminal Settings",
+        "function": "Restore-TerminalSettings",
+        "script": "restore-terminal.ps1",
+        "category": "System",
+        "description": "Windows Terminal and console settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Explorer Settings",
+        "function": "Restore-ExplorerSettings",
+        "script": "restore-explorer.ps1",
+        "category": "System",
+        "description": "File Explorer settings and preferences",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Touchpad Settings",
+        "function": "Restore-TouchpadSettings",
+        "script": "restore-touchpad.ps1",
+        "category": "Hardware",
+        "description": "Touchpad configuration and gestures",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Touchscreen Settings",
+        "function": "Restore-TouchscreenSettings",
+        "script": "restore-touchscreen.ps1",
+        "category": "Hardware",
+        "description": "Touchscreen settings and calibration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Power Settings",
+        "function": "Restore-PowerSettings",
+        "script": "restore-power.ps1",
+        "category": "System",
+        "description": "Power plans and energy settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Display Settings",
+        "function": "Restore-DisplaySettings",
+        "script": "restore-display.ps1",
+        "category": "Hardware",
+        "description": "Monitor configuration and display settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Sound Settings",
+        "function": "Restore-SoundSettings",
+        "script": "restore-sound.ps1",
+        "category": "Hardware",
+        "description": "Audio devices and sound configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Keyboard Settings",
+        "function": "Restore-KeyboardSettings",
+        "script": "restore-keyboard.ps1",
+        "category": "Hardware",
+        "description": "Keyboard layout and input settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Start Menu Settings",
+        "function": "Restore-StartMenuSettings",
+        "script": "restore-startmenu.ps1",
+        "category": "UI",
+        "description": "Start menu layout and taskbar settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Default Apps Settings",
+        "function": "Restore-DefaultAppsSettings",
+        "script": "restore-defaultapps.ps1",
+        "category": "System",
+        "description": "Default application associations",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Network Settings",
+        "function": "Restore-NetworkSettings",
+        "script": "restore-network.ps1",
+        "category": "Network",
+        "description": "Network profiles and WiFi settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Remote Desktop Settings",
+        "function": "Restore-RDPSettings",
+        "script": "restore-rdp.ps1",
+        "category": "Network",
+        "description": "Remote Desktop configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "VPN Settings",
+        "function": "Restore-VPNSettings",
+        "script": "restore-vpn.ps1",
+        "category": "Network",
+        "description": "VPN connections and settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "SSH Settings",
+        "function": "Restore-SSHSettings",
+        "script": "restore-ssh.ps1",
+        "category": "Security",
+        "description": "SSH keys and configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "PowerShell Settings",
+        "function": "Restore-PowerShellSettings",
+        "script": "restore-powershell.ps1",
+        "category": "Development",
+        "description": "PowerShell profiles and modules",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Windows Features",
+        "function": "Restore-WindowsFeatures",
+        "script": "restore-windows-features.ps1",
+        "category": "System",
+        "description": "Windows optional features",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Applications",
+        "function": "Restore-Applications",
+        "script": "restore-applications.ps1",
+        "category": "Applications",
+        "description": "Installed applications and package managers",
+        "enabled": true,
+        "required": true
+      },
+      {
+        "name": "System Settings",
+        "function": "Restore-SystemSettings",
+        "script": "restore-system-settings.ps1",
+        "category": "System",
+        "description": "General system configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Browser Settings",
+        "function": "Restore-BrowserSettings",
+        "script": "restore-browsers.ps1",
+        "category": "Applications",
+        "description": "Web browser bookmarks and settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "KeePassXC Settings",
+        "function": "Restore-KeePassXCSettings",
+        "script": "restore-keepassxc.ps1",
+        "category": "Security",
+        "description": "Password manager configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "OneNote Settings",
+        "function": "Restore-OneNoteSettings",
+        "script": "restore-onenote.ps1",
+        "category": "Productivity",
+        "description": "Microsoft OneNote configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Outlook Settings",
+        "function": "Restore-OutlookSettings",
+        "script": "restore-outlook.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Outlook email settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Word Settings",
+        "function": "Restore-WordSettings",
+        "script": "restore-word.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Word configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Excel Settings",
+        "function": "Restore-ExcelSettings",
+        "script": "restore-excel.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Excel configuration",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Visio Settings",
+        "function": "Restore-VisioSettings",
+        "script": "restore-visio.ps1",
+        "category": "Productivity",
+        "description": "Microsoft Visio configuration",
+        "enabled": true,
+        "required": false
+      }
+    ]
+  },
+  "setup": {
+    "enabled": [
+      {
+        "name": "Custom Profiles (chezmoi)",
+        "function": "Setup-CustomProfiles",
+        "script": "setup-customprofiles.ps1",
+        "category": "Development",
+        "description": "Configure chezmoi for dotfile management",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Remove Bloat",
+        "function": "Setup-RemoveBloat",
+        "script": "setup-removebloat.ps1",
+        "category": "System",
+        "description": "Remove unwanted pre-installed software",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Windows Defender",
+        "function": "Setup-Defender",
+        "script": "setup-defender.ps1",
+        "category": "Security",
+        "description": "Configure Windows Defender settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "System Restore Points",
+        "function": "Setup-RestorePoints",
+        "script": "setup-restorepoints.ps1",
+        "category": "System",
+        "description": "Configure automatic restore points",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "WSL Fonts",
+        "function": "Setup-WSLFonts",
+        "script": "setup-wsl-fonts.ps1",
+        "category": "Development",
+        "description": "Install development fonts for WSL",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "KeePassXC",
+        "function": "Setup-KeePassXC",
+        "script": "setup-keepassxc.ps1",
+        "category": "Security",
+        "description": "Install and configure password manager",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Steam Games",
+        "function": "Setup-SteamGames",
+        "script": "setup-steam-games.ps1",
+        "category": "Gaming",
+        "description": "Configure Steam game settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Epic Games",
+        "function": "Setup-EpicGames",
+        "script": "setup-epic-games.ps1",
+        "category": "Gaming",
+        "description": "Configure Epic Games Launcher",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "GOG Games",
+        "function": "Setup-GOGGames",
+        "script": "setup-gog-games.ps1",
+        "category": "Gaming",
+        "description": "Configure GOG Galaxy settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "EA Games",
+        "function": "Setup-EAGames",
+        "script": "setup-ea-games.ps1",
+        "category": "Gaming",
+        "description": "Configure EA App/Origin settings",
+        "enabled": true,
+        "required": false
+      }
+    ]
+  },
+  "categories": {
+    "System": "Core Windows system settings",
+    "Hardware": "Device and hardware configuration",
+    "Network": "Network and connectivity settings",
+    "Security": "Security and authentication settings",
+    "Development": "Development tools and environments",
+    "Applications": "Application settings and data",
+    "Productivity": "Office and productivity software",
+    "Gaming": "Gaming platforms and settings",
+    "UI": "User interface and appearance"
+  }
+}

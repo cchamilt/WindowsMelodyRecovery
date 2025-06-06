@@ -30,7 +30,13 @@
   - ✅ Updated configuration system to use module directory instead of separate Scripts folder
 
 
-- Make all the backup/restore script lists optional config so not all the components need be backed up or restored.  Same with setup and breakout the remove tasks as scripts too
+- ✅ Make all the backup/restore script lists optional config so not all the components need be backed up or restored. Same with setup and breakout the remove tasks as scripts too
+  - ✅ Created configurable scripts system with Templates/scripts-config.json
+  - ✅ Updated Backup-WindowsMissingRecovery to use configuration instead of hardcoded lists
+  - ✅ Updated Restore-WindowsMissingRecovery to use configuration instead of hardcoded lists  
+  - ✅ Updated Setup-WindowsMissingRecovery to prompt for each enabled setup script
+  - ✅ Added Set-WindowsMissingRecoveryScripts function for interactive script management
+  - ✅ Added Get-ScriptsConfig and Set-ScriptsConfig core utilities for configuration management
 - Make a wsl diff system from a base to rsync user home
 
 ```bash

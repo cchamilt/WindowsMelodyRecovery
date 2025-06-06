@@ -41,7 +41,42 @@ function Setup-WindowsMissingRecovery {
         # Load setup scripts on demand
         Import-PrivateScripts -Category 'setup'
 
-        # Step 2: Install scheduled tasks (if not disabled)
+        # Step 2: Run setup scripts (configurable)
+        $setupFunctions = Get-ScriptsConfig -Category 'setup'
+        if ($setupFunctions) {
+            Write-Host "`nAvailable Setup Scripts:" -ForegroundColor Blue
+            foreach ($setup in $setupFunctions) {
+                if ($setup.enabled) {
+                    if ($NoPrompt -or $Force) {
+                        $response = 'Y'
+                    } else {
+                        $response = Read-Host "Run $($setup.name)? $($setup.description) (Y/N)"
+                    }
+                    
+                    if ($response -eq 'Y') {
+                        Write-Host "Running $($setup.name)..." -ForegroundColor Yellow
+                        try {
+                            if (Get-Command $setup.function -ErrorAction SilentlyContinue) {
+                                & $setup.function
+                                Write-Host "✅ Completed $($setup.name)" -ForegroundColor Green
+                            } else {
+                                Write-Warning "Setup function $($setup.function) not available"
+                            }
+                        } catch {
+                            Write-Warning "Failed to run $($setup.name): $_"
+                        }
+                    } else {
+                        Write-Host "⏭️ Skipped $($setup.name)" -ForegroundColor Gray
+                    }
+                } else {
+                    Write-Verbose "Setup script $($setup.name) is disabled in configuration"
+                }
+            }
+        } else {
+            Write-Host "No setup scripts configured or available." -ForegroundColor Yellow
+        }
+
+        # Step 3: Install scheduled tasks (if not disabled)
         if (!$NoScheduledTasks) {
             if ($Force -or !$NoPrompt) {
                 $response = if ($NoPrompt) { 'Y' } else { Read-Host "Would you like to install scheduled tasks for backup and updates? (Y/N)" }
@@ -55,7 +90,7 @@ function Setup-WindowsMissingRecovery {
             }
         }
 
-        # Step 3: Verify installation
+        # Step 4: Verify installation
         Write-Host "`nVerifying installation..." -ForegroundColor Blue
         $verificationResults = @{
             Config = Test-Path (Join-Path $InstallPath "config.env")

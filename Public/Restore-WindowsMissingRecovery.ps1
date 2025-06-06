@@ -62,55 +62,36 @@ function Test-BackupPath {
     return $null
 }
 
-# Restore scripts are now loaded via Import-PrivateScripts
-# Define restore functions that should be available
-$restoreFunctions = @(
-    "Restore-TerminalSettings",
-    "Restore-ExplorerSettings", 
-    "Restore-TouchpadSettings",
-    "Restore-TouchscreenSettings",
-    "Restore-PowerSettings",
-    "Restore-DisplaySettings",
-    "Restore-SoundSettings",
-    "Restore-KeyboardSettings",
-    "Restore-StartMenuSettings",
-    "Restore-DefaultAppsSettings",
-    "Restore-NetworkSettings",
-    "Restore-RDPSettings",
-    "Restore-VPNSettings",
-    "Restore-SSHSettings",
-    "Restore-PowerShellSettings",
-    "Restore-WindowsFeatures",
-    "Restore-Applications",
-    "Restore-SystemSettings",
-    "Restore-BrowserSettings",
-    "Restore-KeePassXCSettings",
-    "Restore-OneNoteSettings",
-    "Restore-OutlookSettings",
-    "Restore-WordSettings",
-    "Restore-ExcelSettings",
-    "Restore-VisioSettings"
-)
+# Load restore configuration from configurable scripts list
+$restoreFunctions = Get-ScriptsConfig -Category 'restore'
+
+if (-not $restoreFunctions) {
+    Write-Warning "No restore configuration found. Using fallback minimal list."
+    # Fallback to minimal essential restores
+    $restoreFunctions = @(
+        @{ name = "Applications"; function = "Restore-Applications"; script = "restore-applications.ps1"; enabled = $true; required = $true }
+    )
+}
 
 $availableRestores = 0
 
 # Check which restore functions are available and run them
-foreach ($functionName in $restoreFunctions) {
-    if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+foreach ($restore in $restoreFunctions) {
+    if (Get-Command $restore.function -ErrorAction SilentlyContinue) {
         try {
             $params = @{
                 BackupRootPath = $MACHINE_BACKUP
                 MachineBackupPath = $MACHINE_BACKUP
                 SharedBackupPath = $SHARED_BACKUP
             }
-            & $functionName @params
+            & $restore.function @params
             $availableRestores++
-            Write-Verbose "Successfully executed $functionName"
+            Write-Verbose "Successfully executed $($restore.function)"
         } catch {
-            Write-Host "Failed to execute $functionName : $_" -ForegroundColor Red
+            Write-Host "Failed to execute $($restore.function) : $_" -ForegroundColor Red
         }
     } else {
-        Write-Verbose "Restore function $functionName not available"
+        Write-Verbose "Restore function $($restore.function) not available"
     }
 }
 

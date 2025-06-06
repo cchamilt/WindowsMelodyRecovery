@@ -41,37 +41,16 @@ function Backup-WindowsMissingRecovery {
         }
     }
 
-    # Define all backup functions and their corresponding scripts
-    $backupFunctions = @(
-        @{ Name = "Terminal Settings"; Function = "Backup-TerminalSettings"; Script = "backup-terminal.ps1" },
-        @{ Name = "Explorer Settings"; Function = "Backup-ExplorerSettings"; Script = "backup-explorer.ps1" },
-        @{ Name = "Touchpad Settings"; Function = "Backup-TouchpadSettings"; Script = "backup-touchpad.ps1" },
-        @{ Name = "Touchscreen Settings"; Function = "Backup-TouchscreenSettings"; Script = "backup-touchscreen.ps1" },
-        @{ Name = "Power Settings"; Function = "Backup-PowerSettings"; Script = "backup-power.ps1" },
-        @{ Name = "Display Settings"; Function = "Backup-DisplaySettings"; Script = "backup-display.ps1" },
-        @{ Name = "Sound Settings"; Function = "Backup-SoundSettings"; Script = "backup-sound.ps1" },
-        @{ Name = "Keyboard Settings"; Function = "Backup-KeyboardSettings"; Script = "backup-keyboard.ps1" },
-        @{ Name = "Start Menu Settings"; Function = "Backup-StartMenuSettings"; Script = "backup-startmenu.ps1" },
-        @{ Name = "WSL Settings"; Function = "Backup-WSLSettings"; Script = "backup-wsl.ps1" },
-        @{ Name = "Default Apps Settings"; Function = "Backup-DefaultAppsSettings"; Script = "backup-defaultapps.ps1" },
-        @{ Name = "Network Settings"; Function = "Backup-NetworkSettings"; Script = "backup-network.ps1" },
-        @{ Name = "Remote Desktop Settings"; Function = "Backup-RDPSettings"; Script = "backup-rdp.ps1" },
-        @{ Name = "Azure VPN Settings"; Function = "Backup-VPNSettings"; Script = "backup-vpn.ps1" },
-        @{ Name = "SSH Settings"; Function = "Backup-SSHSettings"; Script = "backup-ssh.ps1" },
-        @{ Name = "WSL SSH Settings"; Function = "Backup-WSLSSHSettings"; Script = "backup-wsl-ssh.ps1" },
-        @{ Name = "PowerShell Settings"; Function = "Backup-PowerShellSettings"; Script = "backup-powershell.ps1" },
-        @{ Name = "Windows Features"; Function = "Backup-WindowsFeatures"; Script = "backup-windows-features.ps1" },
-        @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" },
-        @{ Name = "Game Managers"; Function = "Backup-GameManagers"; Script = "backup-gamemanagers.ps1" },
-        @{ Name = "System Settings"; Function = "Backup-SystemSettings"; Script = "backup-system-settings.ps1" },
-        @{ Name = "Browser Settings"; Function = "Backup-BrowserSettings"; Script = "backup-browsers.ps1" },
-        @{ Name = "KeePassXC Settings"; Function = "Backup-KeePassXCSettings"; Script = "backup-keepassxc.ps1" },
-        @{ Name = "OneNote Settings"; Function = "Backup-OneNoteSettings"; Script = "backup-onenote.ps1" },
-        @{ Name = "Outlook Settings"; Function = "Backup-OutlookSettings"; Script = "backup-outlook.ps1" },
-        @{ Name = "Word Settings"; Function = "Backup-WordSettings"; Script = "backup-word.ps1" },
-        @{ Name = "Excel Settings"; Function = "Backup-ExcelSettings"; Script = "backup-excel.ps1" },
-        @{ Name = "Visio Settings"; Function = "Backup-VisioSettings"; Script = "backup-visio.ps1" }
-    )
+    # Load backup configuration from configurable scripts list
+    $backupFunctions = Get-ScriptsConfig -Category 'backup'
+    
+    if (-not $backupFunctions) {
+        Write-Warning "No backup configuration found. Using fallback minimal list."
+        # Fallback to minimal essential backups
+        $backupFunctions = @(
+            @{ name = "Applications"; function = "Backup-Applications"; script = "backup-applications.ps1"; enabled = $true; required = $true }
+        )
+    }
 
     # Collect any errors during backup
     $backupErrors = @()
@@ -89,10 +68,10 @@ function Backup-WindowsMissingRecovery {
         
         # Check which backup functions are available after loading scripts
         foreach ($backup in $backupFunctions) {
-            if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
+            if (Get-Command $backup.function -ErrorAction SilentlyContinue) {
                 $availableBackups += $backup
             } else {
-                Write-Verbose "Backup function $($backup.Function) not available"
+                Write-Verbose "Backup function $($backup.function) not available"
             }
         }
 
@@ -110,9 +89,9 @@ function Backup-WindowsMissingRecovery {
                         MachineBackupPath = $MACHINE_BACKUP
                         SharedBackupPath = Join-Path $BACKUP_ROOT "shared"
                     }
-                    & $backup.Function @params -ErrorAction Stop
+                    & $backup.function @params -ErrorAction Stop
                 } catch {
-                    $errorMessage = "Failed to backup $($backup.Name): $_"
+                    $errorMessage = "Failed to backup $($backup.name): $_"
                     Write-Host $errorMessage -ForegroundColor Red
                     $backupErrors += $errorMessage
                 }
