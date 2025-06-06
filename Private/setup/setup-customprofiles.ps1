@@ -1,9 +1,8 @@
+# Setup-CustomProfiles.ps1 - Configure chezmoi for dotfile management
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [switch]$UseExamples,
-    [Parameter(Mandatory=$false)]
-    [switch]$UseAI
+    [switch]$Force
 )
 
 # Check if module is properly initialized
@@ -17,464 +16,255 @@ $config = Get-WindowsMissingRecovery
 $backupRoot = Get-BackupRoot
 $machineName = Get-MachineName
 
-# If neither flag is specified, ask the user
-if (!$UseExamples -and !$UseAI) {
-    Write-Host "`nHow would you like to generate your shell profiles?" -ForegroundColor Blue
-    Write-Host "1. Use example profiles" -ForegroundColor Yellow
-    Write-Host "2. Use AI assistance" -ForegroundColor Yellow
-    Write-Host "3. Create manually" -ForegroundColor Yellow
+Write-Host "Setting up chezmoi for dotfile management..." -ForegroundColor Cyan
+Write-Host "This will help you manage your configuration files (dotfiles) across machines." -ForegroundColor Gray
+
+function Test-ChezmoiInstalled {
+    return (Get-Command chezmoi -ErrorAction SilentlyContinue) -ne $null
+}
+
+function Install-Chezmoi {
+    Write-Host "`nInstalling chezmoi..." -ForegroundColor Yellow
     
-    do {
-        $choice = Read-Host "`nEnter your choice (1-3)"
-        switch ($choice) {
-            "1" { $UseExamples = $true }
-            "2" { $UseAI = $true }
-            "3" { 
-                Write-Host "Please create your profiles manually at:" -ForegroundColor Yellow
-                Write-Host "PowerShell: $PROFILE" -ForegroundColor Cyan
-                Write-Host "Bash: ~/.bashrc (in WSL)" -ForegroundColor Cyan
-                exit 0
-            }
-            default { 
-                Write-Host "Invalid choice. Please enter 1, 2, or 3." -ForegroundColor Red
-                $choice = $null
-            }
-        }
-    } while ($null -eq $choice)
-}
-
-function Get-InstalledPackages {
-    $packages = @{
-        Windows = @()
-        Linux = @()
-    }
-
-    # Get Windows packages
-    Write-Host "Scanning Windows packages..." -ForegroundColor Blue
-    
-    # Chocolatey packages
-    if (Get-Command choco -ErrorAction SilentlyContinue) {
-        $chocoPackages = choco list --local-only --limit-output | ForEach-Object { ($_ -split '\|')[0] }
-        $packages.Windows += $chocoPackages
-    }
-
-    # Scoop packages
-    if (Get-Command scoop -ErrorAction SilentlyContinue) {
-        $scoopPackages = scoop list | Select-Object -Skip 1 | ForEach-Object { ($_ -split ' ')[0] }
-        $packages.Windows += $scoopPackages
-    }
-
-    # Winget packages
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        $wingetPackages = winget list | Select-Object -Skip 3 | ForEach-Object {
-            if ($_ -match '^(.+?)\s{2,}') {
-                $matches[1].Trim()
-            }
-        }
-        $packages.Windows += $wingetPackages
-    }
-
-    # Get Linux packages if WSL is available
-    if (Get-Command wsl -ErrorAction SilentlyContinue) {
-        Write-Host "`nScanning Linux packages..." -ForegroundColor Blue
-        
-        # Get installed packages from common package managers
-        try {
-            # apt (Debian/Ubuntu)
-            $aptPackages = wsl dpkg-query -f '${Package}\n' -W 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                $packages.Linux += $aptPackages
-            }
-
-            # pacman (Arch)
-            $pacmanPackages = wsl pacman -Q --quiet 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                $packages.Linux += $pacmanPackages
-            }
-
-            # dnf (Fedora/RHEL)
-            $dnfPackages = wsl dnf list installed --quiet 2>$null | ForEach-Object { ($_ -split ' ')[0] }
-            if ($LASTEXITCODE -eq 0) {
-                $packages.Linux += $dnfPackages
-            }
-        }
-        catch {
-            Write-Host "Warning: Error getting Linux packages - $_" -ForegroundColor Yellow
-        }
-    }
-
-    return $packages
-}
-
-function Install-GithubCopilotCli {
-    if (!(Get-Command github-copilot-cli -ErrorAction SilentlyContinue)) {
-        Write-Host "GitHub Copilot CLI not found. Would you like to install it? (Y/N)" -ForegroundColor Yellow
-        $response = Read-Host
-        if ($response -eq 'Y') {
-            try {
-                # Install via npm
-                if (Get-Command npm -ErrorAction SilentlyContinue) {
-                    npm install -g @githubnext/github-copilot-cli
-                    Write-Host "GitHub Copilot CLI installed. Please run 'github-copilot-cli auth' to authenticate." -ForegroundColor Green
-                    Start-Process "github-copilot-cli" -ArgumentList "auth" -Wait
-                    return $true
-                } else {
-                    Write-Host "npm not found. Please install Node.js first." -ForegroundColor Red
-                }
-            } catch {
-                Write-Host "Failed to install GitHub Copilot CLI: $_" -ForegroundColor Red
-            }
-        }
-    }
-    return $false
-}
-
-function Initialize-GabAPI {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$AuthToken
-    )
-
-    # Create base headers and API configuration
-    $script:GabConfig = @{
-        BaseUrl = "https://gab.ai"
-        Headers = @{
-            "Authorization" = "Bearer $AuthToken"
-            "Content-Type" = "application/json"
-        }
-    }
-
-    # Test connection with a simple user query
     try {
-        $response = Invoke-RestMethod -Uri "$($GabConfig.BaseUrl)/users/test" `
-                                    -Headers $GabConfig.Headers `
-                                    -Method Get
+        # Try winget first (Windows Package Manager)
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            Write-Host "Installing via winget..." -ForegroundColor Gray
+            winget install twpayne.chezmoi --accept-source-agreements --accept-package-agreements
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Chezmoi installed successfully via winget!" -ForegroundColor Green
+                return $true
+            }
+        }
+        
+        # Try chocolatey as fallback
+        if (Get-Command choco -ErrorAction SilentlyContinue) {
+            Write-Host "Installing via Chocolatey..." -ForegroundColor Gray
+            choco install chezmoi -y
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Chezmoi installed successfully via Chocolatey!" -ForegroundColor Green
+                return $true
+            }
+        }
+        
+        # Try scoop as another fallback
+        if (Get-Command scoop -ErrorAction SilentlyContinue) {
+            Write-Host "Installing via Scoop..." -ForegroundColor Gray
+            scoop install chezmoi
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Chezmoi installed successfully via Scoop!" -ForegroundColor Green
+                return $true
+            }
+        }
+        
+        # Manual installation as last resort
+        Write-Host "Downloading chezmoi binary manually..." -ForegroundColor Gray
+        $tempDir = $env:TEMP
+        $chezmoiExe = Join-Path $tempDir "chezmoi.exe"
+        
+        # Download the latest release
+        $downloadUrl = "https://github.com/twpayne/chezmoi/releases/latest/download/chezmoi_windows_amd64.exe"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $chezmoiExe
+        
+        # Move to a location in PATH
+        $installDir = "$env:LOCALAPPDATA\Programs\chezmoi"
+        if (!(Test-Path $installDir)) {
+            New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+        }
+        
+        $finalPath = Join-Path $installDir "chezmoi.exe"
+        Move-Item -Path $chezmoiExe -Destination $finalPath -Force
+        
+        # Add to PATH if not already there
+        $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        if ($currentPath -notlike "*$installDir*") {
+            [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$installDir", "User")
+            $env:PATH = "$env:PATH;$installDir"
+        }
+        
+        Write-Host "Chezmoi installed manually to: $finalPath" -ForegroundColor Green
         return $true
-    }
-    catch {
-        Write-Host "Failed to initialize Gab API: $_" -ForegroundColor Red
+        
+    } catch {
+        Write-Error "Failed to install chezmoi: $($_.Exception.Message)"
         return $false
     }
 }
 
-function Get-GabAssistant {
+function Initialize-ChezmoiRepo {
     param(
-        [Parameter(Mandatory=$true)]
-        [string]$Prompt
+        [string]$BackupPath
     )
-
-    if (!$script:GabConfig) {
-        Write-Host "Would you like to configure Gab API access? (Y/N)" -ForegroundColor Yellow
-        $response = Read-Host
-        if ($response -eq 'Y') {
-            $authToken = Read-Host "Enter your Gab API auth token"
-            if (!(Initialize-GabAPI -AuthToken $authToken)) {
-                return $null
-            }
-        }
-        else {
-            return $null
-        }
-    }
-
+    
+    $dotfilesPath = Join-Path $BackupPath "dotfiles"
+    
+    Write-Host "`nSetting up chezmoi repository..." -ForegroundColor Yellow
+    Write-Host "Repository location: $dotfilesPath" -ForegroundColor Gray
+    
     try {
-        # This endpoint URL needs to be updated based on actual Gab API docs
-        $apiEndpoint = "$($GabConfig.BaseUrl)/api/ai/generate"
+        # Create the dotfiles directory in backup location
+        if (!(Test-Path $dotfilesPath)) {
+            New-Item -ItemType Directory -Path $dotfilesPath -Force | Out-Null
+            Write-Host "Created dotfiles directory: $dotfilesPath" -ForegroundColor Green
+        }
         
-        $body = @{
-            prompt = $prompt
-            # Add other required parameters based on API docs
-        } | ConvertTo-Json
-
-        $response = Invoke-RestMethod -Uri $apiEndpoint `
-                                    -Headers $GabConfig.Headers `
-                                    -Method Post `
-                                    -Body $body
-
-        return $response.content
-    }
-    catch {
-        Write-Host "Failed to get response from Gab AI: $_" -ForegroundColor Red
-        return $null
-    }
-}
-
-function Initialize-AzureAI {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$ApiKey,
-        [Parameter(Mandatory=$true)]
-        [string]$Endpoint,
-        [Parameter(Mandatory=$false)]
-        [string]$DeploymentName = "gpt-4"
-    )
-
-    # Create base configuration for Azure OpenAI
-    $script:AzureConfig = @{
-        ApiKey = $ApiKey
-        Endpoint = $Endpoint
-        DeploymentName = $DeploymentName
-        Headers = @{
-            "api-key" = $ApiKey
-            "Content-Type" = "application/json"
-        }
-    }
-
-    # Test connection
-    try {
-        $testUrl = "$Endpoint/openai/deployments/$DeploymentName/chat/completions?api-version=2024-02-15-preview"
-        $testBody = @{
-            messages = @(
-                @{
-                    role = "user"
-                    content = "Test connection"
-                }
-            )
-            max_tokens = 50
-        } | ConvertTo-Json
-
-        $response = Invoke-RestMethod -Uri $testUrl `
-                                    -Headers $script:AzureConfig.Headers `
-                                    -Method Post `
-                                    -Body $testBody
-        return $true
-    }
-    catch {
-        Write-Host "Failed to initialize Azure OpenAI: $_" -ForegroundColor Red
-        return $false
-    }
-}
-
-function Get-AzureAIAssistant {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$Prompt
-    )
-
-    if (!$script:AzureConfig) {
-        Write-Host "Would you like to configure Azure OpenAI? (Y/N)" -ForegroundColor Yellow
-        $response = Read-Host
-        if ($response -eq 'Y') {
-            $apiKey = Read-Host "Enter your Azure OpenAI API key"
-            $endpoint = Read-Host "Enter your Azure OpenAI endpoint (e.g., https://your-resource.openai.azure.com/)"
-            $deployment = Read-Host "Enter your deployment name (default: gpt-4)"
-            if ([string]::IsNullOrEmpty($deployment)) {
-                $deployment = "gpt-4"
+        # Initialize chezmoi with the backup location
+        $env:CHEZMOI_SOURCE_DIR = $dotfilesPath
+        chezmoi init --source=$dotfilesPath
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Chezmoi initialized successfully!" -ForegroundColor Green
+            
+            # Create a basic .chezmoiroot file to organize the repo
+            $chezmoiRoot = Join-Path $dotfilesPath ".chezmoiroot"
+            if (!(Test-Path $chezmoiRoot)) {
+                "# Chezmoi root configuration" | Out-File -FilePath $chezmoiRoot -Encoding UTF8
             }
             
-            if (!(Initialize-AzureAI -ApiKey $apiKey -Endpoint $endpoint -DeploymentName $deployment)) {
-                return $null
-            }
-        }
-        else {
-            return $null
-        }
-    }
-
-    try {
-        $url = "$($script:AzureConfig.Endpoint)/openai/deployments/$($script:AzureConfig.DeploymentName)/chat/completions?api-version=2024-02-15-preview"
-        
-        $body = @{
-            messages = @(
-                @{
-                    role = "system"
-                    content = "You are a helpful assistant that creates shell profiles. Focus on security, performance, and developer productivity."
-                }
-                @{
-                    role = "user"
-                    content = $Prompt
-                }
-            )
-            max_tokens = 4000
-            temperature = 0.7
-            frequency_penalty = 0
-            presence_penalty = 0
-            top_p = 0.95
-        } | ConvertTo-Json
-
-        $response = Invoke-RestMethod -Uri $url `
-                                    -Headers $script:AzureConfig.Headers `
-                                    -Method Post `
-                                    -Body $body
-
-        return $response.choices[0].message.content
-    }
-    catch {
-        Write-Host "Failed to get response from Azure OpenAI: $_" -ForegroundColor Red
-        return $null
-    }
-}
-
-function Get-AvailableAIAssistants {
-    $assistants = @()
-    
-    # Try to install and setup GitHub Copilot CLI
-    if (Install-GithubCopilotCli) {
-        $assistants += "GitHub Copilot CLI"
-    }
-
-    # Check for VS Code with Copilot
-    $vscodePath = "$env:APPDATA\Code\User\settings.json"
-    if (Test-Path $vscodePath) {
-        $settings = Get-Content $vscodePath | ConvertFrom-Json
-        if ($settings.PSObject.Properties['github.copilot.enable'] -and $settings.'github.copilot.enable') {
-            $assistants += "VS Code Copilot"
+            return $true
         } else {
-            Write-Host "VS Code found but Copilot not enabled. Would you like to open VS Code to set it up? (Y/N)" -ForegroundColor Yellow
-            $response = Read-Host
-            if ($response -eq 'Y') {
-                Start-Process "code" -ArgumentList "--install-extension GitHub.copilot" -Wait
-                $assistants += "VS Code Copilot"
-            }
+            Write-Error "Failed to initialize chezmoi repository"
+            return $false
         }
+        
+    } catch {
+        Write-Error "Failed to initialize chezmoi repository: $($_.Exception.Message)"
+        return $false
     }
-
-    # Check for Cursor
-    $cursorPath = "$env:LOCALAPPDATA\Programs\Cursor\Cursor.exe"
-    if (Test-Path $cursorPath) {
-        Write-Host "Cursor found. Would you like to use it for profile generation? (Y/N)" -ForegroundColor Yellow
-        $response = Read-Host
-        if ($response -eq 'Y') {
-            $assistants += "Cursor"
-        }
-    }
-
-    # Check for Claude API access
-    if ($env:ANTHROPIC_API_KEY) {
-        $assistants += "Claude"
-    } else {
-        Write-Host "Would you like to set up Claude API access? (Y/N)" -ForegroundColor Yellow
-        $response = Read-Host
-        if ($response -eq 'Y') {
-            $apiKey = Read-Host "Enter your Anthropic API key"
-            [System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", $apiKey, "User")
-            $env:ANTHROPIC_API_KEY = $apiKey
-            $assistants += "Claude"
-        }
-    }
-
-    # Check for Azure OpenAI
-    if ($env:AZURE_OPENAI_KEY -and $env:AZURE_OPENAI_ENDPOINT) {
-        if (Initialize-AzureAI -ApiKey $env:AZURE_OPENAI_KEY -Endpoint $env:AZURE_OPENAI_ENDPOINT) {
-            $assistants += "Azure OpenAI"
-        }
-    } else {
-        Write-Host "Would you like to set up Azure OpenAI? (Y/N)" -ForegroundColor Yellow
-        $response = Read-Host
-        if ($response -eq 'Y') {
-            $apiKey = Read-Host "Enter your Azure OpenAI API key"
-            $endpoint = Read-Host "Enter your Azure OpenAI endpoint"
-            [System.Environment]::SetEnvironmentVariable("AZURE_OPENAI_KEY", $apiKey, "User")
-            [System.Environment]::SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", $endpoint, "User")
-            $env:AZURE_OPENAI_KEY = $apiKey
-            $env:AZURE_OPENAI_ENDPOINT = $endpoint
-            if (Initialize-AzureAI -ApiKey $apiKey -Endpoint $endpoint) {
-                $assistants += "Azure OpenAI"
-            }
-        }
-    }
-
-    # Add Gab to the list of assistants
-    if ($script:GabConfig -or (Initialize-GabAPI)) {
-        $assistants += "Gab"
-    }
-
-    return $assistants
 }
 
-function New-CustomProfile {
+function Add-CommonDotfiles {
     param(
-        [string]$ProfileType,
-        [array]$Packages,
-        [array]$AIAssistants
+        [string]$DotfilesPath
     )
-
-    $profileContent = ""
     
-    if ($UseExamples) {
-        # Load example profile based on ProfileType
-        $examplePath = Join-Path $scriptPath "example-profiles\$ProfileType.example"
-        if (Test-Path $examplePath) {
-            $profileContent = Get-Content $examplePath -Raw
-        }
-    }
-    elseif ($UseAI) {
-        $prompt = @"
-Create a $ProfileType shell profile with these requirements:
-1. Support for installed packages: $($Packages -join ', ')
-2. Include useful aliases and functions for development
-3. Add environment setup for development tools
-4. Include shell customization (prompt, colors, etc.)
-5. Add helpful utility functions
-6. Ensure good performance (lazy loading where appropriate)
-7. Include error handling
-8. Add comments explaining complex parts
-"@
-
-        foreach ($assistant in $AIAssistants) {
-            try {
-                switch ($assistant) {
-                    "Gab.ai" {
-                        $profileContent = Get-GabAssistant -Prompt $prompt
-                        break
+    Write-Host "`nAdding common configuration files to chezmoi..." -ForegroundColor Yellow
+    
+    $commonFiles = @(
+        @{ Path = $PROFILE; Name = "PowerShell Profile"; Required = $false },
+        @{ Path = "$env:USERPROFILE\.gitconfig"; Name = "Git Config"; Required = $false },
+        @{ Path = "$env:APPDATA\Code\User\settings.json"; Name = "VS Code Settings"; Required = $false },
+        @{ Path = "$env:USERPROFILE\.ssh\config"; Name = "SSH Config"; Required = $false }
+    )
+    
+    $addedFiles = 0
+    
+    foreach ($file in $commonFiles) {
+        if (Test-Path $file.Path) {
+            Write-Host "Found $($file.Name): $($file.Path)" -ForegroundColor Gray
+            $response = Read-Host "Add to chezmoi? (Y/N)"
+            
+            if ($response -eq 'Y' -or $response -eq 'y') {
+                try {
+                    chezmoi add $file.Path
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "  ✓ Added $($file.Name)" -ForegroundColor Green
+                        $addedFiles++
+                    } else {
+                        Write-Warning "  ✗ Failed to add $($file.Name)"
                     }
-                    "GitHub Copilot CLI" {
-                        $profileContent = github-copilot-cli --shell $prompt
-                        break
-                    }
-                    "VS Code Copilot" {
-                        $tempFile = Join-Path $env:TEMP "temp_profile.$ProfileType"
-                        Set-Content -Path $tempFile -Value "# $prompt"
-                        Start-Process "code" -ArgumentList $tempFile -Wait
-                        $profileContent = Get-Content $tempFile -Raw
-                        Remove-Item $tempFile
-                        break
-                    }
-                    "Cursor" {
-                        $tempFile = Join-Path $env:TEMP "temp_profile.$ProfileType"
-                        Set-Content -Path $tempFile -Value "# $prompt"
-                        Start-Process $cursorPath -ArgumentList $tempFile -Wait
-                        $profileContent = Get-Content $tempFile -Raw
-                        Remove-Item $tempFile
-                        break
-                    }
-                    "Claude" {
-                        # You'll need to implement the Claude API call here
-                        $response = Invoke-RestMethod -Uri "https://api.anthropic.com/v1/messages" -Method Post -Headers @{
-                            "x-api-key" = $env:ANTHROPIC_API_KEY
-                            "anthropic-version" = "2023-06-01"
-                        } -ContentType "application/json" -Body (@{
-                            "model" = "claude-3-sonnet-20240229"
-                            "max_tokens" = 4096
-                            "messages" = @(@{
-                                "role" = "user"
-                                "content" = $prompt
-                            })
-                        } | ConvertTo-Json)
-                        $profileContent = $response.content
-                        break
-                    }
-                    "Azure OpenAI" {
-                        $profileContent = Get-AzureAIAssistant -Prompt $prompt
-                        break
-                    }
+                } catch {
+                    Write-Warning "  ✗ Error adding $($file.Name): $($_.Exception.Message)"
                 }
-                
-                if ($profileContent) { break }
             }
-            catch {
-                Write-Host "Failed to generate profile using ${assistant}: $_" -ForegroundColor Red
-                continue
-            }
+        } else {
+            Write-Host "$($file.Name) not found at: $($file.Path)" -ForegroundColor DarkGray
         }
     }
     
-    if (!$profileContent) {
-        Write-Host "No profile content generated. Please create profile manually." -ForegroundColor Yellow
-        return $null
+    if ($addedFiles -gt 0) {
+        Write-Host "`nAdded $addedFiles configuration files to chezmoi." -ForegroundColor Green
+        Write-Host "Run 'chezmoi status' to see managed files." -ForegroundColor Cyan
+        Write-Host "Run 'chezmoi diff' to see what would change." -ForegroundColor Cyan
+        Write-Host "Run 'chezmoi apply' to apply changes." -ForegroundColor Cyan
+    } else {
+        Write-Host "`nNo files were added to chezmoi." -ForegroundColor Yellow
     }
     
-    return $profileContent
+    return $addedFiles -gt 0
+}
+
+function Show-ChezmoiUsage {
+    Write-Host "`n" + "="*60 -ForegroundColor Cyan
+    Write-Host "Chezmoi Setup Complete!" -ForegroundColor Green
+    Write-Host "="*60 -ForegroundColor Cyan
+    
+    Write-Host "`nCommon chezmoi commands:" -ForegroundColor Yellow
+    Write-Host "  chezmoi add <file>     - Add a file to chezmoi management" -ForegroundColor White
+    Write-Host "  chezmoi edit <file>    - Edit a managed file" -ForegroundColor White
+    Write-Host "  chezmoi status         - Show status of managed files" -ForegroundColor White
+    Write-Host "  chezmoi diff           - Show differences" -ForegroundColor White
+    Write-Host "  chezmoi apply          - Apply changes to your system" -ForegroundColor White
+    Write-Host "  chezmoi cd             - Change to chezmoi source directory" -ForegroundColor White
+    
+    Write-Host "`nTo set up on another machine:" -ForegroundColor Yellow
+    Write-Host "  1. Install chezmoi on the target machine" -ForegroundColor White
+    Write-Host "  2. Copy your dotfiles directory from the backup location" -ForegroundColor White
+    Write-Host "  3. Run: chezmoi init --source=<path-to-dotfiles>" -ForegroundColor White
+    Write-Host "  4. Run: chezmoi apply" -ForegroundColor White
+    
+    $dotfilesPath = Join-Path $backupRoot "dotfiles"
+    Write-Host "`nYour dotfiles are stored in: $dotfilesPath" -ForegroundColor Cyan
+    Write-Host "This location is backed up with your other Windows recovery data." -ForegroundColor Gray
+}
+
+# Main execution
+try {
+    # Check if chezmoi is installed
+    if (-not (Test-ChezmoiInstalled)) {
+        Write-Host "Chezmoi is not installed." -ForegroundColor Yellow
+        $installResponse = Read-Host "Would you like to install chezmoi? (Y/N)"
+        
+        if ($installResponse -eq 'Y' -or $installResponse -eq 'y') {
+            if (-not (Install-Chezmoi)) {
+                Write-Error "Failed to install chezmoi. Please install manually from: https://chezmoi.io/install/"
+                return $false
+            }
+            
+            # Refresh PATH to ensure chezmoi is available
+            if (-not (Test-ChezmoiInstalled)) {
+                Write-Host "Please restart PowerShell and run this script again." -ForegroundColor Yellow
+                return $false
+            }
+        } else {
+            Write-Host "Chezmoi installation cancelled. Cannot proceed with setup." -ForegroundColor Yellow
+            return $false
+        }
+    } else {
+        Write-Host "✓ Chezmoi is already installed." -ForegroundColor Green
+    }
+    
+    # Initialize chezmoi repository in backup location
+    $dotfilesPath = Join-Path $backupRoot "dotfiles"
+    
+    if (Test-Path $dotfilesPath) {
+        Write-Host "Dotfiles directory already exists: $dotfilesPath" -ForegroundColor Yellow
+        if (-not $Force) {
+            $overwriteResponse = Read-Host "Reinitialize chezmoi repository? (Y/N)"
+            if ($overwriteResponse -ne 'Y' -and $overwriteResponse -ne 'y') {
+                Write-Host "Skipping repository initialization." -ForegroundColor Yellow
+            } else {
+                Initialize-ChezmoiRepo -BackupPath $backupRoot
+            }
+        } else {
+            Initialize-ChezmoiRepo -BackupPath $backupRoot
+        }
+    } else {
+        Initialize-ChezmoiRepo -BackupPath $backupRoot
+    }
+    
+    # Add common dotfiles
+    Add-CommonDotfiles -DotfilesPath $dotfilesPath
+    
+    # Show usage information
+    Show-ChezmoiUsage
+    
+    Write-Host "`nChezmoi setup completed successfully!" -ForegroundColor Green
+    return $true
+    
+} catch {
+    Write-Error "Error during chezmoi setup: $($_.Exception.Message)"
+    return $false
 }
 
 # Main execution logic would go here if this was run as a script

@@ -26,6 +26,8 @@
   - ✅ Fixed Install-Module.ps1 to properly handle file overwriting with -Force and -CleanInstall parameters
   - ✅ Fixed BACKUP_ROOT configuration issue in Initialize-WindowsMissingRecovery function
   - ✅ Removed Load-Environment dependencies from setup-customprofiles.ps1 and fixed syntax errors
+  - ✅ Replaced AI-based profile generation with practical chezmoi dotfile management setup
+  - ✅ Updated configuration system to use module directory instead of separate Scripts folder
 
 
 - Make all the backup/restore script lists optional config so not all the components need be backed up or restored.  Same with setup and breakout the remove tasks as scripts too
