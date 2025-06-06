@@ -115,6 +115,9 @@ if (Test-Path $CorePath) {
     try {
         . $CorePath
         Write-Verbose "Successfully loaded core utilities from: $CorePath"
+        
+        # Try to initialize module configuration from config file
+        Initialize-ModuleFromConfig
     } catch {
         Write-Warning "Failed to load core utilities from: $CorePath"
         Write-Warning $_.Exception.Message

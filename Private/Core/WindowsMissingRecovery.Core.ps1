@@ -67,6 +67,33 @@ function Get-ModulePath {
     return $PSScriptRoot
 }
 
+function Initialize-ModuleFromConfig {
+    # Try to load configuration from the module's config directory
+    $moduleRoot = Split-Path $PSScriptRoot -Parent
+    $configFile = Join-Path $moduleRoot "Config\windows.env"
+    
+    if (Test-Path $configFile) {
+        try {
+            $config = Get-Content $configFile | ConvertFrom-StringData
+            
+            # Update module configuration from file
+            if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
+            if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
+            if ($config.WINDOWS_MISSING_RECOVERY_PATH) { $script:Config.WindowsMissingRecoveryPath = $config.WINDOWS_MISSING_RECOVERY_PATH }
+            if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
+            
+            $script:Config.IsInitialized = $true
+            Write-Verbose "Module configuration loaded from: $configFile"
+            return $true
+        } catch {
+            Write-Warning "Failed to load configuration from: $configFile - $($_.Exception.Message)"
+            return $false
+        }
+    }
+    
+    return $false
+}
+
 # Export functions
 Export-ModuleMember -Function @(
     'Load-Environment',
@@ -76,5 +103,6 @@ Export-ModuleMember -Function @(
     'Get-BackupRoot',
     'Get-MachineName',
     'Get-CloudProvider',
-    'Get-ModulePath'
+    'Get-ModulePath',
+    'Initialize-ModuleFromConfig'
 ) 

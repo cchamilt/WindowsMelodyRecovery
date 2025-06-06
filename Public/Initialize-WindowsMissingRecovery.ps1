@@ -5,7 +5,7 @@ function Initialize-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
-        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery",
+        [string]$InstallPath,
         
         [Parameter(Mandatory=$false)]
         [switch]$NoPrompt,
@@ -15,10 +15,35 @@ function Initialize-WindowsMissingRecovery {
     )
 
     # Note: This function only handles configuration and does not require admin privileges
+    
+    # Auto-detect module path if not provided
+    if (-not $InstallPath) {
+        $moduleInfo = Get-Module WindowsMissingRecovery
+        if ($moduleInfo) {
+            $InstallPath = Split-Path $moduleInfo.Path -Parent
+        } else {
+            # Fallback to default location
+            $InstallPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery"
+            Write-Warning "Could not detect module path. Using default: $InstallPath"
+        }
+    }
 
-    # Check if already initialized
+    # Configuration should always be in the module's Config directory
     $configFile = Join-Path $InstallPath "Config\windows.env"
     $configExists = Test-Path $configFile
+    
+    # Check for legacy configuration and migrate if needed
+    $legacyConfigFile = "$env:USERPROFILE\Scripts\WindowsMissingRecovery\Config\windows.env"
+    if (-not $configExists -and (Test-Path $legacyConfigFile)) {
+        Write-Host "Found legacy configuration. Migrating to module directory..." -ForegroundColor Yellow
+        $configDir = Join-Path $InstallPath "Config"
+        if (!(Test-Path $configDir)) {
+            New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+        }
+        Copy-Item -Path $legacyConfigFile -Destination $configFile -Force
+        $configExists = $true
+        Write-Host "Configuration migrated successfully." -ForegroundColor Green
+    }
 
     if ($configExists -and -not $Force) {
         Write-Host "WindowsMissingRecovery is already initialized with the following configuration:" -ForegroundColor Yellow
@@ -163,6 +188,9 @@ function Initialize-WindowsMissingRecovery {
 
     # Update module configuration state
     Set-WindowsMissingRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider -WindowsMissingRecoveryPath $InstallPath
+    
+    # Mark module as initialized
+    $script:Config.IsInitialized = $true
     
     Write-Host "`nConfiguration saved to: $configFile" -ForegroundColor Green
     Write-Host "Module configuration updated in memory" -ForegroundColor Green
