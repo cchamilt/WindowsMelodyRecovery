@@ -1,276 +1,173 @@
-# Check if configuration is properly set up
-$config = Get-WindowsMissingRecovery
-if (!$config.BackupRoot) {
-    Write-Host "Backup not configured. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
-    Write-Host "Type 'Initialize-WindowsMissingRecovery' to set up your Windows recovery configuration." -ForegroundColor Cyan
-    return
-}
+function Backup-WindowsMissingRecovery {
+    [CmdletBinding()]
+    param()
 
-# Load backup scripts on demand
-Import-PrivateScripts -Category 'backup'
-
-# Define proper backup paths using config values
-$BACKUP_ROOT = $config.BackupRoot
-$MACHINE_NAME = $config.MachineName
-$MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
-
-# Verify machine name is correct (not the default when we want a specific machine)
-if ([string]::IsNullOrWhiteSpace($MACHINE_NAME) -or $MACHINE_NAME -eq "System.Collections.Hashtable") {
-    $MACHINE_NAME = $env:COMPUTERNAME
-    Write-Host "Machine name not properly configured. Using current computer name: $MACHINE_NAME" -ForegroundColor Yellow
-    
-    # Update configuration with proper machine name
-    Set-WindowsMissingRecovery -MachineName $MACHINE_NAME
-    
-    # Update the machine backup path
-    $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
-}
-
-# Ensure machine backup directory exists
-if (!(Test-Path -Path $MACHINE_BACKUP)) {
-    try {
-        New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
-        Write-Host "Created machine backup directory at: $MACHINE_BACKUP" -ForegroundColor Green
-    } catch {
-        Write-Host "Failed to create machine backup directory: $_" -ForegroundColor Red
+    # Check if configuration is properly set up
+    $config = Get-WindowsMissingRecovery
+    if (!$config.BackupRoot) {
+        Write-Host "Backup not configured. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+        Write-Host "Type 'Initialize-WindowsMissingRecovery' to set up your Windows recovery configuration." -ForegroundColor Cyan
         return
     }
-}
 
-function Initialize-BackupDirectory {
-    param (
-        [string]$Path,
-        [string]$BackupType,
-        [string]$BackupRootPath
-    )
-    
-    # Create machine-specific backup directory if it doesn't exist
-    $backupPath = "$BackupRootPath\$Path"
-    if (!(Test-Path -Path $backupPath)) {
-        try {
-            New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
-            Write-Host "Created backup directory for $BackupType at: $backupPath" -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to create backup directory for $BackupType : $_" -ForegroundColor Red
-            return $null
-        }
-    }
-    
-    return $backupPath
-}
+    # Load backup scripts on demand
+    Import-PrivateScripts -Category 'backup'
 
-# Define all backup functions and their corresponding scripts
-$backupFunctions = @(
-    @{ Name = "Terminal Settings"; Function = "Backup-TerminalSettings"; Script = "backup-terminal.ps1" },
-    @{ Name = "Explorer Settings"; Function = "Backup-ExplorerSettings"; Script = "backup-explorer.ps1" },
-    @{ Name = "Touchpad Settings"; Function = "Backup-TouchpadSettings"; Script = "backup-touchpad.ps1" },
-    @{ Name = "Touchscreen Settings"; Function = "Backup-TouchscreenSettings"; Script = "backup-touchscreen.ps1" },
-    @{ Name = "Power Settings"; Function = "Backup-PowerSettings"; Script = "backup-power.ps1" },
-    @{ Name = "Display Settings"; Function = "Backup-DisplaySettings"; Script = "backup-display.ps1" },
-    @{ Name = "Sound Settings"; Function = "Backup-SoundSettings"; Script = "backup-sound.ps1" },
-    @{ Name = "Keyboard Settings"; Function = "Backup-KeyboardSettings"; Script = "backup-keyboard.ps1" },
-    @{ Name = "Start Menu Settings"; Function = "Backup-StartMenuSettings"; Script = "backup-startmenu.ps1" },
-    @{ Name = "WSL Settings"; Function = "Backup-WSLSettings"; Script = "backup-wsl.ps1" },
-    @{ Name = "Default Apps Settings"; Function = "Backup-DefaultAppsSettings"; Script = "backup-defaultapps.ps1" },
-    @{ Name = "Network Settings"; Function = "Backup-NetworkSettings"; Script = "backup-network.ps1" },
-    @{ Name = "Remote Desktop Settings"; Function = "Backup-RDPSettings"; Script = "backup-rdp.ps1" },
-    @{ Name = "Azure VPN Settings"; Function = "Backup-VPNSettings"; Script = "backup-vpn.ps1" },
-    @{ Name = "SSH Settings"; Function = "Backup-SSHSettings"; Script = "backup-ssh.ps1" },
-    @{ Name = "WSL SSH Settings"; Function = "Backup-WSLSSHSettings"; Script = "backup-wsl-ssh.ps1" },
-    @{ Name = "PowerShell Settings"; Function = "Backup-PowerShellSettings"; Script = "backup-powershell.ps1" },
-    @{ Name = "Windows Features"; Function = "Backup-WindowsFeatures"; Script = "backup-windows-features.ps1" },
-    @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" },
-    @{ Name = "Game Managers"; Function = "Backup-GameManagers"; Script = "backup-gamemanagers.ps1" },
-    @{ Name = "System Settings"; Function = "Backup-SystemSettings"; Script = "backup-system-settings.ps1" },
-    @{ Name = "Browser Settings"; Function = "Backup-BrowserSettings"; Script = "backup-browsers.ps1" },
-    @{ Name = "KeePassXC Settings"; Function = "Backup-KeePassXCSettings"; Script = "backup-keepassxc.ps1" },
-    @{ Name = "OneNote Settings"; Function = "Backup-OneNoteSettings"; Script = "backup-onenote.ps1" },
-    @{ Name = "Outlook Settings"; Function = "Backup-OutlookSettings"; Script = "backup-outlook.ps1" },
-    @{ Name = "Word Settings"; Function = "Backup-WordSettings"; Script = "backup-word.ps1" },
-    @{ Name = "Excel Settings"; Function = "Backup-ExcelSettings"; Script = "backup-excel.ps1" },
-    @{ Name = "Visio Settings"; Function = "Backup-VisioSettings"; Script = "backup-visio.ps1" }
-)
+    # Define proper backup paths using config values
+    $BACKUP_ROOT = $config.BackupRoot
+    $MACHINE_NAME = $config.MachineName
+    $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
 
-# Collect any errors during backup
-$backupErrors = @()
-
-# Create a temporary file for capturing console output
-$tempLogFile = [System.IO.Path]::GetTempFileName()
-
-try {
-    # Start transcript to capture all console output
-    Start-Transcript -Path $tempLogFile -Append
-
-    # Backup scripts are now loaded via Import-PrivateScripts
-    $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
-    $availableBackups = @()
-    
-    # Check which backup functions are available after loading scripts
-    foreach ($backup in $backupFunctions) {
-        if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
-            $availableBackups += $backup
-        } else {
-            Write-Verbose "Backup function $($backup.Function) not available"
-        }
-    }
-
-    # Run all available backup functions
-    if ($availableBackups.Count -eq 0) {
-        Write-Host "No backup functions are available. Check that backup scripts exist in the Private\backup directory." -ForegroundColor Yellow
-    } else {
-        Write-Host "Found $($availableBackups.Count) available backup functions" -ForegroundColor Green
+    # Verify machine name is correct (not the default when we want a specific machine)
+    if ([string]::IsNullOrWhiteSpace($MACHINE_NAME) -or $MACHINE_NAME -eq "System.Collections.Hashtable") {
+        $MACHINE_NAME = $env:COMPUTERNAME
+        Write-Host "Machine name not properly configured. Using current computer name: $MACHINE_NAME" -ForegroundColor Yellow
         
-        # Run all backup functions with backup path
-        foreach ($backup in $availableBackups) {
-            try {
-                $params = @{
-                    BackupRootPath = $MACHINE_BACKUP
-                    MachineBackupPath = $MACHINE_BACKUP  # Add explicit machine backup path
-                    SharedBackupPath = Join-Path $BACKUP_ROOT "shared"  # Add explicit shared backup path
-                }
-                & $backup.Function @params -ErrorAction Stop
-            } catch {
-                $errorMessage = "Failed to backup $($backup.Name): $_"
-                Write-Host $errorMessage -ForegroundColor Red
-                $backupErrors += $errorMessage
+        # Update configuration with proper machine name
+        Set-WindowsMissingRecovery -MachineName $MACHINE_NAME
+        
+        # Update the machine backup path
+        $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
+    }
+
+    # Ensure machine backup directory exists
+    if (!(Test-Path -Path $MACHINE_BACKUP)) {
+        try {
+            New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
+            Write-Host "Created machine backup directory at: $MACHINE_BACKUP" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to create machine backup directory: $_" -ForegroundColor Red
+            return
+        }
+    }
+
+    # Define all backup functions and their corresponding scripts
+    $backupFunctions = @(
+        @{ Name = "Terminal Settings"; Function = "Backup-TerminalSettings"; Script = "backup-terminal.ps1" },
+        @{ Name = "Explorer Settings"; Function = "Backup-ExplorerSettings"; Script = "backup-explorer.ps1" },
+        @{ Name = "Touchpad Settings"; Function = "Backup-TouchpadSettings"; Script = "backup-touchpad.ps1" },
+        @{ Name = "Touchscreen Settings"; Function = "Backup-TouchscreenSettings"; Script = "backup-touchscreen.ps1" },
+        @{ Name = "Power Settings"; Function = "Backup-PowerSettings"; Script = "backup-power.ps1" },
+        @{ Name = "Display Settings"; Function = "Backup-DisplaySettings"; Script = "backup-display.ps1" },
+        @{ Name = "Sound Settings"; Function = "Backup-SoundSettings"; Script = "backup-sound.ps1" },
+        @{ Name = "Keyboard Settings"; Function = "Backup-KeyboardSettings"; Script = "backup-keyboard.ps1" },
+        @{ Name = "Start Menu Settings"; Function = "Backup-StartMenuSettings"; Script = "backup-startmenu.ps1" },
+        @{ Name = "WSL Settings"; Function = "Backup-WSLSettings"; Script = "backup-wsl.ps1" },
+        @{ Name = "Default Apps Settings"; Function = "Backup-DefaultAppsSettings"; Script = "backup-defaultapps.ps1" },
+        @{ Name = "Network Settings"; Function = "Backup-NetworkSettings"; Script = "backup-network.ps1" },
+        @{ Name = "Remote Desktop Settings"; Function = "Backup-RDPSettings"; Script = "backup-rdp.ps1" },
+        @{ Name = "Azure VPN Settings"; Function = "Backup-VPNSettings"; Script = "backup-vpn.ps1" },
+        @{ Name = "SSH Settings"; Function = "Backup-SSHSettings"; Script = "backup-ssh.ps1" },
+        @{ Name = "WSL SSH Settings"; Function = "Backup-WSLSSHSettings"; Script = "backup-wsl-ssh.ps1" },
+        @{ Name = "PowerShell Settings"; Function = "Backup-PowerShellSettings"; Script = "backup-powershell.ps1" },
+        @{ Name = "Windows Features"; Function = "Backup-WindowsFeatures"; Script = "backup-windows-features.ps1" },
+        @{ Name = "Applications"; Function = "Backup-Applications"; Script = "backup-applications.ps1" },
+        @{ Name = "Game Managers"; Function = "Backup-GameManagers"; Script = "backup-gamemanagers.ps1" },
+        @{ Name = "System Settings"; Function = "Backup-SystemSettings"; Script = "backup-system-settings.ps1" },
+        @{ Name = "Browser Settings"; Function = "Backup-BrowserSettings"; Script = "backup-browsers.ps1" },
+        @{ Name = "KeePassXC Settings"; Function = "Backup-KeePassXCSettings"; Script = "backup-keepassxc.ps1" },
+        @{ Name = "OneNote Settings"; Function = "Backup-OneNoteSettings"; Script = "backup-onenote.ps1" },
+        @{ Name = "Outlook Settings"; Function = "Backup-OutlookSettings"; Script = "backup-outlook.ps1" },
+        @{ Name = "Word Settings"; Function = "Backup-WordSettings"; Script = "backup-word.ps1" },
+        @{ Name = "Excel Settings"; Function = "Backup-ExcelSettings"; Script = "backup-excel.ps1" },
+        @{ Name = "Visio Settings"; Function = "Backup-VisioSettings"; Script = "backup-visio.ps1" }
+    )
+
+    # Collect any errors during backup
+    $backupErrors = @()
+
+    # Create a temporary file for capturing console output
+    $tempLogFile = [System.IO.Path]::GetTempFileName()
+
+    try {
+        # Start transcript to capture all console output
+        Start-Transcript -Path $tempLogFile -Append
+
+        # Backup scripts are now loaded via Import-PrivateScripts
+        $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
+        $availableBackups = @()
+        
+        # Check which backup functions are available after loading scripts
+        foreach ($backup in $backupFunctions) {
+            if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
+                $availableBackups += $backup
+            } else {
+                Write-Verbose "Backup function $($backup.Function) not available"
             }
         }
 
-        Write-Host "Settings backup completed!" -ForegroundColor Green
-        
-        # Run unmanaged applications analysis at the end
-        Write-Host "`nRunning unmanaged applications analysis..." -ForegroundColor Blue
-        try {
-            $analyzeScript = Join-Path $backupScriptsDir "analyze-unmanaged.ps1"
-            if (Test-Path $analyzeScript) {
-                . $analyzeScript
-                if (Get-Command Analyze-UnmanagedApplications -ErrorAction SilentlyContinue) {
+        # Run all available backup functions
+        if ($availableBackups.Count -eq 0) {
+            Write-Host "No backup functions are available. Check that backup scripts exist in the Private\backup directory." -ForegroundColor Yellow
+        } else {
+            Write-Host "Found $($availableBackups.Count) available backup functions" -ForegroundColor Green
+            
+            # Run all backup functions with backup path
+            foreach ($backup in $availableBackups) {
+                try {
                     $params = @{
                         BackupRootPath = $MACHINE_BACKUP
                         MachineBackupPath = $MACHINE_BACKUP
                         SharedBackupPath = Join-Path $BACKUP_ROOT "shared"
                     }
-                    $analysisResult = & Analyze-UnmanagedApplications @params -ErrorAction Stop
-                    if ($analysisResult.Success) {
-                        Write-Host "Unmanaged applications analysis completed successfully!" -ForegroundColor Green
-                        Write-Host "Results saved to: $($analysisResult.BackupPath)" -ForegroundColor Green
-                        Write-Host "`nIMPORTANT: Review 'unmanaged-apps.json' to see what you need to manually install!" -ForegroundColor Yellow
-                    }
-                } else {
-                    Write-Host "Analyze-UnmanagedApplications function not found in script" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "Unmanaged analysis script not found: analyze-unmanaged.ps1" -ForegroundColor Yellow
-            }
-        } catch {
-            $errorMessage = "Failed to run unmanaged applications analysis: $_"
-            Write-Host $errorMessage -ForegroundColor Red
-            $backupErrors += $errorMessage
-        }
-    }
-
-    # Add timestamp to backup log
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logFile = Join-Path $MACHINE_BACKUP "backup_history.log"
-
-    try {
-        Add-Content -Path $logFile -Value "Backup completed at: $timestamp" -ErrorAction Stop
-        Write-Host "Backup log updated at: $logFile" -ForegroundColor Green
-    } catch {
-        Write-Host "Failed to update backup log: $_" -ForegroundColor Yellow
-    }
-
-    # Git backup handling
-    try {
-        Write-Host "Checking for Git repositories in backup directories..." -ForegroundColor Blue
-        
-        # Function to handle Git operations for a directory
-        function Invoke-GitBackup {
-            param (
-                [string]$Path,
-                [string]$BackupType
-            )
-            
-            if (Test-Path (Join-Path $Path ".git")) {
-                Push-Location $Path
-                try {
-                    # Check if there are changes
-                    $status = git status --porcelain
-                    if ($status) {
-                        Write-Host "Changes detected in $BackupType repository" -ForegroundColor Yellow
-                        
-                        # Stage all changes
-                        git add -A
-                        
-                        # Commit with timestamp and machine name
-                        $commitMessage = "Automated backup from $MACHINE_NAME at $timestamp"
-                        git commit -m $commitMessage
-                        
-                        # Check if remote exists and push
-                        $remoteExists = git remote get-url origin 2>$null
-                        if ($remoteExists) {
-                            Write-Host "Pushing changes to remote repository..." -ForegroundColor Blue
-                            git push origin
-                            Write-Host "$BackupType backup pushed to remote" -ForegroundColor Green
-                        } else {
-                            Write-Host "No remote repository configured for $BackupType" -ForegroundColor Yellow
-                        }
-                    } else {
-                        Write-Host "No changes detected in $BackupType repository" -ForegroundColor Green
-                    }
+                    & $backup.Function @params -ErrorAction Stop
                 } catch {
-                    Write-Host "Git operations failed for $BackupType : $_" -ForegroundColor Red
-                } finally {
-                    Pop-Location
-                }
-            }
-        }
-        
-        # Check main backup root
-        Invoke-GitBackup -Path $BACKUP_ROOT -BackupType "Main backup"
-        
-        # Check machine-specific backup
-        Invoke-GitBackup -Path $MACHINE_BACKUP -BackupType "Machine backup"
-        
-        # Check shared backup
-        $SHARED_BACKUP = "$BACKUP_ROOT\shared"
-        Invoke-GitBackup -Path $SHARED_BACKUP -BackupType "Shared backup"
-        
-        Write-Host "Git backup operations completed!" -ForegroundColor Green
-    } catch {
-        $errorMessage = "Failed to process Git repositories: $_"
-        Write-Host $errorMessage -ForegroundColor Red
-        $backupErrors += $errorMessage
-    }
-
-} finally {
-    # Stop transcript
-    Stop-Transcript
-
-    # Read the console output and look for error patterns
-    $consoleOutput = Get-Content -Path $tempLogFile -Raw
-    $errorPatterns = @(
-        'error',
-        'exception',
-        'failed',
-        'failure',
-        'unable to'
-    )
-
-    foreach ($pattern in $errorPatterns) {
-        if ($consoleOutput -match "(?im)$pattern") {
-            $matchs = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
-            foreach ($match in $matchs) {
-                $errorMessage = "Console output error: $($match.Value.Trim())"
-                if ($backupErrors -notcontains $errorMessage) {
+                    $errorMessage = "Failed to backup $($backup.Name): $_"
+                    Write-Host $errorMessage -ForegroundColor Red
                     $backupErrors += $errorMessage
                 }
             }
+
+            Write-Host "Settings backup completed!" -ForegroundColor Green
         }
+
+        # Add timestamp to backup log
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $logFile = Join-Path $MACHINE_BACKUP "backup_history.log"
+
+        try {
+            Add-Content -Path $logFile -Value "Backup completed at: $timestamp" -ErrorAction Stop
+            Write-Host "Backup log updated at: $logFile" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to update backup log: $_" -ForegroundColor Yellow
+        }
+
+    } finally {
+        # Stop transcript
+        Stop-Transcript
+
+        # Read the console output and look for error patterns
+        $consoleOutput = Get-Content -Path $tempLogFile -Raw
+        $errorPatterns = @(
+            'error',
+            'exception',
+            'failed',
+            'failure',
+            'unable to'
+        )
+
+        foreach ($pattern in $errorPatterns) {
+            if ($consoleOutput -match "(?im)$pattern") {
+                $matchs = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
+                foreach ($match in $matchs) {
+                    $errorMessage = "Console output error: $($match.Value.Trim())"
+                    if ($backupErrors -notcontains $errorMessage) {
+                        $backupErrors += $errorMessage
+                    }
+                }
+            }
+        }
+
+        # Clean up temporary file
+        Remove-Item -Path $tempLogFile -Force
     }
 
-    # Clean up temporary file
-    Remove-Item -Path $tempLogFile -Force
+    # Return results
+    return @{
+        Success = $backupErrors.Count -eq 0
+        Errors = $backupErrors
+        BackupPath = $MACHINE_BACKUP
+    }
 }
 
 # Email notification function

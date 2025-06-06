@@ -1,6 +1,3 @@
-# Requires admin privileges
-#Requires -RunAsAdministrator
-
 function Install-WindowsMissingRecoveryTasks {
     [CmdletBinding()]
     param(

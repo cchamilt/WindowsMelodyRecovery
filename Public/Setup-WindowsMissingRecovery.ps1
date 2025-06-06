@@ -1,6 +1,3 @@
-# Requires admin privileges
-#Requires -RunAsAdministrator
-
 function Setup-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
@@ -10,6 +7,12 @@ function Setup-WindowsMissingRecovery {
         [switch]$NoPrompt,
         [switch]$Force
     )
+
+    # Check for admin privileges
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
+        return $false
+    }
 
     try {
         Write-Host "Starting Windows Recovery Setup..." -ForegroundColor Blue
@@ -79,36 +82,3 @@ function Setup-WindowsMissingRecovery {
     }
 }
 
-# Allow script to be run directly or sourced
-if ($MyInvocation.InvocationName -ne '.') {
-    Setup-WindowsMissingRecovery @PSBoundParameters
-}
-
-        # Optional setup components
-        $setupOptions = @(
-            @{ Name = "Package Managers"; Function = "Setup-PackageManagers"; Prompt = "Would you like to set up Package Managers? (Y/N)" },
-            @{ Name = "KeePassXC"; Function = "Setup-KeePassXC"; Prompt = "Would you like to set up KeePassXC? (Y/N)" },
-            @{ Name = "Bloatware Removal"; Function = "Setup-RemoveBloat"; Prompt = "Would you like to remove Windows bloatware? (Y/N)" },
-            @{ Name = "Windows Defender"; Function = "Setup-Defender"; Prompt = "Would you like to configure Windows Defender? (Y/N)" },
-            @{ Name = "WSL Fonts"; Function = "Setup-WSLFonts"; Prompt = "Would you like to configure WSL fonts? (Y/N)" },
-            @{ Name = "System Restore"; Function = "Setup-RestorePoints"; Prompt = "Would you like to configure System Restore points? (Y/N)" }
-        )
-
-        foreach ($option in $setupOptions) {
-            if (!$NoPrompt) {
-                $response = Read-Host $option.Prompt
-                if ($response -eq "Y" -or $response -eq "y") {
-                    if (Get-Command $option.Function -ErrorAction SilentlyContinue) {
-                        try {
-                            Write-Host "Running $($option.Name) setup..." -ForegroundColor Blue
-                            & $option.Function
-                            Write-Host "$($option.Name) setup completed." -ForegroundColor Green
-                        } catch {
-                            Write-Host "Failed to run $($option.Name) setup: $_" -ForegroundColor Red
-                        }
-                    } else {
-                        Write-Host "$($option.Name) setup function not available." -ForegroundColor Yellow
-                    }
-                }
-            }
-        }

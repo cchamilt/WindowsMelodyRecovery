@@ -1,18 +1,22 @@
-# Get configuration from the module
-$config = Get-WindowsMissingRecovery
-if (!$config.BackupRoot) {
-    Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
-    return
-}
+function Restore-WindowsMissingRecovery {
+    [CmdletBinding()]
+    param()
 
-# Load restore scripts on demand
-Import-PrivateScripts -Category 'restore'
+    # Get configuration from the module
+    $config = Get-WindowsMissingRecovery
+    if (!$config.BackupRoot) {
+        Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+        return
+    }
 
-# Define proper backup paths using config values
-$BACKUP_ROOT = $config.BackupRoot
-$MACHINE_NAME = $config.MachineName
-$MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
-$SHARED_BACKUP = Join-Path $BACKUP_ROOT "shared"
+    # Load restore scripts on demand
+    Import-PrivateScripts -Category 'restore'
+
+    # Define proper backup paths using config values
+    $BACKUP_ROOT = $config.BackupRoot
+    $MACHINE_NAME = $config.MachineName
+    $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
+    $SHARED_BACKUP = Join-Path $BACKUP_ROOT "shared"
 
 # Ensure shared backup directory exists
 if (!(Test-Path -Path $SHARED_BACKUP)) {
@@ -164,5 +168,10 @@ if ($availableRestores -eq 0) {
     }
 }
 
-# Start system updates
-Write-Host "`nStarting system updates..." -ForegroundColor Green 
+    # Return results
+    return @{
+        Success = $availableRestores -gt 0
+        RestoreCount = $availableRestores
+        BackupPath = $MACHINE_BACKUP
+    }
+}

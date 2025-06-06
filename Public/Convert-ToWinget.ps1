@@ -1,20 +1,21 @@
 # Script to uninstall existing applications and reinstall them via winget 
 
-# Requires admin privileges
-#Requires -RunAsAdministrator
+function Convert-ToWinget {
+    [CmdletBinding()]
+    param()
 
-# At the start after admin check
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    # Check for admin privileges
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
+        return $false
+    }
 
-# Get configuration from the module
-$config = Get-WindowsMissingRecovery
-if (!$config.BackupRoot) {
-    Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
-    return
-}
-
-# Now load environment with configuration available
-. (Join-Path $scriptPath "scripts\load-environment.ps1")
+    # Get configuration from the module
+    $config = Get-WindowsMissingRecovery
+    if (!$config.BackupRoot) {
+        Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+        return $false
+    }
 
 function Get-WingetId {
     param (
@@ -139,7 +140,10 @@ try {
         }
     }
 
-} catch {
-    Write-Host "Failed to convert applications to winget: $_" -ForegroundColor Red
-    exit 1
-} 
+    } catch {
+        Write-Host "Failed to convert applications to winget: $_" -ForegroundColor Red
+        return $false
+    }
+    
+    return $true
+}

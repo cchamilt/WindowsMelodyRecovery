@@ -21,6 +21,9 @@
                      f. ends with no errors, installs, script loading, etc. never happening
   - ✅ Setup script to try to orchestrate all setup (ask to run each script, etc.)
   - ✅ Private scripts are now loaded on-demand only when their respective public functions are called
+
+
+- Make all the backup/restore script lists optional config so not all the components need be backed up or restored.  Same with setup and breakout the remove tasks as scripts too
 - Make a wsl diff system from a base to rsync user home
 
 ```bash

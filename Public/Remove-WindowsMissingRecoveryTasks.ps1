@@ -1,11 +1,15 @@
 # Requires admin privileges
-#Requires -RunAsAdministrator
-
 function Remove-WindowsMissingRecoveryTasks {
     [CmdletBinding()]
     param(
         [switch]$Force
     )
+
+    # Check for admin privileges
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
+        return $false
+    }
 
     # Task names
     $backupTaskName = "WindowsMissingRecovery_Backup"

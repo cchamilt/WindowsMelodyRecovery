@@ -14,11 +14,7 @@ function Initialize-WindowsMissingRecovery {
         [switch]$Force
     )
 
-    # Check for admin privileges
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
-        return $false
-    }
+    # Note: This function only handles configuration and does not require admin privileges
 
     # Check if already initialized
     $configFile = Join-Path $InstallPath "Config\windows.env"

@@ -19,7 +19,7 @@ function Load-Environment {
         }
         return $true
     } catch {
-        Write-Warning "Failed to load environment from $ConfigPath: $_"
+        Write-Warning "Failed to load environment from ${ConfigPath}: $($_.Exception.Message)"
         return $false
     }
 }
