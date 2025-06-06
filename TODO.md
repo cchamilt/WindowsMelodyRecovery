@@ -9,6 +9,9 @@
 5. Review backup scripts and improve some if missing configuration for a specific topic.
 6. Review restore to ensure they match backup functionality.
 7. ✅ Review setup scripts and make sure they are following templates and decoupled from all public scripts but the setup script.
+   - ✅ Applied template fixes to all setup scripts (defender, ea-games, epic-games, gog-games, packagemanagers, restorepoints, wsl-fonts, removebloat, customprofiles)
+   - ✅ Restored full functionality to setup-wsl-fonts.ps1 and setup-removebloat.ps1 that was initially oversimplified
+   - ✅ All scripts now follow proper function structure with Load-Environment usage and consistent error handling
 
 
 - ✅ decouple initialization, setup, and common env/code from Load-Environment (removed Load-Environment dependency)
