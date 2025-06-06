@@ -1,12 +1,6 @@
 #Validates the recovery setup and backup integrity
 #Also runs the private functions from the module individually
 
-# Initialize the module
-Initialize-WindowsMissingRecovery
-
-# Get the current configuration
-Get-WindowsMissingRecovery
-
 function Test-WindowsMissingRecovery {
     [CmdletBinding()]
     param(
@@ -52,7 +46,7 @@ function Test-WindowsMissingRecovery {
     # Test 2: Configuration
     try {
         $config = Get-WindowsMissingRecovery
-        if ($config -and $config.IsInitialized) {
+        if ($config -and $config.BackupRoot) {
             $results.ConfigurationValid = $true
             Write-Host "✓ Configuration is valid" -ForegroundColor Green
             
@@ -76,7 +70,7 @@ function Test-WindowsMissingRecovery {
     if ($results.ConfigurationValid) {
         try {
             $backupRoot = $config.BackupRoot
-            $machineBackupDir = $config.MachineBackupDir
+            $machineBackupDir = Join-Path $backupRoot $config.MachineName
             
             if (Test-Path $backupRoot) {
                 $results.BackupLocationAccessible = $true

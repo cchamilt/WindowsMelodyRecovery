@@ -1,11 +1,3 @@
-# At the start of the script
-$scriptPath = $PSScriptRoot
-$modulePath = Split-Path -Parent $scriptPath
-
-# Simple path references using $PSScriptRoot and $modulePath
-$restoreDir = Join-Path $scriptPath "restore"
-$privateRestoreDir = Join-Path $modulePath "Private\restore"
-
 # Get configuration from the module
 $config = Get-WindowsMissingRecovery
 if (!$config.BackupRoot) {
@@ -13,14 +5,8 @@ if (!$config.BackupRoot) {
     return
 }
 
-# Now load environment if needed
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
-
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-} else {
-    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
-}
+# Load restore scripts on demand
+Import-PrivateScripts -Category 'restore'
 
 # Define proper backup paths using config values
 $BACKUP_ROOT = $config.BackupRoot
@@ -72,102 +58,62 @@ function Test-BackupPath {
     return $null
 }
 
-# Check if restore directories exist - try both public and private locations
-$restoreDirs = @($restoreDir, $privateRestoreDir)
-$restoreScriptPaths = @()
-
-foreach ($dir in $restoreDirs) {
-    if (!(Test-Path -Path $dir)) {
-        try {
-            New-Item -ItemType Directory -Path $dir -Force | Out-Null
-            Write-Host "Created restore scripts directory at: $dir" -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to create restore scripts directory: $_" -ForegroundColor Red
-        }
-    } else {
-        # Find any scripts in this directory
-        Get-ChildItem -Path $dir -Filter "restore-*.ps1" | ForEach-Object {
-            $restoreScriptPaths += $_.FullName
-            Write-Host "Found restore script: $($_.Name)" -ForegroundColor Green
-        }
-    }
-}
-
-# Source all restore scripts
-$restoreScripts = @(
-    "restore-terminal.ps1",
-    "restore-explorer.ps1",
-    "restore-touchpad.ps1",
-    "restore-touchscreen.ps1",
-    "restore-power.ps1",
-    "restore-display.ps1",
-    "restore-sound.ps1",
-    "restore-keyboard.ps1",
-    "restore-startmenu.ps1",
-    "restore-wsl.ps1",
-    "restore-defaultapps.ps1",
-    "restore-network.ps1",
-    "restore-rdp.ps1",
-    "restore-vpn.ps1",
-    "restore-ssh.ps1",
-    "restore-wsl-ssh.ps1",
-    "restore-powershell.ps1",
-    "restore-windows-features.ps1",
-    "restore-applications.ps1",
-    "restore-system-settings.ps1",
-    "restore-browsers.ps1",
-    "restore-keepassxc.ps1",
-    "restore-onenote.ps1",
-    "restore-outlook.ps1",
-    "restore-word.ps1",
-    "restore-excel.ps1",
-    "restore-visio.ps1"
+# Restore scripts are now loaded via Import-PrivateScripts
+# Define restore functions that should be available
+$restoreFunctions = @(
+    "Restore-TerminalSettings",
+    "Restore-ExplorerSettings", 
+    "Restore-TouchpadSettings",
+    "Restore-TouchscreenSettings",
+    "Restore-PowerSettings",
+    "Restore-DisplaySettings",
+    "Restore-SoundSettings",
+    "Restore-KeyboardSettings",
+    "Restore-StartMenuSettings",
+    "Restore-DefaultAppsSettings",
+    "Restore-NetworkSettings",
+    "Restore-RDPSettings",
+    "Restore-VPNSettings",
+    "Restore-SSHSettings",
+    "Restore-PowerShellSettings",
+    "Restore-WindowsFeatures",
+    "Restore-Applications",
+    "Restore-SystemSettings",
+    "Restore-BrowserSettings",
+    "Restore-KeePassXCSettings",
+    "Restore-OneNoteSettings",
+    "Restore-OutlookSettings",
+    "Restore-WordSettings",
+    "Restore-ExcelSettings",
+    "Restore-VisioSettings"
 )
 
-$successfullyLoaded = 0
+$availableRestores = 0
 
-# Try loading the scripts we found in the directories first
-foreach ($scriptPath in $restoreScriptPaths) {
-    try {
-        # Define the Test-BackupPath function with explicit parameters
-        & $scriptPath
-        $successfullyLoaded++
-        Write-Host "Successfully loaded $(Split-Path -Leaf $scriptPath)" -ForegroundColor Green
-    } catch {
-        Write-Host "Failed to source $(Split-Path -Leaf $scriptPath) : $_" -ForegroundColor Red
-    }
-}
-
-# If no scripts were found in the directories, try the default paths for each script
-if ($successfullyLoaded -eq 0) {
-    foreach ($script in $restoreScripts) {
-        $found = $false
-        foreach ($dir in $restoreDirs) {
-            $scriptFile = Join-Path $dir $script
-            if (Test-Path $scriptFile) {
-                try {
-                    # Load the script directly, with direct variables
-                    & $scriptFile -BackupRootPath "$BACKUP_ROOT\$MACHINE_NAME" -MachineBackupPath $MACHINE_BACKUP -SharedBackupPath $SHARED_BACKUP
-                    $successfullyLoaded++
-                    Write-Host "Successfully loaded $script" -ForegroundColor Green
-                    $found = $true
-                    break
-                } catch {
-                    Write-Host "Failed to source $script : $_" -ForegroundColor Red
-                }
+# Check which restore functions are available and run them
+foreach ($functionName in $restoreFunctions) {
+    if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+        try {
+            $params = @{
+                BackupRootPath = $MACHINE_BACKUP
+                MachineBackupPath = $MACHINE_BACKUP
+                SharedBackupPath = $SHARED_BACKUP
             }
+            & $functionName @params
+            $availableRestores++
+            Write-Verbose "Successfully executed $functionName"
+        } catch {
+            Write-Host "Failed to execute $functionName : $_" -ForegroundColor Red
         }
-        
-        if (-not $found) {
-            Write-Host "Restore script not found: $script" -ForegroundColor Yellow
-        }
+    } else {
+        Write-Verbose "Restore function $functionName not available"
     }
 }
 
-if ($successfullyLoaded -eq 0) {
-    Write-Host "No restore scripts were found or loaded. Create scripts in: $restoreDir or $privateRestoreDir" -ForegroundColor Yellow
+if ($availableRestores -eq 0) {
+    Write-Host "No restore functions were found. Check that restore scripts exist in the Private\restore directory." -ForegroundColor Yellow
 } else {
-    Write-Host "Settings restoration completed! ($successfullyLoaded scripts loaded)" -ForegroundColor Green
+    Write-Host "Settings restoration completed! ($availableRestores functions executed)" -ForegroundColor Green
     
     # Run final post-restore applications analysis
     Write-Host "`nRunning final post-restore applications analysis..." -ForegroundColor Blue

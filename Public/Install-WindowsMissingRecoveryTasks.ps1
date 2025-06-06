@@ -15,9 +15,12 @@ function Install-WindowsMissingRecoveryTasks {
 
     # Get module configuration
     $config = Get-WindowsMissingRecovery
-    if (-not $config.IsInitialized) {
+    if (-not $config.BackupRoot) {
         throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
     }
+
+    # Load task scripts on demand
+    Import-PrivateScripts -Category 'tasks'
 
     # Define scheduled tasks
     $tasks = @(

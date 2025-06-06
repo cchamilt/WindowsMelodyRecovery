@@ -84,7 +84,32 @@ function Set-WindowsMissingRecovery {
     $script:Config.LastConfigured = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 }
 
-# Load core utilities first
+# Helper function to load private scripts on demand
+function Import-PrivateScripts {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateSet('backup', 'restore', 'setup', 'tasks', 'scripts')]
+        [string]$Category
+    )
+    
+    $categoryPath = Join-Path $PSScriptRoot "Private\$Category"
+    if (Test-Path $categoryPath) {
+        $scripts = Get-ChildItem -Path "$categoryPath\*.ps1" -ErrorAction SilentlyContinue
+        foreach ($script in $scripts) {
+            try {
+                . $script.FullName
+                Write-Verbose "Successfully loaded $Category script: $($script.Name)"
+            } catch {
+                Write-Warning "Failed to load $Category script $($script.Name): $_"
+            }
+        }
+    } else {
+        Write-Verbose "$Category scripts directory not found at: $categoryPath"
+    }
+}
+
+# Load core utilities first (always needed)
 $CorePath = Join-Path $PSScriptRoot "Private\Core\WindowsMissingRecovery.Core.ps1"
 if (Test-Path $CorePath) {
     try {
@@ -98,33 +123,13 @@ if (Test-Path $CorePath) {
     Write-Warning "Core utilities not found at: $CorePath"
 }
 
-# Define public and private functions
+# Load only public functions at module import time
 $PublicPath = Join-Path $PSScriptRoot "Public"
-$PrivatePath = Join-Path $PSScriptRoot "Private"
-
 if (-not (Test-Path $PublicPath)) {
     Write-Warning "Public functions directory not found at: $PublicPath"
     $Public = @()
 } else {
     $Public = @(Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue)
-}
-
-if (-not (Test-Path $PrivatePath)) {
-    Write-Warning "Private functions directory not found at: $PrivatePath"
-    $Private = @()
-} else {
-    $Private = @(Get-ChildItem -Path "$PrivatePath\*.ps1" -ErrorAction SilentlyContinue -Recurse) | 
-        Where-Object { $_.FullName -ne $CorePath }
-}
-
-# Load private functions first
-foreach ($import in $Private) {
-    try {
-        . $import.FullName
-        Write-Verbose "Successfully loaded private function: $($import.FullName)"
-    } catch {
-        Write-Warning "Failed to import private function $($import.FullName): $_"
-    }
 }
 
 # Load public functions
@@ -142,4 +147,7 @@ if ($Public.Count -gt 0) {
     Export-ModuleMember -Function $Public.BaseName
 } else {
     Write-Warning "No public functions found to export"
-} 
+}
+
+# Export the helper function for use by public functions
+Export-ModuleMember -Function 'Import-PrivateScripts' 

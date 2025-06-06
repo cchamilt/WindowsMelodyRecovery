@@ -1,26 +1,13 @@
-# At the start of the script
-$scriptPath = $PSScriptRoot
-$modulePath = Split-Path -Parent $scriptPath
-
-# Simple path references using $PSScriptRoot and $modulePath
-$backupScriptsDir = Join-Path $modulePath "Private\backup"
-
 # Check if configuration is properly set up
 $config = Get-WindowsMissingRecovery
 if (!$config.BackupRoot) {
-    Write-Host "Backup not configured. Please run Initialize-WindowsMissingRecovery and Install-WindowsMissingRecovery first." -ForegroundColor Yellow
-    Write-Host "Type 'Install-WindowsMissingRecovery' to set up your Windows recovery." -ForegroundColor Cyan
+    Write-Host "Backup not configured. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+    Write-Host "Type 'Initialize-WindowsMissingRecovery' to set up your Windows recovery configuration." -ForegroundColor Cyan
     return
 }
 
-# Now load environment if needed
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
-
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-} else {
-    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
-}
+# Load backup scripts on demand
+Import-PrivateScripts -Category 'backup'
 
 # Define proper backup paths using config values
 $BACKUP_ROOT = $config.BackupRoot
@@ -114,49 +101,27 @@ try {
     # Start transcript to capture all console output
     Start-Transcript -Path $tempLogFile -Append
 
-    # Source all backup scripts first
+    # Backup scripts are now loaded via Import-PrivateScripts
     $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
-    $loadedScripts = @()
+    $availableBackups = @()
     
-    # Check if backup directory exists
-    if (!(Test-Path -Path $backupScriptsDir)) {
-        try {
-            New-Item -ItemType Directory -Path $backupScriptsDir -Force | Out-Null
-            Write-Host "Created backup scripts directory at: $backupScriptsDir" -ForegroundColor Green
-            Write-Host "Note: You need to add backup scripts to this directory." -ForegroundColor Yellow
-        } catch {
-            Write-Host "Failed to create backup scripts directory: $_" -ForegroundColor Red
-        }
-    }
-
+    # Check which backup functions are available after loading scripts
     foreach ($backup in $backupFunctions) {
-        try {
-            $scriptFile = Join-Path $backupScriptsDir $backup.Script
-            if (Test-Path $scriptFile) {
-                . $scriptFile
-                # Verify the function was loaded
-                if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
-                    $loadedScripts += $backup
-                    Write-Host "Successfully loaded $($backup.Name) backup script" -ForegroundColor Green
-                } else {
-                    Write-Host "Function $($backup.Function) was not defined in $($backup.Script)" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "Backup script not found: $($backup.Script)" -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "Error loading script $($backup.Script): $_" -ForegroundColor Red
+        if (Get-Command $backup.Function -ErrorAction SilentlyContinue) {
+            $availableBackups += $backup
+        } else {
+            Write-Verbose "Backup function $($backup.Function) not available"
         }
     }
 
-    # Run all backup functions with backup path
-    if ($loadedScripts.Count -eq 0) {
-        Write-Host "No backup scripts were found or loaded. Create scripts in: $backupScriptsDir" -ForegroundColor Yellow
+    # Run all available backup functions
+    if ($availableBackups.Count -eq 0) {
+        Write-Host "No backup functions are available. Check that backup scripts exist in the Private\backup directory." -ForegroundColor Yellow
     } else {
-        Write-Host "Loaded $($loadedScripts.Count) backup scripts successfully" -ForegroundColor Green
+        Write-Host "Found $($availableBackups.Count) available backup functions" -ForegroundColor Green
         
         # Run all backup functions with backup path
-        foreach ($backup in $loadedScripts) {
+        foreach ($backup in $availableBackups) {
             try {
                 $params = @{
                     BackupRootPath = $MACHINE_BACKUP

@@ -14,11 +14,29 @@ function Setup-WindowsMissingRecovery {
     try {
         Write-Host "Starting Windows Recovery Setup..." -ForegroundColor Blue
 
-        # Step 1: Initialize configuration
-        $config = Initialize-WindowsMissingRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt -Force:$Force
-        if (!$config) {
-            throw "Failed to initialize Windows Recovery configuration"
+        # Check if configuration is already initialized
+        $config = Get-WindowsMissingRecovery
+        if (!$config.BackupRoot -or $Force) {
+            Write-Host "Configuration not found or Force specified. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+            if (!$NoPrompt) {
+                $response = Read-Host "Would you like to run initialization now? (Y/N)"
+                if ($response -eq 'Y') {
+                    $config = Initialize-WindowsMissingRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt -Force:$Force
+                    if (!$config) {
+                        throw "Failed to initialize Windows Recovery configuration"
+                    }
+                } else {
+                    throw "Setup requires initialization. Please run Initialize-WindowsMissingRecovery first."
+                }
+            } else {
+                throw "Setup requires initialization. Please run Initialize-WindowsMissingRecovery first."
+            }
+        } else {
+            Write-Host "Using existing configuration" -ForegroundColor Green
         }
+
+        # Load setup scripts on demand
+        Import-PrivateScripts -Category 'setup'
 
         # Step 2: Install scheduled tasks (if not disabled)
         if (!$NoScheduledTasks) {
@@ -66,80 +84,31 @@ if ($MyInvocation.InvocationName -ne '.') {
     Setup-WindowsMissingRecovery @PSBoundParameters
 }
 
-# Setup Package Managers
-if (!$NoPrompt) {
-    $response = Read-Host "Would you like to set up Package Managers? (Y/N)"
-    if ($response -eq "Y" -or $response -eq "y") {
-        $setupScript = Join-Path $InstallPath "setup\setup-packagemanagers.ps1"
-        if (Test-Path $setupScript) {
-            & $setupScript
-        }
-    }
-}
+        # Optional setup components
+        $setupOptions = @(
+            @{ Name = "Package Managers"; Function = "Setup-PackageManagers"; Prompt = "Would you like to set up Package Managers? (Y/N)" },
+            @{ Name = "KeePassXC"; Function = "Setup-KeePassXC"; Prompt = "Would you like to set up KeePassXC? (Y/N)" },
+            @{ Name = "Bloatware Removal"; Function = "Setup-RemoveBloat"; Prompt = "Would you like to remove Windows bloatware? (Y/N)" },
+            @{ Name = "Windows Defender"; Function = "Setup-Defender"; Prompt = "Would you like to configure Windows Defender? (Y/N)" },
+            @{ Name = "WSL Fonts"; Function = "Setup-WSLFonts"; Prompt = "Would you like to configure WSL fonts? (Y/N)" },
+            @{ Name = "System Restore"; Function = "Setup-RestorePoints"; Prompt = "Would you like to configure System Restore points? (Y/N)" }
+        )
 
-# Setup KeePassXC if requested
-if (!$NoPrompt) {
-    $response = Read-Host "Would you like to set up KeePassXC? (Y/N)"
-    if ($response -eq "Y" -or $response -eq "y") {
-        $setupScript = Join-Path $InstallPath "setup\setup-keepassxc.ps1"
-        if (Test-Path $setupScript) {
-            & $setupScript
+        foreach ($option in $setupOptions) {
+            if (!$NoPrompt) {
+                $response = Read-Host $option.Prompt
+                if ($response -eq "Y" -or $response -eq "y") {
+                    if (Get-Command $option.Function -ErrorAction SilentlyContinue) {
+                        try {
+                            Write-Host "Running $($option.Name) setup..." -ForegroundColor Blue
+                            & $option.Function
+                            Write-Host "$($option.Name) setup completed." -ForegroundColor Green
+                        } catch {
+                            Write-Host "Failed to run $($option.Name) setup: $_" -ForegroundColor Red
+                        }
+                    } else {
+                        Write-Host "$($option.Name) setup function not available." -ForegroundColor Yellow
+                    }
+                }
+            }
         }
-    }
-}
-
-# Bloatware removal
-if (!$NoPrompt) {
-    $response = Read-Host "`nWould you like to remove Windows bloatware? (Y/N)"
-    if ($response -eq "Y" -or $response -eq "y") {
-        $setupScript = Join-Path $InstallPath "setup\setup-removebloat.ps1"
-        if (Test-Path $setupScript) {
-            Write-Host "Running bloatware removal..." -ForegroundColor Blue
-            & $setupScript
-        } else {
-            Write-Host "Bloatware removal script not found at: $setupScript" -ForegroundColor Red
-        }
-    }
-}
-
-# Setup Defender
-if (!$NoPrompt) {
-    $response = Read-Host "`nWould you like to configure Windows Defender? (Y/N)"
-    if ($response -eq "Y" -or $response -eq "y") {
-        $setupScript = Join-Path $InstallPath "setup\setup-defender.ps1"
-        if (Test-Path $setupScript) {
-            Write-Host "Configuring Windows Defender..." -ForegroundColor Blue
-            & $setupScript
-        } else {
-            Write-Host "Windows Defender setup script not found at: $setupScript" -ForegroundColor Red
-        }
-    }
-}
-
-# Setup WSL Fonts
-if (!$NoPrompt) {
-    $response = Read-Host "`nWould you like to configure WSL fonts? (Y/N)"
-    if ($response -eq "Y" -or $response -eq "y") {
-        $setupScript = Join-Path $InstallPath "setup\setup-wsl-fonts.ps1"
-        if (Test-Path $setupScript) {
-            Write-Host "Configuring WSL fonts..." -ForegroundColor Blue
-            & $setupScript
-        } else {
-            Write-Host "WSL fonts setup script not found at: $setupScript" -ForegroundColor Red
-        }
-    }
-}
-
-# Setup System Restore
-if (!$NoPrompt) {
-    $response = Read-Host "`nWould you like to configure System Restore points? (Y/N)"
-    if ($response -eq "Y" -or $response -eq "y") {
-        $setupScript = Join-Path $InstallPath "setup\setup-restorepoints.ps1"
-        if (Test-Path $setupScript) {
-            Write-Host "Configuring System Restore..." -ForegroundColor Blue
-            & $setupScript
-        } else {
-            Write-Host "System Restore setup script not found at: $setupScript" -ForegroundColor Red
-        }
-    }
-}

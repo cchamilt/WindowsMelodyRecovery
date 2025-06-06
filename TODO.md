@@ -8,18 +8,19 @@
 4. Implement proper testing hooks as shown in the template
 5. Review backup scripts and improve some if missing configuration for a specific topic.
 6. Review restore to ensure they match backup functionality.
-7. Review setup scripts and make sure
+7. ✅ Review setup scripts and make sure they are following templates and decoupled from all public scripts but the setup script.
 
 
-- decouple initialization, setup, and common env/code from Load-Environment (remove Load-Environment?)
-  - Install just installs
-  - Initialize ONLY: a. tries to find config
-                     b. reads config if availabl
+- ✅ decouple initialization, setup, and common env/code from Load-Environment (removed Load-Environment dependency)
+  - ✅ Install just installs (Install-Module.ps1 only copies files)
+  - ✅ Initialize ONLY: a. tries to find config
+                     b. reads config if available
                      c. ask if you want to reconfig or configs
                      d. asks about cloud, and multiple cloud paths
                      e. rest of config file fields optionally
                      f. ends with no errors, installs, script loading, etc. never happening
-  - Setup script to try to orchestrate all setup (ask to run each script, etc.)
+  - ✅ Setup script to try to orchestrate all setup (ask to run each script, etc.)
+  - ✅ Private scripts are now loaded on-demand only when their respective public functions are called
 - Make a wsl diff system from a base to rsync user home
 
 ```bash

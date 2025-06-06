@@ -1,9 +1,5 @@
 # Update Installed Apps/Tools/etc.
 
-# At the start of the script
-$scriptPath = $PSScriptRoot
-$modulePath = Split-Path -Parent $scriptPath
-
 # Get configuration from the module
 $config = Get-WindowsMissingRecovery
 if (!$config.BackupRoot) {
@@ -11,14 +7,8 @@ if (!$config.BackupRoot) {
     return
 }
 
-# Now load environment if needed
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
-
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-} else {
-    Write-Warning "Could not find load-environment.ps1 at: $loadEnvPath"
-}
+# Load scripts on demand if needed
+Import-PrivateScripts -Category 'scripts'
 
 # Define proper backup paths using config values
 $BACKUP_ROOT = $config.BackupRoot

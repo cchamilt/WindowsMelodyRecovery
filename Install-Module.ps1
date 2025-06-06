@@ -98,8 +98,13 @@ try {
     Write-Host "$moduleName module installed successfully!" -ForegroundColor Green
     Write-Host "`nNext steps:" -ForegroundColor Yellow
     Write-Host "1. Run Initialize-WindowsMissingRecovery to configure the module" -ForegroundColor Cyan
-    Write-Host "2. Follow the prompts to set up your backup location and machine name" -ForegroundColor Cyan
+    Write-Host "2. Run Setup-WindowsMissingRecovery to set up optional components" -ForegroundColor Cyan
     Write-Host "3. Use Backup-WindowsMissingRecovery to create your first backup" -ForegroundColor Cyan
+    Write-Host "`nClean separation achieved:" -ForegroundColor Green
+    Write-Host "- Install: Only installs the module files" -ForegroundColor White
+    Write-Host "- Initialize: Only handles configuration" -ForegroundColor White
+    Write-Host "- Setup: Only handles optional component setup" -ForegroundColor White
+    Write-Host "- Private scripts are loaded on-demand only when needed" -ForegroundColor White
 } 
 catch {
     Write-Host "Error: $_" -ForegroundColor Red
