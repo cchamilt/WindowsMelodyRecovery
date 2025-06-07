@@ -15,13 +15,10 @@ The WindowsMissingRecovery module provides a robust set of tools for:
 
 ```mermaid
 graph TD
-    A["🔍 BACKUP: Analyze-UnmanagedApplications"] --> B["Original 
-    System State"]
-    B --> C["📝 unmanaged-analysis.json<br/>List of unmanaged 
-    apps"]
+    A["🔍 BACKUP: Analyze-UnmanagedApplications"] --> B["Original System State"]
+    B --> C["📝 unmanaged-analysis.json<br/>List of unmanaged apps"]
     
-    D["💾 BACKUP PROCESS"] --> E["Package Manager Data<br/>(Store, 
-    Scoop, Choco, Winget)"]
+    D["💾 BACKUP PROCESS"] --> E["Package Manager Data<br/>(Store, Scoop, Choco, Winget)"]
     D --> F["Game Manager Data<br/>(Steam, Epic, GOG, etc.)"]
     D --> C
     
@@ -29,16 +26,14 @@ graph TD
     G --> I["Install Game Managers"]
     G --> J["Install Applications"]
     
-    K["🔍 POST-RESTORE: Compare-PostRestoreApplications"] --> L
-    ["Load Original Analysis"]
+    K["🔍 POST-RESTORE: Compare-PostRestoreApplications"] --> L["Load Original Analysis"]
     K --> M["Scan Current System"]
     K --> N["Compare Original vs Current"]
     
     L --> C
     M --> O["Current System State<br/>(after restore)"]
     
-    N --> P["✅ Successfully Restored<br/>(were unmanaged, now 
-    installed)"]
+    N --> P["✅ Successfully Restored<br/>(were unmanaged, now installed)"]
     N --> Q["❌ Still Unmanaged<br/>(need manual install)"]
     
     P --> R["📊 restored-apps.json"]
