@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml)
 [![Integration Tests](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml)
-
-> 🔧 **Note**: Replace `cchamilt` in the badge URLs above with your actual GitHub username
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/WindowsMissingRecovery?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsMissingRecovery)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](docs/)
@@ -47,38 +45,6 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 > 📊 **[View Detailed Test Results](https://github.com/cchamilt/desktop-setup/actions)** | **[Testing Documentation](.github/README.md)**
 
 ## 🚀 Quick Start
-
-```powershell
-# 1. Install the module
-.\Install-Module.ps1
-
-# 2. Initialize configuration (detects cloud storage automatically)
-Initialize-WindowsMissingRecovery
-
-# 3. Create your first backup
-Backup-WindowsMissingRecovery
-
-# 4. Set up optional components (requires admin)
-Setup-WindowsMissingRecovery
-```
-
-> 💡 **New to the module?** Start with the **[Installation Guide](docs/INSTALLATION.md)** for detailed setup instructions.
-
-```powershell
-# 1. Install the module
-.\Install-Module.ps1
-
-# 2. Initialize configuration (detects cloud storage automatically)
-Initialize-WindowsMissingRecovery
-
-# 3. Create your first backup
-Backup-WindowsMissingRecovery
-
-# 4. Set up optional components (requires admin)
-Setup-WindowsMissingRecovery
-```
-
-> 💡 **New to the module?** Start with the **[Installation Guide](docs/INSTALLATION.md)** for detailed setup instructions.
 
 ## Overview
 
@@ -443,6 +409,9 @@ desktop-setup/
 ├── 📁 .github/                        # GitHub Actions workflows
 │   ├── 📁 workflows/                  # CI/CD workflows
 │   └── 📄 README.md                   # Testing documentation
+├── 📁 scripts/                        # Utility scripts
+│   ├── 📄 Update-GitHubUsername.ps1   # Update GitHub references
+│   └── 📄 README.md                   # Scripts documentation
 └── 📄 CHANGELOG.md                    # Version history
 ```
 
@@ -457,11 +426,11 @@ We welcome contributions! Here's how to get started:
 
 ### 🧪 **Testing Your Changes**
 ```powershell
-# Run quick validation
-.\.github\workflows\ci.yml
+# Run quick validation locally
+Invoke-ScriptAnalyzer -Path . -Recurse
 
-# Run full integration tests (requires WSL)
-.\.github\workflows\integration-tests.yml
+# Run unit tests locally
+Invoke-Pester tests/unit/
 
 # Or use Docker for local testing
 .\run-integration-tests.ps1

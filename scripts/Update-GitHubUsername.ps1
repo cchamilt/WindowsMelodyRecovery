@@ -1,29 +1,32 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Updates GitHub username placeholders in README and other files
+    Updates GitHub username in repository files
 
 .DESCRIPTION
-    This script replaces all instances of "YOUR_USERNAME" with the actual GitHub username
-    in README.md and other documentation files.
+    This script replaces GitHub username references in README.md and other documentation files.
+    Useful when forking the repository or changing GitHub usernames.
 
-.PARAMETER GitHubUsername
-    The actual GitHub username to replace "YOUR_USERNAME" with
+.PARAMETER OldUsername
+    The current GitHub username to replace
 
-.PARAMETER WhatIf
-    Shows what changes would be made without actually making them
+.PARAMETER NewUsername
+    The new GitHub username to use
 
 .EXAMPLE
-    .\scripts\Update-GitHubUsername.ps1 -GitHubUsername "myusername"
+    .\scripts\Update-GitHubUsername.ps1 -OldUsername "cchamilt" -NewUsername "newusername"
     
 .EXAMPLE
-    .\scripts\Update-GitHubUsername.ps1 -GitHubUsername "myusername" -WhatIf
+    .\scripts\Update-GitHubUsername.ps1 -OldUsername "cchamilt" -NewUsername "newusername" -WhatIf
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$GitHubUsername
+    [string]$OldUsername,
+    
+    [Parameter(Mandatory = $true)]
+    [string]$NewUsername
 )
 
 # Files to update
@@ -34,13 +37,18 @@ $FilesToUpdate = @(
     "docs/INSTALLATION.md"
 )
 
-# Validate GitHub username
-if ($GitHubUsername -notmatch '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$') {
-    Write-Error "Invalid GitHub username format: $GitHubUsername"
+# Validate GitHub usernames
+if ($OldUsername -notmatch '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$') {
+    Write-Error "Invalid old GitHub username format: $OldUsername"
     exit 1
 }
 
-Write-Host "🔧 Updating GitHub username from 'YOUR_USERNAME' to '$GitHubUsername'" -ForegroundColor Green
+if ($NewUsername -notmatch '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$') {
+    Write-Error "Invalid new GitHub username format: $NewUsername"
+    exit 1
+}
+
+Write-Host "🔧 Updating GitHub username from '$OldUsername' to '$NewUsername'" -ForegroundColor Green
 
 $UpdatedFiles = 0
 $TotalReplacements = 0
@@ -56,20 +64,20 @@ foreach ($File in $FilesToUpdate) {
     $Content = Get-Content $File -Raw
     $OriginalContent = $Content
     
-    # Replace YOUR_USERNAME with actual username
-    $Content = $Content -replace 'YOUR_USERNAME', $GitHubUsername
+    # Replace old username with new username
+    $Content = $Content -replace $OldUsername, $NewUsername
     
     # Count replacements in this file
-    $Replacements = ($OriginalContent.Split('YOUR_USERNAME').Count - 1)
+    $Replacements = ($OriginalContent.Split($OldUsername).Count - 1)
     
     if ($Replacements -gt 0) {
         $TotalReplacements += $Replacements
         
         if ($WhatIfPreference) {
-            Write-Host "  ✏️  Would replace $Replacements instances of 'YOUR_USERNAME'" -ForegroundColor Yellow
+            Write-Host "  ✏️  Would replace $Replacements instances of '$OldUsername'" -ForegroundColor Yellow
         } else {
             $Content | Set-Content $File -NoNewline
-            Write-Host "  ✅ Replaced $Replacements instances of 'YOUR_USERNAME'" -ForegroundColor Green
+            Write-Host "  ✅ Replaced $Replacements instances of '$OldUsername'" -ForegroundColor Green
             $UpdatedFiles++
         }
     } else {
@@ -93,10 +101,10 @@ if ($WhatIfPreference) {
     if ($UpdatedFiles -gt 0) {
         Write-Host ""
         Write-Host "✅ GitHub username updated successfully!" -ForegroundColor Green
-        Write-Host "🔗 Your GitHub Actions badges should now work correctly" -ForegroundColor Blue
+        Write-Host "🔗 Your GitHub Actions badges and links should now work correctly" -ForegroundColor Blue
         Write-Host ""
         Write-Host "📋 Next steps:" -ForegroundColor Cyan
-        Write-Host "  1. Commit and push your changes to the testing branch" -ForegroundColor Gray
+        Write-Host "  1. Commit and push your changes" -ForegroundColor Gray
         Write-Host "  2. Check that GitHub Actions workflows are triggered" -ForegroundColor Gray
         Write-Host "  3. Verify that badges display correctly in README.md" -ForegroundColor Gray
     }
@@ -112,8 +120,8 @@ if (-not $WhatIfPreference -and $UpdatedFiles -gt 0) {
     foreach ($File in $FilesToUpdate) {
         if (Test-Path $File) {
             $Content = Get-Content $File -Raw
-            if ($Content -match 'YOUR_USERNAME') {
-                Write-Warning "Still found 'YOUR_USERNAME' in $File - manual review needed"
+            if ($Content -match $OldUsername) {
+                Write-Warning "Still found '$OldUsername' in $File - manual review needed"
                 $ValidationErrors++
             }
         }
