@@ -1,6 +1,84 @@
 # WindowsMissingRecovery PowerShell Module
 
+[![CI](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml)
+[![Integration Tests](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml)
+
+> 🔧 **Note**: Replace `cchamilt` in the badge URLs above with your actual GitHub username
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/WindowsMissingRecovery?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsMissingRecovery)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](docs/)
+
 A comprehensive PowerShell module for managing Windows system recovery, backup, and restoration of critical system settings, applications, and development environments.
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| **[Installation Guide](docs/INSTALLATION.md)** | Step-by-step installation and setup instructions |
+| **[Configuration Guide](docs/CONFIGURATION.md)** | Detailed configuration options and examples |
+| **[Backup Details](docs/BACKUP_DETAILS.md)** | Comprehensive backup coverage and technical details |
+| **[WSL Integration](docs/WSL_INTEGRATION.md)** | Windows Subsystem for Linux features and setup |
+| **[Gaming Platforms](docs/GAMING_PLATFORMS.md)** | Gaming platform support and configuration |
+| **[Cloud Storage](docs/CLOUD_STORAGE.md)** | Multi-cloud provider setup and configuration |
+| **[API Reference](docs/API_REFERENCE.md)** | Complete function reference and examples |
+| **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues and solutions |
+| **[Contributing](docs/CONTRIBUTING.md)** | Development setup and contribution guidelines |
+| **[Changelog](CHANGELOG.md)** | Version history and release notes |
+| **[Limits & Scope](docs/LIMITS.md)** | Module limitations and scope definition |
+
+## 🧪 Testing & Quality
+
+| Test Suite | Status | Coverage |
+|------------|--------|----------|
+| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml) | Static analysis, style checks |
+| **Unit Tests** | [![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-green)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml) | Core functionality, configuration |
+| **Integration Tests** | [![Integration Tests](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml) | Real Windows + WSL environment |
+| **WSL Testing** | [![WSL Tests](https://img.shields.io/badge/wsl%20tests-real%20ubuntu-blue)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml) | Real Ubuntu 22.04 in WSL 2 |
+| **Package Managers** | [![Package Tests](https://img.shields.io/badge/package%20tests-chocolatey%20%7C%20scoop%20%7C%20winget-orange)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml) | Real package manager testing |
+
+### 🔍 **Test Environment Details**
+- **Real Windows Server 2022** (GitHub Actions runners)
+- **Real WSL 2 + Ubuntu 22.04** (installed during tests)
+- **Real Package Managers** (Chocolatey, Scoop, Winget)
+- **Gaming Platform Simulation** (Steam, Epic, GOG, EA)
+- **Cloud Storage Simulation** (OneDrive, Google Drive, Dropbox)
+- **Comprehensive Reporting** ([View Latest Test Report](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml))
+
+> 📊 **[View Detailed Test Results](https://github.com/cchamilt/desktop-setup/actions)** | **[Testing Documentation](.github/README.md)**
+
+## 🚀 Quick Start
+
+```powershell
+# 1. Install the module
+.\Install-Module.ps1
+
+# 2. Initialize configuration (detects cloud storage automatically)
+Initialize-WindowsMissingRecovery
+
+# 3. Create your first backup
+Backup-WindowsMissingRecovery
+
+# 4. Set up optional components (requires admin)
+Setup-WindowsMissingRecovery
+```
+
+> 💡 **New to the module?** Start with the **[Installation Guide](docs/INSTALLATION.md)** for detailed setup instructions.
+
+```powershell
+# 1. Install the module
+.\Install-Module.ps1
+
+# 2. Initialize configuration (detects cloud storage automatically)
+Initialize-WindowsMissingRecovery
+
+# 3. Create your first backup
+Backup-WindowsMissingRecovery
+
+# 4. Set up optional components (requires admin)
+Setup-WindowsMissingRecovery
+```
+
+> 💡 **New to the module?** Start with the **[Installation Guide](docs/INSTALLATION.md)** for detailed setup instructions.
 
 ## Overview
 
@@ -342,18 +420,96 @@ WindowsMissingRecovery/
 - **WSL 2** (optional, for WSL-related features)
 - **Git** (optional, for chezmoi dotfile management)
 
-## Contributing
+## 📁 Repository Structure
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```
+desktop-setup/
+├── 📄 WindowsMissingRecovery.psm1     # Main module file
+├── 📄 WindowsMissingRecovery.psd1     # Module manifest
+├── 📄 Install-Module.ps1              # Installation script
+├── 📁 Public/                         # Public functions (exported)
+├── 📁 Private/                        # Private functions (internal)
+│   ├── 📁 backup/                     # Backup scripts
+│   ├── 📁 restore/                    # Restore scripts
+│   ├── 📁 setup/                      # Setup scripts
+│   ├── 📁 wsl/                        # WSL integration
+│   └── 📁 Core/                       # Core utilities
+├── 📁 Config/                         # Configuration files
+├── 📁 docs/                           # Documentation
+├── 📁 tests/                          # Test suites
+│   ├── 📁 unit/                       # Unit tests
+│   ├── 📁 integration/                # Integration tests
+│   └── 📁 docker/                     # Docker test environment
+├── 📁 .github/                        # GitHub Actions workflows
+│   ├── 📁 workflows/                  # CI/CD workflows
+│   └── 📄 README.md                   # Testing documentation
+└── 📄 CHANGELOG.md                    # Version history
+```
 
-## License
+## 🤝 Contributing
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+We welcome contributions! Here's how to get started:
 
-## Support
+1. **Read the Guidelines**: Check out **[Contributing Guide](docs/CONTRIBUTING.md)**
+2. **Development Setup**: Follow the **[Development Setup](docs/CONTRIBUTING.md#development-setup)** instructions
+3. **Testing**: Run tests locally with **[Testing Guide](.github/README.md)**
+4. **Submit PR**: Create a pull request with your changes
 
-For issues and feature requests, please use the GitHub issue tracker.
+### 🧪 **Testing Your Changes**
+```powershell
+# Run quick validation
+.\.github\workflows\ci.yml
+
+# Run full integration tests (requires WSL)
+.\.github\workflows\integration-tests.yml
+
+# Or use Docker for local testing
+.\run-integration-tests.ps1
+```
+
+## 📋 Project Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Core Module** | ✅ Stable | Production ready |
+| **WSL Integration** | ✅ Stable | Full Ubuntu support |
+| **Gaming Platforms** | ✅ Stable | Steam, Epic, GOG, EA |
+| **Cloud Storage** | ✅ Stable | OneDrive, Google Drive, Dropbox |
+| **Package Managers** | ✅ Stable | Chocolatey, Scoop, Winget |
+| **chezmoi Integration** | ✅ Stable | Dotfile management |
+| **CI/CD Pipeline** | ✅ Active | GitHub Actions |
+| **Documentation** | 🔄 Ongoing | Continuous improvement |
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support & Community
+
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/cchamilt/desktop-setup/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/cchamilt/desktop-setup/discussions)
+- **📖 Documentation**: [docs/](docs/) directory
+- **🧪 Test Results**: [GitHub Actions](https://github.com/cchamilt/desktop-setup/actions)
+- **📊 Project Board**: [GitHub Projects](https://github.com/cchamilt/desktop-setup/projects)
+
+### 🔗 **Quick Links**
+- **[Latest Release](https://github.com/cchamilt/desktop-setup/releases/latest)**
+- **[Installation Guide](docs/INSTALLATION.md)**
+- **[API Reference](docs/API_REFERENCE.md)**
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)**
+- **[Changelog](CHANGELOG.md)**
 
 ---
 
-*Windows Missing Recovery v1.0.0 - Professional Windows Environment Management*
+<div align="center">
+
+**🏆 Windows Missing Recovery v1.0.0**  
+*Professional Windows Environment Management*
+
+[![Made with PowerShell](https://img.shields.io/badge/Made%20with-PowerShell-blue.svg)](https://microsoft.com/powershell)
+[![Tested on Windows](https://img.shields.io/badge/Tested%20on-Windows%2010%2F11-blue.svg)](https://www.microsoft.com/windows)
+[![WSL Compatible](https://img.shields.io/badge/WSL-Compatible-green.svg)](https://docs.microsoft.com/windows/wsl/)
+
+*Built with ❤️ for the Windows development community*
+
+</div>

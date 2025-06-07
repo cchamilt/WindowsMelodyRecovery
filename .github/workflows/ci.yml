@@ -1,0 +1,282 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  POWERSHELL_TELEMETRY_OPTOUT: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+jobs:
+  # Quick validation job
+  validate:
+    name: Code Validation
+    runs-on: windows-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup PowerShell modules
+      shell: pwsh
+      run: |
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        Install-Module -Name Pester -Force -Scope CurrentUser -RequiredVersion 5.5.0
+        
+    - name: Run PSScriptAnalyzer
+      shell: pwsh
+      run: |
+        Write-Host "Running PSScriptAnalyzer..." -ForegroundColor Green
+        
+        $results = Invoke-ScriptAnalyzer -Path . -Recurse -ReportSummary -Settings PSGallery
+        
+        if ($results) {
+          Write-Host "PSScriptAnalyzer found $($results.Count) issues:" -ForegroundColor Yellow
+          $results | Format-Table -AutoSize
+          
+          # Separate errors from warnings
+          $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+          $warnings = $results | Where-Object { $_.Severity -eq 'Warning' }
+          
+          if ($errors) {
+            Write-Error "Found $($errors.Count) errors that must be fixed"
+            exit 1
+          } elseif ($warnings) {
+            Write-Warning "Found $($warnings.Count) warnings (not blocking)"
+          }
+        } else {
+          Write-Host "✅ No PSScriptAnalyzer issues found" -ForegroundColor Green
+        }
+        
+    - name: Validate module structure
+      shell: pwsh
+      run: |
+        Write-Host "Validating module structure..." -ForegroundColor Green
+        
+        # Check required files exist
+        $requiredFiles = @(
+          'WindowsMissingRecovery.psm1',
+          'WindowsMissingRecovery.psd1',
+          'README.md',
+          'CHANGELOG.md'
+        )
+        
+        foreach ($file in $requiredFiles) {
+          if (-not (Test-Path $file)) {
+            Write-Error "Required file missing: $file"
+            exit 1
+          } else {
+            Write-Host "✅ Found: $file" -ForegroundColor Green
+          }
+        }
+        
+        # Check directory structure
+        $requiredDirs = @(
+          'Private',
+          'Config',
+          'docs'
+        )
+        
+        foreach ($dir in $requiredDirs) {
+          if (-not (Test-Path $dir)) {
+            Write-Error "Required directory missing: $dir"
+            exit 1
+          } else {
+            Write-Host "✅ Found: $dir/" -ForegroundColor Green
+          }
+        }
+        
+    - name: Test module import
+      shell: pwsh
+      run: |
+        Write-Host "Testing module import..." -ForegroundColor Green
+        
+        try {
+          Import-Module .\WindowsMissingRecovery.psm1 -Force
+          Write-Host "✅ Module imported successfully" -ForegroundColor Green
+          
+          # Test basic functions are available
+          $functions = Get-Command -Module WindowsMissingRecovery -CommandType Function
+          Write-Host "Exported functions: $($functions.Count)" -ForegroundColor Cyan
+          
+          foreach ($func in $functions) {
+            Write-Host "  - $($func.Name)" -ForegroundColor Gray
+          }
+          
+        } catch {
+          Write-Error "Failed to import module: $($_.Exception.Message)"
+          exit 1
+        }
+        
+    - name: Validate configuration files
+      shell: pwsh
+      run: |
+        Write-Host "Validating configuration files..." -ForegroundColor Green
+        
+        # Check JSON files are valid
+        $jsonFiles = Get-ChildItem -Path . -Filter "*.json" -Recurse
+        
+        foreach ($file in $jsonFiles) {
+          try {
+            $content = Get-Content $file.FullName | ConvertFrom-Json
+            Write-Host "✅ Valid JSON: $($file.Name)" -ForegroundColor Green
+          } catch {
+            Write-Error "Invalid JSON in $($file.FullName): $($_.Exception.Message)"
+            exit 1
+          }
+        }
+        
+    - name: Run basic unit tests
+      shell: pwsh
+      run: |
+        Write-Host "Running basic unit tests..." -ForegroundColor Green
+        
+        if (Test-Path "tests/unit") {
+          $config = New-PesterConfiguration
+          $config.Run.Path = './tests/unit'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputPath = './test-results.xml'
+          $config.TestResult.OutputFormat = 'NUnitXml'
+          $config.Output.Verbosity = 'Detailed'
+          
+          $result = Invoke-Pester -Configuration $config
+          
+          Write-Host "Test Results:" -ForegroundColor Cyan
+          Write-Host "  Total: $($result.TotalCount)" -ForegroundColor Gray
+          Write-Host "  Passed: $($result.PassedCount)" -ForegroundColor Green
+          Write-Host "  Failed: $($result.FailedCount)" -ForegroundColor Red
+          Write-Host "  Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
+          
+          if ($result.FailedCount -gt 0) {
+            Write-Error "Unit tests failed: $($result.FailedCount) failures"
+            exit 1
+          }
+        } else {
+          Write-Host "⚠️ No unit tests found" -ForegroundColor Yellow
+        }
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ci-test-results
+        path: test-results.xml
+        
+  # Documentation check
+  docs-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Check README
+      run: |
+        echo "Checking README.md..."
+        
+        if [ ! -f "README.md" ]; then
+          echo "❌ README.md not found"
+          exit 1
+        fi
+        
+        # Check README has required sections
+        required_sections=("Installation" "Usage" "Features" "Configuration")
+        
+        for section in "${required_sections[@]}"; do
+          if grep -q "$section" README.md; then
+            echo "✅ Found section: $section"
+          else
+            echo "⚠️ Missing section: $section"
+          fi
+        done
+        
+    - name: Check CHANGELOG
+      run: |
+        echo "Checking CHANGELOG.md..."
+        
+        if [ ! -f "CHANGELOG.md" ]; then
+          echo "❌ CHANGELOG.md not found"
+          exit 1
+        fi
+        
+        # Check CHANGELOG has version entries
+        if grep -q "## \[" CHANGELOG.md; then
+          echo "✅ CHANGELOG has version entries"
+        else
+          echo "⚠️ CHANGELOG missing version entries"
+        fi
+        
+    - name: Check documentation files
+      run: |
+        echo "Checking documentation files..."
+        
+        doc_files=("docs/BACKUP_DETAILS.md" "docs/LIMITS.md")
+        
+        for file in "${doc_files[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ Found: $file"
+          else
+            echo "⚠️ Missing: $file"
+          fi
+        done
+        
+  # Security scan
+  security-scan:
+    name: Security Scan
+    runs-on: windows-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Scan for secrets
+      shell: pwsh
+      run: |
+        Write-Host "Scanning for potential secrets..." -ForegroundColor Green
+        
+        # Simple regex patterns for common secrets
+        $patterns = @{
+          "API Key" = "api[_-]?key\s*[:=]\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
+          "Password" = "password\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+          "Token" = "token\s*[:=]\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
+          "Secret" = "secret\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+        }
+        
+        $found = $false
+        
+        Get-ChildItem -Path . -Include "*.ps1", "*.psm1", "*.json", "*.md" -Recurse | ForEach-Object {
+          $content = Get-Content $_.FullName -Raw
+          
+          foreach ($patternName in $patterns.Keys) {
+            if ($content -match $patterns[$patternName]) {
+              Write-Warning "Potential $patternName found in $($_.Name)"
+              $found = $true
+            }
+          }
+        }
+        
+        if (-not $found) {
+          Write-Host "✅ No obvious secrets found" -ForegroundColor Green
+        }
+        
+    - name: Check file permissions
+      shell: pwsh
+      run: |
+        Write-Host "Checking for executable files..." -ForegroundColor Green
+        
+        # List all files and their types
+        Get-ChildItem -Path . -Recurse -File | ForEach-Object {
+          if ($_.Extension -in @('.exe', '.bat', '.cmd', '.com', '.scr')) {
+            Write-Warning "Executable file found: $($_.FullName)"
+          }
+        }
+        
+        Write-Host "✅ File permission check complete" -ForegroundColor Green 
