@@ -1,0 +1,60 @@
+# Mock Windows Environment using PowerShell Core on Ubuntu
+FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
+
+# Install additional tools and dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    jq \
+    sqlite3 \
+    python3 \
+    python3-pip \
+    nodejs \
+    npm \
+    vim \
+    nano \
+    tree \
+    file \
+    unzip \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PowerShell modules for testing
+RUN pwsh -Command "Install-Module -Name Pester -Force -Scope AllUsers"
+RUN pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers"
+
+# Create mock Windows directory structure
+RUN mkdir -p /mock-registry/HKLM/SOFTWARE/Microsoft/Windows/CurrentVersion \
+    && mkdir -p /mock-registry/HKCU/SOFTWARE/Microsoft/Windows/CurrentVersion \
+    && mkdir -p /mock-appdata/Users/TestUser/AppData/Local \
+    && mkdir -p /mock-appdata/Users/TestUser/AppData/Roaming \
+    && mkdir -p /mock-programfiles/Microsoft/Office \
+    && mkdir -p /mock-programfiles/Steam \
+    && mkdir -p /mock-programfiles/Epic\ Games \
+    && mkdir -p /mock-programfiles/GOG\ Galaxy \
+    && mkdir -p /mock-programfiles/EA\ Games
+
+# Create mock Windows commands and utilities
+COPY tests/mock-scripts/windows/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/*
+
+# Create mock registry files
+COPY tests/mock-data/registry/ /mock-registry/
+COPY tests/mock-data/appdata/ /mock-appdata/
+COPY tests/mock-data/programfiles/ /mock-programfiles/
+
+# Set up PowerShell profile for mock environment
+RUN mkdir -p /root/.config/powershell
+COPY tests/mock-scripts/Microsoft.PowerShell_profile.ps1 /root/.config/powershell/
+
+# Create mock cloud storage directories
+RUN mkdir -p /mock-cloud/OneDrive \
+    && mkdir -p /mock-cloud/GoogleDrive \
+    && mkdir -p /mock-cloud/Dropbox
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["pwsh", "-NoExit"] 

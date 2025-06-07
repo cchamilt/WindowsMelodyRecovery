@@ -1,0 +1,111 @@
+# Mock WSL Environment - Ubuntu 22.04
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install base packages and development tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    nano \
+    zsh \
+    bash \
+    fish \
+    tmux \
+    htop \
+    tree \
+    jq \
+    sqlite3 \
+    build-essential \
+    python3 \
+    python3-pip \
+    python3-venv \
+    nodejs \
+    npm \
+    golang-go \
+    rustc \
+    cargo \
+    openjdk-11-jdk \
+    ruby \
+    ruby-dev \
+    php \
+    composer \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Snap (mock)
+RUN apt-get update && apt-get install -y snapd && rm -rf /var/lib/apt/lists/*
+
+# Install Flatpak
+RUN apt-get update && apt-get install -y flatpak && rm -rf /var/lib/apt/lists/*
+
+# Create test user
+RUN useradd -m -s /bin/bash testuser && \
+    echo "testuser:testpass" | chpasswd && \
+    usermod -aG sudo testuser
+
+# Install chezmoi
+RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+
+# Install development version managers
+USER testuser
+WORKDIR /home/testuser
+
+# Install nvm (Node Version Manager)
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Install pyenv (Python Version Manager)
+RUN curl https://pyenv.run | bash
+
+# Install rbenv (Ruby Version Manager)
+RUN git clone https://github.com/rbenv/rbenv.git ~/.rbenv && \
+    echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc && \
+    echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+
+# Create mock WSL configuration files
+RUN mkdir -p /home/testuser/.config/chezmoi
+COPY tests/mock-data/wsl/dotfiles/ /home/testuser/
+COPY tests/mock-data/wsl/config/ /home/testuser/.config/
+
+# Create SSH directory and mock keys
+RUN mkdir -p /home/testuser/.ssh && \
+    chmod 700 /home/testuser/.ssh
+
+# Create development directories
+RUN mkdir -p /home/testuser/projects && \
+    mkdir -p /home/testuser/scripts && \
+    mkdir -p /home/testuser/.local/bin
+
+# Install some global npm packages for testing
+RUN npm install -g typescript eslint prettier
+
+# Install some pip packages for testing
+RUN pip3 install --user requests flask django pytest
+
+# Set up shell configurations
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && \
+    echo 'alias ll="ls -la"' >> ~/.bashrc && \
+    echo 'alias la="ls -A"' >> ~/.bashrc && \
+    echo 'alias l="ls -CF"' >> ~/.bashrc
+
+# Create mock git configuration
+RUN git config --global user.name "Test User" && \
+    git config --global user.email "test@example.com"
+
+# Switch back to root for final setup
+USER root
+
+# Create mock system configuration files
+COPY tests/mock-data/wsl/etc/ /etc/
+
+# Set ownership of user files
+RUN chown -R testuser:testuser /home/testuser
+
+# Create startup script
+COPY tests/mock-scripts/wsl-startup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/wsl-startup.sh
+
+# Default command
+CMD ["/usr/local/bin/wsl-startup.sh"] 

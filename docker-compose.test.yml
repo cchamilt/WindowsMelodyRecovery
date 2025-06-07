@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # Mock Windows Environment (PowerShell Core on Linux)
+  windows-mock:
+    build:
+      context: .
+      dockerfile: tests/docker/Dockerfile.windows-mock
+    container_name: wmr-windows-mock
+    volumes:
+      - ./:/workspace
+      - mock-cloud-storage:/mock-cloud
+      - mock-registry:/mock-registry
+      - mock-appdata:/mock-appdata
+      - mock-programfiles:/mock-programfiles
+    environment:
+      - MOCK_MODE=true
+      - CLOUD_PROVIDER=mock
+      - CLOUD_PATH=/mock-cloud
+      - BACKUP_ROOT=/workspace/test-backups
+      - MACHINE_NAME=TEST-MACHINE
+      - USER_PROFILE=/mock-appdata/Users/TestUser
+      - PROGRAM_FILES=/mock-programfiles
+      - REGISTRY_ROOT=/mock-registry
+    networks:
+      - wmr-test-network
+    depends_on:
+      - mock-cloud-server
+      - wsl-mock
+
+  # Mock WSL Environment (Ubuntu)
+  wsl-mock:
+    build:
+      context: .
+      dockerfile: tests/docker/Dockerfile.wsl-mock
+    container_name: wmr-wsl-mock
+    volumes:
+      - ./:/workspace
+      - wsl-home:/home/testuser
+      - wsl-etc:/etc
+      - wsl-var:/var
+    environment:
+      - WSL_DISTRO_NAME=Ubuntu-22.04
+      - WSL_VERSION=2
+      - USER=testuser
+      - HOME=/home/testuser
+    networks:
+      - wmr-test-network
+    command: /bin/bash -c "tail -f /dev/null"
+
+  # Mock Cloud Storage Server (simulates OneDrive/Google Drive/Dropbox)
+  mock-cloud-server:
+    build:
+      context: .
+      dockerfile: tests/docker/Dockerfile.cloud-mock
+    container_name: wmr-cloud-mock
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - mock-cloud-storage:/cloud-storage
+      - ./tests/mock-data:/mock-data
+    environment:
+      - CLOUD_TYPE=multi
+      - ONEDRIVE_PATH=/cloud-storage/OneDrive
+      - GOOGLEDRIVE_PATH=/cloud-storage/GoogleDrive
+      - DROPBOX_PATH=/cloud-storage/Dropbox
+    networks:
+      - wmr-test-network
+
+  # Test Runner (PowerShell with Pester)
+  test-runner:
+    build:
+      context: .
+      dockerfile: tests/docker/Dockerfile.test-runner
+    container_name: wmr-test-runner
+    volumes:
+      - ./:/workspace
+      - mock-cloud-storage:/mock-cloud
+      - test-results:/test-results
+    environment:
+      - PESTER_OUTPUT_PATH=/test-results
+      - MOCK_WINDOWS_HOST=windows-mock
+      - MOCK_WSL_HOST=wsl-mock
+      - MOCK_CLOUD_HOST=mock-cloud-server
+    networks:
+      - wmr-test-network
+    depends_on:
+      - windows-mock
+      - wsl-mock
+      - mock-cloud-server
+    command: /bin/bash -c "tail -f /dev/null"
+
+  # Gaming Platform Mocks
+  gaming-mock:
+    build:
+      context: .
+      dockerfile: tests/docker/Dockerfile.gaming-mock
+    container_name: wmr-gaming-mock
+    volumes:
+      - mock-steam:/mock-steam
+      - mock-epic:/mock-epic
+      - mock-gog:/mock-gog
+      - mock-ea:/mock-ea
+    environment:
+      - STEAM_PATH=/mock-steam
+      - EPIC_PATH=/mock-epic
+      - GOG_PATH=/mock-gog
+      - EA_PATH=/mock-ea
+    networks:
+      - wmr-test-network
+
+  # Package Manager Mocks
+  package-mock:
+    build:
+      context: .
+      dockerfile: tests/docker/Dockerfile.package-mock
+    container_name: wmr-package-mock
+    volumes:
+      - mock-chocolatey:/mock-chocolatey
+      - mock-scoop:/mock-scoop
+      - mock-winget:/mock-winget
+    environment:
+      - CHOCOLATEY_PATH=/mock-chocolatey
+      - SCOOP_PATH=/mock-scoop
+      - WINGET_PATH=/mock-winget
+    networks:
+      - wmr-test-network
+
+volumes:
+  mock-cloud-storage:
+  mock-registry:
+  mock-appdata:
+  mock-programfiles:
+  wsl-home:
+  wsl-etc:
+  wsl-var:
+  test-results:
+  mock-steam:
+  mock-epic:
+  mock-gog:
+  mock-ea:
+  mock-chocolatey:
+  mock-scoop:
+  mock-winget:
+
+networks:
+  wmr-test-network:
+    driver: bridge 

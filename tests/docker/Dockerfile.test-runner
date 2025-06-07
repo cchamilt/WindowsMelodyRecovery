@@ -1,0 +1,65 @@
+# Test Runner with PowerShell and Pester
+FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
+
+# Install additional tools for testing
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    jq \
+    sqlite3 \
+    python3 \
+    python3-pip \
+    nodejs \
+    npm \
+    vim \
+    nano \
+    tree \
+    file \
+    unzip \
+    zip \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PowerShell modules for testing
+RUN pwsh -Command "Install-Module -Name Pester -Force -Scope AllUsers -RequiredVersion 5.5.0"
+RUN pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers"
+RUN pwsh -Command "Install-Module -Name ImportExcel -Force -Scope AllUsers"
+
+# Install Docker CLI for container management
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && apt-get install -y docker-ce-cli && rm -rf /var/lib/apt/lists/*
+
+# Create test directories
+RUN mkdir -p /test-results/unit && \
+    mkdir -p /test-results/integration && \
+    mkdir -p /test-results/coverage && \
+    mkdir -p /test-results/reports
+
+# Set up PowerShell profile for testing
+RUN mkdir -p /root/.config/powershell
+COPY tests/mock-scripts/TestRunner.PowerShell_profile.ps1 /root/.config/powershell/Microsoft.PowerShell_profile.ps1
+
+# Copy test scripts and utilities
+COPY tests/integration/ /tests/integration/
+COPY tests/unit/ /tests/unit/
+COPY tests/utilities/ /tests/utilities/
+
+# Create test runner script
+COPY tests/scripts/run-tests.ps1 /tests/
+COPY tests/scripts/test-orchestrator.ps1 /tests/
+COPY tests/scripts/generate-reports.ps1 /tests/
+
+# Set permissions
+RUN chmod +x /tests/*.ps1
+
+# Set working directory
+WORKDIR /workspace
+
+# Health check script
+COPY tests/scripts/health-check.ps1 /usr/local/bin/
+RUN chmod +x /usr/local/bin/health-check.ps1
+
+# Default command
+CMD ["pwsh", "/tests/test-orchestrator.ps1"] 
