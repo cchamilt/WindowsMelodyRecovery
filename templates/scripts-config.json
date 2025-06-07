@@ -234,6 +234,15 @@
         "description": "Microsoft Visio configuration",
         "enabled": true,
         "required": false
+      },
+      {
+        "name": "WSL Settings",
+        "function": "Backup-WSLSettings",
+        "script": "backup-wsl.ps1",
+        "category": "Development",
+        "description": "WSL packages, configuration, and home directory",
+        "enabled": true,
+        "required": false
       }
     ]
   },
@@ -463,6 +472,15 @@
         "description": "Microsoft Visio configuration",
         "enabled": true,
         "required": false
+      },
+      {
+        "name": "WSL Settings",
+        "function": "Restore-WSLSettings",
+        "script": "restore-wsl.ps1",
+        "category": "Development",
+        "description": "WSL packages, configuration, and home directory",
+        "enabled": true,
+        "required": false
       }
     ]
   },
@@ -555,6 +573,24 @@
         "script": "setup-ea-games.ps1",
         "category": "Gaming",
         "description": "Configure EA App/Origin settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "WSL Setup",
+        "function": "Setup-WSL",
+        "script": "setup-wsl.ps1",
+        "category": "Development",
+        "description": "Install and configure Windows Subsystem for Linux",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Chezmoi Setup",
+        "function": "Setup-Chezmoi",
+        "script": "setup-chezmoi.ps1",
+        "category": "Development",
+        "description": "Setup chezmoi for dotfile management in WSL",
         "enabled": true,
         "required": false
       }
