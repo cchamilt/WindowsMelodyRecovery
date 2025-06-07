@@ -44,7 +44,7 @@ The testing system creates a complete mock environment that includes:
 1. **Clone the repository and navigate to the root directory**:
    ```powershell
    git clone <repository-url>
-   cd desktop-setup
+   cd WindowsMissingRecovery
    ```
 
 2. **Run all integration tests**:

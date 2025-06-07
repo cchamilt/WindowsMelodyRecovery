@@ -25,13 +25,10 @@ param(
 # Load environment script from the correct location
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
 
-# Source the load-environment script
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-} else {
-    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+# Load environment using the core function
+if (!(Load-Environment)) {
+    throw "Failed to load environment. Please run Initialize-WindowsMissingRecovery first."
 }
 
 # Get module configuration
@@ -124,14 +121,17 @@ function Backup-WSLSettings {
             $backupItems += "WSL Packages (WhatIf)"
         } else {
             try {
+                # Convert Windows path to WSL path
+                $wslPackageBackupPath = $wslBackupPath + "/packages"
+                $wslPackageBackupPathLinux = $wslPackageBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+                
                 $packageBackupScript = @"
 #!/bin/bash
 set -e
 
-USER_NAME=\$(whoami)
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/packages"
+BACKUP_DIR="$wslPackageBackupPathLinux"
 
-echo "Backing up WSL packages for user: \$USER_NAME"
+echo "Backing up WSL packages to: \$BACKUP_DIR"
 mkdir -p "\$BACKUP_DIR"
 
 # Export APT packages
@@ -188,14 +188,17 @@ echo "Package backup completed!"
             $backupItems += "WSL Configuration (WhatIf)"
         } else {
             try {
+                # Convert Windows path to WSL path
+                $wslConfigBackupPath = $wslBackupPath + "/config"
+                $wslConfigBackupPathLinux = $wslConfigBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+                
                 $configBackupScript = @"
 #!/bin/bash
 set -e
 
-USER_NAME=\$(whoami)
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/config"
+BACKUP_DIR="$wslConfigBackupPathLinux"
 
-echo "Backing up WSL configuration files..."
+echo "Backing up WSL configuration files to: \$BACKUP_DIR"
 mkdir -p "\$BACKUP_DIR"
 
 # Backup system configuration files
@@ -245,15 +248,19 @@ echo "Configuration backup completed!"
             $backupItems += "WSL Home Directory (WhatIf)"
         } else {
             try {
+                # Convert Windows path to WSL path
+                $wslHomeBackupPath = $wslBackupPath + "/home"
+                $wslHomeBackupPathLinux = $wslHomeBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+                
                 $homeBackupScript = @"
 #!/bin/bash
 set -e
 
 USER_NAME=\$(whoami)
 SOURCE_DIR="/home/\$USER_NAME"
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/home"
+BACKUP_DIR="$wslHomeBackupPathLinux"
 
-echo "Backing up WSL home directory..."
+echo "Backing up WSL home directory to: \$BACKUP_DIR"
 mkdir -p "\$BACKUP_DIR"
 
 # Use rsync with specific inclusions for important files only
@@ -391,3 +398,4 @@ if ($MyInvocation.InvocationName -ne '.') {
         exit 1
     }
 } 
+

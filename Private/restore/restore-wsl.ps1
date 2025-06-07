@@ -25,13 +25,10 @@ param(
 # Load environment script from the correct location
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
 
-# Source the load-environment script
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-} else {
-    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+# Load environment using the core function
+if (!(Load-Environment)) {
+    throw "Failed to load environment. Please run Initialize-WindowsMissingRecovery first."
 }
 
 # Get module configuration
@@ -125,19 +122,22 @@ function Restore-WSLSettings {
             $restoredItems += "WSL Configuration (WhatIf)"
         } else {
             try {
+                # Convert Windows path to WSL path
+                $wslConfigBackupPath = $wslBackupPath + "/config"
+                $wslConfigBackupPathLinux = $wslConfigBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+                
                 $configRestoreScript = @"
 #!/bin/bash
 set -e
 
-USER_NAME=\$(whoami)
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/config"
+BACKUP_DIR="$wslConfigBackupPathLinux"
 
 if [ ! -d "\$BACKUP_DIR" ]; then
     echo "No WSL configuration backup found at: \$BACKUP_DIR"
     exit 0
 fi
 
-echo "Restoring WSL configuration files..."
+echo "Restoring WSL configuration files from: \$BACKUP_DIR"
 
 # Restore system configuration files (requires sudo)
 echo "Restoring system configs..."
@@ -218,19 +218,22 @@ echo "Configuration restore completed!"
             $restoredItems += "WSL Packages (WhatIf)"
         } else {
             try {
+                # Convert Windows path to WSL path
+                $wslPackageBackupPath = $wslBackupPath + "/packages"
+                $wslPackageBackupPathLinux = $wslPackageBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+                
                 $packageRestoreScript = @"
 #!/bin/bash
 set -e
 
-USER_NAME=\$(whoami)
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/packages"
+BACKUP_DIR="$wslPackageBackupPathLinux"
 
 if [ ! -d "\$BACKUP_DIR" ]; then
     echo "No WSL packages backup found at: \$BACKUP_DIR"
     exit 0
 fi
 
-echo "Restoring WSL packages for user: \$USER_NAME"
+echo "Restoring WSL packages from: \$BACKUP_DIR"
 
 # Update package lists first
 echo "Updating package lists..."
@@ -315,12 +318,16 @@ echo "Package restore completed!"
             $restoredItems += "WSL Home Directory (WhatIf)"
         } else {
             try {
+                # Convert Windows path to WSL path
+                $wslHomeBackupPath = $wslBackupPath + "/home"
+                $wslHomeBackupPathLinux = $wslHomeBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+                
                 $homeRestoreScript = @"
 #!/bin/bash
 set -e
 
 USER_NAME=\$(whoami)
-SOURCE_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/home"
+SOURCE_DIR="$wslHomeBackupPathLinux"
 TARGET_DIR="/home/\$USER_NAME"
 
 if [ ! -d "\$SOURCE_DIR" ]; then
@@ -328,7 +335,7 @@ if [ ! -d "\$SOURCE_DIR" ]; then
     exit 0
 fi
 
-echo "Restoring WSL home directory..."
+echo "Restoring WSL home directory from: \$SOURCE_DIR"
 
 # Use rsync to restore files
 rsync -avz --progress "\$SOURCE_DIR/" "\$TARGET_DIR/"

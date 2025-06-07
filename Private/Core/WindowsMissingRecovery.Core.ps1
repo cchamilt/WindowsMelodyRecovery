@@ -688,14 +688,17 @@ function Backup-WSLChezmoi {
     }
     
     try {
+        # Convert Windows path to WSL path
+        $chezmoiBackupPath = $BackupPath + "/chezmoi"
+        $chezmoiBackupPathLinux = $chezmoiBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+        
         $chezmoiBackupScript = @"
 #!/bin/bash
 set -e
 
-USER_NAME=\$(whoami)
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/chezmoi"
+BACKUP_DIR="$chezmoiBackupPathLinux"
 
-echo "🏠 Backing up chezmoi configuration..."
+echo "🏠 Backing up chezmoi configuration to: \$BACKUP_DIR"
 
 # Check if chezmoi is installed
 if ! command -v chezmoi &> /dev/null; then
@@ -736,7 +739,7 @@ echo "ℹ️  Creating chezmoi info..."
 cat > "\$BACKUP_DIR/info.txt" << EOF
 Chezmoi Backup Information
 Generated: \$(date)
-User: \$USER_NAME
+User: \$(whoami)
 Chezmoi Version: \$(chezmoi --version 2>/dev/null || echo "unknown")
 Source Path: \$(chezmoi source-path 2>/dev/null || echo "unknown")
 EOF
@@ -781,14 +784,17 @@ function Restore-WSLChezmoi {
     }
     
     try {
+        # Convert Windows path to WSL path
+        $chezmoiBackupPath = $BackupPath + "/chezmoi"
+        $chezmoiBackupPathLinux = $chezmoiBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
+        
         $chezmoiRestoreScript = @"
 #!/bin/bash
 set -e
 
-USER_NAME=\$(whoami)
-BACKUP_DIR="/mnt/c/Users/\$USER_NAME/OneDrive - Fyber Labs/work/fyberlabs/repos/desktop-setup/WSL-Backup/chezmoi"
+BACKUP_DIR="$chezmoiBackupPathLinux"
 
-echo "🏠 Restoring chezmoi configuration..."
+echo "🏠 Restoring chezmoi configuration from: \$BACKUP_DIR"
 
 # Check if backup exists
 if [ ! -d "\$BACKUP_DIR" ]; then

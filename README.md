@@ -1,7 +1,7 @@
 # WindowsMissingRecovery PowerShell Module
 
-[![CI](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml)
-[![Integration Tests](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml)
+[![CI](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml)
+[![Integration Tests](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/WindowsMissingRecovery?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsMissingRecovery)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](docs/)
@@ -28,11 +28,11 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 
 | Test Suite | Status | Coverage |
 |------------|--------|----------|
-| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml) | Static analysis, style checks |
-| **Unit Tests** | [![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-green)](https://github.com/cchamilt/desktop-setup/actions/workflows/ci.yml) | Core functionality, configuration |
-| **Integration Tests** | [![Integration Tests](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml) | Real Windows + WSL environment |
-| **WSL Testing** | [![WSL Tests](https://img.shields.io/badge/wsl%20tests-real%20ubuntu-blue)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml) | Real Ubuntu 22.04 in WSL 2 |
-| **Package Managers** | [![Package Tests](https://img.shields.io/badge/package%20tests-chocolatey%20%7C%20scoop%20%7C%20winget-orange)](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml) | Real package manager testing |
+| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml) | Static analysis, style checks |
+| **Unit Tests** | [![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-green)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml) | Core functionality, configuration |
+| **Integration Tests** | [![Integration Tests](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml) | Real Windows + WSL environment |
+| **WSL Testing** | [![WSL Tests](https://img.shields.io/badge/wsl%20tests-real%20ubuntu-blue)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml) | Real Ubuntu 22.04 in WSL 2 |
+| **Package Managers** | [![Package Tests](https://img.shields.io/badge/package%20tests-chocolatey%20%7C%20scoop%20%7C%20winget-orange)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml) | Real package manager testing |
 
 ### 🔍 **Test Environment Details**
 - **Real Windows Server 2022** (GitHub Actions runners)
@@ -40,9 +40,9 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 - **Real Package Managers** (Chocolatey, Scoop, Winget)
 - **Gaming Platform Simulation** (Steam, Epic, GOG, EA)
 - **Cloud Storage Simulation** (OneDrive, Google Drive, Dropbox)
-- **Comprehensive Reporting** ([View Latest Test Report](https://github.com/cchamilt/desktop-setup/actions/workflows/integration-tests.yml))
+- **Comprehensive Reporting** ([View Latest Test Report](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml))
 
-> 📊 **[View Detailed Test Results](https://github.com/cchamilt/desktop-setup/actions)** | **[Testing Documentation](.github/README.md)**
+> 📊 **[View Detailed Test Results](https://github.com/cchamilt/WindowsMissingRecovery/actions)** | **[Testing Documentation](.github/README.md)**
 
 ## 🚀 Quick Start
 
@@ -170,18 +170,21 @@ When running `Setup-WindowsMissingRecovery`, you can choose from these optional 
 - **Package Managers** - Install and configure Chocolatey, Scoop, and other package managers
 
 ### Gaming Platforms
+
 - **Steam Games** - Configure Steam game settings, library management, and game installations
 - **Epic Games** - Configure Epic Games Launcher and Legendary CLI for game management
 - **GOG Games** - Configure GOG Galaxy settings and game library management
 - **EA Games** - Configure EA App/Origin settings and game installations
 
 ### Productivity and Security
+
 - **KeePassXC** - Install and configure password manager with database setup
 - **Custom Profiles** - Configure PowerShell profiles and terminal customizations
 - **Windows Defender** - Configure Windows Defender settings and security policies
 - **System Restore Points** - Configure automatic restore point creation and management
 
 ### System Optimization
+
 - **Remove Bloat** - Remove unwanted pre-installed software and manufacturer bloatware
 - **Windows Features** - Configure optional Windows features and capabilities
 
@@ -190,15 +193,18 @@ When running `Setup-WindowsMissingRecovery`, you can choose from these optional 
 The module automatically detects and supports multiple cloud storage providers:
 
 ### Fully Supported (Automatic Detection)
+
 - **OneDrive Personal** - Automatic path detection and configuration
 - **OneDrive for Business** - Automatic path detection and configuration
 
 ### Supported (Manual Configuration)
+
 - **Google Drive** - Manual path configuration required
 - **Dropbox** - Manual path configuration required
 - **Custom Cloud Storage** - Any cloud storage with local sync folder
 
 ### Cloud Integration Features
+
 - Automatic backup path detection
 - Multi-cloud backup support
 - Cloud storage health checking
@@ -210,6 +216,7 @@ The module automatically detects and supports multiple cloud storage providers:
 Comprehensive Windows Subsystem for Linux support:
 
 ### WSL Backup Features
+
 - **Package Management**: APT, NPM, PIP, Snap, Flatpak package lists
 - **Configuration Files**: wsl.conf, fstab, hosts, environment variables
 - **Shell Configurations**: .bashrc, .profile, .zshrc, custom shell settings
@@ -389,7 +396,7 @@ WindowsMissingRecovery/
 ## 📁 Repository Structure
 
 ```
-desktop-setup/
+WindowsMissingRecovery/
 ├── 📄 WindowsMissingRecovery.psm1     # Main module file
 ├── 📄 WindowsMissingRecovery.psd1     # Module manifest
 ├── 📄 Install-Module.ps1              # Installation script
@@ -440,9 +447,9 @@ Invoke-Pester tests/unit/
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Core Module** | ✅ Stable | Production ready |
-| **WSL Integration** | ✅ Stable | Full Ubuntu support |
-| **Gaming Platforms** | ✅ Stable | Steam, Epic, GOG, EA |
+| **Core Module** | 🔄 Ongoing | Production ready |
+| **WSL Integration** | 🔄 Ongoing | Full Ubuntu support |
+| **Gaming Platforms** | 🔄 Ongoing | Steam, Epic, GOG, EA |
 | **Cloud Storage** | ✅ Stable | OneDrive, Google Drive, Dropbox |
 | **Package Managers** | ✅ Stable | Chocolatey, Scoop, Winget |
 | **chezmoi Integration** | ✅ Stable | Dotfile management |
@@ -455,17 +462,19 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🆘 Support & Community
 
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/cchamilt/desktop-setup/issues)
-- **💡 Feature Requests**: [GitHub Discussions](https://github.com/cchamilt/desktop-setup/discussions)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/cchamilt/WindowsMissingRecovery/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/cchamilt/WindowsMissingRecovery/discussions)
 - **📖 Documentation**: [docs/](docs/) directory
-- **🧪 Test Results**: [GitHub Actions](https://github.com/cchamilt/desktop-setup/actions)
-- **📊 Project Board**: [GitHub Projects](https://github.com/cchamilt/desktop-setup/projects)
+- **🧪 Test Results**: [GitHub Actions](https://github.com/cchamilt/WindowsMissingRecovery/actions)
+- **📊 Project Board**: [GitHub Projects](https://github.com/cchamilt/WindowsMissingRecovery/projects)
 
 ### 🔗 **Quick Links**
-- **[Latest Release](https://github.com/cchamilt/desktop-setup/releases/latest)**
-- **[Installation Guide](docs/INSTALLATION.md)**
+- **[Latest Release](https://github.com/cchamilt/WindowsMissingRecovery/releases/latest)**
+- **[Backup Details](docs/BACKUP_DETAILS.md)**
 - **[API Reference](docs/API_REFERENCE.md)**
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)**
+- **[Scripts README](scripts/README.md)**
+- **[Tests README](tests/README.md)**
+- **[TODO](TODO.md)**
 - **[Changelog](CHANGELOG.md)**
 
 ---
@@ -473,12 +482,11 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 <div align="center">
 
 **🏆 Windows Missing Recovery v1.0.0**  
-*Professional Windows Environment Management*
 
 [![Made with PowerShell](https://img.shields.io/badge/Made%20with-PowerShell-blue.svg)](https://microsoft.com/powershell)
 [![Tested on Windows](https://img.shields.io/badge/Tested%20on-Windows%2010%2F11-blue.svg)](https://www.microsoft.com/windows)
 [![WSL Compatible](https://img.shields.io/badge/WSL-Compatible-green.svg)](https://docs.microsoft.com/windows/wsl/)
 
-*Built with ❤️ for the Windows development community*
-
 </div>
+
+
