@@ -22,11 +22,17 @@
 .PARAMETER Parallel
     Run tests in parallel where possible
 
+.PARAMETER ForceRebuild
+    Force rebuild of Docker images
+
 .EXAMPLE
     ./run-integration-tests.ps1 -TestSuite All -GenerateReport
 
 .EXAMPLE
     ./run-integration-tests.ps1 -TestSuite WSL -Clean -KeepContainers
+
+.EXAMPLE
+    ./run-integration-tests.ps1 -ForceRebuild -TestSuite All
 #>
 
 param(
@@ -40,6 +46,8 @@ param(
     [switch]$GenerateReport,
     
     [switch]$Parallel,
+    
+    [switch]$ForceRebuild,
     
     [string]$LogLevel = "Info"
 )
@@ -100,6 +108,13 @@ function Start-TestEnvironment {
     Write-Host "🚀 Building and starting test environment..." -ForegroundColor Yellow
     
     try {
+        # Check if containers are already running
+        $runningContainers = docker compose -f docker-compose.test.yml ps -q 2>$null
+        if ($runningContainers -and -not $ForceRebuild) {
+            Write-Host "✓ Containers are already running, skipping build" -ForegroundColor Green
+            return
+        }
+        
         # Build containers individually to continue even if some fail
         Write-Host "Building Docker images individually..." -ForegroundColor Cyan
         
@@ -108,8 +123,24 @@ function Start-TestEnvironment {
         $failedBuilds = @()
         
         foreach ($service in $services) {
+            # Check if image already exists and we're not forcing rebuild
+            $imageName = "windowsmissingrecovery-$service"
+            $imageExists = docker images -q $imageName 2>$null
+            
+            if ($imageExists -and -not $ForceRebuild) {
+                Write-Host "✓ $service image already exists, skipping build" -ForegroundColor Green
+                $buildResults[$service] = 0
+                continue
+            }
+            
             Write-Host "Building $service..." -ForegroundColor Cyan
-            docker compose -f docker-compose.test.yml build --no-cache $service 2>&1 | Tee-Object -FilePath "build-$service.log"
+            $buildArgs = @("-f", "docker-compose.test.yml", "build")
+            if ($ForceRebuild) {
+                $buildArgs += "--no-cache"
+            }
+            $buildArgs += $service
+            
+            docker compose $buildArgs 2>&1 | Tee-Object -FilePath "build-$service.log"
             $buildResults[$service] = $LASTEXITCODE
             
             if ($LASTEXITCODE -eq 0) {
@@ -117,6 +148,12 @@ function Start-TestEnvironment {
             } else {
                 Write-Host "✗ $service build failed" -ForegroundColor Red
                 $failedBuilds += $service
+                # Clean up failed image if it exists
+                $failedImageId = docker images -q $imageName 2>$null
+                if ($failedImageId) {
+                    Write-Host "🧹 Removing failed image for $service ($failedImageId)" -ForegroundColor Yellow
+                    docker rmi -f $failedImageId | Out-Null
+                }
             }
         }
         

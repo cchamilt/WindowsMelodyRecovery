@@ -52,9 +52,36 @@ RUN useradd -m -s /bin/bash testuser && \
 # Install chezmoi
 RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
 
-# Install development version managers
-USER testuser
+# Set up all user files as root first
 WORKDIR /home/testuser
+
+# Create .bashrc with initial content
+RUN echo '# .bashrc for testuser' > /home/testuser/.bashrc && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/testuser/.bashrc && \
+    echo 'alias ll="ls -la"' >> /home/testuser/.bashrc && \
+    echo 'alias la="ls -A"' >> /home/testuser/.bashrc && \
+    echo 'alias l="ls -CF"' >> /home/testuser/.bashrc
+
+# Create directories and set permissions
+RUN mkdir -p /home/testuser/.config/chezmoi && \
+    mkdir -p /home/testuser/.ssh && \
+    mkdir -p /home/testuser/projects && \
+    mkdir -p /home/testuser/scripts && \
+    mkdir -p /home/testuser/.local/bin && \
+    chmod 700 /home/testuser/.ssh && \
+    chown -R testuser:testuser /home/testuser
+
+# Copy mock data files
+COPY tests/mock-data/wsl/dotfiles/ /home/testuser/
+COPY tests/mock-data/wsl/config/ /home/testuser/.config/
+
+# Ensure proper ownership of user files
+RUN chown -R testuser:testuser /home/testuser && \
+    chown testuser:testuser /home/testuser/.bashrc && \
+    chmod 644 /home/testuser/.bashrc
+
+# Switch to testuser for development tools installation
+USER testuser
 
 # Install nvm (Node Version Manager)
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -67,28 +94,8 @@ RUN git clone https://github.com/rbenv/rbenv.git ~/.rbenv && \
     echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc && \
     echo 'eval "$(rbenv init -)"' >> ~/.bashrc
 
-# Create mock WSL configuration files
-RUN mkdir -p /home/testuser/.config/chezmoi
-COPY tests/mock-data/wsl/dotfiles/ /home/testuser/
-COPY tests/mock-data/wsl/config/ /home/testuser/.config/
-
-# Create SSH directory and mock keys
-RUN mkdir -p /home/testuser/.ssh && \
-    chmod 700 /home/testuser/.ssh
-
-# Create development directories
-RUN mkdir -p /home/testuser/projects && \
-    mkdir -p /home/testuser/scripts && \
-    mkdir -p /home/testuser/.local/bin
-
 # Install some pip packages for testing (as user)
 RUN pip3 install --user requests flask django pytest
-
-# Set up shell configurations
-RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && \
-    echo 'alias ll="ls -la"' >> ~/.bashrc && \
-    echo 'alias la="ls -A"' >> ~/.bashrc && \
-    echo 'alias l="ls -CF"' >> ~/.bashrc
 
 # Create mock git configuration
 RUN git config --global user.name "Test User" && \
@@ -96,9 +103,6 @@ RUN git config --global user.name "Test User" && \
 
 # Switch back to root for final setup
 USER root
-
-# Ensure proper ownership of user files
-RUN chown -R testuser:testuser /home/testuser
 
 # Install global npm packages as root (to avoid permission issues)
 # Use older versions that are compatible with Node.js 18
