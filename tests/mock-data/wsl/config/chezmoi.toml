@@ -1,0 +1,46 @@
+# Mock chezmoi configuration for WSL testing
+# This file simulates a typical chezmoi configuration
+
+[data]
+    name = "Test User"
+    email = "test@example.com"
+    gitHubUsername = "testuser"
+    
+    # Development tools
+    goVersion = "1.21.0"
+    nodeVersion = "18.17.0"
+    pythonVersion = "3.11.0"
+    rubyVersion = "3.2.0"
+    
+    # Editor preferences
+    editor = "code"
+    terminal = "gnome-terminal"
+    
+    # Shell configuration
+    shell = "bash"
+    prompt = "powerlevel10k"
+    
+    # WSL specific settings
+    wslDistro = "Ubuntu-22.04"
+    wslVersion = 2
+    
+    # Paths
+    homeDir = "/home/testuser"
+    configDir = "/home/testuser/.config"
+    scriptsDir = "/home/testuser/scripts"
+    projectsDir = "/home/testuser/projects"
+    
+    # Package managers
+    useSnap = true
+    useFlatpak = true
+    useHomebrew = false
+    
+    # Development preferences
+    useDocker = true
+    useKubernetes = false
+    useTerraform = false
+    
+    # Cloud providers
+    awsProfile = "default"
+    azureSubscription = "default"
+    gcpProject = "test-project" 

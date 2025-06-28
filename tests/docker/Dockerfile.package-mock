@@ -1,0 +1,100 @@
+# Mock Package Managers Environment
+FROM ubuntu:22.04
+
+# Install basic tools and dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    jq \
+    python3 \
+    python3-pip \
+    vim \
+    nano \
+    tree \
+    file \
+    unzip \
+    zip \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create mock package manager directory structure
+RUN mkdir -p /mock-chocolatey/bin \
+    && mkdir -p /mock-chocolatey/lib \
+    && mkdir -p /mock-chocolatey/config \
+    && mkdir -p /mock-chocolatey/logs \
+    && mkdir -p /mock-scoop/apps \
+    && mkdir -p /mock-scoop/buckets/main \
+    && mkdir -p /mock-scoop/buckets/extras \
+    && mkdir -p /mock-scoop/cache \
+    && mkdir -p /mock-scoop/shims \
+    && mkdir -p /mock-winget/packages \
+    && mkdir -p /mock-winget/sources \
+    && mkdir -p /mock-winget/manifests \
+    && mkdir -p /mock-winget/logs
+
+# Create mock package manager executables
+RUN echo '#!/bin/bash\necho "Chocolatey is running in mock mode"\nexit 0' > /mock-chocolatey/bin/choco.exe \
+    && chmod +x /mock-chocolatey/bin/choco.exe \
+    && echo '#!/bin/bash\necho "Scoop is running in mock mode"\nexit 0' > /mock-scoop/scoop.ps1 \
+    && chmod +x /mock-scoop/scoop.ps1 \
+    && echo '#!/bin/bash\necho "Winget is running in mock mode"\nexit 0' > /mock-winget/winget.exe \
+    && chmod +x /mock-winget/winget.exe
+
+# Create mock Chocolatey packages
+RUN mkdir -p /mock-chocolatey/lib/chocolatey.0.12.1 \
+    && mkdir -p /mock-chocolatey/lib/git.2.40.0 \
+    && mkdir -p /mock-chocolatey/lib/vscode.1.80.0 \
+    && mkdir -p /mock-chocolatey/lib/7zip.23.1.0 \
+    && echo '{"name": "chocolatey", "version": "0.12.1", "installLocation": "/mock-chocolatey/lib/chocolatey.0.12.1"}' > /mock-chocolatey/lib/chocolatey.0.12.1/chocolatey.nuspec \
+    && echo '{"name": "git", "version": "2.40.0", "installLocation": "/mock-chocolatey/lib/git.2.40.0"}' > /mock-chocolatey/lib/git.2.40.0/git.nuspec \
+    && echo '{"name": "vscode", "version": "1.80.0", "installLocation": "/mock-chocolatey/lib/vscode.1.80.0"}' > /mock-chocolatey/lib/vscode.1.80.0/vscode.nuspec \
+    && echo '{"name": "7zip", "version": "23.1.0", "installLocation": "/mock-chocolatey/lib/7zip.23.1.0"}' > /mock-chocolatey/lib/7zip.23.1.0/7zip.nuspec
+
+# Create mock Scoop packages
+RUN mkdir -p /mock-scoop/apps/git/current \
+    && mkdir -p /mock-scoop/apps/nodejs/current \
+    && mkdir -p /mock-scoop/apps/python/current \
+    && mkdir -p /mock-scoop/apps/vscode/current \
+    && echo '{"version": "2.40.0", "bin": ["bin/git.exe"]}' > /mock-scoop/apps/git/current/manifest.json \
+    && echo '{"version": "18.17.0", "bin": ["node.exe", "npm.cmd"]}' > /mock-scoop/apps/nodejs/current/manifest.json \
+    && echo '{"version": "3.11.0", "bin": ["python.exe", "pip.exe"]}' > /mock-scoop/apps/python/current/manifest.json \
+    && echo '{"version": "1.80.0", "bin": ["Code.exe"]}' > /mock-scoop/apps/vscode/current/manifest.json
+
+# Create mock Winget packages
+RUN mkdir -p /mock-winget/packages/Microsoft.Git \
+    && mkdir -p /mock-winget/packages/Microsoft.VisualStudioCode \
+    && mkdir -p /mock-winget/packages/Microsoft.PowerShell \
+    && mkdir -p /mock-winget/packages/7zip.7zip \
+    && echo '{"PackageIdentifier": "Microsoft.Git", "PackageVersion": "2.40.0", "InstallerType": "exe"}' > /mock-winget/packages/Microsoft.Git/package.json \
+    && echo '{"PackageIdentifier": "Microsoft.VisualStudioCode", "PackageVersion": "1.80.0", "InstallerType": "exe"}' > /mock-winget/packages/Microsoft.VisualStudioCode/package.json \
+    && echo '{"PackageIdentifier": "Microsoft.PowerShell", "PackageVersion": "7.4.0", "InstallerType": "msix"}' > /mock-winget/packages/Microsoft.PowerShell/package.json \
+    && echo '{"PackageIdentifier": "7zip.7zip", "PackageVersion": "23.1.0", "InstallerType": "exe"}' > /mock-winget/packages/7zip.7zip/package.json
+
+# Create mock configuration files
+RUN echo '{"chocolateyInstall": "/mock-chocolatey", "chocolateyLastFileUpdate": "2023-01-01T00:00:00Z"}' > /mock-chocolatey/config/chocolatey.config \
+    && echo '{"lastupdate": "2023-01-01T00:00:00Z", "scoop_branch": "master", "scoop_repo": "https://github.com/ScoopInstaller/Scoop"}' > /mock-scoop/config.json \
+    && echo '{"version": "1.0.0", "lastUpdate": "2023-01-01T00:00:00Z"}' > /mock-winget/settings.json
+
+# Create mock registry entries for Windows compatibility
+RUN mkdir -p /mock-registry/HKLM/SOFTWARE/Chocolatey \
+    && mkdir -p /mock-registry/HKLM/SOFTWARE/Microsoft/Windows/CurrentVersion/Uninstall \
+    && mkdir -p /mock-registry/HKLM/SOFTWARE/Microsoft/Windows/CurrentVersion/App\ Paths
+
+# Create mock installation logs
+RUN echo '2023-01-01 00:00:00 - Installing chocolatey.0.12.1' > /mock-chocolatey/logs/chocolatey.log \
+    && echo '2023-01-01 00:00:00 - Installing git.2.40.0' >> /mock-chocolatey/logs/chocolatey.log \
+    && echo '2023-01-01 00:00:00 - Installing vscode.1.80.0' >> /mock-chocolatey/logs/chocolatey.log \
+    && echo '2023-01-01 00:00:00 - Installing 7zip.23.1.0' >> /mock-chocolatey/logs/chocolatey.log
+
+# Create mock package sources
+RUN echo '{"name": "chocolatey", "url": "https://chocolatey.org/api/v2/"}' > /mock-chocolatey/config/sources.config \
+    && echo '{"name": "main", "source": "https://github.com/ScoopInstaller/Main"}' > /mock-scoop/buckets/main/bucket.json \
+    && echo '{"name": "extras", "source": "https://github.com/ScoopInstaller/Extras"}' > /mock-scoop/buckets/extras/bucket.json \
+    && echo '{"name": "winget", "url": "https://winget.azureedge.net/cache"}' > /mock-winget/sources/winget.json
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command - keep container running
+CMD ["tail", "-f", "/dev/null"] 

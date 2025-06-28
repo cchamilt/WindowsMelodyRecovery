@@ -1,0 +1,46 @@
+{
+  "backupId": "backup-2023-01-03",
+  "timestamp": "2023-01-03T00:00:00Z",
+  "machineName": "TEST-MACHINE",
+  "userName": "TestUser",
+  "backupType": "differential",
+  "version": "1.0.0",
+  "components": {
+    "system": {
+      "status": "completed",
+      "files": 40,
+      "size": "800MB",
+      "duration": "00:02:00"
+    },
+    "applications": {
+      "status": "completed",
+      "files": 15,
+      "size": "300MB",
+      "duration": "00:01:00"
+    },
+    "userData": {
+      "status": "completed",
+      "files": 45,
+      "size": "600MB",
+      "duration": "00:01:45"
+    },
+    "gaming": {
+      "status": "completed",
+      "files": 5,
+      "size": "100MB",
+      "duration": "00:00:30"
+    }
+  },
+  "metadata": {
+    "osVersion": "Windows 11 22H2",
+    "wslVersion": "2",
+    "totalSize": "1.8GB",
+    "compressionRatio": "0.70",
+    "encryption": "AES-256",
+    "checksum": "sha256:ghi789jkl012mno345pqr678stu901vwx234yzabc123def456"
+  },
+  "cloudProvider": "Dropbox",
+  "cloudPath": "/WindowsMissingRecovery/backup-2023-01-03",
+  "retentionPolicy": "30days",
+  "status": "success"
+} 

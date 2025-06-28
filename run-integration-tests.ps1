@@ -100,16 +100,46 @@ function Start-TestEnvironment {
     Write-Host "🚀 Building and starting test environment..." -ForegroundColor Yellow
     
     try {
-        # Build the containers
-        Write-Host "Building Docker images..." -ForegroundColor Cyan
-        docker compose -f docker-compose.test.yml build --no-cache
+        # Build containers individually to continue even if some fail
+        Write-Host "Building Docker images individually..." -ForegroundColor Cyan
         
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to build Docker images"
+        $services = @("windows-mock", "wsl-mock", "mock-cloud-server", "test-runner", "gaming-mock", "package-mock")
+        $buildResults = @{}
+        $failedBuilds = @()
+        
+        foreach ($service in $services) {
+            Write-Host "Building $service..." -ForegroundColor Cyan
+            docker compose -f docker-compose.test.yml build --no-cache $service 2>&1 | Tee-Object -FilePath "build-$service.log"
+            $buildResults[$service] = $LASTEXITCODE
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ $service built successfully" -ForegroundColor Green
+            } else {
+                Write-Host "✗ $service build failed" -ForegroundColor Red
+                $failedBuilds += $service
+            }
+        }
+        
+        # Report build results
+        if ($failedBuilds.Count -gt 0) {
+            Write-Host "`n📋 Build Summary:" -ForegroundColor Yellow
+            Write-Host "Failed builds: $($failedBuilds -join ', ')" -ForegroundColor Red
+            Write-Host "Successful builds: $($services | Where-Object { $buildResults[$_] -eq 0 } | ForEach-Object { $_ } | Join-String -Separator ', ')" -ForegroundColor Green
+            
+            # Show build logs for failed services
+            Write-Host "`n📝 Build logs for failed services:" -ForegroundColor Yellow
+            foreach ($failedService in $failedBuilds) {
+                if (Test-Path "build-$failedService.log") {
+                    Write-Host "`n--- $failedService build log ---" -ForegroundColor Cyan
+                    Get-Content "build-$failedService.log" | Select-Object -Last 20
+                }
+            }
+            
+            throw "Some Docker images failed to build: $($failedBuilds -join ', ')"
         }
         
         # Start the containers
-        Write-Host "Starting containers..." -ForegroundColor Cyan
+        Write-Host "`nStarting containers..." -ForegroundColor Cyan
         docker compose -f docker-compose.test.yml up -d
         
         if ($LASTEXITCODE -ne 0) {
@@ -143,6 +173,9 @@ function Start-TestEnvironment {
         }
         
         Write-Host "✓ Test environment is ready" -ForegroundColor Green
+        
+        # Clean up build logs
+        Get-ChildItem "build-*.log" -ErrorAction SilentlyContinue | Remove-Item -Force
         
     } catch {
         Write-Host "✗ Failed to start test environment: $($_.Exception.Message)" -ForegroundColor Red

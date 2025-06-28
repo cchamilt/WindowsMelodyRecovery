@@ -1,0 +1,40 @@
+{
+  "backupId": "backup-2023-01-02",
+  "timestamp": "2023-01-02T00:00:00Z",
+  "machineName": "TEST-MACHINE",
+  "userName": "TestUser",
+  "backupType": "incremental",
+  "version": "1.0.0",
+  "components": {
+    "system": {
+      "status": "completed",
+      "files": 25,
+      "size": "500MB",
+      "duration": "00:01:30"
+    },
+    "applications": {
+      "status": "completed",
+      "files": 10,
+      "size": "200MB",
+      "duration": "00:00:45"
+    },
+    "userData": {
+      "status": "completed",
+      "files": 30,
+      "size": "400MB",
+      "duration": "00:01:15"
+    }
+  },
+  "metadata": {
+    "osVersion": "Windows 11 22H2",
+    "wslVersion": "2",
+    "totalSize": "1.1GB",
+    "compressionRatio": "0.80",
+    "encryption": "AES-256",
+    "checksum": "sha256:def456ghi789jkl012mno345pqr678stu901vwx234yzabc123"
+  },
+  "cloudProvider": "GoogleDrive",
+  "cloudPath": "/WindowsMissingRecovery/backup-2023-01-02",
+  "retentionPolicy": "30days",
+  "status": "success"
+} 

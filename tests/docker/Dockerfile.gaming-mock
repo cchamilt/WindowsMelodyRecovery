@@ -1,0 +1,79 @@
+# Mock Gaming Platforms Environment
+FROM ubuntu:22.04
+
+# Install basic tools and dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    jq \
+    python3 \
+    python3-pip \
+    vim \
+    nano \
+    tree \
+    file \
+    unzip \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create mock gaming platform directory structure
+RUN mkdir -p /mock-steam/steamapps/common \
+    && mkdir -p /mock-steam/steamapps/downloading \
+    && mkdir -p /mock-steam/steamapps/workshop \
+    && mkdir -p /mock-steam/userdata \
+    && mkdir -p /mock-steam/config \
+    && mkdir -p /mock-epic/Launcher/VaultCache \
+    && mkdir -p /mock-epic/Launcher/Engine/Binaries/Win64 \
+    && mkdir -p /mock-epic/Launcher/Engine/Binaries/Linux \
+    && mkdir -p /mock-gog/Galaxy/Downloads \
+    && mkdir -p /mock-gog/Galaxy/Programs \
+    && mkdir -p /mock-gog/Galaxy/WebCache \
+    && mkdir -p /mock-ea/EA\ Desktop/Installed \
+    && mkdir -p /mock-ea/EA\ Desktop/Downloads \
+    && mkdir -p /mock-ea/Origin/Installed \
+    && mkdir -p /mock-ea/Origin/Downloads
+
+# Create mock gaming platform executables and configurations
+RUN echo '#!/bin/bash\necho "Steam is running in mock mode"\nexit 0' > /mock-steam/steam.exe \
+    && chmod +x /mock-steam/steam.exe \
+    && echo '#!/bin/bash\necho "Epic Games Launcher is running in mock mode"\nexit 0' > /mock-epic/EpicGamesLauncher.exe \
+    && chmod +x /mock-epic/EpicGamesLauncher.exe \
+    && echo '#!/bin/bash\necho "GOG Galaxy is running in mock mode"\nexit 0' > /mock-gog/GalaxyClient.exe \
+    && chmod +x /mock-gog/GalaxyClient.exe \
+    && echo '#!/bin/bash\necho "EA Desktop is running in mock mode"\nexit 0' > /mock-ea/EA\ Desktop/EADesktop.exe \
+    && chmod +x /mock-ea/EA\ Desktop/EADesktop.exe
+
+# Create mock game installations
+RUN mkdir -p /mock-steam/steamapps/common/Counter-Strike\ 2 \
+    && mkdir -p /mock-steam/steamapps/common/Team\ Fortress\ 2 \
+    && mkdir -p /mock-epic/Launcher/VaultCache/Fortnite \
+    && mkdir -p /mock-epic/Launcher/VaultCache/Rocket\ League \
+    && mkdir -p /mock-gog/Galaxy/Programs/The\ Witcher\ 3 \
+    && mkdir -p /mock-gog/Galaxy/Programs/Cyberpunk\ 2077 \
+    && mkdir -p /mock-ea/EA\ Desktop/Installed/FIFA\ 24 \
+    && mkdir -p /mock-ea/EA\ Desktop/Installed/Battlefield\ 2042
+
+# Create mock configuration files
+RUN echo '{"SteamPath": "/mock-steam", "LibraryFolders": ["/mock-steam/steamapps"]}' > /mock-steam/config/config.vdf \
+    && echo '{"EpicPath": "/mock-epic", "InstalledGames": ["Fortnite", "Rocket League"]}' > /mock-epic/Launcher/config.json \
+    && echo '{"GOGPath": "/mock-gog", "InstalledGames": ["The Witcher 3", "Cyberpunk 2077"]}' > /mock-gog/Galaxy/config.json \
+    && echo '{"EAPath": "/mock-ea", "InstalledGames": ["FIFA 24", "Battlefield 2042"]}' > /mock-ea/EA\ Desktop/config.json
+
+# Create mock registry entries for Windows compatibility
+RUN mkdir -p /mock-registry/HKLM/SOFTWARE/Valve/Steam \
+    && mkdir -p /mock-registry/HKLM/SOFTWARE/Epic\ Games \
+    && mkdir -p /mock-registry/HKLM/SOFTWARE/GOG.com \
+    && mkdir -p /mock-registry/HKLM/SOFTWARE/Electronic\ Arts
+
+# Create mock user data
+RUN mkdir -p /mock-steam/userdata/123456789 \
+    && mkdir -p /mock-epic/Launcher/VaultCache/userdata \
+    && mkdir -p /mock-gog/Galaxy/WebCache/userdata \
+    && mkdir -p /mock-ea/EA\ Desktop/userdata
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command - keep container running
+CMD ["tail", "-f", "/dev/null"] 

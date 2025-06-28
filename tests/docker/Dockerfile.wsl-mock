@@ -23,8 +23,6 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
-    nodejs \
-    npm \
     golang-go \
     rustc \
     cargo \
@@ -34,6 +32,11 @@ RUN apt-get update && apt-get install -y \
     php \
     composer \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 18+ (instead of the default v12)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Snap (mock)
 RUN apt-get update && apt-get install -y snapd && rm -rf /var/lib/apt/lists/*
@@ -78,11 +81,13 @@ RUN mkdir -p /home/testuser/projects && \
     mkdir -p /home/testuser/scripts && \
     mkdir -p /home/testuser/.local/bin
 
-# Install some global npm packages for testing
-RUN npm install -g typescript eslint prettier
-
-# Install some pip packages for testing
+# Install some pip packages for testing (as user)
 RUN pip3 install --user requests flask django pytest
+
+# Ensure proper ownership of user files
+USER root
+RUN chown -R testuser:testuser /home/testuser
+USER testuser
 
 # Set up shell configurations
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && \
@@ -97,11 +102,11 @@ RUN git config --global user.name "Test User" && \
 # Switch back to root for final setup
 USER root
 
+# Install global npm packages as root (to avoid permission issues)
+RUN npm install -g typescript@4.9.5 eslint@8.57.0 prettier@2.8.8
+
 # Create mock system configuration files
 COPY tests/mock-data/wsl/etc/ /etc/
-
-# Set ownership of user files
-RUN chown -R testuser:testuser /home/testuser
 
 # Create startup script
 COPY tests/mock-scripts/wsl-startup.sh /usr/local/bin/

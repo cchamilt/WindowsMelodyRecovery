@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Mock Windows Environment (PowerShell Core on Linux)
   windows-mock:
