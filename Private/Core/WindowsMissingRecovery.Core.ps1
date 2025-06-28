@@ -258,7 +258,8 @@ function Invoke-WSLScript {
     
     try {
         # Create temporary script file
-        $tempScript = Join-Path $env:TEMP "wsl-script-$(Get-Random).sh"
+        $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
+        $tempScript = Join-Path $tempPath "wsl-script-$(Get-Random).sh"
         
         # Prepare script content with proper shebang and error handling
         $fullScript = @"

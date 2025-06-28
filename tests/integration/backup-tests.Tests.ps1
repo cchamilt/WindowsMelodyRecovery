@@ -12,7 +12,8 @@ BeforeAll {
     Import-Module "$PSScriptRoot\..\..\WindowsMissingRecovery.psm1" -Force
     
     # Setup test environment
-    $script:TestBackupRoot = "$env:TEMP\WMR-Integration-Tests\Backup"
+    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
+    $script:TestBackupRoot = Join-Path $tempPath "WMR-Integration-Tests\Backup"
     $script:TestCloudPath = "$env:USERPROFILE\OneDrive\WindowsMissingRecovery"
     
     # Create test directories

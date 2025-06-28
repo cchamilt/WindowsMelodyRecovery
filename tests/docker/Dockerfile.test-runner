@@ -45,6 +45,7 @@ COPY tests/mock-scripts/TestRunner.PowerShell_profile.ps1 /root/.config/powershe
 COPY tests/integration/ /tests/integration/
 COPY tests/unit/ /tests/unit/
 COPY tests/utilities/ /tests/utilities/
+COPY tests/scripts/ /tests/scripts/
 
 # Create test runner script
 COPY tests/scripts/run-tests.ps1 /tests/

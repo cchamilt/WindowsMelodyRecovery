@@ -12,7 +12,8 @@ BeforeAll {
     Import-Module "$PSScriptRoot\..\..\WindowsMissingRecovery.psm1" -Force
     
     # Setup test environment
-    $script:TestBackupRoot = "$env:TEMP\WMR-Integration-Tests\WSL"
+    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
+    $script:TestBackupRoot = Join-Path $tempPath "WMR-Integration-Tests\WSL"
     $script:WSLDistro = $env:WMR_WSL_DISTRO ?? "Ubuntu-22.04"
     
     # Create test directories

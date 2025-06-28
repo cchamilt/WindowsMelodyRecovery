@@ -62,6 +62,17 @@ RUN echo '# .bashrc for testuser' > /home/testuser/.bashrc && \
     echo 'alias la="ls -A"' >> /home/testuser/.bashrc && \
     echo 'alias l="ls -CF"' >> /home/testuser/.bashrc
 
+# Add chezmoi aliases to .bashrc
+RUN echo '' >> /home/testuser/.bashrc && \
+    echo '# Chezmoi aliases' >> /home/testuser/.bashrc && \
+    echo 'alias cm="chezmoi"' >> /home/testuser/.bashrc && \
+    echo 'alias cma="chezmoi apply"' >> /home/testuser/.bashrc && \
+    echo 'alias cme="chezmoi edit"' >> /home/testuser/.bashrc && \
+    echo 'alias cms="chezmoi status"' >> /home/testuser/.bashrc && \
+    echo 'alias cmd="chezmoi diff"' >> /home/testuser/.bashrc && \
+    echo 'alias cmu="chezmoi update"' >> /home/testuser/.bashrc && \
+    echo 'alias cmcd="cd $(chezmoi source-path)"' >> /home/testuser/.bashrc
+
 # Create directories and set permissions
 RUN mkdir -p /home/testuser/.config/chezmoi && \
     mkdir -p /home/testuser/.ssh && \
@@ -100,6 +111,50 @@ RUN pip3 install --user requests flask django pytest
 # Create mock git configuration
 RUN git config --global user.name "Test User" && \
     git config --global user.email "test@example.com"
+
+# Initialize chezmoi for testuser
+RUN chezmoi init --source-path ~/.local/share/chezmoi
+
+# Create basic chezmoi configuration
+RUN mkdir -p ~/.config/chezmoi && \
+    echo '[chezmoi]' > ~/.config/chezmoi/chezmoi.toml && \
+    echo 'sourceDir = "~/.local/share/chezmoi"' >> ~/.config/chezmoi/chezmoi.toml && \
+    echo 'destDir = "~"' >> ~/.config/chezmoi/chezmoi.toml && \
+    echo 'configFile = "~/.config/chezmoi/chezmoi.toml"' >> ~/.config/chezmoi/chezmoi.toml
+
+# Create some sample dotfiles in chezmoi source
+RUN mkdir -p ~/.local/share/chezmoi && \
+    echo '# Sample .bashrc managed by chezmoi' > ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias ll="ls -la"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias la="ls -A"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias l="ls -CF"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo '' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo '# Chezmoi aliases' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cm="chezmoi"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cma="chezmoi apply"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cme="chezmoi edit"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cms="chezmoi status"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cmd="chezmoi diff"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cmu="chezmoi update"' >> ~/.local/share/chezmoi/dot_bashrc && \
+    echo 'alias cmcd="cd $(chezmoi source-path)"' >> ~/.local/share/chezmoi/dot_bashrc
+
+# Create sample git configuration
+RUN echo '[user]' > ~/.local/share/chezmoi/dot_gitconfig && \
+    echo '    name = Test User' >> ~/.local/share/chezmoi/dot_gitconfig && \
+    echo '    email = test@example.com' >> ~/.local/share/chezmoi/dot_gitconfig && \
+    echo '' >> ~/.local/share/chezmoi/dot_gitconfig && \
+    echo '[core]' >> ~/.local/share/chezmoi/dot_gitconfig && \
+    echo '    editor = vim' >> ~/.local/share/chezmoi/dot_gitconfig
+
+# Create sample vim configuration
+RUN echo 'set number' > ~/.local/share/chezmoi/dot_vimrc && \
+    echo 'set expandtab' >> ~/.local/share/chezmoi/dot_vimrc && \
+    echo 'set tabstop=4' >> ~/.local/share/chezmoi/dot_vimrc && \
+    echo 'set shiftwidth=4' >> ~/.local/share/chezmoi/dot_vimrc
+
+# Apply chezmoi to set up the environment
+RUN chezmoi apply
 
 # Switch back to root for final setup
 USER root

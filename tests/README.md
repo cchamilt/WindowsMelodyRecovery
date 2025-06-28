@@ -54,6 +54,18 @@ The testing system creates a complete mock environment that includes:
 
 3. **Run specific test suites**:
    ```powershell
+   # Test module installation and setup
+   ./run-integration-tests.ps1 -TestSuite Installation
+   
+   # Test module initialization and configuration
+   ./run-integration-tests.ps1 -TestSuite Initialization
+   
+   # Run Pester unit and integration tests
+   ./run-integration-tests.ps1 -TestSuite Pester
+   
+   # Test chezmoi dotfile management
+   ./run-integration-tests.ps1 -TestSuite Chezmoi
+   
    # Test only WSL functionality
    ./run-integration-tests.ps1 -TestSuite WSL
    
@@ -74,14 +86,54 @@ The testing system creates a complete mock environment that includes:
 ### Available Test Suites
 
 - **All**: Runs all test suites (default)
+- **Installation**: Tests module installation and setup functionality
+- **Initialization**: Tests module initialization and configuration management
+- **Pester**: Runs Pester unit and integration tests
 - **Backup**: Tests all backup functionality
 - **Restore**: Tests all restore functionality  
 - **WSL**: Tests WSL integration and chezmoi functionality
 - **Gaming**: Tests gaming platform integrations
 - **Cloud**: Tests cloud storage provider integrations
+- **Chezmoi**: Tests chezmoi dotfile management functionality
 - **Setup**: Tests setup and configuration functionality
 
 ### Test Coverage
+
+#### Installation Tests
+- Module manifest validation
+- PowerShell script syntax validation
+- Module import and export verification
+- Installation script functionality
+- Required file presence and structure
+- Module dependencies and prerequisites
+
+#### Initialization Tests
+- Module initialization workflow
+- Configuration directory creation
+- Template file copying and validation
+- Environment variable setup
+- Status and health check functions
+- Error handling and recovery
+- Configuration validation and integrity
+
+#### Pester Tests
+- Unit test execution and validation
+- Integration test execution
+- Test infrastructure verification
+- Code coverage analysis
+- Test result reporting
+- Pester configuration validation
+- Test file syntax validation
+
+#### Chezmoi Tests
+- Chezmoi availability and installation verification
+- Chezmoi initialization and configuration
+- Source directory management and validation
+- File management and template processing
+- Backup and restore functionality
+- Integration with Windows Missing Recovery module
+- Error handling and edge cases
+- Performance and scalability testing
 
 #### Backup Tests
 - System settings backup

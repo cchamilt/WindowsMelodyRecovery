@@ -8,7 +8,7 @@
     using Docker containers that simulate Windows, WSL, and cloud storage environments.
 
 .PARAMETER TestSuite
-    Which test suite to run (All, Backup, Restore, WSL, Gaming, Cloud, Setup)
+    Which test suite to run (All, Installation, Initialization, Pester, Backup, Restore, WSL, Gaming, Cloud, Chezmoi, Setup)
 
 .PARAMETER Clean
     Clean up existing containers and volumes before starting
@@ -36,7 +36,7 @@
 #>
 
 param(
-    [ValidateSet("All", "Backup", "Restore", "WSL", "Gaming", "Cloud", "Setup")]
+    [ValidateSet("All", "Installation", "Initialization", "Pester", "Backup", "Restore", "WSL", "Gaming", "Cloud", "Chezmoi", "Setup")]
     [string]$TestSuite = "All",
     
     [switch]$Clean,

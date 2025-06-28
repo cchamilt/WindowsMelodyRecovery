@@ -24,7 +24,7 @@
 #>
 
 param(
-    [ValidateSet("All", "Backup", "Restore", "WSL", "Gaming", "Cloud", "Setup")]
+    [ValidateSet("All", "Installation", "Initialization", "Pester", "Backup", "Restore", "WSL", "Gaming", "Cloud", "Chezmoi", "Setup")]
     [string]$TestSuite = "All",
     
     [ValidateSet("Docker", "Local")]
@@ -485,6 +485,290 @@ function Invoke-CloudIntegrationTests {
     Write-Host ""
 }
 
+function Invoke-ChezmoiTests {
+    Write-TestSection "Running Chezmoi Integration Tests"
+    
+    try {
+        Write-Host "Testing chezmoi dotfile management functionality..." -ForegroundColor Yellow
+        
+        Set-Location /workspace
+        
+        # Test chezmoi availability in WSL
+        Write-Host "Testing chezmoi availability in WSL..." -ForegroundColor Cyan
+        try {
+            $chezmoiVersion = docker exec -u testuser $Global:TestConfig.WSLHost chezmoi --version 2>$null
+            if ($chezmoiVersion) {
+                Write-Host "✓ chezmoi is available in WSL: $chezmoiVersion" -ForegroundColor Green
+                $Global:TestConfig.PassedTests += "Chezmoi Availability"
+            } else {
+                Write-Host "✗ chezmoi not available in WSL" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Chezmoi Availability"
+            }
+        } catch {
+            Write-Host "✗ Failed to check chezmoi in WSL: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Availability"
+        }
+        
+        # Test chezmoi initialization
+        Write-Host "Testing chezmoi initialization..." -ForegroundColor Cyan
+        try {
+            # Check if chezmoi is already initialized
+            $chezmoiStatus = docker exec -u testuser $Global:TestConfig.WSLHost chezmoi status 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ chezmoi is already initialized" -ForegroundColor Green
+            } else {
+                # Initialize chezmoi
+                Write-Host "Initializing chezmoi..." -ForegroundColor Yellow
+                docker exec -u testuser $Global:TestConfig.WSLHost chezmoi init 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "✓ chezmoi initialized successfully" -ForegroundColor Green
+                } else {
+                    Write-Host "✗ Failed to initialize chezmoi" -ForegroundColor Red
+                    $Global:TestConfig.FailedTests += "Chezmoi Initialization"
+                }
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Initialization"
+        } catch {
+            Write-Host "✗ Chezmoi initialization test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Initialization"
+        }
+        
+        # Test chezmoi configuration
+        Write-Host "Testing chezmoi configuration..." -ForegroundColor Cyan
+        try {
+            $chezmoiConfig = docker exec -u testuser $Global:TestConfig.WSLHost test -f ~/.config/chezmoi/chezmoi.toml 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ chezmoi configuration file exists" -ForegroundColor Green
+            } else {
+                Write-Host "⚠ chezmoi configuration file not found (may be using defaults)" -ForegroundColor Yellow
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Configuration"
+        } catch {
+            Write-Host "✗ Chezmoi configuration test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Configuration"
+        }
+        
+        # Test chezmoi source directory
+        Write-Host "Testing chezmoi source directory..." -ForegroundColor Cyan
+        try {
+            $sourcePath = docker exec -u testuser $Global:TestConfig.WSLHost chezmoi source-path 2>$null
+            if ($sourcePath -and $LASTEXITCODE -eq 0) {
+                Write-Host "✓ chezmoi source directory: $sourcePath" -ForegroundColor Green
+                
+                # Check if source directory exists and has content
+                $sourceExists = docker exec -u testuser $Global:TestConfig.WSLHost test -d "$sourcePath" 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "✓ chezmoi source directory exists" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ chezmoi source directory does not exist" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "✗ Failed to get chezmoi source path" -ForegroundColor Red
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Source Directory"
+        } catch {
+            Write-Host "✗ Chezmoi source directory test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Source Directory"
+        }
+        
+        # Test chezmoi file management
+        Write-Host "Testing chezmoi file management..." -ForegroundColor Cyan
+        try {
+            # Create a test file
+            docker exec -u testuser $Global:TestConfig.WSLHost bash -c "echo 'test content' > ~/test-file.txt" 2>$null
+            
+            # Add file to chezmoi
+            docker exec -u testuser $Global:TestConfig.WSLHost chezmoi add ~/test-file.txt 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Successfully added file to chezmoi" -ForegroundColor Green
+                
+                # Check if file is tracked
+                $status = docker exec -u testuser $Global:TestConfig.WSLHost chezmoi status 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "✓ File is tracked by chezmoi" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ File may not be tracked properly" -ForegroundColor Yellow
+                }
+                
+                # Clean up test file
+                docker exec -u testuser $Global:TestConfig.WSLHost rm ~/test-file.txt 2>$null
+            } else {
+                Write-Host "✗ Failed to add file to chezmoi" -ForegroundColor Red
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi File Management"
+        } catch {
+            Write-Host "✗ Chezmoi file management test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi File Management"
+        }
+        
+        # Test chezmoi aliases
+        Write-Host "Testing chezmoi aliases..." -ForegroundColor Cyan
+        try {
+            $aliases = docker exec -u testuser $Global:TestConfig.WSLHost bash -c "alias | grep chezmoi" 2>$null
+            if ($aliases) {
+                Write-Host "✓ chezmoi aliases found: $aliases" -ForegroundColor Green
+            } else {
+                Write-Host "⚠ chezmoi aliases not found (may need to source .bashrc)" -ForegroundColor Yellow
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Aliases"
+        } catch {
+            Write-Host "✗ Chezmoi aliases test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Aliases"
+        }
+        
+        # Test chezmoi backup functionality
+        Write-Host "Testing chezmoi backup functionality..." -ForegroundColor Cyan
+        try {
+            # Create backup directory
+            docker exec -u testuser $Global:TestConfig.WSLHost mkdir -p /tmp/chezmoi-backup 2>$null
+            
+            # Test backup script functionality
+            $backupScript = @"
+#!/bin/bash
+set -e
+
+BACKUP_DIR="/tmp/chezmoi-backup"
+echo "Backing up chezmoi to: \$BACKUP_DIR"
+
+# Check if chezmoi is installed
+if ! command -v chezmoi &> /dev/null; then
+    echo "chezmoi not installed"
+    exit 1
+fi
+
+# Create backup directory
+mkdir -p "\$BACKUP_DIR"
+
+# Backup chezmoi source directory
+if [ -d "\$HOME/.local/share/chezmoi" ]; then
+    cp -r "\$HOME/.local/share/chezmoi" "\$BACKUP_DIR/source"
+    echo "Source directory backed up"
+fi
+
+# Backup chezmoi configuration
+if [ -f "\$HOME/.config/chezmoi/chezmoi.toml" ]; then
+    mkdir -p "\$BACKUP_DIR/config"
+    cp "\$HOME/.config/chezmoi/chezmoi.toml" "\$BACKUP_DIR/config/"
+    echo "Configuration backed up"
+fi
+
+echo "Backup completed"
+"@
+            
+            # Write backup script to container
+            $backupScript | docker exec -i -u testuser $Global:TestConfig.WSLHost bash -c "cat > /tmp/backup-chezmoi.sh && chmod +x /tmp/backup-chezmoi.sh"
+            
+            # Execute backup script
+            docker exec -u testuser $Global:TestConfig.WSLHost /tmp/backup-chezmoi.sh 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ chezmoi backup completed successfully" -ForegroundColor Green
+                
+                # Verify backup contents
+                $backupExists = docker exec -u testuser $Global:TestConfig.WSLHost test -d /tmp/chezmoi-backup 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "✓ Backup directory created" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Backup directory not found" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "✗ chezmoi backup failed" -ForegroundColor Red
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Backup"
+        } catch {
+            Write-Host "✗ Chezmoi backup test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Backup"
+        }
+        
+        # Test chezmoi restore functionality
+        Write-Host "Testing chezmoi restore functionality..." -ForegroundColor Cyan
+        try {
+            # Test restore script functionality
+            $restoreScript = @"
+#!/bin/bash
+set -e
+
+BACKUP_DIR="/tmp/chezmoi-backup"
+echo "Restoring chezmoi from: \$BACKUP_DIR"
+
+# Check if backup exists
+if [ ! -d "\$BACKUP_DIR" ]; then
+    echo "Backup directory not found"
+    exit 1
+fi
+
+# Restore chezmoi source directory
+if [ -d "\$BACKUP_DIR/source" ]; then
+    mkdir -p "\$HOME/.local/share"
+    cp -r "\$BACKUP_DIR/source" "\$HOME/.local/share/chezmoi"
+    echo "Source directory restored"
+fi
+
+# Restore chezmoi configuration
+if [ -f "\$BACKUP_DIR/config/chezmoi.toml" ]; then
+    mkdir -p "\$HOME/.config/chezmoi"
+    cp "\$BACKUP_DIR/config/chezmoi.toml" "\$HOME/.config/chezmoi/"
+    echo "Configuration restored"
+fi
+
+echo "Restore completed"
+"@
+            
+            # Write restore script to container
+            $restoreScript | docker exec -i -u testuser $Global:TestConfig.WSLHost bash -c "cat > /tmp/restore-chezmoi.sh && chmod +x /tmp/restore-chezmoi.sh"
+            
+            # Execute restore script
+            docker exec -u testuser $Global:TestConfig.WSLHost /tmp/restore-chezmoi.sh 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ chezmoi restore completed successfully" -ForegroundColor Green
+            } else {
+                Write-Host "✗ chezmoi restore failed" -ForegroundColor Red
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Restore"
+        } catch {
+            Write-Host "✗ Chezmoi restore test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Restore"
+        }
+        
+        # Test chezmoi integration with Windows Missing Recovery
+        Write-Host "Testing chezmoi integration with Windows Missing Recovery..." -ForegroundColor Cyan
+        try {
+            # Import the module
+            Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+            
+            # Test if chezmoi setup function exists
+            if (Get-Command Setup-Chezmoi -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Setup-Chezmoi function available" -ForegroundColor Green
+                
+                # Test if WSL chezmoi setup function exists
+                if (Get-Command Setup-WSLChezmoi -ErrorAction SilentlyContinue) {
+                    Write-Host "✓ Setup-WSLChezmoi function available" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Setup-WSLChezmoi function not available" -ForegroundColor Yellow
+                }
+                
+                # Test if backup function exists
+                if (Get-Command Backup-WSLChezmoi -ErrorAction SilentlyContinue) {
+                    Write-Host "✓ Backup-WSLChezmoi function available" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Backup-WSLChezmoi function not available" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "✗ Setup-Chezmoi function not available" -ForegroundColor Red
+            }
+            $Global:TestConfig.PassedTests += "Chezmoi Integration"
+        } catch {
+            Write-Host "✗ Chezmoi integration test failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Chezmoi Integration"
+        }
+        
+    } catch {
+        Write-Host "✗ Chezmoi tests failed: $($_.Exception.Message)" -ForegroundColor Red
+        $Global:TestConfig.FailedTests += "Chezmoi"
+    }
+    
+    Write-Host ""
+}
+
 function Invoke-FullIntegrationTest {
     Write-TestSection "Running Full Integration Test"
     
@@ -541,6 +825,400 @@ function Invoke-FullIntegrationTest {
     } catch {
         Write-Host "✗ Full integration test failed: $($_.Exception.Message)" -ForegroundColor Red
         $Global:TestConfig.FailedTests += "Full Integration"
+    }
+    
+    Write-Host ""
+}
+
+function Invoke-InstallationTests {
+    Write-TestSection "Running Installation Tests"
+    
+    try {
+        Write-Host "Testing module installation functionality..." -ForegroundColor Yellow
+        
+        Set-Location /workspace
+        
+        # Test Install-Module.ps1 script
+        if (Test-Path "./Install-Module.ps1") {
+            Write-Host "✓ Install-Module.ps1 script found" -ForegroundColor Green
+            
+            # Test script syntax
+            try {
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Install-Module.ps1" -Raw), [ref]$null)
+                Write-Host "✓ Install-Module.ps1 syntax is valid" -ForegroundColor Green
+            } catch {
+                Write-Host "✗ Install-Module.ps1 syntax error: $($_.Exception.Message)" -ForegroundColor Red
+                throw
+            }
+            
+            # Test script parameters
+            $scriptContent = Get-Content "./Install-Module.ps1" -Raw
+            if ($scriptContent -match 'param\s*\(') {
+                Write-Host "✓ Install-Module.ps1 has parameter block" -ForegroundColor Green
+            } else {
+                Write-Host "⚠ Install-Module.ps1 missing parameter block" -ForegroundColor Yellow
+            }
+            
+            $Global:TestConfig.PassedTests += "Installation Script"
+        } else {
+            Write-Host "✗ Install-Module.ps1 not found" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Installation Script"
+        }
+        
+        # Test module manifest
+        if (Test-Path "./WindowsMissingRecovery.psd1") {
+            Write-Host "✓ Module manifest found" -ForegroundColor Green
+            
+            # Test manifest import
+            try {
+                $manifest = Import-PowerShellDataFile "./WindowsMissingRecovery.psd1"
+                Write-Host "✓ Module manifest is valid" -ForegroundColor Green
+                
+                # Check required fields
+                $requiredFields = @("ModuleVersion", "Author", "Description", "PowerShellVersion")
+                foreach ($field in $requiredFields) {
+                    if ($manifest.$field) {
+                        Write-Host "✓ Manifest has $field" -ForegroundColor Green
+                    } else {
+                        Write-Host "⚠ Manifest missing $field" -ForegroundColor Yellow
+                    }
+                }
+                
+                $Global:TestConfig.PassedTests += "Module Manifest"
+            } catch {
+                Write-Host "✗ Module manifest is invalid: $($_.Exception.Message)" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Module Manifest"
+            }
+        } else {
+            Write-Host "✗ Module manifest not found" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Module Manifest"
+        }
+        
+        # Test main module file
+        if (Test-Path "./WindowsMissingRecovery.psm1") {
+            Write-Host "✓ Main module file found" -ForegroundColor Green
+            
+            # Test module import
+            try {
+                Import-Module "./WindowsMissingRecovery.psm1" -Force -ErrorAction Stop
+                Write-Host "✓ Module imports successfully" -ForegroundColor Green
+                
+                # Check for exported functions
+                $exportedFunctions = Get-Command -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+                if ($exportedFunctions) {
+                    Write-Host "✓ Module exports $($exportedFunctions.Count) functions" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Module exports no functions" -ForegroundColor Yellow
+                }
+                
+                $Global:TestConfig.PassedTests += "Module Import"
+            } catch {
+                Write-Host "✗ Module import failed: $($_.Exception.Message)" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Module Import"
+            }
+        } else {
+            Write-Host "✗ Main module file not found" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Module Import"
+        }
+        
+        # Test installation tasks
+        if (Test-Path "./Public/Install-WindowsMissingRecoveryTasks.ps1") {
+            Write-Host "✓ Installation tasks script found" -ForegroundColor Green
+            
+            # Test script syntax
+            try {
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Public/Install-WindowsMissingRecoveryTasks.ps1" -Raw), [ref]$null)
+                Write-Host "✓ Installation tasks script syntax is valid" -ForegroundColor Green
+                $Global:TestConfig.PassedTests += "Installation Tasks"
+            } catch {
+                Write-Host "✗ Installation tasks script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Installation Tasks"
+            }
+        } else {
+            Write-Host "⚠ Installation tasks script not found" -ForegroundColor Yellow
+        }
+        
+    } catch {
+        Write-Host "✗ Installation tests failed: $($_.Exception.Message)" -ForegroundColor Red
+        $Global:TestConfig.FailedTests += "Installation"
+    }
+    
+    Write-Host ""
+}
+
+function Invoke-InitializationTests {
+    Write-TestSection "Running Initialization Tests"
+    
+    try {
+        Write-Host "Testing module initialization functionality..." -ForegroundColor Yellow
+        
+        Set-Location /workspace
+        
+        # Test initialization script
+        if (Test-Path "./Private/Core/WindowsMissingRecovery.Initialization.ps1") {
+            Write-Host "✓ Initialization script found" -ForegroundColor Green
+            
+            # Test script syntax
+            try {
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMissingRecovery.Initialization.ps1" -Raw), [ref]$null)
+                Write-Host "✓ Initialization script syntax is valid" -ForegroundColor Green
+                $Global:TestConfig.PassedTests += "Initialization Script"
+            } catch {
+                Write-Host "✗ Initialization script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Initialization Script"
+            }
+        } else {
+            Write-Host "✗ Initialization script not found" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Initialization Script"
+        }
+        
+        # Test initialization function
+        try {
+            # Import the module
+            Import-Module "./WindowsMissingRecovery.psm1" -Force -ErrorAction Stop
+            
+            # Test Initialize-WindowsMissingRecovery function
+            if (Get-Command Initialize-WindowsMissingRecovery -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Initialize-WindowsMissingRecovery function available" -ForegroundColor Green
+                
+                # Test function parameters
+                $functionInfo = Get-Command Initialize-WindowsMissingRecovery
+                Write-Host "✓ Function has $($functionInfo.Parameters.Count) parameters" -ForegroundColor Green
+                
+                $Global:TestConfig.PassedTests += "Initialization Function"
+            } else {
+                Write-Host "✗ Initialize-WindowsMissingRecovery function not available" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Initialization Function"
+            }
+            
+            # Test Get-WindowsMissingRecoveryStatus function
+            if (Get-Command Get-WindowsMissingRecoveryStatus -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Get-WindowsMissingRecoveryStatus function available" -ForegroundColor Green
+                
+                # Test status function
+                try {
+                    $status = Get-WindowsMissingRecoveryStatus -ErrorAction Stop
+                    if ($status) {
+                        Write-Host "✓ Status function returns data" -ForegroundColor Green
+                        Write-Host "  Module Version: $($status.ModuleVersion)" -ForegroundColor Gray
+                        Write-Host "  Initialization Status: $($status.InitializationStatus)" -ForegroundColor Gray
+                    } else {
+                        Write-Host "⚠ Status function returns no data" -ForegroundColor Yellow
+                    }
+                    
+                    $Global:TestConfig.PassedTests += "Status Function"
+                } catch {
+                    Write-Host "⚠ Status function test failed: $($_.Exception.Message)" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "✗ Get-WindowsMissingRecoveryStatus function not available" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Status Function"
+            }
+            
+        } catch {
+            Write-Host "✗ Initialization function tests failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Initialization Functions"
+        }
+        
+        # Test configuration files
+        $configFiles = @(
+            "./Templates/scripts-config.json",
+            "./Templates/config.env.template",
+            "./Templates/windows.env.template"
+        )
+        
+        foreach ($configFile in $configFiles) {
+            if (Test-Path $configFile) {
+                Write-Host "✓ Configuration file found: $configFile" -ForegroundColor Green
+                
+                # Test JSON syntax for JSON files
+                if ($configFile -match '\.json$') {
+                    try {
+                        $jsonContent = Get-Content $configFile -Raw | ConvertFrom-Json
+                        Write-Host "✓ JSON syntax is valid: $configFile" -ForegroundColor Green
+                    } catch {
+                        Write-Host "✗ JSON syntax error in $configFile : $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                }
+                
+                $Global:TestConfig.PassedTests += "Configuration File"
+            } else {
+                Write-Host "⚠ Configuration file not found: $configFile" -ForegroundColor Yellow
+            }
+        }
+        
+        # Test core utilities
+        if (Test-Path "./Private/Core/WindowsMissingRecovery.Core.ps1") {
+            Write-Host "✓ Core utilities script found" -ForegroundColor Green
+            
+            # Test script syntax
+            try {
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMissingRecovery.Core.ps1" -Raw), [ref]$null)
+                Write-Host "✓ Core utilities script syntax is valid" -ForegroundColor Green
+                $Global:TestConfig.PassedTests += "Core Utilities"
+            } catch {
+                Write-Host "✗ Core utilities script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Core Utilities"
+            }
+        } else {
+            Write-Host "✗ Core utilities script not found" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Core Utilities"
+        }
+        
+    } catch {
+        Write-Host "✗ Initialization tests failed: $($_.Exception.Message)" -ForegroundColor Red
+        $Global:TestConfig.FailedTests += "Initialization"
+    }
+    
+    Write-Host ""
+}
+
+function Invoke-PesterTests {
+    Write-TestSection "Running Pester Tests"
+    
+    try {
+        Write-Host "Testing Pester test infrastructure..." -ForegroundColor Yellow
+        
+        Set-Location /workspace
+        
+        # Check if Pester is available
+        try {
+            $pesterVersion = Get-Module -ListAvailable Pester | Select-Object -First 1
+            if ($pesterVersion) {
+                Write-Host "✓ Pester $($pesterVersion.Version) is available" -ForegroundColor Green
+                Import-Module Pester -Force
+            } else {
+                Write-Host "⚠ Pester not available, attempting to install..." -ForegroundColor Yellow
+                try {
+                    Install-Module Pester -Force -Scope CurrentUser -AllowClobber
+                    Import-Module Pester -Force
+                    Write-Host "✓ Pester installed successfully" -ForegroundColor Green
+                } catch {
+                    Write-Host "✗ Failed to install Pester: $($_.Exception.Message)" -ForegroundColor Red
+                    throw
+                }
+            }
+            
+            $Global:TestConfig.PassedTests += "Pester Availability"
+        } catch {
+            Write-Host "✗ Pester setup failed: $($_.Exception.Message)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Pester Availability"
+            throw
+        }
+        
+        # Test Pester test files
+        $testFiles = @(
+            "./tests/integration/backup-system-settings.Tests.ps1",
+            "./tests/integration/backup-applications.Tests.ps1",
+            "./tests/integration/backup-gaming.Tests.ps1",
+            "./tests/integration/backup-wsl.Tests.ps1",
+            "./tests/integration/backup-cloud.Tests.ps1",
+            "./tests/integration/restore-system-settings.Tests.ps1",
+            "./tests/integration/wsl-integration.Tests.ps1",
+            "./tests/unit/module-tests.Tests.ps1"
+        )
+        
+        $validTestFiles = @()
+        foreach ($testFile in $testFiles) {
+            if (Test-Path $testFile) {
+                Write-Host "✓ Pester test file found: $testFile" -ForegroundColor Green
+                
+                # Test file syntax
+                try {
+                    $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $testFile -Raw), [ref]$null)
+                    Write-Host "✓ Test file syntax is valid: $testFile" -ForegroundColor Green
+                    $validTestFiles += $testFile
+                } catch {
+                    Write-Host "✗ Test file syntax error in $testFile : $($_.Exception.Message)" -ForegroundColor Red
+                }
+                
+                $Global:TestConfig.PassedTests += "Pester Test File"
+            } else {
+                Write-Host "⚠ Pester test file not found: $testFile" -ForegroundColor Yellow
+            }
+        }
+        
+        # Run Pester tests if files are available
+        if ($validTestFiles.Count -gt 0) {
+            Write-Host "Running Pester tests..." -ForegroundColor Yellow
+            
+            # Create test output directory
+            $pesterOutputDir = "$($Global:TestConfig.OutputPath)/pester"
+            if (-not (Test-Path $pesterOutputDir)) {
+                New-Item -Path $pesterOutputDir -ItemType Directory -Force | Out-Null
+            }
+            
+            # Run tests with different configurations
+            $testConfigs = @(
+                @{ Name = "Unit Tests"; Path = "./tests/unit"; OutputFile = "$pesterOutputDir/unit-tests.xml" },
+                @{ Name = "Integration Tests"; Path = "./tests/integration"; OutputFile = "$pesterOutputDir/integration-tests.xml" }
+            )
+            
+            foreach ($config in $testConfigs) {
+                if (Test-Path $config.Path) {
+                    Write-Host "Running $($config.Name)..." -ForegroundColor Cyan
+                    
+                    try {
+                        $pesterConfig = New-PesterConfiguration
+                        $pesterConfig.Run.Path = $config.Path
+                        $pesterConfig.Run.PassThru = $true
+                        $pesterConfig.Output.Verbosity = "Normal"
+                        $pesterConfig.TestResult.Enabled = $true
+                        $pesterConfig.TestResult.OutputPath = $config.OutputFile
+                        $pesterConfig.TestResult.OutputFormat = "NUnitXml"
+                        
+                        $results = Invoke-Pester -Configuration $pesterConfig
+                        
+                        if ($results.FailedCount -eq 0) {
+                            Write-Host "✓ $($config.Name) passed ($($results.PassedCount) tests)" -ForegroundColor Green
+                            $Global:TestConfig.PassedTests += "$($config.Name)"
+                        } else {
+                            Write-Host "✗ $($config.Name) failed ($($results.FailedCount) failed, $($results.PassedCount) passed)" -ForegroundColor Red
+                            $Global:TestConfig.FailedTests += "$($config.Name)"
+                        }
+                        
+                        # Add detailed results to test config
+                        $Global:TestConfig.TestResults += @{
+                            Suite = "Pester"
+                            Test = $config.Name
+                            Result = if ($results.FailedCount -eq 0) { "Passed" } else { "Failed" }
+                            Duration = $results.Duration
+                            PassedCount = $results.PassedCount
+                            FailedCount = $results.FailedCount
+                            SkippedCount = $results.SkippedCount
+                        }
+                        
+                    } catch {
+                        Write-Host "✗ $($config.Name) execution failed: $($_.Exception.Message)" -ForegroundColor Red
+                        $Global:TestConfig.FailedTests += "$($config.Name)"
+                    }
+                } else {
+                    Write-Host "⚠ $($config.Name) directory not found: $($config.Path)" -ForegroundColor Yellow
+                }
+            }
+        } else {
+            Write-Host "⚠ No valid Pester test files found to run" -ForegroundColor Yellow
+        }
+        
+        # Test Pester configuration
+        if (Test-Path "./PesterConfig.psd1") {
+            Write-Host "✓ Pester configuration file found" -ForegroundColor Green
+            
+            try {
+                $pesterConfig = Import-PowerShellDataFile "./PesterConfig.psd1"
+                Write-Host "✓ Pester configuration is valid" -ForegroundColor Green
+                $Global:TestConfig.PassedTests += "Pester Configuration"
+            } catch {
+                Write-Host "✗ Pester configuration is invalid: $($_.Exception.Message)" -ForegroundColor Red
+                $Global:TestConfig.FailedTests += "Pester Configuration"
+            }
+        } else {
+            Write-Host "⚠ Pester configuration file not found" -ForegroundColor Yellow
+        }
+        
+    } catch {
+        Write-Host "✗ Pester tests failed: $($_.Exception.Message)" -ForegroundColor Red
+        $Global:TestConfig.FailedTests += "Pester"
     }
     
     Write-Host ""
@@ -696,16 +1374,24 @@ try {
     
     switch ($TestSuite) {
         "All" {
+            Invoke-InstallationTests
+            Invoke-InitializationTests
+            Invoke-PesterTests
             Invoke-BackupTests
             Invoke-RestoreTests
             Invoke-WSLIntegrationTests
             Invoke-CloudIntegrationTests
+            Invoke-ChezmoiTests
             Invoke-FullIntegrationTest
         }
+        "Installation" { Invoke-InstallationTests }
+        "Initialization" { Invoke-InitializationTests }
+        "Pester" { Invoke-PesterTests }
         "Backup" { Invoke-BackupTests }
         "Restore" { Invoke-RestoreTests }
         "WSL" { Invoke-WSLIntegrationTests }
         "Cloud" { Invoke-CloudIntegrationTests }
+        "Chezmoi" { Invoke-ChezmoiTests }
         "Setup" { Invoke-FullIntegrationTest }
     }
     

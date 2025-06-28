@@ -1,0 +1,329 @@
+#!/usr/bin/env pwsh
+<#
+.SYNOPSIS
+    Integration tests for Windows Missing Recovery installation and initialization
+
+.DESCRIPTION
+    Tests the complete installation and initialization workflow in a Docker environment.
+#>
+
+BeforeAll {
+    # Import test utilities
+    . $PSScriptRoot/../utilities/Test-Utilities.ps1
+    . $PSScriptRoot/../utilities/Mock-Utilities.ps1
+    
+    # Set up test environment
+    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMissingRecovery.psm1"
+    $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMissingRecovery.psd1"
+    $TestInstallScriptPath = Join-Path $PSScriptRoot "../../Install-Module.ps1"
+    
+    # Create temporary test directory
+    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
+    $TestTempDir = Join-Path $tempPath "WindowsMissingRecovery-Integration-Tests"
+    if (-not (Test-Path $TestTempDir)) {
+        New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
+    }
+    
+    # Mock environment variables for testing
+    $env:WMR_CONFIG_PATH = $TestTempDir
+    $env:WMR_BACKUP_PATH = Join-Path $TestTempDir "backups"
+    $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
+}
+
+Describe "Windows Missing Recovery - Installation Integration Tests" -Tag "Installation" {
+    
+    Context "Module Installation Process" {
+        It "Should have all required installation files" {
+            # Check core files
+            Test-Path $TestModulePath | Should -Be $true
+            Test-Path $TestManifestPath | Should -Be $true
+            Test-Path $TestInstallScriptPath | Should -Be $true
+            
+            # Check public functions
+            $publicFunctions = Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Public") -Filter "*.ps1" -ErrorAction SilentlyContinue
+            $publicFunctions.Count | Should -BeGreaterThan 0
+            
+            # Check private functions
+            $privateFunctions = Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Private") -Recurse -Filter "*.ps1" -ErrorAction SilentlyContinue
+            $privateFunctions.Count | Should -BeGreaterThan 0
+        }
+        
+        It "Should have valid PowerShell syntax in all scripts" {
+            $allScripts = @(
+                $TestModulePath,
+                $TestInstallScriptPath
+            ) + (Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Public") -Filter "*.ps1" -ErrorAction SilentlyContinue).FullName +
+               (Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Private") -Recurse -Filter "*.ps1" -ErrorAction SilentlyContinue).FullName
+            
+            foreach ($script in $allScripts) {
+                if (Test-Path $script) {
+                    { [System.Management.Automation.PSParser]::Tokenize((Get-Content $script -Raw), [ref]$null) } | Should -Not -Throw
+                }
+            }
+        }
+        
+        It "Should have proper module manifest structure" {
+            $manifest = Import-PowerShellDataFile $TestManifestPath
+            
+            # Required fields
+            $manifest.ModuleVersion | Should -Not -BeNullOrEmpty
+            $manifest.Author | Should -Not -BeNullOrEmpty
+            $manifest.Description | Should -Not -BeNullOrEmpty
+            $manifest.PowerShellVersion | Should -Not -BeNullOrEmpty
+            
+            # Optional but recommended fields
+            $manifest.ProjectUri | Should -Not -BeNullOrEmpty
+            $manifest.LicenseUri | Should -Not -BeNullOrEmpty
+            $manifest.Tags | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context "Module Import and Loading" {
+        It "Should import module successfully" {
+            { Import-Module $TestModulePath -Force -ErrorAction Stop } | Should -Not -Throw
+        }
+        
+        It "Should export all expected functions" {
+            Import-Module $TestModulePath -Force
+            
+            $exportedFunctions = Get-Command -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+            $exportedFunctions | Should -Not -BeNullOrEmpty
+            
+            # Check for core functions
+            $coreFunctions = @(
+                'Initialize-WindowsMissingRecovery',
+                'Get-WindowsMissingRecoveryStatus',
+                'Backup-WindowsMissingRecovery',
+                'Restore-WindowsMissingRecovery',
+                'Setup-WindowsMissingRecovery'
+            )
+            
+            foreach ($function in $coreFunctions) {
+                Get-Command $function -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            }
+        }
+        
+        It "Should load all private functions" {
+            Import-Module $TestModulePath -Force
+            
+            # Check for some key private functions (they should be available after import)
+            $privateFunctions = @(
+                'Test-WindowsMissingRecoveryPrerequisites',
+                'Initialize-WindowsMissingRecoveryEnvironment',
+                'Get-WindowsMissingRecoveryConfiguration'
+            )
+            
+            foreach ($function in $privateFunctions) {
+                Get-Command $function -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            }
+        }
+    }
+}
+
+Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Initialization" {
+    
+    BeforeAll {
+        Import-Module $TestModulePath -Force
+    }
+    
+    Context "Environment Initialization" {
+        It "Should initialize with default configuration" {
+            { Initialize-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+        }
+        
+        It "Should create required directories" {
+            $configPath = Join-Path $TestTempDir "default-config"
+            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            
+            $expectedDirs = @(
+                (Join-Path $configPath "config"),
+                (Join-Path $configPath "backups"),
+                (Join-Path $configPath "logs"),
+                (Join-Path $configPath "scripts")
+            )
+            
+            foreach ($dir in $expectedDirs) {
+                Test-Path $dir | Should -Be $true
+            }
+        }
+        
+        It "Should copy template files correctly" {
+            $configPath = Join-Path $TestTempDir "template-test"
+            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            
+            $configDir = Join-Path $configPath "config"
+            $templateDir = Join-Path $PSScriptRoot "../../Templates"
+            
+            # Check if template files were copied
+            $templateFiles = @(
+                "scripts-config.json",
+                "config.env.template",
+                "windows.env.template"
+            )
+            
+            foreach ($file in $templateFiles) {
+                $templatePath = Join-Path $templateDir $file
+                $configPath = Join-Path $configDir $file
+                
+                if (Test-Path $templatePath) {
+                    Test-Path $configPath | Should -Be $true
+                }
+            }
+        }
+        
+        It "Should set environment variables" {
+            $configPath = Join-Path $TestTempDir "env-test"
+            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            
+            # Check if environment variables are set
+            $env:WMR_CONFIG_PATH | Should -Not -BeNullOrEmpty
+            $env:WMR_BACKUP_PATH | Should -Not -BeNullOrEmpty
+            $env:WMR_LOG_PATH | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context "Status and Health Checks" {
+        It "Should return valid status information" {
+            $status = Get-WindowsMissingRecoveryStatus
+            
+            $status | Should -Not -BeNullOrEmpty
+            $status.ModuleVersion | Should -Not -BeNullOrEmpty
+            $status.InitializationStatus | Should -Not -BeNullOrEmpty
+            $status.ConfigurationPath | Should -Not -BeNullOrEmpty
+        }
+        
+        It "Should detect initialization state correctly" {
+            $status = Get-WindowsMissingRecoveryStatus
+            
+            if ($status.InitializationStatus -eq "Initialized") {
+                $status.ConfigurationPath | Should -Not -BeNullOrEmpty
+                Test-Path $status.ConfigurationPath | Should -Be $true
+            }
+        }
+        
+        It "Should provide detailed status information" {
+            $status = Get-WindowsMissingRecoveryStatus -Detailed
+            
+            $status | Should -Not -BeNullOrEmpty
+            $status.ModuleVersion | Should -Not -BeNullOrEmpty
+            $status.PowerShellVersion | Should -Not -BeNullOrEmpty
+            $status.OperatingSystem | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context "Configuration Management" {
+        It "Should handle multiple initialization calls gracefully" {
+            $configPath = Join-Path $TestTempDir "multi-init"
+            
+            # First initialization
+            { Initialize-WindowsMissingRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            
+            # Second initialization (should not fail)
+            { Initialize-WindowsMissingRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            
+            # Verify configuration is still valid
+            Test-Path (Join-Path $configPath "config") | Should -Be $true
+        }
+        
+        It "Should validate configuration integrity" {
+            $configPath = Join-Path $TestTempDir "validation-test"
+            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            
+            # Test configuration validation
+            { Test-WindowsMissingRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+        }
+    }
+    
+    Context "Error Handling and Recovery" {
+        It "Should handle invalid configuration paths" {
+            $invalidPath = "C:\Invalid\Path\That\Does\Not\Exist"
+            { Initialize-WindowsMissingRecovery -ConfigurationPath $invalidPath -ErrorAction Stop } | Should -Throw
+        }
+        
+        It "Should handle permission errors gracefully" {
+            # Try to initialize in a system directory (should fail gracefully)
+            $systemPath = "C:\Windows\System32"
+            { Initialize-WindowsMissingRecovery -ConfigurationPath $systemPath -ErrorAction Stop } | Should -Throw
+        }
+        
+        It "Should provide meaningful error messages" {
+            try {
+                Initialize-WindowsMissingRecovery -ConfigurationPath "" -ErrorAction Stop
+            } catch {
+                $_.Exception.Message | Should -Not -BeNullOrEmpty
+                $_.Exception.Message | Should -Match "configuration"
+            }
+        }
+    }
+}
+
+Describe "Windows Missing Recovery - Pester Integration Tests" -Tag "Pester" {
+    
+    Context "Pester Test Infrastructure" {
+        It "Should have Pester available" {
+            $pesterModule = Get-Module -ListAvailable Pester | Select-Object -First 1
+            $pesterModule | Should -Not -BeNullOrEmpty
+            $pesterModule.Version | Should -BeGreaterThan "5.0.0"
+        }
+        
+        It "Should have test files in expected locations" {
+            $testPaths = @(
+                (Join-Path $PSScriptRoot "../unit"),
+                (Join-Path $PSScriptRoot ".")
+            )
+            
+            foreach ($path in $testPaths) {
+                Test-Path $path | Should -Be $true
+                
+                $testFiles = Get-ChildItem -Path $path -Filter "*.Tests.ps1" -Recurse -ErrorAction SilentlyContinue
+                $testFiles.Count | Should -BeGreaterThan 0
+            }
+        }
+        
+        It "Should have valid Pester test syntax" {
+            $testFiles = Get-ChildItem -Path (Join-Path $PSScriptRoot "../..") -Filter "*.Tests.ps1" -Recurse -ErrorAction SilentlyContinue
+            
+            foreach ($testFile in $testFiles) {
+                { [System.Management.Automation.PSParser]::Tokenize((Get-Content $testFile.FullName -Raw), [ref]$null) } | Should -Not -Throw
+            }
+        }
+    }
+    
+    Context "Test Execution" {
+        It "Should run unit tests successfully" {
+            $unitTestPath = Join-Path $PSScriptRoot "../unit"
+            if (Test-Path $unitTestPath) {
+                $pesterConfig = New-PesterConfiguration
+                $pesterConfig.Run.Path = $unitTestPath
+                $pesterConfig.Run.PassThru = $true
+                $pesterConfig.Output.Verbosity = "Minimal"
+                
+                $results = Invoke-Pester -Configuration $pesterConfig
+                $results.FailedCount | Should -Be 0
+            }
+        }
+        
+        It "Should run integration tests successfully" {
+            $integrationTestPath = Join-Path $PSScriptRoot "."
+            if (Test-Path $integrationTestPath) {
+                $pesterConfig = New-PesterConfiguration
+                $pesterConfig.Run.Path = $integrationTestPath
+                $pesterConfig.Run.PassThru = $true
+                $pesterConfig.Output.Verbosity = "Minimal"
+                
+                $results = Invoke-Pester -Configuration $pesterConfig
+                $results.FailedCount | Should -Be 0
+            }
+        }
+    }
+}
+
+AfterAll {
+    # Cleanup
+    if (Test-Path $TestTempDir) {
+        Remove-Item -Path $TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    
+    # Remove module
+    Remove-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+} 

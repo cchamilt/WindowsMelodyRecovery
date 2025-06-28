@@ -331,7 +331,7 @@ function Get-DefaultConfiguration {
     param()
     
     return @{
-        BackupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
+        BackupRoot = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMissingRecovery\Backups" } else { "/tmp/WindowsMissingRecovery/Backups" }
         MachineName = $env:COMPUTERNAME
         WindowsMissingRecoveryPath = Split-Path $PSScriptRoot -Parent
         CloudProvider = "OneDrive"
@@ -365,7 +365,7 @@ function Get-DefaultConfiguration {
             ForceOverwrite = $false
         }
         LoggingSettings = @{
-            Path = Join-Path $env:TEMP "WindowsMissingRecovery\Logs"
+            Path = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMissingRecovery\Logs" } else { "/tmp/WindowsMissingRecovery/Logs" }
             Level = "Information"
         }
         UpdateSettings = @{
