@@ -84,11 +84,6 @@ RUN mkdir -p /home/testuser/projects && \
 # Install some pip packages for testing (as user)
 RUN pip3 install --user requests flask django pytest
 
-# Ensure proper ownership of user files
-USER root
-RUN chown -R testuser:testuser /home/testuser
-USER testuser
-
 # Set up shell configurations
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && \
     echo 'alias ll="ls -la"' >> ~/.bashrc && \
@@ -102,7 +97,11 @@ RUN git config --global user.name "Test User" && \
 # Switch back to root for final setup
 USER root
 
+# Ensure proper ownership of user files
+RUN chown -R testuser:testuser /home/testuser
+
 # Install global npm packages as root (to avoid permission issues)
+# Use older versions that are compatible with Node.js 18
 RUN npm install -g typescript@4.9.5 eslint@8.57.0 prettier@2.8.8
 
 # Create mock system configuration files
