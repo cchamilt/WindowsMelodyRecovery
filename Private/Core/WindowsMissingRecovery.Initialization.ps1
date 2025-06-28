@@ -457,7 +457,10 @@ function Load-PublicFunctions {
     Write-Verbose "Loading public functions..."
     
     try {
-        $publicPath = Join-Path (Split-Path $PSScriptRoot -Parent) "Public"
+        # Fix: Get the module root directory (two levels up from Private/Core)
+        $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $publicPath = Join-Path $moduleRoot "Public"
+        
         if (-not (Test-Path $publicPath)) {
             return @{
                 Success = $false
@@ -491,6 +494,9 @@ function Load-PublicFunctions {
         if ($failedFunctions.Count -gt 0) {
             Write-Warning "Failed to load functions: $($failedFunctions -join ', ')"
         }
+        
+        # Store loaded functions in script scope for module export
+        $script:LoadedPublicFunctions = $loadedFunctions
         
         $script:LoadedComponents += "PublicFunctions"
         

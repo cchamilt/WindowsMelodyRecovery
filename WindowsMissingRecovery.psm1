@@ -269,6 +269,29 @@ if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyCon
     }
 }
 
+# Ensure Public functions are loaded in module scope
+$PublicPath = Join-Path $PSScriptRoot "Public"
+if (Test-Path $PublicPath) {
+    $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
+    foreach ($script in $PublicScripts) {
+        $functionName = $script.BaseName
+        Write-Verbose "Loading public function in module scope: $functionName from $($script.FullName)"
+        
+        try {
+            . $script.FullName
+            
+            # Verify the function was actually loaded
+            if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+                Write-Verbose "Successfully loaded public function in module scope: $functionName"
+            } else {
+                Write-Warning "Function $functionName not found after loading in module scope: $($script.FullName)"
+            }
+        } catch {
+            Write-Warning "Failed to import public function in module scope $($script.FullName): $($_.Exception.Message)"
+        }
+    }
+}
+
 # Export all functions
 $ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMissingRecovery', 'Set-WindowsMissingRecovery')
 
@@ -284,12 +307,20 @@ if (Get-Command Get-ModuleInitializationStatus -ErrorAction SilentlyContinue) {
     $AllFunctions += 'Get-ModuleInitializationStatus'
 }
 
-# Add public functions
-$PublicPath = Join-Path $PSScriptRoot "Public"
-if (Test-Path $PublicPath) {
-    $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
-    foreach ($script in $PublicScripts) {
-        $AllFunctions += $script.BaseName
+# Add public functions - use loaded functions from initialization if available
+if ($script:LoadedPublicFunctions) {
+    # Use functions that were loaded during initialization
+    $AllFunctions += $script:LoadedPublicFunctions
+    Write-Verbose "Using $($script:LoadedPublicFunctions.Count) public functions from initialization"
+} else {
+    # Fallback: try to load public functions directly
+    $PublicPath = Join-Path $PSScriptRoot "Public"
+    if (Test-Path $PublicPath) {
+        $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
+        foreach ($script in $PublicScripts) {
+            $AllFunctions += $script.BaseName
+        }
+        Write-Verbose "Using $($PublicScripts.Count) public functions from direct loading"
     }
 }
 
