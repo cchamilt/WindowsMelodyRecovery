@@ -84,6 +84,4 @@ function Get-TestEnvironment {
         CloudMock = "wmr-cloud-mock"
         TestRunner = "wmr-test-runner"
     }
-}
-
-Export-ModuleMember -Function Test-ContainerHealth, Test-ServiceEndpoint, Get-MockDataPath, Test-MockDataExists, Get-TestEnvironment 
+} 

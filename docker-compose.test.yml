@@ -78,9 +78,9 @@ services:
       - test-results:/test-results
     environment:
       - PESTER_OUTPUT_PATH=/test-results
-      - MOCK_WINDOWS_HOST=windows-mock
-      - MOCK_WSL_HOST=wsl-mock
-      - MOCK_CLOUD_HOST=mock-cloud-server
+      - MOCK_WINDOWS_HOST=wmr-windows-mock
+      - MOCK_WSL_HOST=wmr-wsl-mock
+      - MOCK_CLOUD_HOST=wmr-cloud-mock
     networks:
       - wmr-test-network
     depends_on:

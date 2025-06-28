@@ -56,5 +56,14 @@ RUN mkdir -p /mock-cloud/OneDrive \
 # Set working directory
 WORKDIR /workspace
 
+# Create a startup script to keep container running
+RUN echo '#!/bin/bash' > /usr/local/bin/startup.sh && \
+    echo 'echo "Windows Mock Environment starting..."' >> /usr/local/bin/startup.sh && \
+    echo 'echo "Loading PowerShell profile..."' >> /usr/local/bin/startup.sh && \
+    echo 'pwsh -Command "Write-Host \"Windows Mock Environment ready\" -ForegroundColor Green"' >> /usr/local/bin/startup.sh && \
+    echo 'echo "Container is ready for testing"' >> /usr/local/bin/startup.sh && \
+    echo 'tail -f /dev/null' >> /usr/local/bin/startup.sh && \
+    chmod +x /usr/local/bin/startup.sh
+
 # Default command
-CMD ["pwsh", "-NoExit"] 
+CMD ["/usr/local/bin/startup.sh"] 
