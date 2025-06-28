@@ -1,3 +1,6 @@
+# WindowsMissingRecovery PowerShell Module
+# Comprehensive Windows system recovery, backup, and configuration management tool
+
 # Module metadata
 $ModuleName = "WindowsMissingRecovery"
 $ModuleVersion = "1.0.0"
@@ -47,12 +50,59 @@ $script:Config = @{
     }
 }
 
+# Module initialization state
+$script:ModuleInitialized = $false
+$script:InitializationErrors = @()
+$script:LoadedComponents = @()
+
 # Define core functions first
 function Get-WindowsMissingRecovery {
+    <#
+    .SYNOPSIS
+        Get the current Windows Missing Recovery configuration.
+    
+    .DESCRIPTION
+        Returns the current module configuration including backup settings, 
+        cloud provider settings, and initialization status.
+    
+    .EXAMPLE
+        Get-WindowsMissingRecovery
+    
+    .OUTPUTS
+        Hashtable containing the module configuration.
+    #>
+    [CmdletBinding()]
+    param()
+    
     return $script:Config
 }
 
 function Set-WindowsMissingRecovery {
+    <#
+    .SYNOPSIS
+        Set Windows Missing Recovery configuration.
+    
+    .DESCRIPTION
+        Updates the module configuration with new settings.
+    
+    .PARAMETER Config
+        Complete configuration hashtable to replace current config.
+    
+    .PARAMETER BackupRoot
+        Path to the backup root directory.
+    
+    .PARAMETER MachineName
+        Name of the machine for backup identification.
+    
+    .PARAMETER WindowsMissingRecoveryPath
+        Path to the Windows Missing Recovery installation.
+    
+    .PARAMETER CloudProvider
+        Cloud storage provider (OneDrive, GoogleDrive, Dropbox, Box, Custom).
+    
+    .EXAMPLE
+        Set-WindowsMissingRecovery -BackupRoot "C:\Backups" -CloudProvider "OneDrive"
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -86,6 +136,19 @@ function Set-WindowsMissingRecovery {
 
 # Helper function to load private scripts on demand
 function Import-PrivateScripts {
+    <#
+    .SYNOPSIS
+        Import private scripts by category.
+    
+    .DESCRIPTION
+        Loads private scripts from the specified category (backup, restore, setup, tasks, scripts).
+    
+    .PARAMETER Category
+        The category of scripts to load.
+    
+    .EXAMPLE
+        Import-PrivateScripts -Category "backup"
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -114,15 +177,26 @@ function Import-PrivateScripts {
     }
 }
 
-# Load core utilities first (always needed)
+# Load initialization system
+$InitializationPath = Join-Path $PSScriptRoot "Private\Core\WindowsMissingRecovery.Initialization.ps1"
+if (Test-Path $InitializationPath) {
+    try {
+        . $InitializationPath
+        Write-Verbose "Successfully loaded initialization system from: $InitializationPath"
+    } catch {
+        Write-Warning "Failed to load initialization system from: $InitializationPath"
+        Write-Warning $_.Exception.Message
+    }
+} else {
+    Write-Warning "Initialization system not found at: $InitializationPath"
+}
+
+# Load core utilities
 $CorePath = Join-Path $PSScriptRoot "Private\Core\WindowsMissingRecovery.Core.ps1"
 if (Test-Path $CorePath) {
     try {
         . $CorePath
         Write-Verbose "Successfully loaded core utilities from: $CorePath"
-        
-        # Try to initialize module configuration from config file
-        Initialize-ModuleFromConfig
     } catch {
         Write-Warning "Failed to load core utilities from: $CorePath"
         Write-Warning $_.Exception.Message
@@ -131,43 +205,93 @@ if (Test-Path $CorePath) {
     Write-Warning "Core utilities not found at: $CorePath"
 }
 
-# Load only public functions at module import time
-$PublicPath = Join-Path $PSScriptRoot "Public"
-if (-not (Test-Path $PublicPath)) {
-    Write-Warning "Public functions directory not found at: $PublicPath"
-    $Public = @()
-} else {
-    $Public = @(Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue)
-}
-
-# Load public functions and track successfully loaded ones
-$LoadedFunctions = @()
-foreach ($import in $Public) {
-    $functionName = $import.BaseName
-    Write-Verbose "Attempting to load: $functionName from $($import.FullName)"
-    
+# Initialize module using the new initialization system
+if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyContinue) {
     try {
-        . $import.FullName
-        
-        # Small delay to ensure function is registered
-        Start-Sleep -Milliseconds 10
-        
-        # Verify the function was actually loaded
-        if (Get-Command $functionName -ErrorAction SilentlyContinue) {
-            $LoadedFunctions += $functionName
-            Write-Verbose "Successfully loaded public function: $functionName"
+        $initResult = Initialize-WindowsMissingRecoveryModule -SkipValidation
+        if ($initResult.Success) {
+            Write-Verbose "Module initialized successfully: $($initResult.Message)"
+            if ($initResult.Warnings) {
+                Write-Warning "Initialization warnings: $($initResult.Warnings -join '; ')"
+            }
         } else {
-            Write-Warning "Function $functionName not found after loading $($import.FullName)"
+            Write-Warning "Module initialization failed: $($initResult.Message)"
+            $script:InitializationErrors += $initResult.Message
         }
     } catch {
-        Write-Warning "Failed to import public function $($import.FullName): $($_.Exception.Message)"
-        Write-Verbose "Stack trace: $($_.ScriptStackTrace)"
+        Write-Warning "Module initialization error: $($_.Exception.Message)"
+        $script:InitializationErrors += $_.Exception.Message
+    }
+} else {
+    Write-Warning "Initialization system not available, using fallback initialization"
+    
+    # Fallback initialization
+    try {
+        # Try to initialize module configuration from config file
+        if (Get-Command Initialize-ModuleFromConfig -ErrorAction SilentlyContinue) {
+            Initialize-ModuleFromConfig
+        }
+        
+        # Load public functions
+        $PublicPath = Join-Path $PSScriptRoot "Public"
+        if (Test-Path $PublicPath) {
+            $Public = @(Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue)
+            
+            foreach ($import in $Public) {
+                $functionName = $import.BaseName
+                Write-Verbose "Attempting to load: $functionName from $($import.FullName)"
+                
+                try {
+                    . $import.FullName
+                    
+                    # Small delay to ensure function is registered
+                    Start-Sleep -Milliseconds 10
+                    
+                    # Verify the function was actually loaded
+                    if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+                        Write-Verbose "Successfully loaded public function: $functionName"
+                    } else {
+                        Write-Warning "Function $functionName not found after loading $($import.FullName)"
+                    }
+                } catch {
+                    Write-Warning "Failed to import public function $($import.FullName): $($_.Exception.Message)"
+                }
+            }
+        } else {
+            Write-Warning "Public functions directory not found at: $PublicPath"
+        }
+        
+        $script:ModuleInitialized = $true
+        
+    } catch {
+        Write-Warning "Fallback initialization failed: $($_.Exception.Message)"
+        $script:InitializationErrors += $_.Exception.Message
     }
 }
 
-# Export all functions together
+# Export all functions
 $ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMissingRecovery', 'Set-WindowsMissingRecovery')
-$AllFunctions = $LoadedFunctions + $ModuleFunctions
+
+# Get all loaded functions
+$AllFunctions = @()
+$AllFunctions += $ModuleFunctions
+
+# Add initialization functions if available
+if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyContinue) {
+    $AllFunctions += 'Initialize-WindowsMissingRecoveryModule'
+}
+if (Get-Command Get-ModuleInitializationStatus -ErrorAction SilentlyContinue) {
+    $AllFunctions += 'Get-ModuleInitializationStatus'
+}
+
+# Add public functions
+$PublicPath = Join-Path $PSScriptRoot "Public"
+if (Test-Path $PublicPath) {
+    $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
+    foreach ($script in $PublicScripts) {
+        $AllFunctions += $script.BaseName
+    }
+}
 
 # Only export functions that actually exist
 $ExistingFunctions = @()
@@ -184,4 +308,17 @@ if ($ExistingFunctions.Count -gt 0) {
     Write-Verbose "Exported $($ExistingFunctions.Count) functions: $($ExistingFunctions -join ', ')"
 } else {
     Write-Warning "No functions were successfully loaded to export"
+}
+
+# Export configuration variable
+Set-Variable -Name "WindowsMissingRecoveryConfig" -Value $script:Config -Scope Global -Force
+
+# Module initialization complete message
+if ($script:ModuleInitialized) {
+    Write-Verbose "WindowsMissingRecovery module loaded successfully"
+    if ($script:InitializationErrors.Count -gt 0) {
+        Write-Warning "Module loaded with errors: $($script:InitializationErrors -join '; ')"
+    }
+} else {
+    Write-Warning "Module loaded but initialization may be incomplete"
 } 
