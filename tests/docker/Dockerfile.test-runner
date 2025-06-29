@@ -51,6 +51,7 @@ COPY tests/scripts/ /tests/scripts/
 COPY tests/scripts/run-tests.ps1 /tests/
 COPY tests/scripts/test-orchestrator.ps1 /tests/
 COPY tests/scripts/generate-reports.ps1 /tests/
+COPY tests/scripts/simulate-installation.ps1 /tests/
 
 # Set permissions
 RUN chmod +x /tests/*.ps1

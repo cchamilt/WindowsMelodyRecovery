@@ -25,6 +25,24 @@ function Sync-WindowsMissingRecoveryScripts {
         }
     }
     
+    # Additional fallback for test environments
+    if (-not $moduleRoot -or -not (Test-Path $moduleRoot)) {
+        # Try to find the module by looking for the .psm1 file
+        $possiblePaths = @(
+            "/workspace",
+            (Get-Location),
+            (Split-Path (Get-Command WindowsMissingRecovery -ErrorAction SilentlyContinue).Source -Parent -ErrorAction SilentlyContinue),
+            (Split-Path $PSCommandPath -Parent -ErrorAction SilentlyContinue)
+        )
+        
+        foreach ($path in $possiblePaths) {
+            if ($path -and (Test-Path (Join-Path $path "WindowsMissingRecovery.psm1"))) {
+                $moduleRoot = $path
+                break
+            }
+        }
+    }
+    
     # Validate module root
     if (-not $moduleRoot -or -not (Test-Path $moduleRoot)) {
         Write-Error "Could not determine module root path. Tried: $moduleRoot"
