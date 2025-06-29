@@ -5,9 +5,20 @@ function Install-WindowsMissingRecoveryTasks {
         [switch]$NoPrompt
     )
 
-    # Verify running as admin
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
+    # Check if we're on Windows platform
+    if ($PSVersionTable.Platform -ne "Win32NT" -and $PSVersionTable.OS -notlike "*Windows*") {
+        Write-Warning "Scheduled tasks are only supported on Windows. Current platform: $($PSVersionTable.Platform), OS: $($PSVersionTable.OS)"
+        return $false
+    }
+
+    # Verify running as admin (Windows-specific check)
+    try {
+        if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
+            return $false
+        }
+    } catch {
+        Write-Warning "Could not verify administrator privileges: $_"
         return $false
     }
 

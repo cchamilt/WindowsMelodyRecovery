@@ -293,11 +293,6 @@ function Backup-DisplaySettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-DisplaySettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows Display settings and configuration.

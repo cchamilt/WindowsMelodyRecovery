@@ -570,11 +570,6 @@ function Restore-VPNSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Restore-VPNSettings
-}
-
 <#
 .SYNOPSIS
 Restores comprehensive VPN settings, connections, and configurations from backup.

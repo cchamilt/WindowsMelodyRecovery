@@ -13,7 +13,7 @@
     
     # Module dependencies
     RequiredModules = @(
-        @{ModuleName='Pester'; ModuleVersion='5.0.0'; GUID='a699dea5-2c73-4daa-a204-7c4b4b0b5c0c'}
+        @{ModuleName='Pester'; ModuleVersion='5.0.0'}
     )
     
     # Required assemblies

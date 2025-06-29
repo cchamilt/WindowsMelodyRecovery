@@ -463,11 +463,6 @@ function Backup-TerminalSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-TerminalSettings
-}
-
 <#
 .SYNOPSIS
 Backs up comprehensive Windows Terminal settings, PowerShell profiles, and console configurations.

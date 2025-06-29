@@ -261,11 +261,6 @@ function Backup-Applications {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-Applications
-}
-
 <#
 .SYNOPSIS
 Backs up package manager configurations and installed packages.

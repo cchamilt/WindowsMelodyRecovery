@@ -235,11 +235,6 @@ function Backup-KeePassXCSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-KeePassXCSettings
-}
-
 <#
 .SYNOPSIS
 Backs up KeePassXC settings and configuration.

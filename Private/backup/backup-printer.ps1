@@ -287,11 +287,6 @@ function Backup-PrinterSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-PrinterSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows Printer settings and configurations.

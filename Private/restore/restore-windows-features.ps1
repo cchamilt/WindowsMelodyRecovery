@@ -427,11 +427,6 @@ function Restore-WindowsFeaturesSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Restore-WindowsFeaturesSettings
-}
-
 <#
 .SYNOPSIS
 Restores comprehensive Windows Features, capabilities, and system components from backup.

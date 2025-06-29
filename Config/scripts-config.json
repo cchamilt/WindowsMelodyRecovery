@@ -25,7 +25,7 @@
         "script": "backup-touchpad.ps1",
         "category": "Hardware",
         "description": "Touchpad configuration and gestures",
-        "enabled": false,
+        "enabled": true,
         "required": false
       },
       {

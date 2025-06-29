@@ -43,6 +43,21 @@ function Get-WindowsMissingRecoveryStatus {
     # Get module information
     $moduleInfo = Get-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
     
+    # Get module version from manifest if module info is not available
+    $moduleVersion = $null
+    if ($moduleInfo) {
+        $moduleVersion = $moduleInfo.Version
+    } else {
+        # Try to get version from manifest file
+        $manifestPath = Join-Path $PSScriptRoot "..\WindowsMissingRecovery.psd1"
+        if (Test-Path $manifestPath) {
+            $manifestContent = Get-Content $manifestPath -Raw
+            if ($manifestContent -match "ModuleVersion\s*=\s*['`"]([^'`"]+)['`"]") {
+                $moduleVersion = $matches[1]
+            }
+        }
+    }
+    
     # Get initialization status if available
     $initStatus = $null
     if (Get-Command Get-ModuleInitializationStatus -ErrorAction SilentlyContinue) {
@@ -56,7 +71,7 @@ function Get-WindowsMissingRecoveryStatus {
     $status = @{
         ModuleInfo = @{
             Name = $moduleInfo.Name
-            Version = $moduleInfo.Version
+            Version = $moduleVersion
             Path = $moduleInfo.Path
             Loaded = $null -ne $moduleInfo
         }
@@ -70,7 +85,7 @@ function Get-WindowsMissingRecoveryStatus {
             BackupRoot = $config.BackupRoot
             MachineName = $config.MachineName
             CloudProvider = $config.CloudProvider
-            ModuleVersion = $config.ModuleVersion
+            ModuleVersion = $moduleVersion  # Use module version from loaded module or manifest
             LastConfigured = $config.LastConfigured
         }
         Environment = @{

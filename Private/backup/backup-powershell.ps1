@@ -339,11 +339,6 @@ function Backup-PowerShellSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-PowerShellSettings
-}
-
 <#
 .SYNOPSIS
 Backs up PowerShell settings and configuration.

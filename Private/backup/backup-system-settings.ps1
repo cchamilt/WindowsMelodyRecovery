@@ -23,9 +23,23 @@ if (Test-Path $loadEnvPath) {
 }
 
 # Get module configuration
-$config = Get-WindowsMissingRecovery
-if (!$config.IsInitialized) {
-    throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+try {
+    $config = Get-WindowsMissingRecovery
+    if (!$config.IsInitialized) {
+        Write-Warning "Module not initialized. Using default configuration."
+        $config = @{
+            BackupRoot = "/tmp/WindowsMissingRecovery/Backups"
+            MachineName = $env:COMPUTERNAME ?? "UNKNOWN"
+            IsInitialized = $false
+        }
+    }
+} catch {
+    Write-Warning "Module not initialized and no ConfigPath provided. Using default configuration."
+    $config = @{
+        BackupRoot = "/tmp/WindowsMissingRecovery/Backups"
+        MachineName = $env:COMPUTERNAME ?? "UNKNOWN"
+        IsInitialized = $false
+    }
 }
 
 if (!$BackupRootPath) {
@@ -494,11 +508,6 @@ function Backup-SystemSettings {
             throw  # Re-throw for proper error handling
         }
     }
-}
-
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-SystemSettings
 }
 
 <#

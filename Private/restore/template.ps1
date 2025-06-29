@@ -178,11 +178,6 @@ function Restore-[Feature] {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Restore-[Feature]
-}
-
 # Test hints - remove in actual implementation
 <#
 .SYNOPSIS

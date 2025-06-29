@@ -679,20 +679,4 @@ function Get-ModuleInitializationStatus {
         Errors = $script:InitializationErrors
         Config = $script:Config
     }
-}
-
-# Export functions
-Export-ModuleMember -Function @(
-    'Initialize-WindowsMissingRecoveryModule',
-    'Get-ModuleInitializationStatus',
-    'Test-ModuleStructure',
-    'Load-ConfigurationFromFile',
-    'Load-ConfigurationFromTemplate',
-    'Get-DefaultConfiguration',
-    'Merge-Configurations',
-    'Load-CoreUtilities',
-    'Load-PublicFunctions',
-    'Setup-ModuleEnvironment',
-    'Test-ModuleDependencies',
-    'Setup-ModuleAliases'
-) 
+} 

@@ -598,11 +598,6 @@ function Analyze-UnmanagedApplications {
     }
 }
 
-# Export the functions if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Analyze-UnmanagedApplications, Compare-PostRestoreApplications
-}
-
 function Compare-PostRestoreApplications {
     [CmdletBinding()]
     param(

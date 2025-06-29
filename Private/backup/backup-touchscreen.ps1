@@ -481,11 +481,6 @@ function Backup-TouchscreenSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-TouchscreenSettings
-}
-
 <#
 .SYNOPSIS
 Backs up comprehensive touchscreen settings, drivers, and device configurations.

@@ -413,11 +413,6 @@ function Backup-SSHSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-SSHSettings
-}
-
 <#
 .SYNOPSIS
 Backs up SSH settings, configurations, and related tools (OpenSSH, PuTTY, WinSCP).

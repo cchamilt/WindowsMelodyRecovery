@@ -858,25 +858,3 @@ echo "✅ chezmoi restore completed!"
         return $false
     }
 }
-
-# Export functions
-Export-ModuleMember -Function @(
-    'Load-Environment',
-    'Get-ConfigValue',
-    'Set-ConfigValue',
-    'Test-ModuleInitialized',
-    'Get-BackupRoot',
-    'Get-MachineName',
-    'Get-CloudProvider',
-    'Get-ModulePath',
-    'Initialize-ModuleFromConfig',
-    'Get-ScriptsConfig',
-    'Set-ScriptsConfig',
-    'Invoke-WSLScript',
-    'Sync-WSLPackages',
-    'Sync-WSLHome',
-    'Test-WSLRepositories',
-    'Setup-WSLChezmoi',
-    'Backup-WSLChezmoi',
-    'Restore-WSLChezmoi'
-) 

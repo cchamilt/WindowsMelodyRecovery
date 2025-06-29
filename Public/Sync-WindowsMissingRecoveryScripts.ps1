@@ -10,8 +10,27 @@ function Sync-WindowsMissingRecoveryScripts {
 
     Write-Host "Syncing Scripts Configuration with Available Scripts..." -ForegroundColor Green
     
-    # Get current module root
-    $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    # Get current module root - handle cases where PSScriptRoot might be empty
+    $moduleRoot = $null
+    if ($PSScriptRoot) {
+        $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    } else {
+        # Fallback: try to get module path
+        $moduleInfo = Get-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+        if ($moduleInfo) {
+            $moduleRoot = Split-Path $moduleInfo.Path -Parent
+        } else {
+            # Last resort: use current directory or workspace
+            $moduleRoot = if (Test-Path "/workspace") { "/workspace" } else { Get-Location }
+        }
+    }
+    
+    # Validate module root
+    if (-not $moduleRoot -or -not (Test-Path $moduleRoot)) {
+        Write-Error "Could not determine module root path. Tried: $moduleRoot"
+        return
+    }
+    
     $configPath = Join-Path $moduleRoot "Config\scripts-config.json"
     $templatePath = Join-Path $moduleRoot "Templates\scripts-config.json"
     

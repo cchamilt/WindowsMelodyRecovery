@@ -436,11 +436,6 @@ function Restore-VisioSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Restore-VisioSettings
-}
-
 <#
 .SYNOPSIS
 Restores comprehensive Microsoft Visio settings, configurations, and customizations from backup.

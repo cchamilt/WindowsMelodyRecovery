@@ -17,7 +17,7 @@ function Initialize-WindowsMissingRecovery {
     # Note: This function only handles configuration and does not require admin privileges
     
     # Auto-detect module path if not provided
-    if (-not $InstallPath) {
+    if (-not $InstallPath -or [string]::IsNullOrWhiteSpace($InstallPath)) {
         $moduleInfo = Get-Module WindowsMissingRecovery
         if ($moduleInfo) {
             $InstallPath = Split-Path $moduleInfo.Path -Parent
@@ -64,7 +64,9 @@ function Initialize-WindowsMissingRecovery {
     }
 
     # Get machine name
-    Write-Host "`nEnter machine name:" -ForegroundColor Cyan
+    if (-not $NoPrompt) {
+        Write-Host "`nEnter machine name:" -ForegroundColor Cyan
+    }
     $machineName = if ($NoPrompt) { 
         $env:COMPUTERNAME 
     } else {
@@ -77,12 +79,14 @@ function Initialize-WindowsMissingRecovery {
     }
 
     # Get cloud provider
-    Write-Host "`nSelect cloud storage provider:" -ForegroundColor Cyan
-    Write-Host "[O] OneDrive"
-    Write-Host "[G] Google Drive"
-    Write-Host "[D] Dropbox"
-    Write-Host "[B] Box"
-    Write-Host "[C] Custom location"
+    if (-not $NoPrompt) {
+        Write-Host "`nSelect cloud storage provider:" -ForegroundColor Cyan
+        Write-Host "[O] OneDrive"
+        Write-Host "[G] Google Drive"
+        Write-Host "[D] Dropbox"
+        Write-Host "[B] Box"
+        Write-Host "[C] Custom location"
+    }
 
     $selectedProvider = if ($NoPrompt) { "OneDrive" } else {
         do {
@@ -179,7 +183,49 @@ function Initialize-WindowsMissingRecovery {
     # Create config directory if it doesn't exist
     $configDir = Join-Path $InstallPath "Config"
     if (!(Test-Path $configDir)) {
-        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+        try {
+            New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+        } catch {
+            Write-Warning "Could not create config directory: $_"
+        }
+    }
+
+    # Create additional required directories
+    $requiredDirs = @(
+        (Join-Path $InstallPath "backups"),
+        (Join-Path $InstallPath "logs"),
+        (Join-Path $InstallPath "scripts")
+    )
+    
+    foreach ($dir in $requiredDirs) {
+        if (!(Test-Path $dir)) {
+            try {
+                New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            } catch {
+                Write-Warning "Could not create directory $dir : $_"
+            }
+        }
+    }
+
+    # Copy template files if they exist
+    $templateDir = Join-Path $InstallPath "Templates"
+    if (Test-Path $templateDir) {
+        $templateFiles = @(
+            @{ Source = "scripts-config.json"; Dest = "Config\scripts-config.json" }
+        )
+        
+        foreach ($file in $templateFiles) {
+            $sourcePath = Join-Path $templateDir $file.Source
+            $destPath = Join-Path $InstallPath $file.Dest
+            
+            if (Test-Path $sourcePath) {
+                $destDir = Split-Path $destPath -Parent
+                if (!(Test-Path $destDir)) {
+                    New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+                }
+                Copy-Item -Path $sourcePath -Destination $destPath -Force -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     # Save configuration

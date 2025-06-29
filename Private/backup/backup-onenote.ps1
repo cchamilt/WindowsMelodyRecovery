@@ -252,11 +252,6 @@ function Backup-OneNoteSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-OneNoteSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Microsoft OneNote settings and configuration.

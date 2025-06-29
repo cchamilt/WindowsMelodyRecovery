@@ -428,11 +428,6 @@ function Backup-SoundSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-SoundSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows sound and audio settings and configurations.

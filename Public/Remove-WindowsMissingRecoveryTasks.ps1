@@ -2,55 +2,67 @@
 function Remove-WindowsMissingRecoveryTasks {
     [CmdletBinding()]
     param(
-        [switch]$Force
+        [Parameter(Mandatory=$false)]
+        [switch]$NoPrompt
     )
 
-    # Check for admin privileges
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
+    # Check if we're on Windows platform
+    if ($PSVersionTable.Platform -ne "Win32NT" -and $PSVersionTable.OS -notlike "*Windows*") {
+        Write-Warning "Scheduled tasks are only supported on Windows. Current platform: $($PSVersionTable.Platform), OS: $($PSVersionTable.OS)"
         return $false
     }
 
-    # Task names
-    $backupTaskName = "WindowsMissingRecovery_Backup"
-    $updateTaskName = "WindowsMissingRecovery_Update"
-    $taskPath = "\Custom Tasks"
-
+    # Verify running as admin (Windows-specific check)
     try {
-        # Remove backup task
-        $backupTask = Get-ScheduledTask -TaskName $backupTaskName -TaskPath $taskPath -ErrorAction SilentlyContinue
-        if ($backupTask) {
-            if ($Force -or (Read-Host "Remove backup task '$backupTaskName'? (Y/N)") -eq 'Y') {
-                Unregister-ScheduledTask -TaskName $backupTaskName -TaskPath $taskPath -Confirm:$false
-                Write-Host "Removed backup task: $backupTaskName" -ForegroundColor Green
-            }
-        } else {
-            Write-Host "Backup task not found: $backupTaskName" -ForegroundColor Yellow
+        if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
+            return $false
         }
-
-        # Remove update task
-        $updateTask = Get-ScheduledTask -TaskName $updateTaskName -TaskPath $taskPath -ErrorAction SilentlyContinue
-        if ($updateTask) {
-            if ($Force -or (Read-Host "Remove update task '$updateTaskName'? (Y/N)") -eq 'Y') {
-                Unregister-ScheduledTask -TaskName $updateTaskName -TaskPath $taskPath -Confirm:$false
-                Write-Host "Removed update task: $updateTaskName" -ForegroundColor Green
-            }
-        } else {
-            Write-Host "Update task not found: $updateTaskName" -ForegroundColor Yellow
-        }
-
-        # Remove task path if empty
-        $tasks = Get-ScheduledTask -TaskPath $taskPath -ErrorAction SilentlyContinue
-        if ($tasks.Count -eq 0) {
-            schtasks /DELETE /TN $taskPath /F | Out-Null
-            Write-Host "Removed empty task path: $taskPath" -ForegroundColor Green
-        }
-
-        return $true
     } catch {
-        Write-Host "Failed to remove tasks: $_" -ForegroundColor Red
+        Write-Warning "Could not verify administrator privileges: $_"
         return $false
     }
+
+    # Define tasks to remove
+    $tasks = @(
+        "WindowsMissingRecovery-Backup",
+        "WindowsMissingRecovery-Update"
+    )
+
+    # Prompt for confirmation
+    if (!$NoPrompt) {
+        Write-Host "`nThe following scheduled tasks will be removed:" -ForegroundColor Yellow
+        foreach ($task in $tasks) {
+            Write-Host "  - $task" -ForegroundColor Cyan
+        }
+
+        $response = Read-Host "`nDo you want to remove these scheduled tasks? (Y/N)"
+        if ($response -ne "Y" -and $response -ne "y") {
+            Write-Host "Task removal cancelled." -ForegroundColor Yellow
+            return
+        }
+    }
+
+    # Remove scheduled tasks
+    $taskPath = "\WindowsMissingRecovery\"
+    $removedCount = 0
+
+    foreach ($taskName in $tasks) {
+        try {
+            $existingTask = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
+            if ($existingTask) {
+                Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
+                Write-Host "Removed scheduled task: $taskName" -ForegroundColor Green
+                $removedCount++
+            } else {
+                Write-Host "Task '$taskName' not found, skipping..." -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Warning "Failed to remove scheduled task '$taskName': $_"
+        }
+    }
+
+    Write-Host "`nScheduled tasks removal completed. Removed $removedCount tasks." -ForegroundColor Green
 }
 
 # Allow script to be run directly or sourced

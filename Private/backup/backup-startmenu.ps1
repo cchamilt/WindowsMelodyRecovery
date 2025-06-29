@@ -372,11 +372,6 @@ function Backup-StartMenuSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-StartMenuSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Start Menu settings, layout, taskbar configuration, and related customizations.

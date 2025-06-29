@@ -286,11 +286,6 @@ function Backup-NetworkSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-NetworkSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows Network settings and configurations.

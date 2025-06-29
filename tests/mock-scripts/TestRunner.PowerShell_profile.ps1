@@ -56,7 +56,6 @@ function Start-TestRun {
     $params = @{
         Path = $TestPath
         PassThru = $true
-        OutputFormat = "Detailed"
     }
     
     if ($Verbose) {

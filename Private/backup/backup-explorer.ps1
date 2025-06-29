@@ -254,11 +254,6 @@ function Backup-ExplorerSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-ExplorerSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows Explorer settings and configuration.

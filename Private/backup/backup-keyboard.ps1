@@ -251,11 +251,6 @@ function Backup-KeyboardSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-KeyboardSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows Keyboard settings and configuration.

@@ -346,11 +346,6 @@ function Backup-RDPSettings {
     }
 }
 
-# Export the function if being imported as a module
-if ($MyInvocation.Line -eq "") {
-    Export-ModuleMember -Function Backup-RDPSettings
-}
-
 <#
 .SYNOPSIS
 Backs up Windows Remote Desktop Protocol (RDP) settings and configurations.

@@ -134,7 +134,7 @@ function Set-WindowsMissingRecovery {
     $script:Config.LastConfigured = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 }
 
-# Helper function to load private scripts on demand
+# Helper function to load private scripts on demand (only when explicitly called)
 function Import-PrivateScripts {
     <#
     .SYNOPSIS
@@ -142,6 +142,7 @@ function Import-PrivateScripts {
     
     .DESCRIPTION
         Loads private scripts from the specified category (backup, restore, setup, tasks, scripts).
+        This function should only be called when needed, not during module initialization.
     
     .PARAMETER Category
         The category of scripts to load.
@@ -166,8 +167,20 @@ function Import-PrivateScripts {
         foreach ($script in $scripts) {
             try {
                 Write-Verbose "Loading script: $($script.FullName)"
-                . $script.FullName
-                Write-Host "Successfully loaded $Category script: $($script.Name)" -ForegroundColor Green
+                
+                # Temporarily disable error action and try to dot-source the script
+                $originalErrorAction = $ErrorActionPreference
+                $ErrorActionPreference = 'SilentlyContinue'
+                
+                try {
+                    # Just dot-source the script to load functions without executing them
+                    . $script.FullName
+                    Write-Host "Successfully loaded $Category script: $($script.Name)" -ForegroundColor Green
+                } catch {
+                    Write-Warning "Failed to load $Category script $($script.Name): $_"
+                } finally {
+                    $ErrorActionPreference = $originalErrorAction
+                }
             } catch {
                 Write-Warning "Failed to load $Category script $($script.Name): $_"
             }
@@ -177,7 +190,7 @@ function Import-PrivateScripts {
     }
 }
 
-# Load initialization system
+# Load only the core initialization system (not private scripts)
 $InitializationPath = Join-Path $PSScriptRoot "Private\Core\WindowsMissingRecovery.Initialization.ps1"
 if (Test-Path $InitializationPath) {
     try {
@@ -225,14 +238,14 @@ if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyCon
 } else {
     Write-Warning "Initialization system not available, using fallback initialization"
     
-    # Fallback initialization
+    # Fallback initialization - only load public functions, not private scripts
     try {
         # Try to initialize module configuration from config file
         if (Get-Command Initialize-ModuleFromConfig -ErrorAction SilentlyContinue) {
             Initialize-ModuleFromConfig
         }
         
-        # Load public functions
+        # Load public functions only
         $PublicPath = Join-Path $PSScriptRoot "Public"
         if (Test-Path $PublicPath) {
             $Public = @(Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue)
@@ -269,7 +282,7 @@ if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyCon
     }
 }
 
-# Ensure Public functions are loaded in module scope
+# Ensure Public functions are loaded in module scope (but don't load private scripts)
 $PublicPath = Join-Path $PSScriptRoot "Public"
 if (Test-Path $PublicPath) {
     $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
@@ -292,7 +305,7 @@ if (Test-Path $PublicPath) {
     }
 }
 
-# Export all functions
+# Export all functions - only public functions, not private ones
 $ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMissingRecovery', 'Set-WindowsMissingRecovery')
 
 # Get all loaded functions
