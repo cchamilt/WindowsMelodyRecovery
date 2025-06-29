@@ -1,4 +1,4 @@
-# Load environment variables and settings for WindowsMissingRecovery
+# Load environment variables and settings for WindowsMelodyRecovery
 # This script should be sourced using dot-sourcing, not executed directly
 
 # Check if environment is already loaded
@@ -84,7 +84,7 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
     foreach ($path in $DEFAULT_ONEDRIVE_PATHS) {
         if ($path -and (Test-Path $path)) {
             $BACKUP_ROOT = $path
-            Write-Host "Using default backup path: $BACKUP_ROOT\WindowsMissingRecovery\$MACHINE_NAME" -ForegroundColor Yellow
+            Write-Host "Using default backup path: $BACKUP_ROOT\WindowsMelodyRecovery\$MACHINE_NAME" -ForegroundColor Yellow
             $foundOneDrive = $true
             break
         }
@@ -92,15 +92,15 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
     
     if (-not $foundOneDrive) {
         $BACKUP_ROOT = $DEFAULT_USER_PROFILE
-        Write-Warning "OneDrive not found, using profile directory for backup: $BACKUP_ROOT\WindowsMissingRecovery\$MACHINE_NAME"
+        Write-Warning "OneDrive not found, using profile directory for backup: $BACKUP_ROOT\WindowsMelodyRecovery\$MACHINE_NAME"
     }
 }
 
 # Export variables to be used by other scripts
-$WINDOWS_MISSING_RECOVERY_PATH = if ($env:WINDOWS_MISSING_RECOVERY_PATH) { 
-    $env:WINDOWS_MISSING_RECOVERY_PATH 
+$WINDOWS_MELODY_RECOVERY_PATH = if ($env:WINDOWS_MELODY_RECOVERY_PATH) { 
+    $env:WINDOWS_MELODY_RECOVERY_PATH 
 } else { 
-    Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "WindowsMissingRecovery" 
+    Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "WindowsMelodyRecovery" 
 }
 
 $CLOUD_PROVIDER = if ($env:CLOUD_PROVIDER) { $env:CLOUD_PROVIDER } else { $null }
@@ -108,7 +108,7 @@ $CLOUD_PROVIDER = if ($env:CLOUD_PROVIDER) { $env:CLOUD_PROVIDER } else { $null 
 # Export these variables
 $env:BACKUP_ROOT = $BACKUP_ROOT
 $env:MACHINE_NAME = $MACHINE_NAME
-$env:WINDOWS_MISSING_RECOVERY_PATH = $WINDOWS_MISSING_RECOVERY_PATH
+$env:WINDOWS_MELODY_RECOVERY_PATH = $WINDOWS_MELODY_RECOVERY_PATH
 $env:CLOUD_PROVIDER = $CLOUD_PROVIDER
 
 # Mark environment as loaded

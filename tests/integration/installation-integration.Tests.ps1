@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Integration tests for Windows Missing Recovery installation and initialization
+    Integration tests for Windows Melody Recovery installation and initialization
 
 .DESCRIPTION
     Tests the complete installation and initialization workflow in a Docker environment.
@@ -13,13 +13,13 @@ BeforeAll {
     . $PSScriptRoot/../utilities/Mock-Utilities.ps1
     
     # Set up test environment
-    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMissingRecovery.psm1"
-    $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMissingRecovery.psd1"
+    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
+    $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psd1"
     $TestInstallScriptPath = Join-Path $PSScriptRoot "../../Install-Module.ps1"
     
     # Create temporary test directory
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $TestTempDir = Join-Path $tempPath "WindowsMissingRecovery-Integration-Tests"
+    $TestTempDir = Join-Path $tempPath "WindowsMelodyRecovery-Integration-Tests"
     if (-not (Test-Path $TestTempDir)) {
         New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
     }
@@ -30,7 +30,7 @@ BeforeAll {
     $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
 }
 
-Describe "Windows Missing Recovery - Installation Integration Tests" -Tag "Installation" {
+Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Installation" {
     
     Context "Module Installation Process" {
         It "Should have all required installation files" {
@@ -86,16 +86,16 @@ Describe "Windows Missing Recovery - Installation Integration Tests" -Tag "Insta
         It "Should export all expected functions" {
             Import-Module $TestModulePath -Force
             
-            $exportedFunctions = Get-Command -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+            $exportedFunctions = Get-Command -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $exportedFunctions | Should -Not -BeNullOrEmpty
             
             # Check for core functions
             $coreFunctions = @(
-                'Initialize-WindowsMissingRecovery',
-                'Get-WindowsMissingRecoveryStatus',
-                'Backup-WindowsMissingRecovery',
-                'Restore-WindowsMissingRecovery',
-                'Setup-WindowsMissingRecovery'
+                'Initialize-WindowsMelodyRecovery',
+                'Get-WindowsMelodyRecoveryStatus',
+                'Backup-WindowsMelodyRecovery',
+                'Restore-WindowsMelodyRecovery',
+                'Setup-WindowsMelodyRecovery'
             )
             
             foreach ($function in $coreFunctions) {
@@ -108,9 +108,9 @@ Describe "Windows Missing Recovery - Installation Integration Tests" -Tag "Insta
             
             # Check for some key private functions (they should be available after import)
             $privateFunctions = @(
-                'Test-WindowsMissingRecoveryPrerequisites',
-                'Initialize-WindowsMissingRecoveryEnvironment',
-                'Get-WindowsMissingRecoveryConfiguration'
+                'Test-WindowsMelodyRecoveryPrerequisites',
+                'Initialize-WindowsMelodyRecoveryEnvironment',
+                'Get-WindowsMelodyRecoveryConfiguration'
             )
             
             foreach ($function in $privateFunctions) {
@@ -120,7 +120,7 @@ Describe "Windows Missing Recovery - Installation Integration Tests" -Tag "Insta
     }
 }
 
-Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Initialization" {
+Describe "Windows Melody Recovery - Initialization Integration Tests" -Tag "Initialization" {
     
     BeforeAll {
         Import-Module $TestModulePath -Force
@@ -128,12 +128,12 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
     
     Context "Environment Initialization" {
         It "Should initialize with default configuration" {
-            { Initialize-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
         }
         
         It "Should create required directories" {
             $configPath = Join-Path $TestTempDir "default-config"
-            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
             
             $expectedDirs = @(
                 (Join-Path $configPath "config"),
@@ -149,7 +149,7 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
         
         It "Should copy template files correctly" {
             $configPath = Join-Path $TestTempDir "template-test"
-            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
             
             $configDir = Join-Path $configPath "config"
             $templateDir = Join-Path $PSScriptRoot "../../Templates"
@@ -173,7 +173,7 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
         
         It "Should set environment variables" {
             $configPath = Join-Path $TestTempDir "env-test"
-            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
             
             # Check if environment variables are set
             $env:WMR_CONFIG_PATH | Should -Not -BeNullOrEmpty
@@ -184,7 +184,7 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
     
     Context "Status and Health Checks" {
         It "Should return valid status information" {
-            $status = Get-WindowsMissingRecoveryStatus
+            $status = Get-WindowsMelodyRecoveryStatus
             
             $status | Should -Not -BeNullOrEmpty
             $status.ModuleVersion | Should -Not -BeNullOrEmpty
@@ -193,7 +193,7 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
         }
         
         It "Should detect initialization state correctly" {
-            $status = Get-WindowsMissingRecoveryStatus
+            $status = Get-WindowsMelodyRecoveryStatus
             
             if ($status.InitializationStatus -eq "Initialized") {
                 $status.ConfigurationPath | Should -Not -BeNullOrEmpty
@@ -202,7 +202,7 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
         }
         
         It "Should provide detailed status information" {
-            $status = Get-WindowsMissingRecoveryStatus -Detailed
+            $status = Get-WindowsMelodyRecoveryStatus -Detailed
             
             $status | Should -Not -BeNullOrEmpty
             $status.ModuleVersion | Should -Not -BeNullOrEmpty
@@ -216,10 +216,10 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
             $configPath = Join-Path $TestTempDir "multi-init"
             
             # First initialization
-            { Initialize-WindowsMissingRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
             
             # Second initialization (should not fail)
-            { Initialize-WindowsMissingRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
             
             # Verify configuration is still valid
             Test-Path (Join-Path $configPath "config") | Should -Be $true
@@ -227,28 +227,28 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
         
         It "Should validate configuration integrity" {
             $configPath = Join-Path $TestTempDir "validation-test"
-            Initialize-WindowsMissingRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
             
             # Test configuration validation
-            { Test-WindowsMissingRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            { Test-WindowsMelodyRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
         }
     }
     
     Context "Error Handling and Recovery" {
         It "Should handle invalid configuration paths" {
             $invalidPath = "C:\Invalid\Path\That\Does\Not\Exist"
-            { Initialize-WindowsMissingRecovery -ConfigurationPath $invalidPath -ErrorAction Stop } | Should -Throw
+            { Initialize-WindowsMelodyRecovery -ConfigurationPath $invalidPath -ErrorAction Stop } | Should -Throw
         }
         
         It "Should handle permission errors gracefully" {
             # Try to initialize in a system directory (should fail gracefully)
             $systemPath = "C:\Windows\System32"
-            { Initialize-WindowsMissingRecovery -ConfigurationPath $systemPath -ErrorAction Stop } | Should -Throw
+            { Initialize-WindowsMelodyRecovery -ConfigurationPath $systemPath -ErrorAction Stop } | Should -Throw
         }
         
         It "Should provide meaningful error messages" {
             try {
-                Initialize-WindowsMissingRecovery -ConfigurationPath "" -ErrorAction Stop
+                Initialize-WindowsMelodyRecovery -ConfigurationPath "" -ErrorAction Stop
             } catch {
                 $_.Exception.Message | Should -Not -BeNullOrEmpty
                 $_.Exception.Message | Should -Match "configuration"
@@ -257,7 +257,7 @@ Describe "Windows Missing Recovery - Initialization Integration Tests" -Tag "Ini
     }
 }
 
-Describe "Windows Missing Recovery - Pester Integration Tests" -Tag "Pester" {
+Describe "Windows Melody Recovery - Pester Integration Tests" -Tag "Pester" {
     
     Context "Pester Test Infrastructure" {
         It "Should have Pester available" {
@@ -325,5 +325,5 @@ AfterAll {
     }
     
     # Remove module
-    Remove-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+    Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
 } 

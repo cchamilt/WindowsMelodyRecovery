@@ -1,6 +1,6 @@
-# Windows Missing Recovery - Integration Testing System
+# Windows Melody Recovery - Integration Testing System
 
-This directory contains a comprehensive Docker-based integration testing system that simulates Windows, WSL, and cloud storage environments to test the Windows Missing Recovery module functionality.
+This directory contains a comprehensive Docker-based integration testing system that simulates Windows, WSL, and cloud storage environments to test the Windows Melody Recovery module functionality.
 
 ## Overview
 
@@ -44,7 +44,7 @@ The testing system creates a complete mock environment that includes:
 1. **Clone the repository and navigate to the root directory**:
    ```powershell
    git clone <repository-url>
-   cd WindowsMissingRecovery
+   cd WindowsMelodyRecovery
    ```
 
 2. **Run all integration tests**:
@@ -131,7 +131,7 @@ The testing system creates a complete mock environment that includes:
 - Source directory management and validation
 - File management and template processing
 - Backup and restore functionality
-- Integration with Windows Missing Recovery module
+- Integration with Windows Melody Recovery module
 - Error handling and edge cases
 - Performance and scalability testing
 
@@ -481,8 +481,8 @@ curl -X POST -F "file=@test.txt" http://localhost:8080/api/onedrive/upload
 
 ## License
 
-This testing system is part of the Windows Missing Recovery project and follows the same license terms.
+This testing system is part of the Windows Melody Recovery project and follows the same license terms.
 
 ---
 
-*For more information about the Windows Missing Recovery module, see the main [README.md](../README.md).* 
+*For more information about the Windows Melody Recovery module, see the main [README.md](../README.md).* 

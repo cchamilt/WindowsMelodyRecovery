@@ -1,4 +1,4 @@
-# Core utility functions for WindowsMissingRecovery module
+# Core utility functions for WindowsMelodyRecovery module
 
 function Load-Environment {
     [CmdletBinding()]
@@ -9,18 +9,18 @@ function Load-Environment {
     
     # If no ConfigPath provided, try to use module's configuration
     if (-not $ConfigPath) {
-        $moduleConfig = Get-WindowsMissingRecovery
+        $moduleConfig = Get-WindowsMelodyRecovery
         if ($moduleConfig -and $moduleConfig.BackupRoot) {
             # Set up environment variables from module configuration
             $script:BACKUP_ROOT = $moduleConfig.BackupRoot
             $script:MACHINE_NAME = $moduleConfig.MachineName
             $script:CLOUD_PROVIDER = $moduleConfig.CloudProvider
-            $script:WINDOWS_MISSING_RECOVERY_PATH = $moduleConfig.WindowsMissingRecoveryPath
+            $script:WINDOWS_MELODY_RECOVERY_PATH = $moduleConfig.WindowsMelodyRecoveryPath
             
             Write-Verbose "Environment loaded from module configuration"
             return $true
         } else {
-            Write-Warning "Module not initialized and no ConfigPath provided. Please run Initialize-WindowsMissingRecovery first."
+            Write-Warning "Module not initialized and no ConfigPath provided. Please run Initialize-WindowsMelodyRecovery first."
             return $false
         }
     }
@@ -184,7 +184,7 @@ function Initialize-ModuleFromConfig {
             # Update module configuration from file
             if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
             if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
-            if ($config.WINDOWS_MISSING_RECOVERY_PATH) { $script:Config.WindowsMissingRecoveryPath = $config.WINDOWS_MISSING_RECOVERY_PATH }
+            if ($config.WINDOWS_MELODY_RECOVERY_PATH) { $script:Config.WindowsMelodyRecoveryPath = $config.WINDOWS_MELODY_RECOVERY_PATH }
             if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
             
             $script:Config.IsInitialized = $true
@@ -346,7 +346,7 @@ function Sync-WSLPackages {
     )
     
     if (!$BackupPath) {
-        $config = Get-WindowsMissingRecovery
+        $config = Get-WindowsMelodyRecovery
         if ($config.CloudProvider -eq "OneDrive") {
             $BackupPath = "$env:USERPROFILE\OneDrive\WSL-Packages"
         } else {

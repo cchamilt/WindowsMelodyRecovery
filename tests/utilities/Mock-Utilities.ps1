@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Mock Utilities for Windows Missing Recovery Integration Tests
+    Mock Utilities for Windows Melody Recovery Integration Tests
 
 .DESCRIPTION
     Utility functions for working with mock environments and data.

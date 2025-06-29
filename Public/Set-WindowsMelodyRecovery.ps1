@@ -1,4 +1,4 @@
-function Set-WindowsMissingRecovery {
+function Set-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -11,7 +11,7 @@ function Set-WindowsMissingRecovery {
         [string]$CloudProvider,
         
         [Parameter(Mandatory=$false)]
-        [string]$WindowsMissingRecoveryPath
+        [string]$WindowsMelodyRecoveryPath
     )
 
     # Update the global configuration
@@ -27,8 +27,8 @@ function Set-WindowsMissingRecovery {
         $script:Config.CloudProvider = $CloudProvider
     }
     
-    if ($WindowsMissingRecoveryPath) {
-        $script:Config.WindowsMissingRecoveryPath = $WindowsMissingRecoveryPath
+    if ($WindowsMelodyRecoveryPath) {
+        $script:Config.WindowsMelodyRecoveryPath = $WindowsMelodyRecoveryPath
     }
     
     # Mark as initialized

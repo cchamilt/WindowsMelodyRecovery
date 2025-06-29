@@ -1,7 +1,7 @@
 #Validates the recovery setup and backup integrity
 #Also runs the private functions from the module individually
 
-function Test-WindowsMissingRecovery {
+function Test-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -27,11 +27,11 @@ function Test-WindowsMissingRecovery {
         Warnings = @()
     }
 
-    Write-Host "`nTesting WindowsMissingRecovery Module..." -ForegroundColor Blue
+    Write-Host "`nTesting WindowsMelodyRecovery Module..." -ForegroundColor Blue
 
     # Test 1: Module Loading
     try {
-        $module = Get-Module WindowsMissingRecovery
+        $module = Get-Module WindowsMelodyRecovery
         if ($module) {
             $results.ModuleLoaded = $true
             Write-Host "✓ Module loaded successfully" -ForegroundColor Green
@@ -46,7 +46,7 @@ function Test-WindowsMissingRecovery {
 
     # Test 2: Configuration
     try {
-        $config = Get-WindowsMissingRecovery
+        $config = Get-WindowsMelodyRecovery
         if ($config -and $config.BackupRoot) {
             $results.ConfigurationValid = $true
             Write-Host "✓ Configuration is valid" -ForegroundColor Green
@@ -95,9 +95,9 @@ function Test-WindowsMissingRecovery {
 
     # Test 4: Scheduled Tasks
     try {
-        $taskPath = "\WindowsMissingRecovery\"
-        $backupTask = Get-ScheduledTask -TaskName "WindowsMissingRecovery-Backup" -TaskPath $taskPath -ErrorAction SilentlyContinue
-        $updateTask = Get-ScheduledTask -TaskName "WindowsMissingRecovery-Update" -TaskPath $taskPath -ErrorAction SilentlyContinue
+        $taskPath = "\WindowsMelodyRecovery\"
+        $backupTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Backup" -TaskPath $taskPath -ErrorAction SilentlyContinue
+        $updateTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Update" -TaskPath $taskPath -ErrorAction SilentlyContinue
         
         if ($backupTask -and $updateTask) {
             $results.ScheduledTasksInstalled = $true
@@ -121,7 +121,7 @@ function Test-WindowsMissingRecovery {
     if ($results.ConfigurationValid -and $results.BackupLocationAccessible) {
         try {
             # Test backup functionality without actually performing a backup
-            $backupTest = Get-Command Backup-WindowsMissingRecovery -ErrorAction Stop
+            $backupTest = Get-Command Backup-WindowsMelodyRecovery -ErrorAction Stop
             if ($backupTest) {
                 $results.BackupFunctionality = $true
                 Write-Host "✓ Backup functionality is available" -ForegroundColor Green
@@ -136,7 +136,7 @@ function Test-WindowsMissingRecovery {
     if ($results.ConfigurationValid) {
         try {
             # Test restore functionality without actually performing a restore
-            $restoreTest = Get-Command Restore-WindowsMissingRecovery -ErrorAction Stop
+            $restoreTest = Get-Command Restore-WindowsMelodyRecovery -ErrorAction Stop
             if ($restoreTest) {
                 $results.RestoreFunctionality = $true
                 Write-Host "✓ Restore functionality is available" -ForegroundColor Green
@@ -150,7 +150,7 @@ function Test-WindowsMissingRecovery {
     # Test 7: Update Functionality
     try {
         # Test update functionality without actually performing an update
-        $updateTest = Get-Command Update-WindowsMissingRecovery -ErrorAction Stop
+        $updateTest = Get-Command Update-WindowsMelodyRecovery -ErrorAction Stop
         if ($updateTest) {
             $results.UpdateFunctionality = $true
             Write-Host "✓ Update functionality is available" -ForegroundColor Green

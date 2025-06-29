@@ -1,8 +1,8 @@
-# Limits and Scope of Windows Missing Recovery Module
+# Limits and Scope of Windows Melody Recovery Module
 
 ## Overview
 
-The Windows Missing Recovery module is designed to backup, restore, and manage Windows environment configurations, settings, and development environments. This document outlines the current capabilities, limitations, and scope of the system.
+The Windows Melody Recovery module is designed to backup, restore, and manage Windows environment configurations, settings, and development environments. This document outlines the current capabilities, limitations, and scope of the system.
 
 ## Cloud Provider Support
 
@@ -186,4 +186,4 @@ The Windows Missing Recovery module is designed to backup, restore, and manage W
 
 ---
 
-*This document reflects the capabilities and limitations of Windows Missing Recovery v1.0.0 as of June 2025.*
+*This document reflects the capabilities and limitations of Windows Melody Recovery v1.0.0 as of June 2025.*

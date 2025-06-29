@@ -1,4 +1,4 @@
-function Set-WindowsMissingRecoveryScripts {
+function Set-WindowsMelodyRecoveryScripts {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -26,7 +26,7 @@ function Set-WindowsMissingRecoveryScripts {
             return
         }
         
-        Write-Host "`nWindows Missing Recovery Scripts Configuration:" -ForegroundColor Green
+        Write-Host "`nWindows Melody Recovery Scripts Configuration:" -ForegroundColor Green
         Write-Host "=" * 60 -ForegroundColor Green
         
         foreach ($cat in @('backup', 'restore', 'setup')) {
@@ -117,8 +117,8 @@ function Set-WindowsMissingRecoveryScripts {
     
     # Show usage if no valid parameters provided
     Write-Host "Usage Examples:" -ForegroundColor Yellow
-    Write-Host "  Set-WindowsMissingRecoveryScripts -ListAll" -ForegroundColor Cyan
-    Write-Host "  Set-WindowsMissingRecoveryScripts -Interactive" -ForegroundColor Cyan
-    Write-Host "  Set-WindowsMissingRecoveryScripts -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -ForegroundColor Cyan
-    Write-Host "  Set-WindowsMissingRecoveryScripts -Category restore -ScriptName 'Applications' -Enabled `$false" -ForegroundColor Cyan
+    Write-Host "  Set-WindowsMelodyRecoveryScripts -ListAll" -ForegroundColor Cyan
+    Write-Host "  Set-WindowsMelodyRecoveryScripts -Interactive" -ForegroundColor Cyan
+    Write-Host "  Set-WindowsMelodyRecoveryScripts -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -ForegroundColor Cyan
+    Write-Host "  Set-WindowsMelodyRecoveryScripts -Category restore -ScriptName 'Applications' -Enabled `$false" -ForegroundColor Cyan
 } 

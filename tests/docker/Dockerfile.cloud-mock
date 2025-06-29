@@ -15,9 +15,9 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Create cloud storage directories
-RUN mkdir -p /cloud-storage/OneDrive/WindowsMissingRecovery && \
-    mkdir -p /cloud-storage/GoogleDrive/WindowsMissingRecovery && \
-    mkdir -p /cloud-storage/Dropbox/WindowsMissingRecovery
+RUN mkdir -p /cloud-storage/OneDrive/WindowsMelodyRecovery && \
+    mkdir -p /cloud-storage/GoogleDrive/WindowsMelodyRecovery && \
+    mkdir -p /cloud-storage/Dropbox/WindowsMelodyRecovery
 
 # Create package.json for cloud mock server
 COPY tests/mock-scripts/cloud-server/package.json .

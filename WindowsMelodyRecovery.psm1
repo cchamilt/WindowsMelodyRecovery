@@ -1,15 +1,15 @@
-# WindowsMissingRecovery PowerShell Module
+# WindowsMelodyRecovery PowerShell Module
 # Comprehensive Windows system recovery, backup, and configuration management tool
 
 # Module metadata
-$ModuleName = "WindowsMissingRecovery"
+$ModuleName = "WindowsMelodyRecovery"
 $ModuleVersion = "1.0.0"
 
 # Module configuration (in-memory state)
 $script:Config = @{
     BackupRoot = $null
     MachineName = $env:COMPUTERNAME
-    WindowsMissingRecoveryPath = Join-Path $PSScriptRoot "Config"
+    WindowsMelodyRecoveryPath = Join-Path $PSScriptRoot "Config"
     CloudProvider = $null
     ModuleVersion = $ModuleVersion
     LastConfigured = $null
@@ -56,17 +56,17 @@ $script:InitializationErrors = @()
 $script:LoadedComponents = @()
 
 # Define core functions first
-function Get-WindowsMissingRecovery {
+function Get-WindowsMelodyRecovery {
     <#
     .SYNOPSIS
-        Get the current Windows Missing Recovery configuration.
+        Get the current Windows Melody Recovery configuration.
     
     .DESCRIPTION
         Returns the current module configuration including backup settings, 
         cloud provider settings, and initialization status.
     
     .EXAMPLE
-        Get-WindowsMissingRecovery
+        Get-WindowsMelodyRecovery
     
     .OUTPUTS
         Hashtable containing the module configuration.
@@ -77,10 +77,10 @@ function Get-WindowsMissingRecovery {
     return $script:Config
 }
 
-function Set-WindowsMissingRecovery {
+function Set-WindowsMelodyRecovery {
     <#
     .SYNOPSIS
-        Set Windows Missing Recovery configuration.
+        Set Windows Melody Recovery configuration.
     
     .DESCRIPTION
         Updates the module configuration with new settings.
@@ -94,14 +94,14 @@ function Set-WindowsMissingRecovery {
     .PARAMETER MachineName
         Name of the machine for backup identification.
     
-    .PARAMETER WindowsMissingRecoveryPath
-        Path to the Windows Missing Recovery installation.
+    .PARAMETER WindowsMelodyRecoveryPath
+        Path to the Windows Melody Recovery installation.
     
     .PARAMETER CloudProvider
         Cloud storage provider (OneDrive, GoogleDrive, Dropbox, Box, Custom).
     
     .EXAMPLE
-        Set-WindowsMissingRecovery -BackupRoot "C:\Backups" -CloudProvider "OneDrive"
+        Set-WindowsMelodyRecovery -BackupRoot "C:\Backups" -CloudProvider "OneDrive"
     #>
     [CmdletBinding()]
     param(
@@ -115,7 +115,7 @@ function Set-WindowsMissingRecovery {
         [string]$MachineName,
         
         [Parameter(Mandatory=$false)]
-        [string]$WindowsMissingRecoveryPath,
+        [string]$WindowsMelodyRecoveryPath,
         
         [Parameter(Mandatory=$false)]
         [ValidateSet('OneDrive', 'GoogleDrive', 'Dropbox', 'Box', 'Custom')]
@@ -127,7 +127,7 @@ function Set-WindowsMissingRecovery {
     } else {
         if ($BackupRoot) { $script:Config.BackupRoot = $BackupRoot }
         if ($MachineName) { $script:Config.MachineName = $MachineName }
-        if ($WindowsMissingRecoveryPath) { $script:Config.WindowsMissingRecoveryPath = $WindowsMissingRecoveryPath }
+        if ($WindowsMelodyRecoveryPath) { $script:Config.WindowsMelodyRecoveryPath = $WindowsMelodyRecoveryPath }
         if ($CloudProvider) { $script:Config.CloudProvider = $CloudProvider }
     }
     
@@ -191,7 +191,7 @@ function Import-PrivateScripts {
 }
 
 # Load only the core initialization system (not private scripts)
-$InitializationPath = Join-Path $PSScriptRoot "Private\Core\WindowsMissingRecovery.Initialization.ps1"
+$InitializationPath = Join-Path $PSScriptRoot "Private\Core\WindowsMelodyRecovery.Initialization.ps1"
 if (Test-Path $InitializationPath) {
     try {
         . $InitializationPath
@@ -205,7 +205,7 @@ if (Test-Path $InitializationPath) {
 }
 
 # Load core utilities
-$CorePath = Join-Path $PSScriptRoot "Private\Core\WindowsMissingRecovery.Core.ps1"
+$CorePath = Join-Path $PSScriptRoot "Private\Core\WindowsMelodyRecovery.Core.ps1"
 if (Test-Path $CorePath) {
     try {
         . $CorePath
@@ -219,9 +219,9 @@ if (Test-Path $CorePath) {
 }
 
 # Initialize module using the new initialization system
-if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyContinue) {
+if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyContinue) {
     try {
-        $initResult = Initialize-WindowsMissingRecoveryModule -SkipValidation
+        $initResult = Initialize-WindowsMelodyRecoveryModule -SkipValidation
         if ($initResult.Success) {
             Write-Verbose "Module initialized successfully: $($initResult.Message)"
             if ($initResult.Warnings) {
@@ -306,15 +306,15 @@ if (Test-Path $PublicPath) {
 }
 
 # Export all functions - only public functions, not private ones
-$ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMissingRecovery', 'Set-WindowsMissingRecovery')
+$ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMelodyRecovery', 'Set-WindowsMelodyRecovery')
 
 # Get all loaded functions
 $AllFunctions = @()
 $AllFunctions += $ModuleFunctions
 
 # Add initialization functions if available
-if (Get-Command Initialize-WindowsMissingRecoveryModule -ErrorAction SilentlyContinue) {
-    $AllFunctions += 'Initialize-WindowsMissingRecoveryModule'
+if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyContinue) {
+    $AllFunctions += 'Initialize-WindowsMelodyRecoveryModule'
 }
 if (Get-Command Get-ModuleInitializationStatus -ErrorAction SilentlyContinue) {
     $AllFunctions += 'Get-ModuleInitializationStatus'
@@ -355,11 +355,11 @@ if ($ExistingFunctions.Count -gt 0) {
 }
 
 # Export configuration variable
-Set-Variable -Name "WindowsMissingRecoveryConfig" -Value $script:Config -Scope Global -Force
+Set-Variable -Name "WindowsMelodyRecoveryConfig" -Value $script:Config -Scope Global -Force
 
 # Module initialization complete message
 if ($script:ModuleInitialized) {
-    Write-Verbose "WindowsMissingRecovery module loaded successfully"
+    Write-Verbose "WindowsMelodyRecovery module loaded successfully"
     if ($script:InitializationErrors.Count -gt 0) {
         Write-Warning "Module loaded with errors: $($script:InitializationErrors -join '; ')"
     }

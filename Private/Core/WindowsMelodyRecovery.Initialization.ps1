@@ -1,4 +1,4 @@
-# WindowsMissingRecovery Module Initialization System
+# WindowsMelodyRecovery Module Initialization System
 # This file handles all module initialization, configuration loading, and setup
 
 # Module initialization state
@@ -6,7 +6,7 @@ $script:ModuleInitialized = $false
 $script:InitializationErrors = @()
 $script:LoadedComponents = @()
 
-function Initialize-WindowsMissingRecoveryModule {
+function Initialize-WindowsMelodyRecoveryModule {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -22,7 +22,7 @@ function Initialize-WindowsMissingRecoveryModule {
         [hashtable]$OverrideConfig
     )
     
-    Write-Verbose "Starting WindowsMissingRecovery module initialization..."
+    Write-Verbose "Starting WindowsMelodyRecovery module initialization..."
     
     try {
         # Step 1: Validate module structure
@@ -139,9 +139,9 @@ function Test-ModuleStructure {
     }
     
     $requiredFiles = @(
-        "Private\Core\WindowsMissingRecovery.Core.ps1",
-        "WindowsMissingRecovery.psm1",
-        "WindowsMissingRecovery.psd1"
+        "Private\Core\WindowsMelodyRecovery.Core.ps1",
+        "WindowsMelodyRecovery.psm1",
+        "WindowsMelodyRecovery.psd1"
     )
     
     $missingFiles = @()
@@ -260,7 +260,7 @@ function Load-ConfigurationFromFile {
         # Update module configuration
         if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
         if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
-        if ($config.WINDOWS_MISSING_RECOVERY_PATH) { $script:Config.WindowsMissingRecoveryPath = $config.WINDOWS_MISSING_RECOVERY_PATH }
+        if ($config.WINDOWS_MELODY_RECOVERY_PATH) { $script:Config.WindowsMelodyRecoveryPath = $config.WINDOWS_MELODY_RECOVERY_PATH }
         if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
         
         return @{
@@ -310,7 +310,7 @@ function Load-ConfigurationFromTemplate {
         # Update module configuration
         if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
         if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
-        if ($config.WINDOWS_MISSING_RECOVERY_PATH) { $script:Config.WindowsMissingRecoveryPath = $config.WINDOWS_MISSING_RECOVERY_PATH }
+        if ($config.WINDOWS_MELODY_RECOVERY_PATH) { $script:Config.WindowsMelodyRecoveryPath = $config.WINDOWS_MELODY_RECOVERY_PATH }
         if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
         
         return @{
@@ -331,9 +331,9 @@ function Get-DefaultConfiguration {
     param()
     
     return @{
-        BackupRoot = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMissingRecovery\Backups" } else { "/tmp/WindowsMissingRecovery/Backups" }
+        BackupRoot = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Backups" } else { "/tmp/WindowsMelodyRecovery/Backups" }
         MachineName = $env:COMPUTERNAME
-        WindowsMissingRecoveryPath = Split-Path $PSScriptRoot -Parent
+        WindowsMelodyRecoveryPath = Split-Path $PSScriptRoot -Parent
         CloudProvider = "OneDrive"
         ModuleVersion = "1.0.0"
         LastConfigured = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
@@ -365,7 +365,7 @@ function Get-DefaultConfiguration {
             ForceOverwrite = $false
         }
         LoggingSettings = @{
-            Path = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMissingRecovery\Logs" } else { "/tmp/WindowsMissingRecovery/Logs" }
+            Path = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Logs" } else { "/tmp/WindowsMelodyRecovery/Logs" }
             Level = "Information"
         }
         UpdateSettings = @{
@@ -526,9 +526,9 @@ function Setup-ModuleEnvironment {
         $directories = @(
             $script:Config.BackupRoot,
             $script:Config.LoggingSettings.Path,
-            (Join-Path $script:Config.WindowsMissingRecoveryPath "Config"),
-            (Join-Path $script:Config.WindowsMissingRecoveryPath "Logs"),
-            (Join-Path $script:Config.WindowsMissingRecoveryPath "Temp")
+            (Join-Path $script:Config.WindowsMelodyRecoveryPath "Config"),
+            (Join-Path $script:Config.WindowsMelodyRecoveryPath "Logs"),
+            (Join-Path $script:Config.WindowsMelodyRecoveryPath "Temp")
         )
         
         foreach ($dir in $directories) {
@@ -539,11 +539,11 @@ function Setup-ModuleEnvironment {
         }
         
         # Set up logging
-        $logFile = Join-Path $script:Config.LoggingSettings.Path "WindowsMissingRecovery.log"
+        $logFile = Join-Path $script:Config.LoggingSettings.Path "WindowsMelodyRecovery.log"
         $script:Config.LoggingSettings.LogFile = $logFile
         
         # Export configuration variable
-        Set-Variable -Name "WindowsMissingRecoveryConfig" -Value $script:Config -Scope Global -Force
+        Set-Variable -Name "WindowsMelodyRecoveryConfig" -Value $script:Config -Scope Global -Force
         
         $script:LoadedComponents += "ModuleEnvironment"
         
@@ -625,11 +625,11 @@ function Setup-ModuleAliases {
     
     try {
         $aliases = @{
-            "wmr-init" = "Initialize-WindowsMissingRecovery"
-            "wmr-backup" = "Backup-WindowsMissingRecovery"
-            "wmr-restore" = "Restore-WindowsMissingRecovery"
-            "wmr-setup" = "Setup-WindowsMissingRecovery"
-            "wmr-test" = "Test-WindowsMissingRecovery"
+            "wmr-init" = "Initialize-WindowsMelodyRecovery"
+            "wmr-backup" = "Backup-WindowsMelodyRecovery"
+            "wmr-restore" = "Restore-WindowsMelodyRecovery"
+            "wmr-setup" = "Setup-WindowsMelodyRecovery"
+            "wmr-test" = "Test-WindowsMelodyRecovery"
         }
         
         $createdAliases = @()

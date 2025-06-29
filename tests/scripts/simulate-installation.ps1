@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Simulates the WindowsMissingRecovery module installation in Docker test environment
+    Simulates the WindowsMelodyRecovery module installation in Docker test environment
 
 .DESCRIPTION
     This script simulates the actual installation process that users would experience
@@ -14,10 +14,10 @@ param(
     [switch]$Verbose
 )
 
-Write-Host "🔧 Simulating WindowsMissingRecovery module installation..." -ForegroundColor Cyan
+Write-Host "🔧 Simulating WindowsMelodyRecovery module installation..." -ForegroundColor Cyan
 
 # Define module name
-$moduleName = "WindowsMissingRecovery"
+$moduleName = "WindowsMelodyRecovery"
 
 # Use the correct PowerShell 7+ user module path on Linux
 $userModulePath = "/root/.local/share/powershell/Modules/$moduleName"

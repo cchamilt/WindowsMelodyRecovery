@@ -1,10 +1,10 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Run Windows Missing Recovery Integration Tests in Docker
+    Run Windows Melody Recovery Integration Tests in Docker
 
 .DESCRIPTION
-    This script sets up and runs comprehensive integration tests for the Windows Missing Recovery module
+    This script sets up and runs comprehensive integration tests for the Windows Melody Recovery module
     using Docker containers that simulate Windows, WSL, and cloud storage environments.
 
 .PARAMETER TestSuite
@@ -124,7 +124,7 @@ function Start-TestEnvironment {
         
         foreach ($service in $services) {
             # Check if image already exists and we're not forcing rebuild
-            $imageName = "windowsmissingrecovery-$service"
+            $imageName = "WindowsMelodyRecovery-$service"
             $imageExists = docker images -q $imageName 2>$null
             
             if ($imageExists -and -not $ForceRebuild) {
@@ -317,7 +317,7 @@ function Stop-TestEnvironment {
 
 # Main execution
 try {
-    Write-Host "🧪 Windows Missing Recovery - Integration Test Runner" -ForegroundColor Magenta
+    Write-Host "🧪 Windows Melody Recovery - Integration Test Runner" -ForegroundColor Magenta
     Write-Host "=" * 60 -ForegroundColor Magenta
     Write-Host ""
     
@@ -333,7 +333,7 @@ try {
     # Check if docker-compose.test.yml exists
     if (-not (Test-Path "docker-compose.test.yml")) {
         Write-Host "✗ docker-compose.test.yml not found in current directory" -ForegroundColor Red
-        Write-Host "Please run this script from the root of the Windows Missing Recovery repository" -ForegroundColor Yellow
+        Write-Host "Please run this script from the root of the Windows Melody Recovery repository" -ForegroundColor Yellow
         exit 1
     }
     

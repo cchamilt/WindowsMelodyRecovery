@@ -1,11 +1,11 @@
-function Restore-WindowsMissingRecovery {
+function Restore-WindowsMelodyRecovery {
     [CmdletBinding()]
     param()
 
     # Get configuration from the module
-    $config = Get-WindowsMissingRecovery
+    $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+        Write-Host "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
         return
     }
 

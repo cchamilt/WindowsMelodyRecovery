@@ -4,7 +4,7 @@
     Test Helper Functions
 
 .DESCRIPTION
-    Common utility functions for Windows Missing Recovery tests.
+    Common utility functions for Windows Melody Recovery tests.
 #>
 
 # Test helper functions

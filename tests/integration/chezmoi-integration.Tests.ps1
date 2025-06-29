@@ -14,11 +14,11 @@ BeforeAll {
     . $PSScriptRoot/../utilities/Mock-Utilities.ps1
     
     # Set up test environment
-    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMissingRecovery.psm1"
+    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
     
     # Use fallback path if $env:TEMP is not set
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $TestTempDir = Join-Path $tempPath "WindowsMissingRecovery-Chezmoi-Tests"
+    $TestTempDir = Join-Path $tempPath "WindowsMelodyRecovery-Chezmoi-Tests"
     if (-not (Test-Path $TestTempDir)) {
         New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
     }
@@ -29,7 +29,7 @@ BeforeAll {
     $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
 }
 
-Describe "Windows Missing Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
+Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
     
     Context "Chezmoi Availability and Installation" {
         It "Should have chezmoi available in WSL environment" {
@@ -264,12 +264,12 @@ echo "Username: {{ .chezmoi.username }}"
         }
     }
     
-    Context "Chezmoi Integration with Windows Missing Recovery" {
+    Context "Chezmoi Integration with Windows Melody Recovery" {
         It "Should integrate with module backup functions" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
             
             # Test that chezmoi backup is included in WSL backup
-            $wslBackupFunctions = Get-Command -Name "*WSL*" -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+            $wslBackupFunctions = Get-Command -Name "*WSL*" -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $wslBackupFunctions | Should -Not -BeNullOrEmpty
             
             # Check for specific chezmoi backup function
@@ -281,7 +281,7 @@ echo "Username: {{ .chezmoi.username }}"
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
             
             # Test that chezmoi setup is included in WSL setup
-            $wslSetupFunctions = Get-Command -Name "*WSL*" -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+            $wslSetupFunctions = Get-Command -Name "*WSL*" -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $wslSetupFunctions | Should -Not -BeNullOrEmpty
             
             # Check for specific chezmoi setup function
@@ -442,5 +442,5 @@ AfterAll {
     }
     
     # Remove module
-    Remove-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+    Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
 } 

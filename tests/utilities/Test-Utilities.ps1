@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Test Utilities for Windows Missing Recovery Integration Tests
+    Test Utilities for Windows Melody Recovery Integration Tests
 
 .DESCRIPTION
     Common utility functions for test execution, reporting, and environment management.

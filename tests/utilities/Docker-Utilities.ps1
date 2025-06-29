@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Docker Utilities for Windows Missing Recovery Integration Tests
+    Docker Utilities for Windows Melody Recovery Integration Tests
 
 .DESCRIPTION
     Utility functions for Docker container management and health checks.

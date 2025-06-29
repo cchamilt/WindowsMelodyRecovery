@@ -1,7 +1,7 @@
 Describe "Applications Backup Tests" {
     BeforeAll {
         # Import the module
-        Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
         
         # Set up test paths
         $testBackupPath = "/workspace/test-backups/applications"

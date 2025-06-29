@@ -20,7 +20,7 @@ function Install-TestModule {
         [switch]$Verbose
     )
     
-    Write-Host "🔧 Installing WindowsMissingRecovery module for testing..." -ForegroundColor Cyan
+    Write-Host "🔧 Installing WindowsMelodyRecovery module for testing..." -ForegroundColor Cyan
     
     # Run the installation simulation script
     $installResult = & "/tests/scripts/simulate-installation.ps1" -Force:$Force -CleanInstall:$CleanInstall -Verbose:$Verbose
@@ -66,11 +66,11 @@ function Test-Environment {
         }
     }
     
-    # Check if WindowsMissingRecovery module is installed
-    if (Get-Module -ListAvailable -Name "WindowsMissingRecovery") {
-        Write-Host "✓ WindowsMissingRecovery module installed" -ForegroundColor Green
+    # Check if WindowsMelodyRecovery module is installed
+    if (Get-Module -ListAvailable -Name "WindowsMelodyRecovery") {
+        Write-Host "✓ WindowsMelodyRecovery module installed" -ForegroundColor Green
     } else {
-        Write-Host "⚠ WindowsMissingRecovery module not installed (run Install-TestModule)" -ForegroundColor Yellow
+        Write-Host "⚠ WindowsMelodyRecovery module not installed (run Install-TestModule)" -ForegroundColor Yellow
     }
 }
 
@@ -84,7 +84,7 @@ function Start-TestRun {
     )
     
     # Install module if requested or if not already installed
-    if ($InstallModule -or -not (Get-Module -ListAvailable -Name "WindowsMissingRecovery")) {
+    if ($InstallModule -or -not (Get-Module -ListAvailable -Name "WindowsMelodyRecovery")) {
         Write-Host "📦 Installing module for test run..." -ForegroundColor Cyan
         if (-not (Install-TestModule -Force -Verbose:$Verbose)) {
             Write-Host "❌ Failed to install module, aborting test run" -ForegroundColor Red

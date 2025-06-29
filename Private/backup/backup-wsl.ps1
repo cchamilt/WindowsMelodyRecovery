@@ -28,13 +28,13 @@ $modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
 
 # Load environment using the core function
 if (!(Load-Environment)) {
-    throw "Failed to load environment. Please run Initialize-WindowsMissingRecovery first."
+    throw "Failed to load environment. Please run Initialize-WindowsMelodyRecovery first."
 }
 
 # Get module configuration
-$config = Get-WindowsMissingRecovery
+$config = Get-WindowsMelodyRecovery
 if (!$config.IsInitialized) {
-    throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+    throw "Module not initialized. Please run Initialize-WindowsMelodyRecovery first."
 }
 
 if (!$BackupRootPath) {

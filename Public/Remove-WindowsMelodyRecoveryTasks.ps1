@@ -1,5 +1,5 @@
 # Requires admin privileges
-function Remove-WindowsMissingRecoveryTasks {
+function Remove-WindowsMelodyRecoveryTasks {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -25,8 +25,8 @@ function Remove-WindowsMissingRecoveryTasks {
 
     # Define tasks to remove
     $tasks = @(
-        "WindowsMissingRecovery-Backup",
-        "WindowsMissingRecovery-Update"
+        "WindowsMelodyRecovery-Backup",
+        "WindowsMelodyRecovery-Update"
     )
 
     # Prompt for confirmation
@@ -44,7 +44,7 @@ function Remove-WindowsMissingRecoveryTasks {
     }
 
     # Remove scheduled tasks
-    $taskPath = "\WindowsMissingRecovery\"
+    $taskPath = "\WindowsMelodyRecovery\"
     $removedCount = 0
 
     foreach ($taskName in $tasks) {
@@ -67,5 +67,5 @@ function Remove-WindowsMissingRecoveryTasks {
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
-    Remove-WindowsMissingRecoveryTasks @PSBoundParameters
+    Remove-WindowsMelodyRecoveryTasks @PSBoundParameters
 }

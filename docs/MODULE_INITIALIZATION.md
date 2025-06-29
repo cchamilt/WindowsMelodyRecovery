@@ -1,8 +1,8 @@
-# Windows Missing Recovery - Module Initialization
+# Windows Melody Recovery - Module Initialization
 
 ## Overview
 
-The Windows Missing Recovery module uses a comprehensive initialization system that ensures proper loading of all components, validation of dependencies, and setup of the module environment. This document describes how the initialization system works and how to use it.
+The Windows Melody Recovery module uses a comprehensive initialization system that ensures proper loading of all components, validation of dependencies, and setup of the module environment. This document describes how the initialization system works and how to use it.
 
 ## Initialization Process
 
@@ -10,9 +10,9 @@ The Windows Missing Recovery module uses a comprehensive initialization system t
 
 When the module is imported, the following sequence occurs:
 
-1. **Module Manifest Processing** - PowerShell loads the module manifest (`WindowsMissingRecovery.psd1`)
+1. **Module Manifest Processing** - PowerShell loads the module manifest (`WindowsMelodyRecovery.psd1`)
 2. **ScriptsToProcess Loading** - Core utilities are loaded via `ScriptsToProcess`
-3. **Root Module Loading** - The main module file (`WindowsMissingRecovery.psm1`) is executed
+3. **Root Module Loading** - The main module file (`WindowsMelodyRecovery.psm1`) is executed
 4. **Initialization System Loading** - The initialization system is loaded
 5. **Component Loading** - Public functions and other components are loaded
 6. **Environment Setup** - Module environment is configured
@@ -24,7 +24,7 @@ The initialization system consists of several key components:
 
 #### Core Initialization Functions
 
-- `Initialize-WindowsMissingRecoveryModule` - Main initialization function
+- `Initialize-WindowsMelodyRecoveryModule` - Main initialization function
 - `Get-ModuleInitializationStatus` - Get initialization status
 - `Test-ModuleStructure` - Validate module structure
 - `Load-CoreUtilities` - Load core utility functions
@@ -46,7 +46,7 @@ The module can load configuration from multiple sources in order of priority:
 
 ### 1. External Configuration File
 ```powershell
-Initialize-WindowsMissingRecoveryModule -ConfigPath "C:\Custom\config.env"
+Initialize-WindowsMelodyRecoveryModule -ConfigPath "C:\Custom\config.env"
 ```
 
 ### 2. Module Configuration Directory
@@ -71,11 +71,11 @@ If no configuration files are found, default values are used.
 Configuration files use a simple key-value format:
 
 ```env
-# Windows Missing Recovery Configuration
-BACKUP_ROOT=C:\Users\Username\Backups\WindowsMissingRecovery
+# Windows Melody Recovery Configuration
+BACKUP_ROOT=C:\Users\Username\Backups\WindowsMelodyRecovery
 MACHINE_NAME=DESKTOP-ABC123
 CLOUD_PROVIDER=OneDrive
-WINDOWS_MISSING_RECOVERY_PATH=C:\Scripts\WindowsMissingRecovery
+WINDOWS_MELODY_RECOVERY_PATH=C:\Scripts\WindowsMelodyRecovery
 ```
 
 ## Module Status and Diagnostics
@@ -84,26 +84,26 @@ WINDOWS_MISSING_RECOVERY_PATH=C:\Scripts\WindowsMissingRecovery
 
 ```powershell
 # Get basic status
-Get-WindowsMissingRecoveryStatus
+Get-WindowsMelodyRecoveryStatus
 
 # Get detailed status
-Get-WindowsMissingRecoveryStatus -Detailed
+Get-WindowsMelodyRecoveryStatus -Detailed
 
 # Show only errors
-Get-WindowsMissingRecoveryStatus -ShowErrors
+Get-WindowsMelodyRecoveryStatus -ShowErrors
 
 # Show only warnings
-Get-WindowsMissingRecoveryStatus -ShowWarnings
+Get-WindowsMelodyRecoveryStatus -ShowWarnings
 ```
 
 ### Display Formatted Status
 
 ```powershell
 # Show formatted status report
-Show-WindowsMissingRecoveryStatus
+Show-WindowsMelodyRecoveryStatus
 
 # Show detailed formatted report
-Show-WindowsMissingRecoveryStatus -Detailed
+Show-WindowsMelodyRecoveryStatus -Detailed
 ```
 
 ## Manual Initialization
@@ -112,17 +112,17 @@ Show-WindowsMissingRecoveryStatus -Detailed
 
 ```powershell
 # Force re-initialization
-Initialize-WindowsMissingRecoveryModule -Force
+Initialize-WindowsMelodyRecoveryModule -Force
 
 # Skip structure validation
-Initialize-WindowsMissingRecoveryModule -SkipValidation
+Initialize-WindowsMelodyRecoveryModule -SkipValidation
 
 # Use custom configuration
 $customConfig = @{
     BackupRoot = "D:\CustomBackups"
     CloudProvider = "GoogleDrive"
 }
-Initialize-WindowsMissingRecoveryModule -OverrideConfig $customConfig
+Initialize-WindowsMelodyRecoveryModule -OverrideConfig $customConfig
 ```
 
 ### Check Initialization Status
@@ -144,13 +144,13 @@ if ($status.Initialized) {
 The initialization system validates the following module structure:
 
 ```
-WindowsMissingRecovery/
-├── WindowsMissingRecovery.psd1
-├── WindowsMissingRecovery.psm1
+WindowsMelodyRecovery/
+├── WindowsMelodyRecovery.psd1
+├── WindowsMelodyRecovery.psm1
 ├── Private/
 │   ├── Core/
-│   │   ├── WindowsMissingRecovery.Core.ps1
-│   │   └── WindowsMissingRecovery.Initialization.ps1
+│   │   ├── WindowsMelodyRecovery.Core.ps1
+│   │   └── WindowsMelodyRecovery.Initialization.ps1
 │   ├── backup/
 │   ├── restore/
 │   ├── setup/
@@ -200,25 +200,25 @@ WindowsMissingRecovery/
 
 ```powershell
 # Check for errors
-$status = Get-WindowsMissingRecoveryStatus -ShowErrors
+$status = Get-WindowsMelodyRecoveryStatus -ShowErrors
 
 # Re-initialize with force
-Initialize-WindowsMissingRecoveryModule -Force
+Initialize-WindowsMelodyRecoveryModule -Force
 
 # Use fallback configuration
-Initialize-WindowsMissingRecoveryModule -SkipValidation
+Initialize-WindowsMelodyRecoveryModule -SkipValidation
 ```
 
 ## Module Aliases
 
 The initialization system creates the following aliases:
 
-- `wmr-init` → `Initialize-WindowsMissingRecovery`
-- `wmr-backup` → `Backup-WindowsMissingRecovery`
-- `wmr-restore` → `Restore-WindowsMissingRecovery`
-- `wmr-setup` → `Setup-WindowsMissingRecovery`
-- `wmr-test` → `Test-WindowsMissingRecovery`
-- `wmr-status` → `Show-WindowsMissingRecoveryStatus`
+- `wmr-init` → `Initialize-WindowsMelodyRecovery`
+- `wmr-backup` → `Backup-WindowsMelodyRecovery`
+- `wmr-restore` → `Restore-WindowsMelodyRecovery`
+- `wmr-setup` → `Setup-WindowsMelodyRecovery`
+- `wmr-test` → `Test-WindowsMelodyRecovery`
+- `wmr-status` → `Show-WindowsMelodyRecoveryStatus`
 
 ## Environment Variables
 
@@ -226,7 +226,7 @@ The module sets up the following environment:
 
 - **Backup Directories** - Creates backup root and subdirectories
 - **Logging** - Sets up logging directory and file
-- **Configuration** - Exports `$WindowsMissingRecoveryConfig` variable
+- **Configuration** - Exports `$WindowsMelodyRecoveryConfig` variable
 - **Module Paths** - Sets up module-specific directories
 
 ## Best Practices
@@ -234,8 +234,8 @@ The module sets up the following environment:
 ### 1. Always Check Status After Import
 
 ```powershell
-Import-Module WindowsMissingRecovery
-Show-WindowsMissingRecoveryStatus
+Import-Module WindowsMelodyRecovery
+Show-WindowsMelodyRecoveryStatus
 ```
 
 ### 2. Use Configuration Files for Production
@@ -243,7 +243,7 @@ Show-WindowsMissingRecoveryStatus
 ```powershell
 # Create configuration file
 $config = @{
-    BACKUP_ROOT = "D:\Backups\WindowsMissingRecovery"
+    BACKUP_ROOT = "D:\Backups\WindowsMelodyRecovery"
     MACHINE_NAME = $env:COMPUTERNAME
     CLOUD_PROVIDER = "OneDrive"
 }
@@ -255,10 +255,10 @@ $config.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" } |
 
 ```powershell
 try {
-    Initialize-WindowsMissingRecoveryModule
+    Initialize-WindowsMelodyRecoveryModule
 } catch {
     Write-Error "Initialization failed: $($_.Exception.Message)"
-    Get-WindowsMissingRecoveryStatus -ShowErrors
+    Get-WindowsMelodyRecoveryStatus -ShowErrors
 }
 ```
 
@@ -266,10 +266,10 @@ try {
 
 ```powershell
 # For troubleshooting
-Show-WindowsMissingRecoveryStatus -Detailed
+Show-WindowsMelodyRecoveryStatus -Detailed
 
 # For automation
-$status = Get-WindowsMissingRecoveryStatus
+$status = Get-WindowsMelodyRecoveryStatus
 if (-not $status.Initialization.Initialized) {
     throw "Module not properly initialized"
 }
@@ -280,13 +280,13 @@ if (-not $status.Initialization.Initialized) {
 ### Module Won't Load
 
 1. Check PowerShell version: `$PSVersionTable.PSVersion`
-2. Verify module path: `Get-Module WindowsMissingRecovery -ListAvailable`
-3. Check for errors: `Get-WindowsMissingRecoveryStatus -ShowErrors`
+2. Verify module path: `Get-Module WindowsMelodyRecovery -ListAvailable`
+3. Check for errors: `Get-WindowsMelodyRecoveryStatus -ShowErrors`
 
 ### Functions Not Available
 
-1. Check loaded functions: `Get-Command -Module WindowsMissingRecovery`
-2. Re-initialize module: `Initialize-WindowsMissingRecoveryModule -Force`
+1. Check loaded functions: `Get-Command -Module WindowsMelodyRecovery`
+2. Re-initialize module: `Initialize-WindowsMelodyRecoveryModule -Force`
 3. Check initialization status: `Get-ModuleInitializationStatus`
 
 ### Configuration Issues
@@ -307,8 +307,8 @@ if (-not $status.Initialization.Initialized) {
 
 ```powershell
 # In CI/CD pipeline
-Import-Module WindowsMissingRecovery
-$status = Get-WindowsMissingRecoveryStatus
+Import-Module WindowsMelodyRecovery
+$status = Get-WindowsMelodyRecoveryStatus
 
 if (-not $status.Initialization.Initialized) {
     throw "Module initialization failed"
@@ -325,9 +325,9 @@ if ($status.Functions.Missing.Count -gt 0) {
 # Deploy configuration
 $configPath = "Config\windows.env"
 if (Test-Path $configPath) {
-    Initialize-WindowsMissingRecoveryModule -ConfigPath $configPath
+    Initialize-WindowsMelodyRecoveryModule -ConfigPath $configPath
 } else {
-    Initialize-WindowsMissingRecoveryModule -SkipValidation
+    Initialize-WindowsMelodyRecoveryModule -SkipValidation
 }
 ```
 
@@ -348,7 +348,7 @@ $overrideConfig = @{
     }
 }
 
-Initialize-WindowsMissingRecoveryModule -OverrideConfig $overrideConfig
+Initialize-WindowsMelodyRecoveryModule -OverrideConfig $overrideConfig
 ```
 
 ### Environment-Specific Configuration
@@ -356,12 +356,12 @@ Initialize-WindowsMissingRecoveryModule -OverrideConfig $overrideConfig
 ```powershell
 # Development environment
 if ($env:ENVIRONMENT -eq "Development") {
-    Initialize-WindowsMissingRecoveryModule -ConfigPath "Config\dev.env"
+    Initialize-WindowsMelodyRecoveryModule -ConfigPath "Config\dev.env"
 } elseif ($env:ENVIRONMENT -eq "Production") {
-    Initialize-WindowsMissingRecoveryModule -ConfigPath "Config\prod.env"
+    Initialize-WindowsMelodyRecoveryModule -ConfigPath "Config\prod.env"
 } else {
-    Initialize-WindowsMissingRecoveryModule -SkipValidation
+    Initialize-WindowsMelodyRecoveryModule -SkipValidation
 }
 ```
 
-This initialization system ensures that the Windows Missing Recovery module is properly configured and ready for use in any environment. 
+This initialization system ensures that the Windows Melody Recovery module is properly configured and ready for use in any environment. 

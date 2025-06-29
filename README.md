@@ -1,8 +1,10 @@
-# WindowsMissingRecovery PowerShell Module
+# Windows Melody Recovery PowerShell Module
 
-[![CI](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml)
-[![Integration Tests](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml)
-[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/WindowsMissingRecovery?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsMissingRecovery)
+It might not be in tune, but it keeps your Windows clients humming on keys, installed packages, and home files.
+
+[![CI](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml)
+[![Integration Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/WindowsMelodyRecovery?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsMelodyRecovery)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](docs/)
 
@@ -28,11 +30,11 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 
 | Test Suite | Status | Coverage |
 |------------|--------|----------|
-| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml) | Static analysis, style checks |
-| **Unit Tests** | [![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-green)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/ci.yml) | Core functionality, configuration |
-| **Integration Tests** | [![Integration Tests](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml) | Real Windows + WSL environment |
-| **WSL Testing** | [![WSL Tests](https://img.shields.io/badge/wsl%20tests-real%20ubuntu-blue)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml) | Real Ubuntu 22.04 in WSL 2 |
-| **Package Managers** | [![Package Tests](https://img.shields.io/badge/package%20tests-chocolatey%20%7C%20scoop%20%7C%20winget-orange)](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml) | Real package manager testing |
+| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml) | Static analysis, style checks |
+| **Unit Tests** | [![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-green)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml) | Core functionality, configuration |
+| **Integration Tests** | [![Integration Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml) | Real Windows + WSL environment |
+| **WSL Testing** | [![WSL Tests](https://img.shields.io/badge/wsl%20tests-real%20ubuntu-blue)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml) | Real Ubuntu 22.04 in WSL 2 |
+| **Package Managers** | [![Package Tests](https://img.shields.io/badge/package%20tests-chocolatey%20%7C%20scoop%20%7C%20winget-orange)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml) | Real package manager testing |
 
 ### 🔍 **Test Environment Details**
 - **Real Windows Server 2022** (GitHub Actions runners)
@@ -40,15 +42,15 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 - **Real Package Managers** (Chocolatey, Scoop, Winget)
 - **Gaming Platform Simulation** (Steam, Epic, GOG, EA)
 - **Cloud Storage Simulation** (OneDrive, Google Drive, Dropbox)
-- **Comprehensive Reporting** ([View Latest Test Report](https://github.com/cchamilt/WindowsMissingRecovery/actions/workflows/integration-tests.yml))
+- **Comprehensive Reporting** ([View Latest Test Report](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml))
 
-> 📊 **[View Detailed Test Results](https://github.com/cchamilt/WindowsMissingRecovery/actions)** | **[Testing Documentation](.github/README.md)**
+> 📊 **[View Detailed Test Results](https://github.com/cchamilt/WindowsMelodyRecovery/actions)** | **[Testing Documentation](.github/README.md)**
 
 ## 🚀 Quick Start
 
 ## Overview
 
-The WindowsMissingRecovery module provides a robust set of tools for:
+The WindowsMelodyRecovery module provides a robust set of tools for:
 
 - **System Configuration Management** - Backup and restore Windows settings, registry entries, and system configurations
 - **Application Management** - Backup and restore application settings and data
@@ -117,7 +119,7 @@ The module follows a clean separation of concerns with three distinct phases:
 
 ### 2. Initialize (Configuration Only)
 ```powershell
-Initialize-WindowsMissingRecovery
+Initialize-WindowsMelodyRecovery
 ```
 - Sets up module configuration
 - Configures backup locations and cloud providers
@@ -127,7 +129,7 @@ Initialize-WindowsMissingRecovery
 
 ### 3. Setup (Optional Components)
 ```powershell
-Setup-WindowsMissingRecovery
+Setup-WindowsMelodyRecovery
 ```
 - **Requires Administrator privileges**
 - Installs and configures optional components
@@ -137,31 +139,31 @@ Setup-WindowsMissingRecovery
 ## Core Public Functions
 
 ### Module Management
-- `Initialize-WindowsMissingRecovery` - Configure module settings and backup locations
-- `Setup-WindowsMissingRecovery` - Install and configure optional system components
-- `Get-WindowsMissingRecovery` - Get current module configuration
-- `Set-WindowsMissingRecovery` - Update module configuration
+- `Initialize-WindowsMelodyRecovery` - Configure module settings and backup locations
+- `Setup-WindowsMelodyRecovery` - Install and configure optional system components
+- `Get-WindowsMelodyRecovery` - Get current module configuration
+- `Set-WindowsMelodyRecovery` - Update module configuration
 
 ### Backup and Restore Operations
-- `Backup-WindowsMissingRecovery` - Create comprehensive system backup
-- `Restore-WindowsMissingRecovery` - Restore system from backup
-- `Update-WindowsMissingRecovery` - Update system packages and configurations
+- `Backup-WindowsMelodyRecovery` - Create comprehensive system backup
+- `Restore-WindowsMelodyRecovery` - Restore system from backup
+- `Update-WindowsMelodyRecovery` - Update system packages and configurations
 
 ### Task Management
-- `Install-WindowsMissingRecoveryTasks` - Install scheduled tasks for automated operations
-- `Remove-WindowsMissingRecoveryTasks` - Remove scheduled tasks
+- `Install-WindowsMelodyRecoveryTasks` - Install scheduled tasks for automated operations
+- `Remove-WindowsMelodyRecoveryTasks` - Remove scheduled tasks
 
 ### Script Configuration
-- `Set-WindowsMissingRecoveryScripts` - Configure which backup/restore/setup scripts are enabled
-- `Sync-WindowsMissingRecoveryScripts` - Synchronize script configurations
+- `Set-WindowsMelodyRecoveryScripts` - Configure which backup/restore/setup scripts are enabled
+- `Sync-WindowsMelodyRecoveryScripts` - Synchronize script configurations
 
 ### Utilities
 - `Convert-ToWinget` - Convert package installations to Winget format
-- `Test-WindowsMissingRecovery` - Test module functionality and configuration
+- `Test-WindowsMelodyRecovery` - Test module functionality and configuration
 
 ## Available Setup Components
 
-When running `Setup-WindowsMissingRecovery`, you can choose from these optional components:
+When running `Setup-WindowsMelodyRecovery`, you can choose from these optional components:
 
 ### Development Environment
 - **WSL (Windows Subsystem for Linux)** - Complete WSL setup with Ubuntu, package management, and configuration
@@ -265,77 +267,77 @@ The module uses a flexible configuration system with:
 .\Install-Module.ps1
 
 # 2. Configure the module (detects cloud storage automatically)
-Initialize-WindowsMissingRecovery
+Initialize-WindowsMelodyRecovery
 
 # 3. Set up optional components (as Administrator)
-Setup-WindowsMissingRecovery
+Setup-WindowsMelodyRecovery
 ```
 
 ### Backup and Restore Operations
 ```powershell
 # Create a comprehensive backup (includes WSL and dotfiles)
-Backup-WindowsMissingRecovery
+Backup-WindowsMelodyRecovery
 
 # Restore from a specific backup
-Restore-WindowsMissingRecovery -BackupDate "2024-03-20"
+Restore-WindowsMelodyRecovery -BackupDate "2024-03-20"
 
 # Update system packages (includes WSL packages)
-Update-WindowsMissingRecovery
+Update-WindowsMelodyRecovery
 ```
 
 ### WSL and Development Environment
 ```powershell
 # Setup WSL with complete development environment
-Setup-WindowsMissingRecovery -Component "WSL"
+Setup-WindowsMelodyRecovery -Component "WSL"
 
 # Setup chezmoi for dotfile management
-Setup-WindowsMissingRecovery -Component "chezmoi"
+Setup-WindowsMelodyRecovery -Component "chezmoi"
 
 # Backup WSL environment
-Backup-WindowsMissingRecovery -Component "WSL"
+Backup-WindowsMelodyRecovery -Component "WSL"
 ```
 
 ### Gaming Platform Management
 ```powershell
 # Setup all gaming platforms
-Setup-WindowsMissingRecovery -Component "Steam","Epic","GOG","EA"
+Setup-WindowsMelodyRecovery -Component "Steam","Epic","GOG","EA"
 
 # Backup gaming configurations
-Backup-WindowsMissingRecovery -Component "Gaming"
+Backup-WindowsMelodyRecovery -Component "Gaming"
 ```
 
 ### Configuration Management
 ```powershell
 # View current configuration
-Get-WindowsMissingRecovery
+Get-WindowsMelodyRecovery
 
 # Update backup location
-Set-WindowsMissingRecovery -BackupRoot "D:\Backups"
+Set-WindowsMelodyRecovery -BackupRoot "D:\Backups"
 
 # Configure cloud storage manually
-Set-WindowsMissingRecovery -CloudProvider "GoogleDrive" -CloudPath "G:\My Drive\Backups"
+Set-WindowsMelodyRecovery -CloudProvider "GoogleDrive" -CloudPath "G:\My Drive\Backups"
 
 # Configure script enablement
-Set-WindowsMissingRecoveryScripts
+Set-WindowsMelodyRecoveryScripts
 ```
 
 ### Task Automation
 ```powershell
 # Install scheduled tasks for automation
-Install-WindowsMissingRecoveryTasks
+Install-WindowsMelodyRecoveryTasks
 
 # Remove scheduled tasks
-Remove-WindowsMissingRecoveryTasks
+Remove-WindowsMelodyRecoveryTasks
 ```
 
 ## Module Architecture
 
 ```
-WindowsMissingRecovery/
+WindowsMelodyRecovery/
 ├── Public/                 # Public functions (exported)
-│   ├── Backup-WindowsMissingRecovery.ps1
-│   ├── Initialize-WindowsMissingRecovery.ps1
-│   ├── Setup-WindowsMissingRecovery.ps1
+│   ├── Backup-WindowsMelodyRecovery.ps1
+│   ├── Initialize-WindowsMelodyRecovery.ps1
+│   ├── Setup-WindowsMelodyRecovery.ps1
 │   └── ...
 ├── Private/                # Private functions (loaded on-demand)
 │   ├── backup/            # Backup scripts (Windows, WSL, Gaming)
@@ -346,8 +348,8 @@ WindowsMissingRecovery/
 ├── Config/                 # User configuration files
 ├── Templates/              # Template files
 ├── docs/                   # Documentation
-├── WindowsMissingRecovery.psd1  # Module manifest
-└── WindowsMissingRecovery.psm1  # Module script
+├── WindowsMelodyRecovery.psd1  # Module manifest
+└── WindowsMelodyRecovery.psm1  # Module script
 ```
 
 ## Key Features
@@ -396,9 +398,9 @@ WindowsMissingRecovery/
 ## 📁 Repository Structure
 
 ```
-WindowsMissingRecovery/
-├── 📄 WindowsMissingRecovery.psm1     # Main module file
-├── 📄 WindowsMissingRecovery.psd1     # Module manifest
+WindowsMelodyRecovery/
+├── 📄 WindowsMelodyRecovery.psm1     # Main module file
+├── 📄 WindowsMelodyRecovery.psd1     # Module manifest
 ├── 📄 Install-Module.ps1              # Installation script
 ├── 📁 Public/                         # Public functions (exported)
 ├── 📁 Private/                        # Private functions (internal)
@@ -462,14 +464,14 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🆘 Support & Community
 
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/cchamilt/WindowsMissingRecovery/issues)
-- **💡 Feature Requests**: [GitHub Discussions](https://github.com/cchamilt/WindowsMissingRecovery/discussions)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/cchamilt/WindowsMelodyRecovery/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/cchamilt/WindowsMelodyRecovery/discussions)
 - **📖 Documentation**: [docs/](docs/) directory
-- **🧪 Test Results**: [GitHub Actions](https://github.com/cchamilt/WindowsMissingRecovery/actions)
-- **📊 Project Board**: [GitHub Projects](https://github.com/cchamilt/WindowsMissingRecovery/projects)
+- **🧪 Test Results**: [GitHub Actions](https://github.com/cchamilt/WindowsMelodyRecovery/actions)
+- **📊 Project Board**: [GitHub Projects](https://github.com/cchamilt/WindowsMelodyRecovery/projects)
 
 ### 🔗 **Quick Links**
-- **[Latest Release](https://github.com/cchamilt/WindowsMissingRecovery/releases/latest)**
+- **[Latest Release](https://github.com/cchamilt/WindowsMelodyRecovery/releases/latest)**
 - **[Backup Details](docs/BACKUP_DETAILS.md)**
 - **[API Reference](docs/API_REFERENCE.md)**
 - **[Scripts README](scripts/README.md)**
@@ -481,7 +483,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 <div align="center">
 
-**🏆 Windows Missing Recovery v1.0.0**  
+**🏆 Windows Melody Recovery v1.0.0**  
 
 [![Made with PowerShell](https://img.shields.io/badge/Made%20with-PowerShell-blue.svg)](https://microsoft.com/powershell)
 [![Tested on Windows](https://img.shields.io/badge/Tested%20on-Windows%2010%2F11-blue.svg)](https://www.microsoft.com/windows)

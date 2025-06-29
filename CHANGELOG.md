@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Windows Missing Recovery module will be documented in this file.
+All notable changes to the Windows Melody Recovery module will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -109,20 +109,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Installation & Configuration System
 - **Install-Module.ps1**: Proper file overwriting with `-Force` and `-CleanInstall` parameters
-- **Initialize-WindowsMissingRecovery**: Configuration-only initialization with cloud provider selection
+- **Initialize-WindowsMelodyRecovery**: Configuration-only initialization with cloud provider selection
 - **OneDrive Provider Selection**: Intelligent OneDrive path detection and configuration
 - **BACKUP_ROOT Configuration**: Proper backup root path configuration and validation
 - **Module Directory Structure**: Uses module directory instead of separate Scripts folder
 
 #### Backup & Restore System
 - **Configurable Scripts**: Templates/scripts-config.json for managing enabled backup/restore components
-- **Backup-WindowsMissingRecovery**: Uses configuration instead of hardcoded script lists
-- **Restore-WindowsMissingRecovery**: Uses configuration instead of hardcoded script lists
-- **Set-WindowsMissingRecoveryScripts**: Interactive script management function
+- **Backup-WindowsMelodyRecovery**: Uses configuration instead of hardcoded script lists
+- **Restore-WindowsMelodyRecovery**: Uses configuration instead of hardcoded script lists
+- **Set-WindowsMelodyRecoveryScripts**: Interactive script management function
 - **Get-ScriptsConfig & Set-ScriptsConfig**: Core utilities for configuration management
 
 #### Setup System
-- **Setup-WindowsMissingRecovery**: Orchestrates all setup scripts with user prompts
+- **Setup-WindowsMelodyRecovery**: Orchestrates all setup scripts with user prompts
 - **Template-Based Setup Scripts**: Consistent structure across all setup components
 - **Load-Environment Integration**: All setup scripts use optional Load-Environment with fallback
 
@@ -234,7 +234,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Release Notes
 
-Version 1.0.0 represents a complete overhaul of the Windows Missing Recovery module, transforming it from a collection of scripts into a professional, modular system for Windows environment management. This release introduces comprehensive WSL support, dotfile management with chezmoi, and a fully configurable backup/restore system.
+Version 1.0.0 represents a complete overhaul of the Windows Melody Recovery module, transforming it from a collection of scripts into a professional, modular system for Windows environment management. This release introduces comprehensive WSL support, dotfile management with chezmoi, and a fully configurable backup/restore system.
 
 ### Key Highlights
 
@@ -247,9 +247,9 @@ Version 1.0.0 represents a complete overhaul of the Windows Missing Recovery mod
 ### Migration Guide
 
 Users upgrading from previous versions should:
-1. Run `Install-WindowsMissingRecovery` to install the new module structure
-2. Run `Initialize-WindowsMissingRecovery` to configure the new system
-3. Use `Setup-WindowsMissingRecovery` to set up individual components as needed
+1. Run `Install-WindowsMelodyRecovery` to install the new module structure
+2. Run `Initialize-WindowsMelodyRecovery` to configure the new system
+3. Use `Setup-WindowsMelodyRecovery` to set up individual components as needed
 
 ### Compatibility
 
@@ -260,4 +260,4 @@ Users upgrading from previous versions should:
 
 ---
 
-*This changelog documents the transformation of Windows Missing Recovery into a comprehensive, professional system for Windows environment management and recovery.* 
+*This changelog documents the transformation of Windows Melody Recovery into a comprehensive, professional system for Windows environment management and recovery.* 

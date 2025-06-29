@@ -1,4 +1,4 @@
-# Install-Module.ps1 - Install the WindowsMissingRecovery module
+# Install-Module.ps1 - Install the WindowsMelodyRecovery module
 param(
     [Parameter(Mandatory=$false)]
     [switch]$Force,
@@ -8,7 +8,7 @@ param(
 )
 
 # Define module name
-$moduleName = "WindowsMissingRecovery"
+$moduleName = "WindowsMelodyRecovery"
 
 # First, let's check if the module manifest has a valid GUID
 $manifestPath = Join-Path (Get-Location) "$moduleName.psd1"
@@ -149,9 +149,9 @@ try {
 
     Write-Host "$moduleName module installed successfully!" -ForegroundColor Green
     Write-Host "`nNext steps:" -ForegroundColor Yellow
-    Write-Host "1. Run Initialize-WindowsMissingRecovery to configure the module" -ForegroundColor Cyan
-    Write-Host "2. Run Setup-WindowsMissingRecovery to set up optional components" -ForegroundColor Cyan
-    Write-Host "3. Use Backup-WindowsMissingRecovery to create your first backup" -ForegroundColor Cyan
+    Write-Host "1. Run Initialize-WindowsMelodyRecovery to configure the module" -ForegroundColor Cyan
+    Write-Host "2. Run Setup-WindowsMelodyRecovery to set up optional components" -ForegroundColor Cyan
+    Write-Host "3. Use Backup-WindowsMelodyRecovery to create your first backup" -ForegroundColor Cyan
     Write-Host "`nInstall options for updates:" -ForegroundColor Green
     Write-Host "- Use '.\Install-Module.ps1 -Force' to overwrite existing files" -ForegroundColor White
     Write-Host "- Use '.\Install-Module.ps1 -CleanInstall' for a fresh installation" -ForegroundColor White

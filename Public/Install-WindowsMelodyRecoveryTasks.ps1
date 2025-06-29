@@ -1,4 +1,4 @@
-function Install-WindowsMissingRecoveryTasks {
+function Install-WindowsMelodyRecoveryTasks {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -23,9 +23,9 @@ function Install-WindowsMissingRecoveryTasks {
     }
 
     # Get module configuration
-    $config = Get-WindowsMissingRecovery
+    $config = Get-WindowsMelodyRecovery
     if (-not $config.BackupRoot) {
-        throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+        throw "Module not initialized. Please run Initialize-WindowsMelodyRecovery first."
     }
 
     # Load task scripts on demand
@@ -34,18 +34,18 @@ function Install-WindowsMissingRecoveryTasks {
     # Define scheduled tasks
     $tasks = @(
         @{
-            Name = "WindowsMissingRecovery-Backup"
+            Name = "WindowsMelodyRecovery-Backup"
             Description = "Daily backup of Windows configuration"
             Action = "powershell.exe"
-            Arguments = "-NoProfile -Command `"Backup-WindowsMissingRecovery`""
+            Arguments = "-NoProfile -Command `"Backup-WindowsMelodyRecovery`""
             Trigger = "Daily"
             StartTime = "02:00"
         },
         @{
-            Name = "WindowsMissingRecovery-Update"
+            Name = "WindowsMelodyRecovery-Update"
             Description = "Weekly update of Windows configuration"
             Action = "powershell.exe"
-            Arguments = "-NoProfile -Command `"Update-WindowsMissingRecovery`""
+            Arguments = "-NoProfile -Command `"Update-WindowsMelodyRecovery`""
             Trigger = "Weekly"
             DaysOfWeek = "Sunday"
             StartTime = "03:00"
@@ -74,7 +74,7 @@ function Install-WindowsMissingRecoveryTasks {
     # Create scheduled tasks
     foreach ($task in $tasks) {
         $taskName = $task.Name
-        $taskPath = "\WindowsMissingRecovery\"
+        $taskPath = "\WindowsMelodyRecovery\"
 
         # Check if task already exists
         $existingTask = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue

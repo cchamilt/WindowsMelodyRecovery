@@ -211,26 +211,26 @@ jobs:
         $googleDrivePath = "$env:USERPROFILE\Google Drive"
         $dropboxPath = "$env:USERPROFILE\Dropbox"
         
-        New-Item -Path "$oneDrivePath\WindowsMissingRecovery" -ItemType Directory -Force
-        New-Item -Path "$googleDrivePath\WindowsMissingRecovery" -ItemType Directory -Force
-        New-Item -Path "$dropboxPath\WindowsMissingRecovery" -ItemType Directory -Force
+        New-Item -Path "$oneDrivePath\WindowsMelodyRecovery" -ItemType Directory -Force
+        New-Item -Path "$googleDrivePath\WindowsMelodyRecovery" -ItemType Directory -Force
+        New-Item -Path "$dropboxPath\WindowsMelodyRecovery" -ItemType Directory -Force
         
         # Create mock sync status files
         "synced" | Out-File "$oneDrivePath\.sync_status"
         "synced" | Out-File "$googleDrivePath\.sync_status"
         "synced" | Out-File "$dropboxPath\.sync_status"
         
-    - name: Initialize Windows Missing Recovery module
+    - name: Initialize Windows Melody Recovery module
       shell: pwsh
       run: |
         # Import the module
-        Import-Module .\WindowsMissingRecovery.psm1 -Force
+        Import-Module .\WindowsMelodyRecovery.psm1 -Force
         
         # Initialize with test configuration
         $config = @{
           BackupRoot = "$env:TEMP\WMR-Tests\Backups"
           CloudProvider = "OneDrive"
-          CloudPath = "$env:USERPROFILE\OneDrive\WindowsMissingRecovery"
+          CloudPath = "$env:USERPROFILE\OneDrive\WindowsMelodyRecovery"
           LogLevel = "Verbose"
           TestMode = $true
         }
@@ -264,7 +264,7 @@ jobs:
         $env:WMR_TEST_MODE = "true"
         $env:WMR_BACKUP_ROOT = "$env:TEMP\WMR-Tests\Backups"
         $env:WMR_WSL_DISTRO = "Ubuntu-22.04"
-        $env:WMR_CLOUD_PATH = "$env:USERPROFILE\OneDrive\WindowsMissingRecovery"
+        $env:WMR_CLOUD_PATH = "$env:USERPROFILE\OneDrive\WindowsMelodyRecovery"
         
         # Run the tests
         $result = Invoke-Pester -Configuration $config
@@ -347,18 +347,18 @@ jobs:
         $startTime = Get-Date
         
         # Import module
-        Import-Module .\WindowsMissingRecovery.psm1 -Force
+        Import-Module .\WindowsMelodyRecovery.psm1 -Force
         
         # Setup test environment
         $backupRoot = "$env:TEMP\WMR-E2E-Tests"
         New-Item -Path $backupRoot -ItemType Directory -Force
         
         # Initialize module
-        Initialize-WindowsMissingRecovery -BackupRoot $backupRoot -Force
+        Initialize-WindowsMelodyRecovery -BackupRoot $backupRoot -Force
         
         # Run full backup
         Write-Host "Starting full backup..." -ForegroundColor Green
-        $backupResult = Backup-WindowsMissingRecovery -BackupRootPath $backupRoot
+        $backupResult = Backup-WindowsMelodyRecovery -BackupRootPath $backupRoot
         
         if (-not $backupResult.Success) {
           throw "Backup failed: $($backupResult.Errors -join ', ')"
@@ -371,7 +371,7 @@ jobs:
         
         # Run full restore
         Write-Host "Starting full restore..." -ForegroundColor Green
-        $restoreResult = Restore-WindowsMissingRecovery -BackupRootPath $backupRoot
+        $restoreResult = Restore-WindowsMelodyRecovery -BackupRootPath $backupRoot
         
         if (-not $restoreResult.Success) {
           throw "Restore failed: $($restoreResult.Errors -join ', ')"
@@ -459,7 +459,7 @@ jobs:
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Windows Missing Recovery - Test Report</title>
+            <title>Windows Melody Recovery - Test Report</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
                 .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
@@ -477,7 +477,7 @@ jobs:
         </head>
         <body>
             <div class="header">
-                <h1>🧪 Windows Missing Recovery - Integration Test Report</h1>
+                <h1>🧪 Windows Melody Recovery - Integration Test Report</h1>
                 <p><strong>Generated:</strong> $($summary.GeneratedAt)</p>
                 <p><strong>Git Ref:</strong> $($summary.GitRef)</p>
                 <p><strong>Run ID:</strong> $($summary.RunId)</p>
@@ -564,7 +564,7 @@ jobs:
             - [Full Test Report](https://github.com/${{ github.repository }}/actions/runs/${runId})
             - [Download Artifacts](https://github.com/${{ github.repository }}/actions/runs/${runId}#artifacts)
             
-            This test suite validates the Windows Missing Recovery module on real Windows environments with actual WSL, package managers, and simulated gaming platforms.`;
+            This test suite validates the Windows Melody Recovery module on real Windows environments with actual WSL, package managers, and simulated gaming platforms.`;
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,

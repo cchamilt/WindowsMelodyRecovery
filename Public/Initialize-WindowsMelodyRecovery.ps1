@@ -1,7 +1,7 @@
-# Initialize-WindowsMissingRecovery.ps1
+# Initialize-WindowsMelodyRecovery.ps1
 # This script ONLY handles configuration - nothing else
 
-function Initialize-WindowsMissingRecovery {
+function Initialize-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -18,12 +18,12 @@ function Initialize-WindowsMissingRecovery {
     
     # Auto-detect module path if not provided
     if (-not $InstallPath -or [string]::IsNullOrWhiteSpace($InstallPath)) {
-        $moduleInfo = Get-Module WindowsMissingRecovery
+        $moduleInfo = Get-Module WindowsMelodyRecovery
         if ($moduleInfo) {
             $InstallPath = Split-Path $moduleInfo.Path -Parent
         } else {
             # Fallback to default location
-            $InstallPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery"
+            $InstallPath = "$env:USERPROFILE\Scripts\WindowsMelodyRecovery"
             Write-Warning "Could not detect module path. Using default: $InstallPath"
         }
     }
@@ -33,7 +33,7 @@ function Initialize-WindowsMissingRecovery {
     $configExists = Test-Path $configFile
     
     # Check for legacy configuration and migrate if needed
-    $legacyConfigFile = "$env:USERPROFILE\Scripts\WindowsMissingRecovery\Config\windows.env"
+    $legacyConfigFile = "$env:USERPROFILE\Scripts\WindowsMelodyRecovery\Config\windows.env"
     if (-not $configExists -and (Test-Path $legacyConfigFile)) {
         Write-Host "Found legacy configuration. Migrating to module directory..." -ForegroundColor Yellow
         $configDir = Join-Path $InstallPath "Config"
@@ -46,7 +46,7 @@ function Initialize-WindowsMissingRecovery {
     }
 
     if ($configExists -and -not $Force) {
-        Write-Host "WindowsMissingRecovery is already initialized with the following configuration:" -ForegroundColor Yellow
+        Write-Host "WindowsMelodyRecovery is already initialized with the following configuration:" -ForegroundColor Yellow
         Get-Content $configFile | ForEach-Object {
             if ($_ -match '^([^=]+)=(.*)$') {
                 $key = $matches[1]
@@ -113,12 +113,12 @@ function Initialize-WindowsMissingRecovery {
     
     if ($selectedProvider -eq 'Custom') {
         if ($NoPrompt) {
-            $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
+            $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
         } else {
             do {
-                $input = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMissingRecovery)"
+                $input = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMelodyRecovery)"
                 $path = if ([string]::IsNullOrWhiteSpace($input)) { 
-                    Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
+                    Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
                 } else { 
                     $input 
                 }
@@ -156,13 +156,13 @@ function Initialize-WindowsMissingRecovery {
                         $backupRoot = Read-Host "Enter custom backup location"
                     } elseif ($selection -match '^\d+$' -and [int]$selection -lt $possiblePaths.Count) {
                         $selectedOneDrive = $possiblePaths[$selection].FullName
-                        $backupRoot = Join-Path $selectedOneDrive "WindowsMissingRecovery"
+                        $backupRoot = Join-Path $selectedOneDrive "WindowsMelodyRecovery"
                     } else {
                         Write-Host "Invalid selection. Please choose a valid number or C." -ForegroundColor Red
                     }
                 } while (-not $backupRoot)
             } else {
-                $backupRoot = Join-Path $possiblePaths[0].FullName "WindowsMissingRecovery"
+                $backupRoot = Join-Path $possiblePaths[0].FullName "WindowsMelodyRecovery"
             }
         } else {
             Write-Warning "No OneDrive paths found. Using default backup location."
@@ -170,17 +170,17 @@ function Initialize-WindowsMissingRecovery {
             if ($NoPrompt) {
                 # In test environments, use a predictable location
                 $backupRoot = if (Test-Path "/tmp") { 
-                    "/tmp/Backups/WindowsMissingRecovery" 
+                    "/tmp/Backups/WindowsMelodyRecovery" 
                 } else { 
-                    Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery" 
+                    Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery" 
                 }
             } else {
-                $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMissingRecovery"
+                $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
             }
         }
     } else {
         # For other cloud providers, use a default location with provider name
-        $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMissingRecovery"
+        $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMelodyRecovery"
         Write-Host "Using default location for $selectedProvider : $backupRoot" -ForegroundColor Yellow
     }
 
@@ -189,7 +189,7 @@ function Initialize-WindowsMissingRecovery {
         BACKUP_ROOT = $backupRoot
         CLOUD_PROVIDER = $selectedProvider
         MACHINE_NAME = $machineName
-        WINDOWS_MISSING_RECOVERY_PATH = $InstallPath
+        WINDOWS_MELODY_RECOVERY_PATH = $InstallPath
     }
 
     # Create config directory if it doesn't exist
@@ -245,7 +245,7 @@ function Initialize-WindowsMissingRecovery {
     Set-Content -Path $configFile -Value $configContent -Force
 
     # Update module configuration state
-    Set-WindowsMissingRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider -WindowsMissingRecoveryPath $InstallPath
+    Set-WindowsMelodyRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider -WindowsMelodyRecoveryPath $InstallPath
     
     # Mark module as initialized
     $script:Config.IsInitialized = $true

@@ -9,12 +9,12 @@
 
 BeforeAll {
     # Import the module
-    Import-Module "$PSScriptRoot\..\..\WindowsMissingRecovery.psm1" -Force
+    Import-Module "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1" -Force
     
     # Setup test environment
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
     $script:TestBackupRoot = Join-Path $tempPath "WMR-Integration-Tests\Backup"
-    $script:TestCloudPath = "$env:USERPROFILE\OneDrive\WindowsMissingRecovery"
+    $script:TestCloudPath = "$env:USERPROFILE\OneDrive\WindowsMelodyRecovery"
     
     # Create test directories
     New-Item -Path $script:TestBackupRoot -ItemType Directory -Force | Out-Null
@@ -180,7 +180,7 @@ Describe "Backup Integration Tests" -Tag "Backup" {
             # Test OneDrive detection
             $oneDrivePath = "$env:USERPROFILE\OneDrive"
             if (Test-Path $oneDrivePath) {
-                Test-Path "$oneDrivePath\WindowsMissingRecovery" | Should -Be $true
+                Test-Path "$oneDrivePath\WindowsMelodyRecovery" | Should -Be $true
             }
         }
         

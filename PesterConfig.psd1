@@ -17,7 +17,7 @@
         Path = @(
             'Public/*.ps1',
             'Private/**/*.ps1',
-            'WindowsMissingRecovery.psm1'
+            'WindowsMelodyRecovery.psm1'
         )
         ExcludePath = @(
             'tests/**/*',

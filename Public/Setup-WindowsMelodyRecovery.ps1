@@ -1,8 +1,8 @@
-function Setup-WindowsMissingRecovery {
+function Setup-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
-        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsMissingRecovery",
+        [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsMelodyRecovery",
         [switch]$NoScheduledTasks,
         [switch]$NoPrompt,
         [switch]$Force
@@ -18,21 +18,21 @@ function Setup-WindowsMissingRecovery {
         Write-Host "Starting Windows Recovery Setup..." -ForegroundColor Blue
 
         # Check if configuration is already initialized
-        $config = Get-WindowsMissingRecovery
+        $config = Get-WindowsMelodyRecovery
         if (!$config.BackupRoot -or $Force) {
-            Write-Host "Configuration not found or Force specified. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+            Write-Host "Configuration not found or Force specified. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
             if (!$NoPrompt) {
                 $response = Read-Host "Would you like to run initialization now? (Y/N)"
                 if ($response -eq 'Y') {
-                    $config = Initialize-WindowsMissingRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt -Force:$Force
+                    $config = Initialize-WindowsMelodyRecovery -InstallPath $InstallPath -NoPrompt:$NoPrompt -Force:$Force
                     if (!$config) {
                         throw "Failed to initialize Windows Recovery configuration"
                     }
                 } else {
-                    throw "Setup requires initialization. Please run Initialize-WindowsMissingRecovery first."
+                    throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
                 }
             } else {
-                throw "Setup requires initialization. Please run Initialize-WindowsMissingRecovery first."
+                throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
             }
         } else {
             Write-Host "Using existing configuration" -ForegroundColor Green
@@ -88,7 +88,7 @@ function Setup-WindowsMissingRecovery {
                 
                 if ($response -eq 'Y') {
                     Write-Host "Installing scheduled tasks..." -ForegroundColor Yellow
-                    if (!(Install-WindowsMissingRecoveryTasks -NoPrompt:$NoPrompt)) {
+                    if (!(Install-WindowsMelodyRecoveryTasks -NoPrompt:$NoPrompt)) {
                         Write-Warning "Failed to install scheduled tasks"
                     }
                 }
@@ -101,8 +101,8 @@ function Setup-WindowsMissingRecovery {
             Config = Test-Path (Join-Path $InstallPath "config.env")
             Tasks = if (!$NoScheduledTasks) {
                 @(
-                    Get-ScheduledTask -TaskName "WindowsMissingRecovery_Backup" -ErrorAction SilentlyContinue,
-                    Get-ScheduledTask -TaskName "WindowsMissingRecovery_Update" -ErrorAction SilentlyContinue
+                    Get-ScheduledTask -TaskName "WindowsMelodyRecovery_Backup" -ErrorAction SilentlyContinue,
+                    Get-ScheduledTask -TaskName "WindowsMelodyRecovery_Update" -ErrorAction SilentlyContinue
                 ) | Where-Object { $_ }
             } else { $null }
         }

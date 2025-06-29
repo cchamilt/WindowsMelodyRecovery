@@ -1,6 +1,6 @@
 # GitHub Actions CI/CD
 
-This directory contains GitHub Actions workflows for automated testing and validation of the Windows Missing Recovery module.
+This directory contains GitHub Actions workflows for automated testing and validation of the Windows Melody Recovery module.
 
 ## Workflows
 
@@ -131,7 +131,7 @@ Tests are organized with Pester tags:
 
 ### Before Committing
 1. Run PSScriptAnalyzer locally: `Invoke-ScriptAnalyzer -Path . -Recurse`
-2. Test module import: `Import-Module .\WindowsMissingRecovery.psm1`
+2. Test module import: `Import-Module .\WindowsMelodyRecovery.psm1`
 3. Run unit tests: `Invoke-Pester tests/unit/`
 
 ### Pull Request Process
@@ -145,7 +145,7 @@ Tests are organized with Pester tags:
 8. Merge after all checks pass
 
 ### Release Process
-1. Update version in `WindowsMissingRecovery.psd1`
+1. Update version in `WindowsMelodyRecovery.psd1`
 2. Update `CHANGELOG.md`
 3. Create release branch
 4. Full integration test suite runs

@@ -60,8 +60,8 @@ jobs:
         
         # Check required files exist
         $requiredFiles = @(
-          'WindowsMissingRecovery.psm1',
-          'WindowsMissingRecovery.psd1',
+          'WindowsMelodyRecovery.psm1',
+          'WindowsMelodyRecovery.psd1',
           'README.md',
           'CHANGELOG.md'
         )
@@ -97,11 +97,11 @@ jobs:
         Write-Host "Testing module import..." -ForegroundColor Green
         
         try {
-          Import-Module .\WindowsMissingRecovery.psm1 -Force
+          Import-Module .\WindowsMelodyRecovery.psm1 -Force
           Write-Host "✅ Module imported successfully" -ForegroundColor Green
           
           # Test basic functions are available
-          $functions = Get-Command -Module WindowsMissingRecovery -CommandType Function
+          $functions = Get-Command -Module WindowsMelodyRecovery -CommandType Function
           Write-Host "Exported functions: $($functions.Count)" -ForegroundColor Cyan
           
           foreach ($func in $functions) {

@@ -1,7 +1,7 @@
 {
   "name": "wmr-cloud-mock-server",
   "version": "1.0.0",
-  "description": "Mock cloud storage server for Windows Missing Recovery testing",
+  "description": "Mock cloud storage server for Windows Melody Recovery testing",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -31,6 +31,6 @@
     "googledrive",
     "dropbox"
   ],
-  "author": "Windows Missing Recovery Team",
+  "author": "Windows Melody Recovery Team",
   "license": "MIT"
 } 

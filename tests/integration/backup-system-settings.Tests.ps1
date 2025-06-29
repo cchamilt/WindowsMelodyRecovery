@@ -1,7 +1,7 @@
 Describe "System Settings Backup Tests" {
     BeforeAll {
         # Import the module
-        Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
         
         # Set up test paths
         $testBackupPath = "/workspace/test-backups/system-settings"
@@ -45,7 +45,7 @@ Describe "System Settings Backup Tests" {
             @"
 Windows Registry Editor Version 5.00
 
-[HKEY_CURRENT_USER\Software\WindowsMissingRecovery\Test]
+[HKEY_CURRENT_USER\Software\WindowsMelodyRecovery\Test]
 "TestValue"="TestData"
 "@ | Out-File -FilePath $mockRegFile -Encoding ASCII
             

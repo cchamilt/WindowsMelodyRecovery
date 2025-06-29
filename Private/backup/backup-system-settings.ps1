@@ -24,11 +24,11 @@ if (Test-Path $loadEnvPath) {
 
 # Get module configuration
 try {
-    $config = Get-WindowsMissingRecovery
+    $config = Get-WindowsMelodyRecovery
     if (!$config.IsInitialized) {
         Write-Warning "Module not initialized. Using default configuration."
         $config = @{
-            BackupRoot = "/tmp/WindowsMissingRecovery/Backups"
+            BackupRoot = "/tmp/WindowsMelodyRecovery/Backups"
             MachineName = $env:COMPUTERNAME ?? "UNKNOWN"
             IsInitialized = $false
         }
@@ -36,7 +36,7 @@ try {
 } catch {
     Write-Warning "Module not initialized and no ConfigPath provided. Using default configuration."
     $config = @{
-        BackupRoot = "/tmp/WindowsMissingRecovery/Backups"
+        BackupRoot = "/tmp/WindowsMelodyRecovery/Backups"
         MachineName = $env:COMPUTERNAME ?? "UNKNOWN"
         IsInitialized = $false
     }

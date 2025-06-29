@@ -29,14 +29,14 @@ const CLOUD_PATHS = {
 // Ensure cloud directories exist
 Object.values(CLOUD_PATHS).forEach(cloudPath => {
     fs.ensureDirSync(cloudPath);
-    fs.ensureDirSync(path.join(cloudPath, 'WindowsMissingRecovery'));
+    fs.ensureDirSync(path.join(cloudPath, 'WindowsMelodyRecovery'));
 });
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const provider = req.params.provider || 'onedrive';
-        const uploadPath = path.join(CLOUD_PATHS[provider], 'WindowsMissingRecovery');
+        const uploadPath = path.join(CLOUD_PATHS[provider], 'WindowsMelodyRecovery');
         fs.ensureDirSync(uploadPath);
         cb(null, uploadPath);
     },
@@ -208,7 +208,7 @@ app.get('/api/:provider/download/:filename', (req, res) => {
     }
     
     try {
-        const filePath = path.join(cloudPath, 'WindowsMissingRecovery', filename);
+        const filePath = path.join(cloudPath, 'WindowsMelodyRecovery', filename);
         
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
@@ -231,7 +231,7 @@ app.delete('/api/:provider/delete/:filename', (req, res) => {
     }
     
     try {
-        const filePath = path.join(cloudPath, 'WindowsMissingRecovery', filename);
+        const filePath = path.join(cloudPath, 'WindowsMelodyRecovery', filename);
         
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
@@ -265,7 +265,7 @@ app.post('/api/:provider/mkdir', (req, res) => {
     }
     
     try {
-        const dirPath = path.join(cloudPath, 'WindowsMissingRecovery', dirName);
+        const dirPath = path.join(cloudPath, 'WindowsMelodyRecovery', dirName);
         fs.ensureDirSync(dirPath);
         
         res.json({
@@ -307,7 +307,7 @@ app.get('/api/:provider/sync-status', (req, res) => {
 app.get('/api/:provider/backups', (req, res) => {
     const provider = req.params.provider;
     const cloudPath = CLOUD_PATHS[provider];
-    const backupPath = path.join(cloudPath, 'WindowsMissingRecovery');
+    const backupPath = path.join(cloudPath, 'WindowsMelodyRecovery');
     
     try {
         if (!fs.existsSync(backupPath)) {

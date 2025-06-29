@@ -1,5 +1,5 @@
 @{
-    RootModule = 'WindowsMissingRecovery.psm1'
+    RootModule = 'WindowsMelodyRecovery.psm1'
     ModuleVersion = '1.0.0'
     GUID = '8a7f6674-c759-45f3-b26d-9a8e54d2eb14'
     Author = 'Chris Hamilton'
@@ -21,7 +21,7 @@
     
     # Script files to process as modules
     ScriptsToProcess = @(
-        'Private\Core\WindowsMissingRecovery.Core.ps1'
+        'Private\Core\WindowsMelodyRecovery.Core.ps1'
     )
     
     # Types to process
@@ -33,19 +33,19 @@
     # Functions to export
     FunctionsToExport = @(
         # Core functions
-        'Get-WindowsMissingRecovery',
-        'Set-WindowsMissingRecovery',
-        'Initialize-WindowsMissingRecovery',
-        'Test-WindowsMissingRecovery',
+        'Get-WindowsMelodyRecovery',
+        'Set-WindowsMelodyRecovery',
+        'Initialize-WindowsMelodyRecovery',
+        'Test-WindowsMelodyRecovery',
         
         # Status and initialization functions
-        'Get-WindowsMissingRecoveryStatus',
-        'Show-WindowsMissingRecoveryStatus',
-        'Initialize-WindowsMissingRecoveryModule',
+        'Get-WindowsMelodyRecoveryStatus',
+        'Show-WindowsMelodyRecoveryStatus',
+        'Initialize-WindowsMelodyRecoveryModule',
         'Get-ModuleInitializationStatus',
         
         # Backup functions
-        'Backup-WindowsMissingRecovery',
+        'Backup-WindowsMelodyRecovery',
         'Backup-SystemSettings',
         'Backup-Applications',
         'Backup-GamingPlatforms',
@@ -53,7 +53,7 @@
         'Backup-CloudIntegration',
         
         # Restore functions
-        'Restore-WindowsMissingRecovery',
+        'Restore-WindowsMelodyRecovery',
         'Restore-SystemSettings',
         'Restore-Applications',
         'Restore-GamingPlatforms',
@@ -61,20 +61,20 @@
         'Restore-CloudIntegration',
         
         # Setup functions
-        'Setup-WindowsMissingRecovery',
+        'Setup-WindowsMelodyRecovery',
         'Setup-WSL',
         'Setup-GamingPlatforms',
         'Setup-CloudIntegration',
         
         # Management functions
-        'Update-WindowsMissingRecovery',
+        'Update-WindowsMelodyRecovery',
         'Convert-ToWinget',
-        'Set-WindowsMissingRecoveryScripts',
-        'Sync-WindowsMissingRecoveryScripts',
+        'Set-WindowsMelodyRecoveryScripts',
+        'Sync-WindowsMelodyRecoveryScripts',
         
         # Task management
-        'Install-WindowsMissingRecoveryTasks',
-        'Remove-WindowsMissingRecoveryTasks',
+        'Install-WindowsMelodyRecoveryTasks',
+        'Remove-WindowsMelodyRecoveryTasks',
         
         # Utility functions
         'Import-PrivateScripts'
@@ -85,7 +85,7 @@
     
     # Variables to export
     VariablesToExport = @(
-        'WindowsMissingRecoveryConfig'
+        'WindowsMelodyRecoveryConfig'
     )
     
     # Aliases to export
@@ -121,11 +121,11 @@
                 'SystemAdministration',
                 'DevOps'
             )
-            ProjectUri = 'https://github.com/fyberlabs/WindowsMissingRecovery'
-            LicenseUri = 'https://github.com/fyberlabs/WindowsMissingRecovery/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery'
+            LicenseUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery/blob/main/LICENSE'
             ReleaseNotes = @'
 ## Version 1.0.0
-- Initial release of Windows Missing Recovery
+- Initial release of Windows Melody Recovery
 - Comprehensive backup and restore functionality
 - WSL integration and management
 - Gaming platform support (Steam, Epic, GOG, EA)
@@ -146,5 +146,5 @@
     }
     
     # Help info URI
-    HelpInfoUri = 'https://github.com/fyberlabs/WindowsMissingRecovery/wiki'
+    HelpInfoUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery/wiki'
 } 

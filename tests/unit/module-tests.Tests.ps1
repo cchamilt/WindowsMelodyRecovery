@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Unit tests for Windows Missing Recovery module
+    Unit tests for Windows Melody Recovery module
 
 .DESCRIPTION
     Fast unit tests for core module functionality, configuration, and basic operations.
@@ -13,12 +13,12 @@ BeforeAll {
     . $PSScriptRoot/../utilities/Mock-Utilities.ps1
     
     # Set up test environment
-    $TestModulePath = "/workspace/WindowsMissingRecovery.psm1"
-    $TestManifestPath = "/workspace/WindowsMissingRecovery.psd1"
+    $TestModulePath = "/workspace/WindowsMelodyRecovery.psm1"
+    $TestManifestPath = "/workspace/WindowsMelodyRecovery.psd1"
     $TestInstallScriptPath = "/workspace/Install-Module.ps1"
     
     # Create temporary test directory
-    $TestTempDir = Join-Path $TestDrive "WindowsMissingRecovery-Tests"
+    $TestTempDir = Join-Path $TestDrive "WindowsMelodyRecovery-Tests"
     New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
     
     # Mock environment variables for testing
@@ -26,18 +26,18 @@ BeforeAll {
     $env:WMR_BACKUP_PATH = Join-Path $TestTempDir "backups"
     $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
     
-    # Set environment variables to avoid prompts in Initialize-WindowsMissingRecovery
+    # Set environment variables to avoid prompts in Initialize-WindowsMelodyRecovery
     $env:COMPUTERNAME = "TEST-MACHINE"
     $env:USERPROFILE = "/tmp"
     
     # Install the module for testing (simulates production installation)
-    if (-not (Get-Module -ListAvailable -Name "WindowsMissingRecovery")) {
+    if (-not (Get-Module -ListAvailable -Name "WindowsMelodyRecovery")) {
         Write-Host "Installing module for testing..." -ForegroundColor Yellow
         & "/tests/scripts/simulate-installation.ps1" -Force -Verbose
     }
 }
 
-Describe "Windows Missing Recovery Module - Installation Tests" -Tag "Installation" {
+Describe "Windows Melody Recovery Module - Installation Tests" -Tag "Installation" {
     
     Context "Module Files" {
         It "Should have a valid module manifest" {
@@ -67,21 +67,21 @@ Describe "Windows Missing Recovery Module - Installation Tests" -Tag "Installati
     
     Context "Module Import" {
         It "Should import without errors" {
-            { Import-Module WindowsMissingRecovery -Force -ErrorAction Stop } | Should -Not -Throw
+            { Import-Module WindowsMelodyRecovery -Force -ErrorAction Stop } | Should -Not -Throw
         }
         
         It "Should export expected functions" {
-            Import-Module WindowsMissingRecovery -Force
+            Import-Module WindowsMelodyRecovery -Force
             
-            $exportedFunctions = Get-Command -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+            $exportedFunctions = Get-Command -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $exportedFunctions | Should -Not -BeNullOrEmpty
             
             # Check for key functions
             $expectedFunctions = @(
-                'Initialize-WindowsMissingRecovery',
-                'Get-WindowsMissingRecoveryStatus',
-                'Backup-WindowsMissingRecovery',
-                'Restore-WindowsMissingRecovery'
+                'Initialize-WindowsMelodyRecovery',
+                'Get-WindowsMelodyRecoveryStatus',
+                'Backup-WindowsMelodyRecovery',
+                'Restore-WindowsMelodyRecovery'
             )
             
             foreach ($function in $expectedFunctions) {
@@ -91,51 +91,51 @@ Describe "Windows Missing Recovery Module - Installation Tests" -Tag "Installati
     }
 }
 
-Describe "Windows Missing Recovery Module - Initialization Tests" -Tag "Initialization" {
+Describe "Windows Melody Recovery Module - Initialization Tests" -Tag "Initialization" {
     
     BeforeAll {
-        Import-Module WindowsMissingRecovery -Force
+        Import-Module WindowsMelodyRecovery -Force
     }
     
     Context "Initialization Function" {
-        It "Should have Initialize-WindowsMissingRecovery function" {
-            Get-Command Initialize-WindowsMissingRecovery -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        It "Should have Initialize-WindowsMelodyRecovery function" {
+            Get-Command Initialize-WindowsMelodyRecovery -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
         
-        It "Should have Get-WindowsMissingRecoveryStatus function" {
-            Get-Command Get-WindowsMissingRecoveryStatus -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        It "Should have Get-WindowsMelodyRecoveryStatus function" {
+            Get-Command Get-WindowsMelodyRecoveryStatus -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
         
         It "Should initialize successfully with default parameters" {
-            { Initialize-WindowsMissingRecovery -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
         
         It "Should initialize with custom configuration path" {
             $customConfigPath = Join-Path $TestTempDir "custom-config"
-            { Initialize-WindowsMissingRecovery -InstallPath $customConfigPath -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $customConfigPath -ErrorAction Stop -NoPrompt } | Should -Not -Throw
             
             Test-Path $customConfigPath | Should -Be $true
         }
         
         It "Should return status information" {
-            $status = Get-WindowsMissingRecoveryStatus
+            $status = Get-WindowsMelodyRecoveryStatus
             $status | Should -Not -BeNullOrEmpty
             $status.Configuration.ModuleVersion | Should -Not -BeNullOrEmpty
             $status.Initialization.Initialized | Should -Not -BeNullOrEmpty
         }
         
         It "Should handle empty install path gracefully" {
-            { Initialize-WindowsMissingRecovery -InstallPath "" -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath "" -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
         
         It "Should initialize with valid install path" {
-            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt } | Should -Not -Throw
         }
     }
     
     Context "Configuration Management" {
         It "Should create configuration directories" {
-            Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt
+            Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
             
             $expectedDirs = @(
                 (Join-Path $TestTempDir "Config"),
@@ -151,7 +151,7 @@ Describe "Windows Missing Recovery Module - Initialization Tests" -Tag "Initiali
         
         It "Should copy template files" {
             $templateDir = Join-Path $PSScriptRoot "../../Templates"
-            Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt
+            Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
             
             $configDir = Join-Path $TestTempDir "config"
             
@@ -165,7 +165,7 @@ Describe "Windows Missing Recovery Module - Initialization Tests" -Tag "Initiali
         It "Should handle invalid configuration path gracefully" {
             $invalidPath = ""
             # The function should handle empty paths gracefully without throwing
-            { Initialize-WindowsMissingRecovery -InstallPath $invalidPath -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $invalidPath -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
         
         It "Should handle permission errors gracefully" {
@@ -173,22 +173,22 @@ Describe "Windows Missing Recovery Module - Initialization Tests" -Tag "Initiali
             Mock New-Item { throw "Access denied" } -ParameterFilter { $Path -like "*test*" }
             
             # The function should handle permission errors gracefully without throwing
-            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
     }
 }
 
-Describe "Windows Missing Recovery Module - Core Functionality Tests" -Tag "Core" {
+Describe "Windows Melody Recovery Module - Core Functionality Tests" -Tag "Core" {
     
     BeforeAll {
-        Import-Module WindowsMissingRecovery -Force
-        Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt
+        Import-Module WindowsMelodyRecovery -Force
+        Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
     }
     
     Context "Backup Functions" {
         It "Should have backup functions available" {
             $backupFunctions = @(
-                'Backup-WindowsMissingRecovery'
+                'Backup-WindowsMelodyRecovery'
             )
             
             foreach ($function in $backupFunctions) {
@@ -198,10 +198,10 @@ Describe "Windows Missing Recovery Module - Core Functionality Tests" -Tag "Core
         
         It "Should create backup manifest" {
             $backupPath = Join-Path $TestTempDir "test-backup"
-            { Backup-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+            { Backup-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
             
             # Check if backup was created in the configured location
-            $config = Get-WindowsMissingRecovery
+            $config = Get-WindowsMelodyRecovery
             $expectedBackupPath = Join-Path $config.BackupRoot $config.MachineName
             Test-Path $expectedBackupPath | Should -Be $true
         }
@@ -210,7 +210,7 @@ Describe "Windows Missing Recovery Module - Core Functionality Tests" -Tag "Core
     Context "Restore Functions" {
         It "Should have restore functions available" {
             $restoreFunctions = @(
-                'Restore-WindowsMissingRecovery'
+                'Restore-WindowsMelodyRecovery'
             )
             
             foreach ($function in $restoreFunctions) {
@@ -236,14 +236,14 @@ Describe "Windows Missing Recovery Module - Core Functionality Tests" -Tag "Core
             $testManifest | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding UTF8
             
             # Test that restore function exists and doesn't throw on basic call
-            { Restore-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+            { Restore-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
         }
     }
     
     Context "Setup Functions" {
         It "Should have setup functions available" {
             $setupFunctions = @(
-                'Setup-WindowsMissingRecovery'
+                'Setup-WindowsMelodyRecovery'
             )
             
             foreach ($function in $setupFunctions) {
@@ -256,12 +256,12 @@ Describe "Windows Missing Recovery Module - Core Functionality Tests" -Tag "Core
         It "Should have utility functions available" {
             $utilityFunctions = @(
                 'Convert-ToWinget',
-                'Set-WindowsMissingRecoveryScripts',
-                'Sync-WindowsMissingRecoveryScripts',
-                'Test-WindowsMissingRecovery',
-                'Update-WindowsMissingRecovery',
-                'Install-WindowsMissingRecoveryTasks',
-                'Remove-WindowsMissingRecoveryTasks'
+                'Set-WindowsMelodyRecoveryScripts',
+                'Sync-WindowsMelodyRecoveryScripts',
+                'Test-WindowsMelodyRecovery',
+                'Update-WindowsMelodyRecovery',
+                'Install-WindowsMelodyRecoveryTasks',
+                'Remove-WindowsMelodyRecoveryTasks'
             )
             
             foreach ($function in $utilityFunctions) {
@@ -271,11 +271,11 @@ Describe "Windows Missing Recovery Module - Core Functionality Tests" -Tag "Core
     }
 }
 
-Describe "Windows Missing Recovery Module - Integration Tests" -Tag "Integration" {
+Describe "Windows Melody Recovery Module - Integration Tests" -Tag "Integration" {
     
     BeforeAll {
-        Import-Module WindowsMissingRecovery -Force
-        Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt
+        Import-Module WindowsMelodyRecovery -Force
+        Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
     }
     
     Context "Full Backup/Restore Cycle" {
@@ -283,68 +283,68 @@ Describe "Windows Missing Recovery Module - Integration Tests" -Tag "Integration
             $backupPath = Join-Path $TestTempDir "full-cycle-test"
             
             # Perform backup
-            { Backup-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+            { Backup-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
             
             # Check if backup was created
-            $config = Get-WindowsMissingRecovery
+            $config = Get-WindowsMelodyRecovery
             $expectedBackupPath = Join-Path $config.BackupRoot $config.MachineName
             Test-Path $expectedBackupPath | Should -Be $true
             
             # Perform restore (this would need a valid backup to restore from)
             # For now, just test that the function exists and doesn't throw on basic call
-            { Restore-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+            { Restore-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
         }
         
         It "Should handle backup validation" {
             # Test that backup validation works
-            { Backup-WindowsMissingRecovery -ErrorAction Stop } | Should -Not -Throw
+            { Backup-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
         }
     }
     
     Context "Configuration Synchronization" {
         It "Should sync scripts successfully" {
-            { Sync-WindowsMissingRecoveryScripts -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Sync-WindowsMelodyRecoveryScripts -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
         
         It "Should set scripts configuration" {
-            { Set-WindowsMissingRecoveryScripts -ErrorAction Stop } | Should -Not -Throw
+            { Set-WindowsMelodyRecoveryScripts -ErrorAction Stop } | Should -Not -Throw
         }
     }
     
     Context "Task Management" {
         It "Should install scheduled tasks" {
-            { Install-WindowsMissingRecoveryTasks -ErrorAction Stop } | Should -Not -Throw
+            { Install-WindowsMelodyRecoveryTasks -ErrorAction Stop } | Should -Not -Throw
         }
         
         It "Should remove scheduled tasks" {
-            { Remove-WindowsMissingRecoveryTasks -ErrorAction Stop } | Should -Not -Throw
+            { Remove-WindowsMelodyRecoveryTasks -ErrorAction Stop } | Should -Not -Throw
         }
     }
 }
 
-Describe "Windows Missing Recovery Module - Error Handling Tests" -Tag "ErrorHandling" {
+Describe "Windows Melody Recovery Module - Error Handling Tests" -Tag "ErrorHandling" {
     
     BeforeAll {
-        Import-Module WindowsMissingRecovery -Force
+        Import-Module WindowsMelodyRecovery -Force
     }
     
     Context "Invalid Parameters" {
         It "Should handle invalid backup path" {
-            { Backup-WindowsMissingRecovery -BackupPath "" -ErrorAction Stop } | Should -Throw
+            { Backup-WindowsMelodyRecovery -BackupPath "" -ErrorAction Stop } | Should -Throw
         }
         
         It "Should handle invalid restore path" {
-            { Restore-WindowsMissingRecovery -BackupPath "C:\NonExistent\Path" -ErrorAction Stop } | Should -Throw
+            { Restore-WindowsMelodyRecovery -BackupPath "C:\NonExistent\Path" -ErrorAction Stop } | Should -Throw
         }
         
         It "Should handle invalid configuration path" {
-            { Initialize-WindowsMissingRecovery -InstallPath "" -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath "" -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
     }
     
-    Context "Missing Dependencies" {
+    Context "Melody Dependencies" {
         It "Should handle missing PowerShell modules gracefully" {
-            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt } | Should -Not -Throw
         }
     }
     
@@ -354,7 +354,7 @@ Describe "Windows Missing Recovery Module - Error Handling Tests" -Tag "ErrorHan
             Mock New-Item { throw "Access denied" } -ParameterFilter { $Path -like "*restricted*" }
             
             # The function should handle permission errors gracefully without throwing
-            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
     }
 }
@@ -366,5 +366,5 @@ AfterAll {
     }
     
     # Remove module
-    Remove-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+    Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
 } 

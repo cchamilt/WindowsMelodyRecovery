@@ -1,12 +1,12 @@
-function Backup-WindowsMissingRecovery {
+function Backup-WindowsMelodyRecovery {
     [CmdletBinding()]
     param()
 
     # Check if configuration is properly set up
-    $config = Get-WindowsMissingRecovery
+    $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Backup not configured. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
-        Write-Host "Type 'Initialize-WindowsMissingRecovery' to set up your Windows recovery configuration." -ForegroundColor Cyan
+        Write-Host "Backup not configured. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
+        Write-Host "Type 'Initialize-WindowsMelodyRecovery' to set up your Windows recovery configuration." -ForegroundColor Cyan
         return
     }
 
@@ -24,7 +24,7 @@ function Backup-WindowsMissingRecovery {
         Write-Host "Machine name not properly configured. Using current computer name: $MACHINE_NAME" -ForegroundColor Yellow
         
         # Update configuration with proper machine name
-        Set-WindowsMissingRecovery -MachineName $MACHINE_NAME
+        Set-WindowsMelodyRecovery -MachineName $MACHINE_NAME
         
         # Update the machine backup path
         $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME

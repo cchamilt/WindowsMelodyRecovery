@@ -1,7 +1,7 @@
-function Get-WindowsMissingRecoveryStatus {
+function Get-WindowsMelodyRecoveryStatus {
     <#
     .SYNOPSIS
-        Get comprehensive status information about the Windows Missing Recovery module.
+        Get comprehensive status information about the Windows Melody Recovery module.
     
     .DESCRIPTION
         Returns detailed information about the module's initialization status, 
@@ -17,13 +17,13 @@ function Get-WindowsMissingRecoveryStatus {
         Show only warning information.
     
     .EXAMPLE
-        Get-WindowsMissingRecoveryStatus
+        Get-WindowsMelodyRecoveryStatus
     
     .EXAMPLE
-        Get-WindowsMissingRecoveryStatus -Detailed
+        Get-WindowsMelodyRecoveryStatus -Detailed
     
     .EXAMPLE
-        Get-WindowsMissingRecoveryStatus -ShowErrors
+        Get-WindowsMelodyRecoveryStatus -ShowErrors
     
     .OUTPUTS
         Hashtable containing the module status information.
@@ -41,7 +41,7 @@ function Get-WindowsMissingRecoveryStatus {
     )
     
     # Get module information
-    $moduleInfo = Get-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+    $moduleInfo = Get-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
     
     # Get module version from manifest if module info is not available
     $moduleVersion = $null
@@ -49,7 +49,7 @@ function Get-WindowsMissingRecoveryStatus {
         $moduleVersion = $moduleInfo.Version
     } else {
         # Try to get version from manifest file
-        $manifestPath = Join-Path $PSScriptRoot "..\WindowsMissingRecovery.psd1"
+        $manifestPath = Join-Path $PSScriptRoot "..\WindowsMelodyRecovery.psd1"
         if (Test-Path $manifestPath) {
             $manifestContent = Get-Content $manifestPath -Raw
             if ($manifestContent -match "ModuleVersion\s*=\s*['`"]([^'`"]+)['`"]") {
@@ -65,7 +65,7 @@ function Get-WindowsMissingRecoveryStatus {
     }
     
     # Get configuration
-    $config = Get-WindowsMissingRecovery
+    $config = Get-WindowsMelodyRecovery
     
     # Build status object
     $status = @{
@@ -107,13 +107,13 @@ function Get-WindowsMissingRecoveryStatus {
     
     # Check for available functions
     $expectedFunctions = @(
-        'Get-WindowsMissingRecovery',
-        'Set-WindowsMissingRecovery',
-        'Initialize-WindowsMissingRecovery',
-        'Backup-WindowsMissingRecovery',
-        'Restore-WindowsMissingRecovery',
-        'Setup-WindowsMissingRecovery',
-        'Test-WindowsMissingRecovery'
+        'Get-WindowsMelodyRecovery',
+        'Set-WindowsMelodyRecovery',
+        'Initialize-WindowsMelodyRecovery',
+        'Backup-WindowsMelodyRecovery',
+        'Restore-WindowsMelodyRecovery',
+        'Setup-WindowsMelodyRecovery',
+        'Test-WindowsMelodyRecovery'
     )
     
     foreach ($function in $expectedFunctions) {
@@ -178,10 +178,10 @@ function Get-WindowsMissingRecoveryStatus {
     return $status
 }
 
-function Show-WindowsMissingRecoveryStatus {
+function Show-WindowsMelodyRecoveryStatus {
     <#
     .SYNOPSIS
-        Display a formatted status report for the Windows Missing Recovery module.
+        Display a formatted status report for the Windows Melody Recovery module.
     
     .DESCRIPTION
         Shows a user-friendly status report with color-coded information about
@@ -191,10 +191,10 @@ function Show-WindowsMissingRecoveryStatus {
         Show detailed configuration information.
     
     .EXAMPLE
-        Show-WindowsMissingRecoveryStatus
+        Show-WindowsMelodyRecoveryStatus
     
     .EXAMPLE
-        Show-WindowsMissingRecoveryStatus -Detailed
+        Show-WindowsMelodyRecoveryStatus -Detailed
     #>
     [CmdletBinding()]
     param(
@@ -202,10 +202,10 @@ function Show-WindowsMissingRecoveryStatus {
         [switch]$Detailed
     )
     
-    $status = Get-WindowsMissingRecoveryStatus -Detailed:$Detailed
+    $status = Get-WindowsMelodyRecoveryStatus -Detailed:$Detailed
     
     Write-Host "`n" + "=" * 60 -ForegroundColor Cyan
-    Write-Host "Windows Missing Recovery - Module Status Report" -ForegroundColor Cyan
+    Write-Host "Windows Melody Recovery - Module Status Report" -ForegroundColor Cyan
     Write-Host "=" * 60 -ForegroundColor Cyan
     
     # Module Information
@@ -250,7 +250,7 @@ function Show-WindowsMissingRecoveryStatus {
         Write-Host "  Loaded: $($status.Functions.Available -join ', ')" -ForegroundColor Green
     }
     if ($status.Functions.Missing.Count -gt 0) {
-        Write-Host "  Missing: $($status.Functions.Missing -join ', ')" -ForegroundColor Red
+        Write-Host "  Missing: $($status.Functions.Melody -join ', ')" -ForegroundColor Red
     }
     
     # Dependencies

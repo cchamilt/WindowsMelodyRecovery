@@ -23,9 +23,9 @@ if (Test-Path $loadEnvPath) {
 }
 
 # Get module configuration
-$config = Get-WindowsMissingRecovery
+$config = Get-WindowsMelodyRecovery
 if (!$config.IsInitialized) {
-    throw "Module not initialized. Please run Initialize-WindowsMissingRecovery first."
+    throw "Module not initialized. Please run Initialize-WindowsMelodyRecovery first."
 }
 
 if (!$BackupRootPath) {

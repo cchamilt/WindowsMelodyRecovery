@@ -1,6 +1,6 @@
 # Backup Details
 
-This document describes what each backup script captures and restores in the Windows Missing Recovery module.
+This document describes what each backup script captures and restores in the Windows Melody Recovery module.
 
 ## System Settings
 
@@ -648,4 +648,4 @@ This document describes what each backup script captures and restores in the Win
 
 ---
 
-*This document reflects the backup capabilities of Windows Missing Recovery v1.0.0 as of June 2025.*
+*This document reflects the backup capabilities of Windows Melody Recovery v1.0.0 as of June 2025.*

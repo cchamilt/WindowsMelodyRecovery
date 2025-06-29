@@ -156,7 +156,7 @@ sparseVhd=true
                 $repoCheckScript = @"
 #!/bin/bash
 # WSL Repository Status Checker
-# Created by Windows Missing Recovery Setup
+# Created by Windows Melody Recovery Setup
 
 set -e
 

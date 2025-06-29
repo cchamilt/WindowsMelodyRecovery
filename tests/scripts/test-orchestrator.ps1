@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Test Orchestrator for Windows Missing Recovery Integration Tests
+    Test Orchestrator for Windows Melody Recovery Integration Tests
 
 .DESCRIPTION
     Orchestrates comprehensive integration testing across mock Windows, WSL, and cloud environments.
@@ -344,7 +344,7 @@ function Invoke-WSLIntegrationTests {
         Set-Location /workspace
         
         # Import the module
-        Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
         
         # Test WSL backup functionality
         try {
@@ -693,11 +693,11 @@ function Invoke-ChezmoiTests {
             $Global:TestConfig.FailedTests += "Chezmoi Restore"
         }
         
-        # Test chezmoi integration with Windows Missing Recovery
-        Write-Host "Testing chezmoi integration with Windows Missing Recovery..." -ForegroundColor Cyan
+        # Test chezmoi integration with Windows Melody Recovery
+        Write-Host "Testing chezmoi integration with Windows Melody Recovery..." -ForegroundColor Cyan
         try {
             # Import the module
-            Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+            Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
             
             # Test if chezmoi setup function exists
             if (Get-Command Setup-Chezmoi -ErrorAction SilentlyContinue) {
@@ -742,15 +742,15 @@ function Invoke-FullIntegrationTest {
         Set-Location /workspace
         
         # Import the module
-        Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
         
         # Test full backup functionality
         try {
             # Check if backup function exists
-            if (Get-Command Backup-WindowsMissingRecovery -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Backup-WindowsMissingRecovery function available" -ForegroundColor Green
+            if (Get-Command Backup-WindowsMelodyRecovery -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Backup-WindowsMelodyRecovery function available" -ForegroundColor Green
             } else {
-                Write-Host "⚠ Backup-WindowsMissingRecovery function not available" -ForegroundColor Yellow
+                Write-Host "⚠ Backup-WindowsMelodyRecovery function not available" -ForegroundColor Yellow
             }
             
             # Test backup directory creation
@@ -772,10 +772,10 @@ function Invoke-FullIntegrationTest {
         # Test full restore functionality
         try {
             # Check if restore function exists
-            if (Get-Command Restore-WindowsMissingRecovery -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Restore-WindowsMissingRecovery function available" -ForegroundColor Green
+            if (Get-Command Restore-WindowsMelodyRecovery -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Restore-WindowsMelodyRecovery function available" -ForegroundColor Green
             } else {
-                Write-Host "⚠ Restore-WindowsMissingRecovery function not available" -ForegroundColor Yellow
+                Write-Host "⚠ Restore-WindowsMelodyRecovery function not available" -ForegroundColor Yellow
             }
             
             Write-Host "✓ Full restore functionality tested" -ForegroundColor Green
@@ -830,12 +830,12 @@ function Invoke-InstallationTests {
         }
         
         # Test module manifest
-        if (Test-Path "./WindowsMissingRecovery.psd1") {
+        if (Test-Path "./WindowsMelodyRecovery.psd1") {
             Write-Host "✓ Module manifest found" -ForegroundColor Green
             
             # Test manifest import
             try {
-                $manifest = Import-PowerShellDataFile "./WindowsMissingRecovery.psd1"
+                $manifest = Import-PowerShellDataFile "./WindowsMelodyRecovery.psd1"
                 Write-Host "✓ Module manifest is valid" -ForegroundColor Green
                 
                 # Check required fields
@@ -859,16 +859,16 @@ function Invoke-InstallationTests {
         }
         
         # Test main module file
-        if (Test-Path "./WindowsMissingRecovery.psm1") {
+        if (Test-Path "./WindowsMelodyRecovery.psm1") {
             Write-Host "✓ Main module file found" -ForegroundColor Green
             
             # Test module import
             try {
-                Import-Module "./WindowsMissingRecovery.psm1" -Force -ErrorAction Stop
+                Import-Module "./WindowsMelodyRecovery.psm1" -Force -ErrorAction Stop
                 Write-Host "✓ Module imports successfully" -ForegroundColor Green
                 
                 # Check for exported functions
-                $exportedFunctions = Get-Command -Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+                $exportedFunctions = Get-Command -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
                 if ($exportedFunctions) {
                     Write-Host "✓ Module exports $($exportedFunctions.Count) functions" -ForegroundColor Green
                 } else {
@@ -886,12 +886,12 @@ function Invoke-InstallationTests {
         }
         
         # Test installation tasks
-        if (Test-Path "./Public/Install-WindowsMissingRecoveryTasks.ps1") {
+        if (Test-Path "./Public/Install-WindowsMelodyRecoveryTasks.ps1") {
             Write-Host "✓ Installation tasks script found" -ForegroundColor Green
             
             # Test script syntax
             try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Public/Install-WindowsMissingRecoveryTasks.ps1" -Raw), [ref]$null)
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Public/Install-WindowsMelodyRecoveryTasks.ps1" -Raw), [ref]$null)
                 Write-Host "✓ Installation tasks script syntax is valid" -ForegroundColor Green
                 $Global:TestConfig.PassedTests += "Installation Tasks"
             } catch {
@@ -919,12 +919,12 @@ function Invoke-InitializationTests {
         Set-Location /workspace
         
         # Test initialization script
-        if (Test-Path "./Private/Core/WindowsMissingRecovery.Initialization.ps1") {
+        if (Test-Path "./Private/Core/WindowsMelodyRecovery.Initialization.ps1") {
             Write-Host "✓ Initialization script found" -ForegroundColor Green
             
             # Test script syntax
             try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMissingRecovery.Initialization.ps1" -Raw), [ref]$null)
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMelodyRecovery.Initialization.ps1" -Raw), [ref]$null)
                 Write-Host "✓ Initialization script syntax is valid" -ForegroundColor Green
                 $Global:TestConfig.PassedTests += "Initialization Script"
             } catch {
@@ -939,29 +939,29 @@ function Invoke-InitializationTests {
         # Test initialization function
         try {
             # Import the module
-            Import-Module "./WindowsMissingRecovery.psm1" -Force -ErrorAction Stop
+            Import-Module "./WindowsMelodyRecovery.psm1" -Force -ErrorAction Stop
             
-            # Test Initialize-WindowsMissingRecovery function
-            if (Get-Command Initialize-WindowsMissingRecovery -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Initialize-WindowsMissingRecovery function available" -ForegroundColor Green
+            # Test Initialize-WindowsMelodyRecovery function
+            if (Get-Command Initialize-WindowsMelodyRecovery -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Initialize-WindowsMelodyRecovery function available" -ForegroundColor Green
                 
                 # Test function parameters
-                $functionInfo = Get-Command Initialize-WindowsMissingRecovery
+                $functionInfo = Get-Command Initialize-WindowsMelodyRecovery
                 Write-Host "✓ Function has $($functionInfo.Parameters.Count) parameters" -ForegroundColor Green
                 
                 $Global:TestConfig.PassedTests += "Initialization Function"
             } else {
-                Write-Host "✗ Initialize-WindowsMissingRecovery function not available" -ForegroundColor Red
+                Write-Host "✗ Initialize-WindowsMelodyRecovery function not available" -ForegroundColor Red
                 $Global:TestConfig.FailedTests += "Initialization Function"
             }
             
-            # Test Get-WindowsMissingRecoveryStatus function
-            if (Get-Command Get-WindowsMissingRecoveryStatus -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Get-WindowsMissingRecoveryStatus function available" -ForegroundColor Green
+            # Test Get-WindowsMelodyRecoveryStatus function
+            if (Get-Command Get-WindowsMelodyRecoveryStatus -ErrorAction SilentlyContinue) {
+                Write-Host "✓ Get-WindowsMelodyRecoveryStatus function available" -ForegroundColor Green
                 
                 # Test status function
                 try {
-                    $status = Get-WindowsMissingRecoveryStatus -ErrorAction Stop
+                    $status = Get-WindowsMelodyRecoveryStatus -ErrorAction Stop
                     if ($status) {
                         Write-Host "✓ Status function returns data" -ForegroundColor Green
                         Write-Host "  Module Version: $($status.ModuleVersion)" -ForegroundColor Gray
@@ -975,7 +975,7 @@ function Invoke-InitializationTests {
                     Write-Host "⚠ Status function test failed: $($_.Exception.Message)" -ForegroundColor Yellow
                 }
             } else {
-                Write-Host "✗ Get-WindowsMissingRecoveryStatus function not available" -ForegroundColor Red
+                Write-Host "✗ Get-WindowsMelodyRecoveryStatus function not available" -ForegroundColor Red
                 $Global:TestConfig.FailedTests += "Status Function"
             }
             
@@ -1012,12 +1012,12 @@ function Invoke-InitializationTests {
         }
         
         # Test core utilities
-        if (Test-Path "./Private/Core/WindowsMissingRecovery.Core.ps1") {
+        if (Test-Path "./Private/Core/WindowsMelodyRecovery.Core.ps1") {
             Write-Host "✓ Core utilities script found" -ForegroundColor Green
             
             # Test script syntax
             try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMissingRecovery.Core.ps1" -Raw), [ref]$null)
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMelodyRecovery.Core.ps1" -Raw), [ref]$null)
                 Write-Host "✓ Core utilities script syntax is valid" -ForegroundColor Green
                 $Global:TestConfig.PassedTests += "Core Utilities"
             } catch {
@@ -1227,7 +1227,7 @@ function Generate-TestReport {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Windows Missing Recovery - Integration Test Report</title>
+    <title>Windows Melody Recovery - Integration Test Report</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .header { background-color: #f0f0f0; padding: 20px; border-radius: 5px; }
@@ -1242,7 +1242,7 @@ function Generate-TestReport {
 </head>
 <body>
     <div class="header">
-        <h1>Windows Missing Recovery - Integration Test Report</h1>
+        <h1>Windows Melody Recovery - Integration Test Report</h1>
         <p><strong>Test Suite:</strong> $($report.TestRun.TestSuite)</p>
         <p><strong>Environment:</strong> $($report.TestRun.Environment)</p>
         <p><strong>Duration:</strong> $($report.TestRun.Duration)</p>
@@ -1328,7 +1328,7 @@ function Show-TestSummary {
 
 # Main execution
 try {
-    Write-TestHeader "Windows Missing Recovery - Integration Test Suite"
+    Write-TestHeader "Windows Melody Recovery - Integration Test Suite"
     
     if ($Environment -eq "Docker") {
         Test-ContainerHealth

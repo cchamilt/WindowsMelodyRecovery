@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Run Windows Missing Recovery Tests
+    Run Windows Melody Recovery Tests
 
 .DESCRIPTION
     This script runs the specified test suite in the test environment.
@@ -68,7 +68,7 @@ if ($GenerateReport) {
     
     # Generate HTML report
     $htmlPath = Join-Path $reportPath "test-results.html"
-    $testResults | ConvertTo-Html -Title "Windows Missing Recovery Test Results" | Out-File -FilePath $htmlPath
+    $testResults | ConvertTo-Html -Title "Windows Melody Recovery Test Results" | Out-File -FilePath $htmlPath
     
     Write-Host "📊 Test reports generated in: $reportPath" -ForegroundColor Green
 }

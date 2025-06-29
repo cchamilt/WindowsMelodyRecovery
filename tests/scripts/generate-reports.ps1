@@ -36,7 +36,7 @@ $htmlContent = @"
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Windows Missing Recovery Test Results</title>
+    <title>Windows Melody Recovery Test Results</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .summary { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
@@ -49,7 +49,7 @@ $htmlContent = @"
     </style>
 </head>
 <body>
-    <h1>Windows Missing Recovery Test Results</h1>
+    <h1>Windows Melody Recovery Test Results</h1>
     <div class="summary">
         <h2>Summary</h2>
         <p><strong>Total Tests:</strong> $($TestResults.TotalCount)</p>

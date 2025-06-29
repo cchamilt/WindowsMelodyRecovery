@@ -1,7 +1,7 @@
 Describe "Cloud Integration Backup Tests" {
     BeforeAll {
         # Import the module
-        Import-Module ./WindowsMissingRecovery.psm1 -Force -ErrorAction SilentlyContinue
+        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
         
         # Set up test paths
         $testBackupPath = "/workspace/test-backups/cloud"
@@ -78,7 +78,7 @@ Describe "Cloud Integration Backup Tests" {
         
         It "Should be able to backup to OneDrive" {
             # Test OneDrive backup
-            $oneDriveBackupPath = Join-Path $oneDrivePath "WindowsMissingRecovery"
+            $oneDriveBackupPath = Join-Path $oneDrivePath "WindowsMelodyRecovery"
             if (-not (Test-Path $oneDriveBackupPath)) {
                 New-Item -Path $oneDriveBackupPath -ItemType Directory -Force | Out-Null
             }
@@ -128,7 +128,7 @@ Describe "Cloud Integration Backup Tests" {
         
         It "Should be able to backup to Google Drive" {
             # Test Google Drive backup
-            $googleDriveBackupPath = Join-Path $googleDrivePath "WindowsMissingRecovery"
+            $googleDriveBackupPath = Join-Path $googleDrivePath "WindowsMelodyRecovery"
             if (-not (Test-Path $googleDriveBackupPath)) {
                 New-Item -Path $googleDriveBackupPath -ItemType Directory -Force | Out-Null
             }
@@ -182,7 +182,7 @@ Describe "Cloud Integration Backup Tests" {
         
         It "Should be able to backup to Dropbox" {
             # Test Dropbox backup
-            $dropboxBackupPath = Join-Path $dropboxPath "WindowsMissingRecovery"
+            $dropboxBackupPath = Join-Path $dropboxPath "WindowsMelodyRecovery"
             if (-not (Test-Path $dropboxBackupPath)) {
                 New-Item -Path $dropboxBackupPath -ItemType Directory -Force | Out-Null
             }

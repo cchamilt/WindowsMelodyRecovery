@@ -1,11 +1,11 @@
-function Update-WindowsMissingRecovery {
+function Update-WindowsMelodyRecovery {
     [CmdletBinding()]
     param()
 
     # Get configuration from the module
-    $config = Get-WindowsMissingRecovery
+    $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Configuration not initialized. Please run Initialize-WindowsMissingRecovery first." -ForegroundColor Yellow
+        Write-Host "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
         return $false
     }
 
@@ -15,7 +15,7 @@ function Update-WindowsMissingRecovery {
     # Define proper backup paths using config values
     $BACKUP_ROOT = $config.BackupRoot
     $MACHINE_NAME = $config.MachineName
-    $WINDOWS_CONFIG_PATH = $config.WindowsMissingRecoveryPath
+    $WINDOWS_CONFIG_PATH = $config.WindowsMelodyRecoveryPath
 
     # Collect any errors during update
     $updateErrors = @()

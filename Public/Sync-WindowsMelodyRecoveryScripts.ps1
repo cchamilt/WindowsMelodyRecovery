@@ -1,4 +1,4 @@
-function Sync-WindowsMissingRecoveryScripts {
+function Sync-WindowsMelodyRecoveryScripts {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -17,7 +17,7 @@ function Sync-WindowsMissingRecoveryScripts {
     $moduleRoot = $null
     
     # First, try to get the module path directly
-    $moduleInfo = Get-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+    $moduleInfo = Get-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
     if ($moduleInfo) {
         $moduleRoot = Split-Path $moduleInfo.Path -Parent
     } elseif ($PSScriptRoot) {
@@ -33,13 +33,13 @@ function Sync-WindowsMissingRecoveryScripts {
         $possiblePaths = @(
             "/workspace",
             (Get-Location),
-            (Split-Path (Get-Command WindowsMissingRecovery -ErrorAction SilentlyContinue).Source -Parent -ErrorAction SilentlyContinue),
+            (Split-Path (Get-Command WindowsMelodyRecovery -ErrorAction SilentlyContinue).Source -Parent -ErrorAction SilentlyContinue),
             (Split-Path $PSCommandPath -Parent -ErrorAction SilentlyContinue),
-            "/root/.local/share/powershell/Modules/WindowsMissingRecovery"
+            "/root/.local/share/powershell/Modules/WindowsMelodyRecovery"
         )
         
         foreach ($path in $possiblePaths) {
-            if ($path -and (Test-Path (Join-Path $path "WindowsMissingRecovery.psm1"))) {
+            if ($path -and (Test-Path (Join-Path $path "WindowsMelodyRecovery.psm1"))) {
                 $moduleRoot = $path
                 break
             }
