@@ -164,7 +164,7 @@ function Restore-PrinterSettings {
                             }
                             $result.ItemsRestored += "Registry\$($_.Name)"
                         } catch {
-                            $result.Errors += "Failed to import registry file $($_.Name): $_"
+                            $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                             $result.ItemsSkipped += "Registry\$($_.Name)"
                             if (!$Force) { throw }
                         }
@@ -231,7 +231,7 @@ function Restore-PrinterSettings {
                         
                         $result.ItemsRestored += "printer_preferences.json"
                     } catch {
-                        $result.Errors += "Failed to restore printer preferences: $_"
+                        $result.Errors += "Failed to restore printer preferences`: $_"
                         $result.ItemsSkipped += "printer_preferences.json"
                         if (!$Force) { throw }
                     }

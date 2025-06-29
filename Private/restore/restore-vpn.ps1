@@ -91,7 +91,7 @@ function Start-VPNServices {
                         $startedServices += $serviceInfo.Name
                         Write-Host "Successfully started: $($serviceInfo.DisplayName)" -ForegroundColor Green
                     } catch {
-                        Write-Warning "Failed to start service $($serviceInfo.DisplayName): $_"
+                        Write-Warning "Failed to start service $($serviceInfo.DisplayName)`: $_"
                     }
                 }
             } else {
@@ -195,7 +195,8 @@ function Restore-VPNSettings {
                                             $importedFiles += $regFile.Name
                                         }
                                     } catch {
-                                        $script:Errors += "Error importing registry file $($regFile.Name): $_"
+                                        $script:Errors += "Error importing registry file $($regFile.Name)`: $_"
+                                        Write-Warning "Failed to import registry file $($regFile.Name)"
                                     }
                                 }
                             }
@@ -248,7 +249,8 @@ function Restore-VPNSettings {
                                                 $restoredConnections += $connection.Name
                                                 Write-Host "Restored VPN connection: $($connection.Name)" -ForegroundColor Green
                                             } catch {
-                                                $script:Errors += "Failed to restore VPN connection $($connection.Name): $_"
+                                                $script:Errors += "Failed to restore VPN connection $($connection.Name)`: $_"
+                                                Write-Warning "Failed to restore VPN connection $($connection.Name)"
                                             }
                                         }
                                         
@@ -257,8 +259,8 @@ function Restore-VPNSettings {
                                         return @("Test VPN connections")
                                     }
                                 } catch {
-                                    $script:Errors += "Failed to restore VPN connections: $_"
-                                    return @()
+                                    $script:Errors += "Failed to restore VPN connections`: $_"
+                                    Write-Warning "Failed to restore VPN connections"
                                 }
                             }
                         }
@@ -292,7 +294,8 @@ function Restore-VPNSettings {
                                             $importedCerts += $certFile.Name
                                         }
                                     } catch {
-                                        $script:Errors += "Failed to import certificate $($certFile.Name): $_"
+                                        $script:Errors += "Failed to import certificate $($certFile.Name)`: $_"
+                                        Write-Warning "Failed to import certificate $($certFile.Name)"
                                     }
                                 }
                             }
@@ -313,7 +316,8 @@ function Restore-VPNSettings {
                                             $importedCerts += $pfxFile.Name
                                         }
                                     } catch {
-                                        $script:Errors += "Failed to import PFX certificate $($pfxFile.Name): $_"
+                                        $script:Errors += "Failed to import PFX certificate $($pfxFile.Name)`: $_"
+                                        Write-Warning "Failed to import PFX certificate $($pfxFile.Name)"
                                     }
                                 }
                             }
@@ -354,7 +358,8 @@ function Restore-VPNSettings {
                                     $restoredPBKs += $pbkFile.Name
                                     Write-Host "Restored phonebook: $($pbkFile.Name)" -ForegroundColor Green
                                 } catch {
-                                    $script:Errors += "Failed to restore phonebook $($pbkFile.Name): $_"
+                                    $script:Errors += "Failed to restore phonebook $($pbkFile.Name)`: $_"
+                                    Write-Warning "Failed to restore phonebook $($pbkFile.Name)"
                                 }
                             }
                         }
@@ -385,8 +390,8 @@ function Restore-VPNSettings {
                                     Write-Host "Restored OpenVPN configurations" -ForegroundColor Green
                                     return @("OpenVPN configs")
                                 } catch {
-                                    $script:Errors += "Failed to restore OpenVPN configs: $_"
-                                    return @()
+                                    $script:Errors += "Failed to restore OpenVPN configs`: $_"
+                                    Write-Warning "Failed to restore OpenVPN configs"
                                 }
                             }
                         }
@@ -422,8 +427,8 @@ function Restore-VPNSettings {
                                             return @("Azure VPN config")
                                         }
                                     } catch {
-                                        $script:Errors += "Failed to import Azure VPN config: $_"
-                                        return @()
+                                        $script:Errors += "Failed to import Azure VPN config`: $_"
+                                        Write-Warning "Failed to import Azure VPN config"
                                     }
                                 } else {
                                     $script:Errors += "Azure VPN client not found at $azureVpnPath"
@@ -471,8 +476,8 @@ function Restore-VPNSettings {
                             $script:ItemsSkipped += "$itemName (no items to restore)"
                         }
                     } catch {
-                        $script:Errors += "Failed to restore $itemName : $_"
-                        Write-Warning "Failed to restore $($item.Description): $_"
+                        $script:Errors += "Failed to restore $itemName `: $_"
+                        Write-Warning "Failed to restore $($item.Description)`: $_"
                     }
                 }
             }
@@ -498,7 +503,7 @@ function Restore-VPNSettings {
                                 $restartedServices += $serviceName
                                 Write-Host "Restarted service: $serviceName" -ForegroundColor Green
                             } catch {
-                                Write-Warning "Failed to restart service $serviceName : $_"
+                                Write-Warning "Failed to restart service $serviceName `: $_"
                             }
                         }
                     }

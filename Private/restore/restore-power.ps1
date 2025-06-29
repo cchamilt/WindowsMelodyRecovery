@@ -164,7 +164,7 @@ function Restore-PowerSettings {
                             }
                             $result.ItemsRestored += "Registry\$($_.Name)"
                         } catch {
-                            $result.Errors += "Failed to import registry file $($_.Name): $_"
+                            $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                             $result.ItemsSkipped += "Registry\$($_.Name)"
                             if (!$Force) { throw }
                         }
@@ -239,7 +239,7 @@ function Restore-PowerSettings {
                         
                         $result.ItemsSkipped += "button_settings.json (requires manual configuration)"
                     } catch {
-                        $result.Errors += "Failed to process power button and lid settings: $_"
+                        $result.Errors += "Failed to process power button and lid settings`: $_"
                         $result.ItemsSkipped += "button_settings.json"
                         if (!$Force) { throw }
                     }

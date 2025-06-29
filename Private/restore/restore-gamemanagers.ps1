@@ -217,8 +217,8 @@ Note: Game save data and settings may need to be restored separately if you back
                                     Write-Host "No games found for $($managerConfig.Name)" -ForegroundColor Yellow
                                 }
                             } catch {
-                                $errors += "Failed to process $($managerConfig.Name) games: $_"
-                                Write-Host "Failed to process $($managerConfig.Name) games: $_" -ForegroundColor Red
+                                $errors += "Failed to process $($managerConfig.Name) games`: $_"
+                                Write-Host "Failed to process $($managerConfig.Name) games`: $_" -ForegroundColor Red
                             }
                         }
                     } else {

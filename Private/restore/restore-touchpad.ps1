@@ -162,7 +162,7 @@ function Restore-TouchpadSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not start service $serviceName : $_"
+                        Write-Verbose "Could not start service $serviceName `: $_"
                     }
                 }
             }
@@ -190,7 +190,8 @@ function Restore-TouchpadSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -213,7 +214,8 @@ function Restore-TouchpadSettings {
                                                         }
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not manage device $($device.InstanceId): $_"
+                                                    $errors += "Failed to restore touchpad devices`: $_"
+                                                    Write-Warning "Failed to restore touchpad devices"
                                                 }
                                             }
                                         }
@@ -236,7 +238,8 @@ function Restore-TouchpadSettings {
                                         
                                         $itemsRestored += "Touchpad driver information"
                                     } catch {
-                                        $errors += "Failed to restore touchpad driver information: $_"
+                                        $errors += "Failed to restore touchpad driver information`: $_"
+                                        Write-Warning "Failed to restore touchpad driver information"
                                     }
                                 }
                                 
@@ -261,19 +264,20 @@ function Restore-TouchpadSettings {
                                                                 Set-Service -Name $serviceInfo.Name -StartupType $serviceInfo.StartType -ErrorAction SilentlyContinue
                                                                 Write-Verbose "Set start type for service $($serviceInfo.Name) to $($serviceInfo.StartType)"
                                                             } catch {
-                                                                Write-Verbose "Could not set start type for service $($serviceInfo.Name) (may require administrative privileges): $_"
+                                                                Write-Verbose "Could not set start type for service $($serviceInfo.Name) (may require administrative privileges)`: $_"
                                                             }
                                                         }
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not manage service $($serviceInfo.Name): $_"
+                                                    Write-Verbose "Could not manage service $($serviceInfo.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Touchpad service configuration"
                                     } catch {
-                                        $errors += "Failed to restore touchpad services: $_"
+                                        $errors += "Failed to restore touchpad services`: $_"
+                                        Write-Warning "Failed to restore touchpad services"
                                     }
                                 }
                                 
@@ -298,7 +302,8 @@ function Restore-TouchpadSettings {
                                         
                                         $itemsRestored += "Touchpad settings information"
                                     } catch {
-                                        $errors += "Failed to restore touchpad settings: $_"
+                                        $errors += "Failed to restore touchpad settings`: $_"
+                                        Write-Warning "Failed to restore touchpad settings"
                                     }
                                 }
                                 
@@ -320,14 +325,15 @@ function Restore-TouchpadSettings {
                                                     Set-ItemProperty -Path $precisionTouchpadKey -Name $property.Name -Value $property.Value -ErrorAction SilentlyContinue
                                                     Write-Verbose "Restored gesture setting: $($property.Name) = $($property.Value)"
                                                 } catch {
-                                                    Write-Verbose "Could not restore gesture setting $($property.Name): $_"
+                                                    Write-Verbose "Could not restore gesture setting $($property.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Touchpad gesture configuration"
                                     } catch {
-                                        $errors += "Failed to restore gesture settings: $_"
+                                        $errors += "Failed to restore gesture settings`: $_"
+                                        Write-Warning "Failed to restore gesture settings"
                                     }
                                 }
                                 
@@ -349,14 +355,16 @@ function Restore-TouchpadSettings {
                                                     Set-ItemProperty -Path $inputKey -Name $property.Name -Value $property.Value -ErrorAction SilentlyContinue
                                                     Write-Verbose "Restored input setting: $($property.Name) = $($property.Value)"
                                                 } catch {
-                                                    Write-Verbose "Could not restore input setting $($property.Name): $_"
+                                                    $errors += "Failed to restore input settings`: $_"
+                                                    Write-Warning "Failed to restore input settings"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Input method settings"
                                     } catch {
-                                        $errors += "Failed to restore input settings: $_"
+                                        $errors += "Failed to restore input settings`: $_"
+                                        Write-Warning "Failed to restore input settings"
                                     }
                                 }
                             }
@@ -368,8 +376,8 @@ function Restore-TouchpadSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             
@@ -386,7 +394,7 @@ function Restore-TouchpadSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not restart service $serviceName : $_"
+                        Write-Verbose "Could not restart service $serviceName `: $_"
                     }
                 }
             }

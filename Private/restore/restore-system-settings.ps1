@@ -182,7 +182,7 @@ function Restore-SystemSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not start service $serviceName : $_"
+                        Write-Verbose "Could not start service $serviceName `: $_"
                     }
                 }
             }
@@ -210,7 +210,8 @@ function Restore-SystemSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -234,7 +235,8 @@ function Restore-SystemSettings {
                                         
                                         $itemsRestored += "Power settings (informational)"
                                     } catch {
-                                        $errors += "Failed to restore power settings: $_"
+                                        $errors += "Failed to restore power settings`: $_"
+                                        Write-Warning "Failed to restore power settings"
                                     }
                                 }
                                 
@@ -255,7 +257,8 @@ function Restore-SystemSettings {
                                         
                                         $itemsRestored += "System performance settings (informational)"
                                     } catch {
-                                        $errors += "Failed to restore performance settings: $_"
+                                        $errors += "Failed to restore performance settings`: $_"
+                                        Write-Warning "Failed to restore performance settings"
                                     }
                                 }
                                 
@@ -297,7 +300,8 @@ function Restore-SystemSettings {
                                         
                                         $itemsRestored += "Time and region settings"
                                     } catch {
-                                        $errors += "Failed to restore time and region settings: $_"
+                                        $errors += "Failed to restore time and region settings`: $_"
+                                        Write-Warning "Failed to restore time and region settings"
                                     }
                                 }
                                 
@@ -313,7 +317,7 @@ function Restore-SystemSettings {
                                                         [Environment]::SetEnvironmentVariable($variable.Name, $variable.Value, 'User')
                                                         Write-Verbose "Restored user environment variable: $($variable.Name)"
                                                     } catch {
-                                                        Write-Verbose "Could not restore user environment variable $($variable.Name): $_"
+                                                        Write-Verbose "Could not restore user environment variable $($variable.Name)`: $_"
                                                     }
                                                 }
                                             }
@@ -325,7 +329,7 @@ function Restore-SystemSettings {
                                                         [Environment]::SetEnvironmentVariable($variable.Name, $variable.Value, 'Machine')
                                                         Write-Verbose "Restored machine environment variable: $($variable.Name)"
                                                     } catch {
-                                                        Write-Verbose "Could not restore machine environment variable $($variable.Name) (may require administrative privileges): $_"
+                                                        Write-Verbose "Could not restore machine environment variable $($variable.Name) (may require administrative privileges)`: $_"
                                                     }
                                                 }
                                             }
@@ -333,7 +337,8 @@ function Restore-SystemSettings {
                                         
                                         $itemsRestored += "Environment variables"
                                     } catch {
-                                        $errors += "Failed to restore environment variables: $_"
+                                        $errors += "Failed to restore environment variables`: $_"
+                                        Write-Warning "Failed to restore environment variables"
                                     }
                                 }
                                 
@@ -360,7 +365,8 @@ function Restore-SystemSettings {
                                         
                                         $itemsRestored += "Printer settings (informational)"
                                     } catch {
-                                        $errors += "Failed to restore printer settings: $_"
+                                        $errors += "Failed to restore printer settings`: $_"
+                                        Write-Warning "Failed to restore printer settings"
                                     }
                                 }
                                 
@@ -393,14 +399,15 @@ function Restore-SystemSettings {
                                                     netsh wlan add profile filename="$($profile.FullName)" 2>$null
                                                     Write-Verbose "Restored wireless profile: $($profile.Name)"
                                                 } catch {
-                                                    Write-Verbose "Could not restore wireless profile $($profile.Name): $_"
+                                                    Write-Verbose "Could not restore wireless profile $($profile.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Network settings"
                                     } catch {
-                                        $errors += "Failed to restore network settings: $_"
+                                        $errors += "Failed to restore network settings`: $_"
+                                        Write-Warning "Failed to restore network settings"
                                     }
                                 }
                                 
@@ -416,14 +423,15 @@ function Restore-SystemSettings {
                                                     Register-ScheduledTask -TaskName $taskName -Xml $taskXml -Force -ErrorAction SilentlyContinue
                                                     Write-Verbose "Restored scheduled task: $taskName"
                                                 } catch {
-                                                    Write-Verbose "Could not restore scheduled task $($taskFile.Name): $_"
+                                                    Write-Verbose "Could not restore scheduled task $($taskFile.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Scheduled tasks"
                                     } catch {
-                                        $errors += "Failed to restore scheduled tasks: $_"
+                                        $errors += "Failed to restore scheduled tasks`: $_"
+                                        Write-Warning "Failed to restore scheduled tasks"
                                     }
                                 }
                                 
@@ -439,14 +447,15 @@ function Restore-SystemSettings {
                                                         Write-Verbose "Restored mapped drive: $($drive.Name) -> $($drive.DisplayRoot)"
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not restore mapped drive $($drive.Name): $_"
+                                                    Write-Verbose "Could not restore mapped drive $($drive.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Mapped drives"
                                     } catch {
-                                        $errors += "Failed to restore mapped drives: $_"
+                                        $errors += "Failed to restore mapped drives`: $_"
+                                        Write-Warning "Failed to restore mapped drives"
                                     }
                                 }
                                 
@@ -469,14 +478,15 @@ function Restore-SystemSettings {
                                                         }
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not manage service $($serviceInfo.Name): $_"
+                                                    Write-Verbose "Could not manage service $($serviceInfo.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "System services configuration"
                                     } catch {
-                                        $errors += "Failed to restore system services: $_"
+                                        $errors += "Failed to restore system services`: $_"
+                                        Write-Warning "Failed to restore system services"
                                     }
                                 }
                                 
@@ -496,14 +506,15 @@ function Restore-SystemSettings {
                                                         Write-Verbose "Enabled Windows feature: $($feature.FeatureName)"
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not enable Windows feature $($feature.FeatureName) (may require administrative privileges): $_"
+                                                    Write-Verbose "Could not enable Windows feature $($feature.FeatureName) (may require administrative privileges)`: $_"
                                                 }
                                             }
                                         }
                                         
-                                        $itemsRestored += "Windows features"
+                                        $itemsRestored += "Windows features information"
                                     } catch {
-                                        $errors += "Failed to restore Windows features: $_"
+                                        $errors += "Failed to restore Windows features`: $_"
+                                        Write-Warning "Failed to restore Windows features"
                                     }
                                 }
                             }
@@ -515,8 +526,8 @@ function Restore-SystemSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             

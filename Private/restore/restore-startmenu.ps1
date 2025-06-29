@@ -197,7 +197,8 @@ function Restore-StartMenuSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }

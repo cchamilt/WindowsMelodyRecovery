@@ -157,7 +157,7 @@ function Restore-RDPSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not stop service $serviceName : $_"
+                        Write-Verbose "Could not stop service $serviceName `: $_"
                     }
                 }
             }
@@ -185,7 +185,8 @@ function Restore-RDPSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -218,7 +219,8 @@ function Restore-RDPSettings {
                                             }
                                             $itemsRestored += "Connections\$($connFile.Name)"
                                         } catch {
-                                            $errors += "Failed to restore connection file $($connFile.Name): $_"
+                                            $errors += "Failed to restore connection file $($connFile.Name)`: $_"
+                                            Write-Warning "Failed to restore connection file $($connFile.Name)"
                                         }
                                     }
                                 }
@@ -233,7 +235,8 @@ function Restore-RDPSettings {
                                             }
                                             $itemsRestored += "Certificates\$($certFile.Name)"
                                         } catch {
-                                            $errors += "Failed to restore certificate $($certFile.Name): $_"
+                                            $errors += "Failed to restore certificate $($certFile.Name)`: $_"
+                                            Write-Warning "Failed to restore certificate $($certFile.Name)"
                                         }
                                     }
                                 }
@@ -280,7 +283,8 @@ function Restore-RDPSettings {
                                         
                                         $itemsRestored += "rdp_settings.json"
                                     } catch {
-                                        $errors += "Failed to restore RDP configuration: $_"
+                                        $errors += "Failed to restore RDP configuration`: $_"
+                                        Write-Warning "Failed to restore RDP configuration"
                                     }
                                 }
                                 
@@ -301,11 +305,13 @@ function Restore-RDPSettings {
                                                 }
                                                 $itemsRestored += "Service configuration for $serviceName"
                                             } catch {
-                                                $errors += "Failed to restore service configuration for $serviceName : $_"
+                                                $errors += "Failed to restore service configuration for $serviceName `: $_"
+                                                Write-Warning "Failed to restore service configuration for $serviceName"
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore service configuration: $_"
+                                        $errors += "Failed to restore service configuration`: $_"
+                                        Write-Warning "Failed to restore service configuration"
                                     }
                                 }
                                 
@@ -325,11 +331,13 @@ function Restore-RDPSettings {
                                                 }
                                                 $itemsRestored += "Firewall rule: $($rule.DisplayName)"
                                             } catch {
-                                                $errors += "Failed to restore firewall rule $($rule.DisplayName): $_"
+                                                $errors += "Failed to restore firewall rule $($rule.DisplayName)`: $_"
+                                                Write-Warning "Failed to restore firewall rule $($rule.DisplayName)"
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore firewall rules: $_"
+                                        $errors += "Failed to restore firewall rules`: $_"
+                                        Write-Warning "Failed to restore firewall rules"
                                     }
                                 }
                             }
@@ -341,8 +349,8 @@ function Restore-RDPSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             
@@ -359,7 +367,7 @@ function Restore-RDPSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not start service $serviceName : $_"
+                        Write-Verbose "Could not start service $serviceName `: $_"
                     }
                 }
             }

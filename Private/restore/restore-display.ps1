@@ -135,7 +135,7 @@ function Restore-DisplaySettings {
                             reg import $regFile.FullName /y 2>$null
                             $restoredItems += $regFile.Name
                         } catch {
-                            $errors += "Failed to restore registry from $($regFile.Name): $_"
+                            $errors += "Failed to restore registry from $($regFile.Name)`: $_"
                             Write-Host "Warning: Failed to restore registry from $($regFile.Name)" -ForegroundColor Yellow
                         }
                     }
@@ -167,7 +167,7 @@ function Restore-DisplaySettings {
                             }
                             $restoredItems += "video_controllers.json"
                         } catch {
-                            $errors += "Failed to restore video controller settings: $_"
+                            $errors += "Failed to restore video controller settings`: $_"
                             Write-Host "Warning: Failed to restore video controller settings" -ForegroundColor Yellow
                         }
                     }
@@ -185,7 +185,7 @@ function Restore-DisplaySettings {
                             Write-Host "Display information restored (settings applied via registry)" -ForegroundColor Green
                             $restoredItems += "displays.json"
                         } catch {
-                            $errors += "Failed to restore display information: $_"
+                            $errors += "Failed to restore display information`: $_"
                             Write-Host "Warning: Failed to restore display information" -ForegroundColor Yellow
                         }
                     }
@@ -218,7 +218,7 @@ function Restore-DisplaySettings {
                                 $restoredItems += "ColorProfiles\*.icc ($($iccFiles.Count) files)"
                             }
                         } catch {
-                            $errors += "Failed to restore color profiles: $_"
+                            $errors += "Failed to restore color profiles`: $_"
                             Write-Host "Warning: Failed to restore color profiles" -ForegroundColor Yellow
                         }
                     }

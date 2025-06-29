@@ -136,7 +136,7 @@ function Restore-[Feature] {
                             $result.ItemsRestored += $item
                         }
                         catch {
-                            $result.Errors += "Failed to restore $($item.Name): $_"
+                            $result.Errors += "Failed to restore $($item.Name)`: $_"
                             $result.ItemsSkipped += $item
                             if (!$Force) { throw }
                         }

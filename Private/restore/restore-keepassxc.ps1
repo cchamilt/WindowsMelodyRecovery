@@ -155,7 +155,7 @@ function Restore-KeePassXCSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -193,7 +193,7 @@ function Restore-KeePassXCSettings {
                                 Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                                 $result.ItemsRestored += $config.Key
                             } catch {
-                                $result.Errors += "Failed to restore $($config.Key): $_"
+                                $result.Errors += "Failed to restore $($config.Key)`: $_"
                                 $result.ItemsSkipped += $config.Key
                                 if (!$Force) { throw }
                             }
@@ -230,14 +230,14 @@ function Restore-KeePassXCSettings {
                                         }
                                         $result.ItemsRestored += "BrowserIntegration\$browserName"
                                     } catch {
-                                        $result.Errors += "Failed to restore browser integration for $browserName : $_"
+                                        $result.Errors += "Failed to restore browser integration for $browserName `: $_"
                                         $result.ItemsSkipped += "BrowserIntegration\$browserName"
                                         if (!$Force) { throw }
                                     }
                                 }
                             }
                         } catch {
-                            $result.Errors += "Failed to process browser integration: $_"
+                            $result.Errors += "Failed to process browser integration`: $_"
                             if (!$Force) { throw }
                         }
                     }

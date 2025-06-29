@@ -172,7 +172,7 @@ function Restore-TouchscreenSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not start service $serviceName : $_"
+                        Write-Verbose "Could not start service $serviceName `: $_"
                     }
                 }
             }
@@ -200,7 +200,8 @@ function Restore-TouchscreenSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -223,14 +224,15 @@ function Restore-TouchscreenSettings {
                                                         }
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not manage device $($device.InstanceId): $_"
+                                                    Write-Verbose "Could not manage device $($device.InstanceId)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Touchscreen device states"
                                     } catch {
-                                        $errors += "Failed to restore touchscreen devices: $_"
+                                        $errors += "Failed to restore touchscreen devices`: $_"
+                                        Write-Warning "Failed to restore touchscreen devices"
                                     }
                                 }
                                 
@@ -246,7 +248,8 @@ function Restore-TouchscreenSettings {
                                         
                                         $itemsRestored += "Touchscreen driver information"
                                     } catch {
-                                        $errors += "Failed to restore touchscreen driver information: $_"
+                                        $errors += "Failed to restore touchscreen driver information`: $_"
+                                        Write-Warning "Failed to restore touchscreen driver information"
                                     }
                                 }
                                 
@@ -271,19 +274,20 @@ function Restore-TouchscreenSettings {
                                                                 Set-Service -Name $serviceInfo.Name -StartupType $serviceInfo.StartType -ErrorAction SilentlyContinue
                                                                 Write-Verbose "Set start type for service $($serviceInfo.Name) to $($serviceInfo.StartType)"
                                                             } catch {
-                                                                Write-Verbose "Could not set start type for service $($serviceInfo.Name) (may require administrative privileges): $_"
+                                                                Write-Verbose "Could not set start type for service $($serviceInfo.Name) (may require administrative privileges)`: $_"
                                                             }
                                                         }
                                                     }
                                                 } catch {
-                                                    Write-Verbose "Could not manage service $($serviceInfo.Name): $_"
+                                                    Write-Verbose "Could not manage service $($serviceInfo.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Touchscreen service configuration"
                                     } catch {
-                                        $errors += "Failed to restore touchscreen services: $_"
+                                        $errors += "Failed to restore touchscreen services`: $_"
+                                        Write-Warning "Failed to restore touchscreen services"
                                     }
                                 }
                                 
@@ -308,7 +312,8 @@ function Restore-TouchscreenSettings {
                                         
                                         $itemsRestored += "Touchscreen settings information"
                                     } catch {
-                                        $errors += "Failed to restore touchscreen settings: $_"
+                                        $errors += "Failed to restore touchscreen settings`: $_"
+                                        Write-Warning "Failed to restore touchscreen settings"
                                     }
                                 }
                                 
@@ -330,14 +335,15 @@ function Restore-TouchscreenSettings {
                                                     Set-ItemProperty -Path $calibrationKey -Name $property.Name -Value $property.Value -ErrorAction SilentlyContinue
                                                     Write-Verbose "Restored calibration setting: $($property.Name) = $($property.Value)"
                                                 } catch {
-                                                    Write-Verbose "Could not restore calibration setting $($property.Name): $_"
+                                                    Write-Verbose "Could not restore calibration setting $($property.Name)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Touch calibration data"
                                     } catch {
-                                        $errors += "Failed to restore calibration data: $_"
+                                        $errors += "Failed to restore calibration data`: $_"
+                                        Write-Warning "Failed to restore calibration data"
                                     }
                                 }
                                 
@@ -356,12 +362,14 @@ function Restore-TouchscreenSettings {
                                                     }
                                                     $itemsRestored += "Calibration file: $fileName"
                                                 } catch {
-                                                    $errors += "Failed to restore calibration file $fileName : $_"
+                                                    $errors += "Failed to restore calibration file $fileName `: $_"
+                                                    Write-Warning "Failed to restore calibration file $fileName"
                                                 }
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore calibration files: $_"
+                                        $errors += "Failed to restore calibration files`: $_"
+                                        Write-Warning "Failed to restore calibration files"
                                     }
                                 }
                                 
@@ -392,7 +400,7 @@ function Restore-TouchscreenSettings {
                                                     }
                                                     Write-Verbose "Restored pen setting: $($property.Name) = $($property.Value)"
                                                 } catch {
-                                                    Write-Verbose "Could not restore pen setting $($property.Name): $_"
+                                                    Write-Verbose "Could not restore pen setting $($property.Name)`: $_"
                                                 }
                                             }
                                         }
@@ -421,14 +429,16 @@ function Restore-TouchscreenSettings {
                                                     Set-ItemProperty -Path $gestureKey -Name $property.Name -Value $property.Value -ErrorAction SilentlyContinue
                                                     Write-Verbose "Restored gesture setting: $($property.Name) = $($property.Value)"
                                                 } catch {
-                                                    Write-Verbose "Could not restore gesture setting $($property.Name): $_"
+                                                    $errors += "Failed to restore gesture settings`: $_"
+                                                    Write-Warning "Failed to restore gesture settings"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "Touch gesture settings"
                                     } catch {
-                                        $errors += "Failed to restore gesture settings: $_"
+                                        $errors += "Failed to restore gesture settings`: $_"
+                                        Write-Warning "Failed to restore gesture settings"
                                     }
                                 }
                             }
@@ -440,8 +450,8 @@ function Restore-TouchscreenSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             
@@ -458,7 +468,7 @@ function Restore-TouchscreenSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not restart service $serviceName : $_"
+                        Write-Verbose "Could not restart service $serviceName `: $_"
                     }
                 }
             }

@@ -167,7 +167,7 @@ function Restore-OutlookSettings {
                             }
                             $result.ItemsRestored += "Registry\$($_.Name)"
                         } catch {
-                            $result.Errors += "Failed to import registry file $($_.Name): $_"
+                            $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                             $result.ItemsSkipped += "Registry\$($_.Name)"
                             if (!$Force) { throw }
                         }
@@ -216,7 +216,7 @@ function Restore-OutlookSettings {
                             }
                             $result.ItemsRestored += $config.Key
                         } catch {
-                            $result.Errors += "Failed to restore $($config.Key): $_"
+                            $result.Errors += "Failed to restore $($config.Key)`: $_"
                             $result.ItemsSkipped += $config.Key
                             if (!$Force) { throw }
                         }
@@ -242,7 +242,7 @@ function Restore-OutlookSettings {
                         }
                         $result.ItemsRestored += "QuickAccess\Outlook.lnk"
                     } catch {
-                        $result.Errors += "Failed to restore Quick Access Toolbar: $_"
+                        $result.Errors += "Failed to restore Quick Access Toolbar`: $_"
                         $result.ItemsSkipped += "QuickAccess\Outlook.lnk"
                         if (!$Force) { throw }
                     }

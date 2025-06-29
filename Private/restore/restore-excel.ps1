@@ -138,7 +138,7 @@ function Restore-ExcelSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -175,7 +175,7 @@ function Restore-ExcelSettings {
                                 Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                                 $result.ItemsRestored += $config.Key
                             } catch {
-                                $result.Errors += "Failed to restore $($config.Key): $_"
+                                $result.Errors += "Failed to restore $($config.Key)`: $_"
                                 $result.ItemsSkipped += $config.Key
                                 if (!$Force) { throw }
                             }
@@ -193,7 +193,7 @@ function Restore-ExcelSettings {
                             Write-Host "Recent files list found in backup" -ForegroundColor Yellow
                             $result.ItemsRestored += "recent_files.txt"
                         } catch {
-                            $result.Errors += "Failed to process recent files list: $_"
+                            $result.Errors += "Failed to process recent files list`: $_"
                             $result.ItemsSkipped += "recent_files.txt"
                             if (!$Force) { throw }
                         }

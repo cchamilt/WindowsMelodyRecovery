@@ -142,7 +142,7 @@ function Restore-OneNoteSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -185,7 +185,7 @@ function Restore-OneNoteSettings {
                                 }
                                 $result.ItemsRestored += $config.Key
                             } catch {
-                                $result.Errors += "Failed to restore $($config.Key): $_"
+                                $result.Errors += "Failed to restore $($config.Key)`: $_"
                                 $result.ItemsSkipped += $config.Key
                                 if (!$Force) { throw }
                             }
@@ -210,7 +210,7 @@ function Restore-OneNoteSettings {
                             }
                             $result.ItemsRestored += "notebook_locations.xml"
                         } catch {
-                            $result.Errors += "Failed to restore notebook locations: $_"
+                            $result.Errors += "Failed to restore notebook locations`: $_"
                             $result.ItemsSkipped += "notebook_locations.xml"
                             if (!$Force) { throw }
                         }

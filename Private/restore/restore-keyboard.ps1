@@ -148,7 +148,7 @@ function Restore-KeyboardSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -183,7 +183,7 @@ function Restore-KeyboardSettings {
                             
                             $result.ItemsRestored += "input_settings.json"
                         } catch {
-                            $result.Errors += "Failed to restore input settings: $_"
+                            $result.Errors += "Failed to restore input settings`: $_"
                             $result.ItemsSkipped += "input_settings.json"
                             if (!$Force) { throw }
                         }
@@ -204,7 +204,7 @@ function Restore-KeyboardSettings {
                             }
                             $result.ItemsRestored += "scancode_mappings.json"
                         } catch {
-                            $result.Errors += "Failed to restore scan code mappings: $_"
+                            $result.Errors += "Failed to restore scan code mappings`: $_"
                             $result.ItemsSkipped += "scancode_mappings.json"
                             if (!$Force) { throw }
                         }
@@ -225,7 +225,7 @@ function Restore-KeyboardSettings {
                             }
                             $result.ItemsRestored += "keyboard_speed.json"
                         } catch {
-                            $result.Errors += "Failed to restore keyboard speed settings: $_"
+                            $result.Errors += "Failed to restore keyboard speed settings`: $_"
                             $result.ItemsSkipped += "keyboard_speed.json"
                             if (!$Force) { throw }
                         }
@@ -255,7 +255,7 @@ function Restore-KeyboardSettings {
                             }
                             $result.ItemsRestored += "keyboard_devices.json"
                         } catch {
-                            $result.Errors += "Failed to restore keyboard device settings: $_"
+                            $result.Errors += "Failed to restore keyboard device settings`: $_"
                             $result.ItemsSkipped += "keyboard_devices.json"
                             if (!$Force) { throw }
                         }

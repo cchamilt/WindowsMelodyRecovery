@@ -135,7 +135,7 @@ function Restore-DefaultAppsSettings {
                             reg import $regFile.FullName /y 2>$null
                             $restoredItems += $regFile.Name
                         } catch {
-                            $errors += "Failed to restore registry from $($regFile.Name): $_"
+                            $errors += "Failed to restore registry from $($regFile.Name)`: $_"
                             Write-Host "Warning: Failed to restore registry from $($regFile.Name)" -ForegroundColor Yellow
                         }
                     }
@@ -152,7 +152,7 @@ function Restore-DefaultAppsSettings {
                             Dism.exe /Online /Import-DefaultAppAssociations:"$defaultAppsXml" | Out-Null
                             $restoredItems += "defaultapps.xml"
                         } catch {
-                            $errors += "Failed to restore default apps XML: $_"
+                            $errors += "Failed to restore default apps XML`: $_"
                             Write-Host "Warning: Failed to restore default apps XML" -ForegroundColor Yellow
                         }
                     }
@@ -181,7 +181,7 @@ function Restore-DefaultAppsSettings {
                             }
                             $restoredItems += "user_choices.json"
                         } catch {
-                            $errors += "Failed to restore user choices: $_"
+                            $errors += "Failed to restore user choices`: $_"
                             Write-Host "Warning: Failed to restore user choices" -ForegroundColor Yellow
                         }
                     }
@@ -199,7 +199,7 @@ function Restore-DefaultAppsSettings {
                             Write-Host "App capabilities restored (informational - cannot directly modify capabilities)" -ForegroundColor Green
                             $restoredItems += "app_capabilities.json"
                         } catch {
-                            $errors += "Failed to restore app capabilities: $_"
+                            $errors += "Failed to restore app capabilities`: $_"
                             Write-Host "Warning: Failed to restore app capabilities" -ForegroundColor Yellow
                         }
                     }
@@ -243,7 +243,7 @@ function Restore-DefaultAppsSettings {
                             }
                             $restoredItems += "browser_settings.json"
                         } catch {
-                            $errors += "Failed to restore browser settings: $_"
+                            $errors += "Failed to restore browser settings`: $_"
                             Write-Host "Warning: Failed to restore browser settings" -ForegroundColor Yellow
                         }
                     }

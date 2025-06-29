@@ -223,7 +223,8 @@ function Restore-TerminalSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -242,7 +243,8 @@ function Restore-TerminalSettings {
                                         }
                                         $itemsRestored += "Windows Terminal settings"
                                     } catch {
-                                        $errors += "Failed to restore Windows Terminal settings: $_"
+                                        $errors += "Failed to restore Windows Terminal settings`: $_"
+                                        Write-Warning "Failed to restore Windows Terminal settings"
                                     }
                                 }
                                 
@@ -260,7 +262,8 @@ function Restore-TerminalSettings {
                                         }
                                         $itemsRestored += "Windows Terminal Preview settings"
                                     } catch {
-                                        $errors += "Failed to restore Windows Terminal Preview settings: $_"
+                                        $errors += "Failed to restore Windows Terminal Preview settings`: $_"
+                                        Write-Warning "Failed to restore Windows Terminal Preview settings"
                                     }
                                 }
                                 
@@ -278,7 +281,8 @@ function Restore-TerminalSettings {
                                         }
                                         $itemsRestored += "Windows Terminal state"
                                     } catch {
-                                        $errors += "Failed to restore Windows Terminal state: $_"
+                                        $errors += "Failed to restore Windows Terminal state`: $_"
+                                        Write-Warning "Failed to restore Windows Terminal state"
                                     }
                                 }
                                 
@@ -296,7 +300,8 @@ function Restore-TerminalSettings {
                                         }
                                         $itemsRestored += "Windows Terminal Preview state"
                                     } catch {
-                                        $errors += "Failed to restore Windows Terminal Preview state: $_"
+                                        $errors += "Failed to restore Windows Terminal Preview state`: $_"
+                                        Write-Warning "Failed to restore Windows Terminal Preview state"
                                     }
                                 }
                                 
@@ -320,7 +325,8 @@ function Restore-TerminalSettings {
                                         }
                                         $itemsRestored += "Terminal profiles, themes, and fragments"
                                     } catch {
-                                        $errors += "Failed to restore terminal profiles: $_"
+                                        $errors += "Failed to restore terminal profiles`: $_"
+                                        Write-Warning "Failed to restore terminal profiles"
                                     }
                                 }
                                 
@@ -353,14 +359,15 @@ function Restore-TerminalSettings {
                                                     Copy-Item -Path $profileFile.FullName -Destination $destinationPath -Force
                                                     Write-Verbose "Restored PowerShell profile: $profileName"
                                                 } catch {
-                                                    Write-Verbose "Could not restore PowerShell profile $profileName (may require administrative privileges): $_"
+                                                    Write-Verbose "Could not restore PowerShell profile $profileName (may require administrative privileges)`: $_"
                                                 }
                                             }
                                         }
                                         
                                         $itemsRestored += "PowerShell profiles"
                                     } catch {
-                                        $errors += "Failed to restore PowerShell profiles: $_"
+                                        $errors += "Failed to restore PowerShell profiles`: $_"
+                                        Write-Warning "Failed to restore PowerShell profiles"
                                     }
                                 }
                                 
@@ -379,7 +386,8 @@ function Restore-TerminalSettings {
                                         
                                         $itemsRestored += "PowerShell modules information"
                                     } catch {
-                                        $errors += "Failed to restore PowerShell modules information: $_"
+                                        $errors += "Failed to restore PowerShell modules information`: $_"
+                                        Write-Warning "Failed to restore PowerShell modules information"
                                     }
                                 }
                                 
@@ -407,7 +415,8 @@ function Restore-TerminalSettings {
                                         
                                         $itemsRestored += "Default terminal application setting"
                                     } catch {
-                                        $errors += "Failed to restore default terminal setting: $_"
+                                        $errors += "Failed to restore default terminal setting`: $_"
+                                        Write-Warning "Failed to restore default terminal setting"
                                     }
                                 }
                                 
@@ -423,7 +432,7 @@ function Restore-TerminalSettings {
                                                     try {
                                                         Set-ItemProperty -Path $consoleKey -Name $property.Name -Value $property.Value -ErrorAction SilentlyContinue
                                                     } catch {
-                                                        Write-Verbose "Could not restore console font property $($property.Name): $_"
+                                                        Write-Verbose "Could not restore console font property $($property.Name)`: $_"
                                                     }
                                                 }
                                             }
@@ -431,7 +440,8 @@ function Restore-TerminalSettings {
                                         
                                         $itemsRestored += "Console font settings"
                                     } catch {
-                                        $errors += "Failed to restore console font settings: $_"
+                                        $errors += "Failed to restore console font settings`: $_"
+                                        Write-Warning "Failed to restore console font settings"
                                     }
                                 }
                                 
@@ -447,7 +457,8 @@ function Restore-TerminalSettings {
                                         
                                         $itemsRestored += "Terminal application information"
                                     } catch {
-                                        $errors += "Failed to restore terminal application information: $_"
+                                        $errors += "Failed to restore terminal application information`: $_"
+                                        Write-Warning "Failed to restore terminal application information"
                                     }
                                 }
                             }
@@ -459,8 +470,8 @@ function Restore-TerminalSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             

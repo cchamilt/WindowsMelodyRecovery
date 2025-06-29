@@ -147,7 +147,7 @@ function Restore-ExplorerSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -185,7 +185,7 @@ function Restore-ExplorerSettings {
                                 Write-Host "Restored configuration: $($config.Key)" -ForegroundColor Green
                                 $result.ItemsRestored += $config.Key
                             } catch {
-                                $result.Errors += "Failed to restore $($config.Key): $_"
+                                $result.Errors += "Failed to restore $($config.Key)`: $_"
                                 $result.ItemsSkipped += $config.Key
                                 if (!$Force) { throw }
                             }
@@ -209,13 +209,13 @@ function Restore-ExplorerSettings {
                                     }
                                     $result.ItemsRestored += "FolderViews\$($_.Name)"
                                 } catch {
-                                    $result.Errors += "Failed to restore folder view $($_.Name): $_"
+                                    $result.Errors += "Failed to restore folder view $($_.Name)`: $_"
                                     $result.ItemsSkipped += "FolderViews\$($_.Name)"
                                     if (!$Force) { throw }
                                 }
                             }
                         } catch {
-                            $result.Errors += "Failed to process folder views: $_"
+                            $result.Errors += "Failed to process folder views`: $_"
                             if (!$Force) { throw }
                         }
                     }

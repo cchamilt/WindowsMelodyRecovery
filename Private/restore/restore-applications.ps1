@@ -248,8 +248,8 @@ function Restore-Applications {
                                             $errors += "$manager installation returned exit code: $LASTEXITCODE"
                                         }
                                     } catch {
-                                        $errors += "Failed to install $manager: $_"
-                                        Write-Host "Failed to install $manager: $_" -ForegroundColor Red
+                                        $errors += "Failed to install $manager`: $_"
+                                        Write-Host "Failed to install $manager`: $_" -ForegroundColor Red
                                     }
                                 }
                             } elseif ($gameManagerApps.ContainsKey($manager)) {

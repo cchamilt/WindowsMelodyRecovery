@@ -199,7 +199,8 @@ function Restore-SSHSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -257,7 +258,8 @@ function Restore-SSHSettings {
                                                 $itemsRestored += "User SSH\$($file.Name)"
                                             }
                                         } catch {
-                                            $errors += "Failed to restore user SSH file $($file.Name): $_"
+                                            $errors += "Failed to restore user SSH file $($file.Name)`: $_"
+                                            Write-Warning "Failed to restore user SSH file $($file.Name)"
                                         }
                                     }
                                 }
@@ -289,7 +291,8 @@ function Restore-SSHSettings {
                                                 $itemsRestored += "System SSH\$($file.Name)"
                                             }
                                         } catch {
-                                            $errors += "Failed to restore system SSH file $($file.Name): $_"
+                                            $errors += "Failed to restore system SSH file $($file.Name)`: $_"
+                                            Write-Warning "Failed to restore system SSH file $($file.Name)"
                                         }
                                     }
                                 }
@@ -317,7 +320,8 @@ function Restore-SSHSettings {
                                                 }
                                                 $itemsRestored += $knownHosts.BackupName
                                             } catch {
-                                                $errors += "Failed to restore known hosts file $($knownHosts.BackupName): $_"
+                                                $errors += "Failed to restore known hosts file $($knownHosts.BackupName)`: $_"
+                                                Write-Warning "Failed to restore known hosts file $($knownHosts.BackupName)"
                                             }
                                         }
                                     }
@@ -338,7 +342,8 @@ function Restore-SSHSettings {
                                         }
                                         $itemsRestored += "PuTTY configuration"
                                     } catch {
-                                        $errors += "Failed to restore PuTTY configuration: $_"
+                                        $errors += "Failed to restore PuTTY configuration`: $_"
+                                        Write-Warning "Failed to restore PuTTY configuration"
                                     }
                                 }
                                 
@@ -357,7 +362,8 @@ function Restore-SSHSettings {
                                         }
                                         $itemsRestored += "WinSCP configuration"
                                     } catch {
-                                        $errors += "Failed to restore WinSCP configuration: $_"
+                                        $errors += "Failed to restore WinSCP configuration`: $_"
+                                        Write-Warning "Failed to restore WinSCP configuration"
                                     }
                                 }
                                 
@@ -383,11 +389,13 @@ function Restore-SSHSettings {
                                                 }
                                                 $itemsRestored += "Service configuration for $serviceName"
                                             } catch {
-                                                $errors += "Failed to restore service configuration for $serviceName : $_"
+                                                $errors += "Failed to restore service configuration for $serviceName `: $_"
+                                                Write-Warning "Failed to restore service configuration for $serviceName"
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore SSH service configuration: $_"
+                                        $errors += "Failed to restore SSH service configuration`: $_"
+                                        Write-Warning "Failed to restore SSH service configuration"
                                     }
                                 }
                                 
@@ -408,7 +416,8 @@ function Restore-SSHSettings {
                                         
                                         $itemsRestored += "SSH capabilities information (informational)"
                                     } catch {
-                                        $errors += "Failed to restore SSH capabilities information: $_"
+                                        $errors += "Failed to restore SSH capabilities information`: $_"
+                                        Write-Warning "Failed to restore SSH capabilities information"
                                     }
                                 }
                             }
@@ -420,8 +429,8 @@ function Restore-SSHSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             
@@ -438,7 +447,7 @@ function Restore-SSHSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not restart service $serviceName : $_"
+                        Write-Verbose "Could not restart service $serviceName `: $_"
                     }
                 }
             }

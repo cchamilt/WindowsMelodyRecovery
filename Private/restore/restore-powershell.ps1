@@ -135,8 +135,8 @@ function Restore-PowerShellSettings {
                             reg import $regFile.FullName /y 2>$null
                             $restoredItems += $regFile.Name
                         } catch {
-                            $errors += "Failed to restore registry from $($regFile.Name): $_"
-                            Write-Host "Warning: Failed to restore registry from $($regFile.Name)" -ForegroundColor Yellow
+                            $errors += "Failed to restore registry from $($regFile.Name)`: $_"
+                            Write-Warning "Failed to restore registry from $($regFile.Name)"
                         }
                     }
                 }
@@ -164,8 +164,8 @@ function Restore-PowerShellSettings {
                                 Write-Host "Restored profile: $($profile.Value)" -ForegroundColor Green
                                 $restoredItems += $profile.Value
                             } catch {
-                                $errors += "Failed to restore profile $($profile.Value): $_"
-                                Write-Host "Warning: Failed to restore profile $($profile.Value)" -ForegroundColor Yellow
+                                $errors += "Failed to restore profile $($profile.Value)`: $_"
+                                Write-Warning "Failed to restore profile $($profile.Value)"
                             }
                         }
                     }
@@ -189,8 +189,8 @@ function Restore-PowerShellSettings {
                             Write-Host "NuGet package sources restored successfully" -ForegroundColor Green
                             $restoredItems += "nuget_sources.json"
                         } catch {
-                            $errors += "Failed to restore NuGet sources: $_"
-                            Write-Host "Warning: Failed to restore NuGet sources" -ForegroundColor Yellow
+                            $errors += "Failed to restore NuGet sources`: $_"
+                            Write-Warning "Failed to restore NuGet sources"
                         }
                     }
                 }
@@ -216,8 +216,8 @@ function Restore-PowerShellSettings {
                             Write-Host "PowerShell repositories restored successfully" -ForegroundColor Green
                             $restoredItems += "ps_repositories.json"
                         } catch {
-                            $errors += "Failed to restore PS repositories: $_"
-                            Write-Host "Warning: Failed to restore PS repositories" -ForegroundColor Yellow
+                            $errors += "Failed to restore PS repositories`: $_"
+                            Write-Warning "Failed to restore PS repositories"
                         }
                     }
                 }
@@ -234,8 +234,8 @@ function Restore-PowerShellSettings {
                             Write-Host "Found $($modules.Count) modules in backup. Use Install-Module to restore them manually if needed." -ForegroundColor Green
                             $restoredItems += "installed_modules.json"
                         } catch {
-                            $errors += "Failed to restore installed modules info: $_"
-                            Write-Host "Warning: Failed to restore installed modules info" -ForegroundColor Yellow
+                            $errors += "Failed to restore installed modules info`: $_"
+                            Write-Warning "Failed to restore installed modules info"
                         }
                     }
                 }
@@ -255,8 +255,8 @@ function Restore-PowerShellSettings {
                             Copy-Item -Path $historyFile -Destination "$historyPath\ConsoleHost_history.txt" -Force
                             $restoredItems += "ConsoleHost_history.txt"
                         } catch {
-                            $errors += "Failed to restore PSReadLine history: $_"
-                            Write-Host "Warning: Failed to restore PSReadLine history" -ForegroundColor Yellow
+                            $errors += "Failed to restore PSReadLine history`: $_"
+                            Write-Warning "Failed to restore PSReadLine history"
                         }
                     }
                 }
@@ -281,8 +281,8 @@ function Restore-PowerShellSettings {
                                 Copy-Item -Path "$sourcePath\*" -Destination $path.Value -Recurse -Force
                                 $restoredItems += $path.Key
                             } catch {
-                                $errors += "Failed to restore $($path.Key): $_"
-                                Write-Host "Warning: Failed to restore $($path.Key)" -ForegroundColor Yellow
+                                $errors += "Failed to restore $($path.Key)`: $_"
+                                Write-Warning "Failed to restore $($path.Key)"
                             }
                         }
                     }
@@ -303,8 +303,8 @@ function Restore-PowerShellSettings {
                             Copy-Item -Path "$moduleConfigBackupPath\*" -Destination $moduleConfigPath -Recurse -Force
                             $restoredItems += "ModuleConfigs"
                         } catch {
-                            $errors += "Failed to restore module configurations: $_"
-                            Write-Host "Warning: Failed to restore module configurations" -ForegroundColor Yellow
+                            $errors += "Failed to restore module configurations`: $_"
+                            Write-Warning "Failed to restore module configurations"
                         }
                     }
                 }
@@ -335,8 +335,8 @@ function Restore-PowerShellSettings {
                                     $restoredItems += $config.Key
                                 }
                             } catch {
-                                $errors += "Failed to restore $($config.Key): $_"
-                                Write-Host "Warning: Failed to restore $($config.Key)" -ForegroundColor Yellow
+                                $errors += "Failed to restore $($config.Key)`: $_"
+                                Write-Warning "Failed to restore $($config.Key)"
                             }
                         }
                     }

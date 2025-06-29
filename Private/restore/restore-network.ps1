@@ -147,7 +147,7 @@ function Restore-NetworkSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -174,7 +174,7 @@ function Restore-NetworkSettings {
                             }
                             $result.ItemsRestored += "network_adapters.json"
                         } catch {
-                            $result.Errors += "Failed to restore network adapter settings: $_"
+                            $result.Errors += "Failed to restore network adapter settings`: $_"
                             $result.ItemsSkipped += "network_adapters.json"
                             if (!$Force) { throw }
                         }
@@ -193,7 +193,7 @@ function Restore-NetworkSettings {
                             # This is a placeholder for the actual implementation
                             $result.ItemsRestored += "network_config.json"
                         } catch {
-                            $result.Errors += "Failed to restore network configuration: $_"
+                            $result.Errors += "Failed to restore network configuration`: $_"
                             $result.ItemsSkipped += "network_config.json"
                             if (!$Force) { throw }
                         }
@@ -216,7 +216,7 @@ function Restore-NetworkSettings {
                             }
                             $result.ItemsRestored += "wireless_profiles.json"
                         } catch {
-                            $result.Errors += "Failed to restore wireless profiles: $_"
+                            $result.Errors += "Failed to restore wireless profiles`: $_"
                             $result.ItemsSkipped += "wireless_profiles.json"
                             if (!$Force) { throw }
                         }
@@ -251,7 +251,7 @@ function Restore-NetworkSettings {
                             }
                             $result.ItemsRestored += "firewall_rules.json"
                         } catch {
-                            $result.Errors += "Failed to restore firewall rules: $_"
+                            $result.Errors += "Failed to restore firewall rules`: $_"
                             $result.ItemsSkipped += "firewall_rules.json"
                             if (!$Force) { throw }
                         }
@@ -275,7 +275,7 @@ function Restore-NetworkSettings {
                             }
                             $result.ItemsRestored += "network_shares.json"
                         } catch {
-                            $result.Errors += "Failed to restore network shares: $_"
+                            $result.Errors += "Failed to restore network shares`: $_"
                             $result.ItemsSkipped += "network_shares.json"
                             if (!$Force) { throw }
                         }
@@ -300,7 +300,7 @@ function Restore-NetworkSettings {
                             }
                             $result.ItemsRestored += "proxy_settings.json"
                         } catch {
-                            $result.Errors += "Failed to restore proxy settings: $_"
+                            $result.Errors += "Failed to restore proxy settings`: $_"
                             $result.ItemsSkipped += "proxy_settings.json"
                             if (!$Force) { throw }
                         }
@@ -319,7 +319,7 @@ function Restore-NetworkSettings {
                             }
                             $result.ItemsRestored += "hosts"
                         } catch {
-                            $result.Errors += "Failed to restore hosts file: $_"
+                            $result.Errors += "Failed to restore hosts file`: $_"
                             $result.ItemsSkipped += "hosts"
                             if (!$Force) { throw }
                         }

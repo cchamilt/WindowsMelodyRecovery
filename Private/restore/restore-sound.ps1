@@ -162,7 +162,7 @@ function Restore-SoundSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not stop service $serviceName : $_"
+                        Write-Verbose "Could not stop service $serviceName `: $_"
                     }
                 }
             }
@@ -190,7 +190,8 @@ function Restore-SoundSettings {
                                             }
                                             $itemsRestored += "Registry\$($regFile.Name)"
                                         } catch {
-                                            $errors += "Failed to import registry file $($regFile.Name): $_"
+                                            $errors += "Failed to import registry file $($regFile.Name)`: $_"
+                                            Write-Warning "Failed to import registry file $($regFile.Name)"
                                         }
                                     }
                                 }
@@ -203,7 +204,8 @@ function Restore-SoundSettings {
                                         $itemsRestored += "Audio device information (informational)"
                                         Write-Verbose "Audio device information restored (informational backup only)"
                                     } catch {
-                                        $errors += "Failed to restore audio device information: $_"
+                                        $errors += "Failed to restore audio device information`: $_"
+                                        Write-Warning "Failed to restore audio device information"
                                     }
                                 }
                                 
@@ -226,7 +228,8 @@ function Restore-SoundSettings {
                                         
                                         $itemsRestored += "Default device information (manual intervention may be required)"
                                     } catch {
-                                        $errors += "Failed to restore default device information: $_"
+                                        $errors += "Failed to restore default device information`: $_"
+                                        Write-Warning "Failed to restore default device information"
                                     }
                                 }
                                 
@@ -248,7 +251,8 @@ function Restore-SoundSettings {
                                             }
                                             $itemsRestored += "SoundSchemes\$($soundFile.Name)"
                                         } catch {
-                                            $errors += "Failed to restore sound file $($soundFile.Name): $_"
+                                            $errors += "Failed to restore sound file $($soundFile.Name)`: $_"
+                                            Write-Warning "Failed to restore sound file $($soundFile.Name)"
                                         }
                                     }
                                 }
@@ -270,11 +274,13 @@ function Restore-SoundSettings {
                                                 }
                                                 $itemsRestored += "Service configuration for $serviceName"
                                             } catch {
-                                                $errors += "Failed to restore service configuration for $serviceName : $_"
+                                                $errors += "Failed to restore service configuration for $serviceName `: $_"
+                                                Write-Warning "Failed to restore service configuration for $serviceName"
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore audio service configuration: $_"
+                                        $errors += "Failed to restore audio service configuration`: $_"
+                                        Write-Warning "Failed to restore audio service configuration"
                                     }
                                 }
                                 
@@ -292,7 +298,8 @@ function Restore-SoundSettings {
                                                 }
                                                 $itemsRestored += "System volume settings (partial restoration)"
                                             } catch {
-                                                $errors += "Failed to restore system volume settings: $_"
+                                                $errors += "Failed to restore system volume settings`: $_"
+                                                Write-Warning "Failed to restore system volume settings"
                                             }
                                         }
                                         
@@ -309,11 +316,13 @@ function Restore-SoundSettings {
                                                 }
                                                 $itemsRestored += "Per-application volume settings"
                                             } catch {
-                                                $errors += "Failed to restore per-app volume settings: $_"
+                                                $errors += "Failed to restore per-app volume settings`: $_"
+                                                Write-Warning "Failed to restore per-app volume settings"
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore volume mixer settings: $_"
+                                        $errors += "Failed to restore volume mixer settings`: $_"
+                                        Write-Warning "Failed to restore volume mixer settings"
                                     }
                                 }
                                 
@@ -331,7 +340,8 @@ function Restore-SoundSettings {
                                                 }
                                                 $itemsRestored += "Audio enhancements settings"
                                             } catch {
-                                                $errors += "Failed to restore audio enhancements: $_"
+                                                $errors += "Failed to restore audio enhancements`: $_"
+                                                Write-Warning "Failed to restore audio enhancements"
                                             }
                                         }
                                         
@@ -345,11 +355,13 @@ function Restore-SoundSettings {
                                                 }
                                                 $itemsRestored += "Spatial sound settings"
                                             } catch {
-                                                $errors += "Failed to restore spatial sound settings: $_"
+                                                $errors += "Failed to restore spatial sound settings`: $_"
+                                                Write-Warning "Failed to restore spatial sound settings"
                                             }
                                         }
                                     } catch {
-                                        $errors += "Failed to restore audio enhancements and effects: $_"
+                                        $errors += "Failed to restore audio enhancements and effects`: $_"
+                                        Write-Warning "Failed to restore audio enhancements and effects"
                                     }
                                 }
                             }
@@ -361,8 +373,8 @@ function Restore-SoundSettings {
                         Write-Verbose "Skipped $itemDescription - not found in backup"
                     }
                 } catch {
-                    $errors += "Failed to restore $itemDescription : $_"
-                    Write-Warning "Failed to restore $itemDescription : $_"
+                    $errors += "Failed to restore $itemDescription `: $_"
+                    Write-Warning "Failed to restore $itemDescription `: $_"
                 }
             }
             
@@ -379,7 +391,7 @@ function Restore-SoundSettings {
                             }
                         }
                     } catch {
-                        Write-Verbose "Could not start service $serviceName : $_"
+                        Write-Verbose "Could not start service $serviceName `: $_"
                     }
                 }
             }

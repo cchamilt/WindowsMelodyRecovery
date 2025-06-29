@@ -129,7 +129,7 @@ function Restore-MouseSettings {
                                 }
                                 $result.ItemsRestored += "Registry\$($_.Name)"
                             } catch {
-                                $result.Errors += "Failed to import registry file $($_.Name): $_"
+                                $result.Errors += "Failed to import registry file $($_.Name)`: $_"
                                 $result.ItemsSkipped += "Registry\$($_.Name)"
                                 if (!$Force) { throw }
                             }
@@ -156,7 +156,7 @@ function Restore-MouseSettings {
                             }
                             $result.ItemsRestored += "mouse_settings.json"
                         } catch {
-                            $result.Errors += "Failed to restore mouse settings: $_"
+                            $result.Errors += "Failed to restore mouse settings`: $_"
                             $result.ItemsSkipped += "mouse_settings.json"
                             if (!$Force) { throw }
                         }
@@ -182,7 +182,7 @@ function Restore-MouseSettings {
                             }
                             $result.ItemsRestored += "cursor_settings.json"
                         } catch {
-                            $result.Errors += "Failed to restore cursor settings: $_"
+                            $result.Errors += "Failed to restore cursor settings`: $_"
                             $result.ItemsSkipped += "cursor_settings.json"
                             if (!$Force) { throw }
                         }
@@ -208,7 +208,7 @@ function Restore-MouseSettings {
                             }
                             $result.ItemsRestored += "mouse_accessibility.json"
                         } catch {
-                            $result.Errors += "Failed to restore mouse accessibility settings: $_"
+                            $result.Errors += "Failed to restore mouse accessibility settings`: $_"
                             $result.ItemsSkipped += "mouse_accessibility.json"
                             if (!$Force) { throw }
                         }

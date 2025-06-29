@@ -91,7 +91,7 @@ function Stop-VisioProcesses {
                         $stoppedProcesses += $process.Name
                         Write-Host "Successfully stopped Visio process $($process.Name)" -ForegroundColor Green
                     } catch {
-                        Write-Warning "Failed to stop Visio process $($process.Name): $_"
+                        Write-Warning "Failed to stop Visio process $($process.Name)`: $_"
                     }
                 }
             }
@@ -191,7 +191,8 @@ function Restore-VisioSettings {
                                             $importedFiles += $regFile.Name
                                         }
                                     } catch {
-                                        $script:Errors += "Error importing registry file $($regFile.Name): $_"
+                                        $script:Errors += "Error importing registry file $($regFile.Name)`: $_"
+                                        Write-Warning "Failed to import registry file $($regFile.Name)"
                                     }
                                 }
                             }
@@ -359,8 +360,8 @@ function Restore-VisioSettings {
                             }
                         }
                     } catch {
-                        $script:Errors += "Failed to restore $itemName : $_"
-                        Write-Warning "Failed to restore $($item.Description): $_"
+                        $script:Errors += "Failed to restore $itemName `: $_"
+                        Write-Warning "Failed to restore $($item.Description)`: $_"
                     }
                 }
             }

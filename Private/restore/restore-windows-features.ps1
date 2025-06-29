@@ -162,7 +162,8 @@ function Restore-WindowsFeaturesSettings {
                                             $importedFiles += $regFile.Name
                                         }
                                     } catch {
-                                        $script:Errors += "Error importing registry file $($regFile.Name): $_"
+                                        $script:Errors += "Error importing registry file $($regFile.Name)`: $_"
+                                        Write-Warning "Failed to import registry file $($regFile.Name)"
                                     }
                                 }
                             }
@@ -196,7 +197,8 @@ function Restore-WindowsFeaturesSettings {
                                                 $restoredFeatures += $feature.FeatureName
                                                 Write-Host "Enabled feature: $($feature.FeatureName)" -ForegroundColor Green
                                             } catch {
-                                                $script:Errors += "Failed to enable feature $($feature.FeatureName): $_"
+                                                $script:Errors += "Failed to enable feature $($feature.FeatureName)`: $_"
+                                                Write-Warning "Failed to enable feature $($feature.FeatureName)"
                                             }
                                         }
                                         
@@ -205,8 +207,8 @@ function Restore-WindowsFeaturesSettings {
                                         return @("Test Optional Features")
                                     }
                                 } catch {
-                                    $script:Errors += "Failed to restore Windows Optional Features: $_"
-                                    return @()
+                                    $script:Errors += "Failed to restore Windows Optional Features`: $_"
+                                    Write-Warning "Failed to restore Windows Optional Features"
                                 }
                             }
                         }
@@ -237,7 +239,8 @@ function Restore-WindowsFeaturesSettings {
                                                 $restoredCapabilities += $capability.Name
                                                 Write-Host "Installed capability: $($capability.Name)" -ForegroundColor Green
                                             } catch {
-                                                $script:Errors += "Failed to install capability $($capability.Name): $_"
+                                                $script:Errors += "Failed to install capability $($capability.Name)`: $_"
+                                                Write-Warning "Failed to install capability $($capability.Name)"
                                             }
                                         }
                                         
@@ -246,8 +249,8 @@ function Restore-WindowsFeaturesSettings {
                                         return @("Test Capabilities")
                                     }
                                 } catch {
-                                    $script:Errors += "Failed to restore Windows Capabilities: $_"
-                                    return @()
+                                    $script:Errors += "Failed to restore Windows Capabilities`: $_"
+                                    Write-Warning "Failed to restore Windows Capabilities"
                                 }
                             }
                         }
@@ -281,7 +284,8 @@ function Restore-WindowsFeaturesSettings {
                                                     $restoredFeatures += $feature.Name
                                                     Write-Host "Installed server feature: $($feature.Name)" -ForegroundColor Green
                                                 } catch {
-                                                    $script:Errors += "Failed to install server feature $($feature.Name): $_"
+                                                    $script:Errors += "Failed to install server feature $($feature.Name)`: $_"
+                                                    Write-Warning "Failed to install server feature $($feature.Name)"
                                                 }
                                             }
                                             
@@ -294,8 +298,8 @@ function Restore-WindowsFeaturesSettings {
                                         return @("Test Server Features")
                                     }
                                 } catch {
-                                    $script:Errors += "Failed to restore Windows Server Features: $_"
-                                    return @()
+                                    $script:Errors += "Failed to restore Windows Server Features`: $_"
+                                    Write-Warning "Failed to restore Windows Server Features"
                                 }
                             }
                         }
@@ -339,8 +343,8 @@ function Restore-WindowsFeaturesSettings {
                             $script:ItemsSkipped += "$itemName (no items to restore)"
                         }
                     } catch {
-                        $script:Errors += "Failed to restore $itemName : $_"
-                        Write-Warning "Failed to restore $($item.Description): $_"
+                        $script:Errors += "Failed to restore $itemName `: $_"
+                        Write-Warning "Failed to restore $($item.Description)`: $_"
                     }
                 }
             }

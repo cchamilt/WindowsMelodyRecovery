@@ -176,8 +176,8 @@ function Restore-BrowserSettings {
                                     reg import $regFile.FullName /y 2>$null
                                     $restoredItems += "$browserName\$($regFile.Name)"
                                 } catch {
-                                    $errors += "Failed to import registry for $browserName from $($regFile.Name): $_"
-                                    Write-Host "Warning: Failed to import registry from $($regFile.Name)" -ForegroundColor Yellow
+                                    $errors += "Failed to import registry for $browserName from $($regFile.Name)`: $_"
+                                    Write-Host "Warning: Failed to import registry for $browserName" -ForegroundColor Yellow
                                 }
                             }
                         }
@@ -223,7 +223,7 @@ function Restore-BrowserSettings {
                                         $restoredItems += "$browserName\UserData\$($file.Name)"
                                         Write-Host "Restored $($file.Name) for $browserName" -ForegroundColor Green
                                     } catch {
-                                        $errors += "Failed to restore $($file.Name) for $browserName: $_"
+                                        $errors += "Failed to restore $($file.Name) for $browserName`: $_"
                                         Write-Host "Warning: Failed to restore $($file.Name) for $browserName" -ForegroundColor Yellow
                                     }
                                 }
@@ -254,7 +254,7 @@ function Restore-BrowserSettings {
                                         $restoredItems += "$browserName\$fileName"
                                         Write-Host "Restored $fileName for $browserName" -ForegroundColor Green
                                     } catch {
-                                        $errors += "Failed to restore $fileName for $browserName: $_"
+                                        $errors += "Failed to restore $fileName for $browserName`: $_"
                                         Write-Host "Warning: Failed to restore $fileName for $browserName" -ForegroundColor Yellow
                                     }
                                 }
@@ -290,7 +290,7 @@ function Restore-BrowserSettings {
                                             $restoredItems += "Firefox\$fileName"
                                             Write-Host "Restored Firefox $fileName" -ForegroundColor Green
                                         } catch {
-                                            $errors += "Failed to restore Firefox $fileName: $_"
+                                            $errors += "Failed to restore Firefox $fileName`: $_"
                                             Write-Host "Warning: Failed to restore Firefox $fileName" -ForegroundColor Yellow
                                         }
                                     }
