@@ -1,0 +1,50 @@
+metadata:
+  name: Display Settings
+  description: Template for backing up and restoring display configuration.
+  version: "1.0"
+  author: AI Assistant
+
+prerequisites:
+  - type: script
+    name: "ScreenResolution PowerShell Module"
+    inline_script: |
+      try {
+          Get-Command Get-DisplayResolution -ErrorAction Stop | Out-Null
+          Write-Output "Module exists"
+      } catch {
+          Write-Output "Module does not exist"
+      }
+    expected_output: "Module exists"
+    on_missing: warn
+
+registry:
+  - name: Display Orientation
+    path: "HKCU:\Control Panel\Desktop"
+    key_name: "DisplayOrientation"
+    type: value
+    action: sync
+    dynamic_state_path: "system_settings/display_orientation.json"
+    value_data: "1" # Default to Landscape
+
+  - name: Resolution Height
+    path: "HKCU:\Control Panel\Desktop"
+    key_name: "ResolutionHeight"
+    type: value
+    action: sync
+    dynamic_state_path: "system_settings/resolution_height.json"
+
+  - name: Resolution Width
+    path: "HKCU:\Control Panel\Desktop"
+    key_name: "ResolutionWidth"
+    type: value
+    action: sync
+    dynamic_state_path: "system_settings/resolution_width.json"
+
+stages:
+  post_update:
+    - name: Apply Display Settings (Simulated)
+      type: script
+      inline_script: |
+        Write-Host "Simulating applying display settings based on restored registry values."
+        # In a real scenario, you might invoke a native API or tool here.
+      parameters: {} 

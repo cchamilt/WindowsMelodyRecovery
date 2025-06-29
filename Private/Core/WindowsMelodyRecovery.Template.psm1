@@ -59,4 +59,4 @@ function Test-WmrTemplateSchema {
 Export-ModuleMember -Function @(
     "Read-WmrTemplateConfig",
     "Test-WmrTemplateSchema"
-) 
+)

@@ -25,6 +25,7 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 | **[Contributing](docs/CONTRIBUTING.md)** | Development setup and contribution guidelines |
 | **[Changelog](CHANGELOG.md)** | Version history and release notes |
 | **[Limits & Scope](docs/LIMITS.md)** | Module limitations and scope definition |
+| **[State Management Guide](docs/STATE_MANAGEMENT_GUIDE.md)** | Declarative state management system |
 
 ## 🧪 Testing & Quality
 
@@ -490,5 +491,33 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 [![WSL Compatible](https://img.shields.io/badge/WSL-Compatible-green.svg)](https://docs.microsoft.com/windows/wsl/)
 
 </div>
+
+## Template-Based State Management (New!)
+
+Windows Melody Recovery now supports a declarative, template-based approach to managing your system's configuration, applications, and files. This allows you to define your desired system state using human-readable YAML files, making backups, restores, and synchronizations more robust, readable, and idempotent.
+
+### Key Benefits:
+*   **Declarative Configuration:** Define *what* your system state should be, not just *how* to achieve it.
+*   **Idempotency:** Run templates multiple times to ensure your system converges to the desired state reliably.
+*   **Modular & Reusable:** Break down complex configurations into smaller, reusable YAML templates.
+*   **Prerequisite Checks:** Templates can define necessary conditions (e.g., specific software versions, registry settings) that must be met before operations proceed.
+
+For a comprehensive guide on creating and using templates, including detailed schema, usage examples, and best practices, please refer to: [State Management Guide](docs/STATE_MANAGEMENT_GUIDE.md)
+
+### Using the New System
+
+To use the new template-based system, you will primarily interact with `Backup-WindowsMelodyRecovery.ps1` and `Restore-WindowsMelodyRecovery.ps1` by providing a template path.
+
+**Example: Backing up your display settings using a template:**
+```powershell
+.\Public\Backup-WindowsMelodyRecovery.ps1 -TemplatePath ".\Templates\System\display.yaml"
+```
+
+**Example: Restoring Winget applications from a previous backup:**
+```powershell
+.\Public\Restore-WindowsMelodyRecovery.ps1 -TemplatePath ".\Templates\System\winget-apps.yaml" -RestoreFromDirectory ".\backups\backup_20240628_143000" # Replace with your actual backup directory
+```
+
+We encourage you to explore the `Templates/System/` directory for example templates to get started.
 
 

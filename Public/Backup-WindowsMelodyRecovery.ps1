@@ -1,150 +1,201 @@
 function Backup-WindowsMelodyRecovery {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter(Mandatory=$false)]
+        [string]$TemplatePath
+    )
 
     # Check if configuration is properly set up
     $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Backup not configured. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
-        Write-Host "Type 'Initialize-WindowsMelodyRecovery' to set up your Windows recovery configuration." -ForegroundColor Cyan
+        Write-Host "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
         return
     }
 
-    # Load backup scripts on demand
-    Import-PrivateScripts -Category 'backup'
-
-    # Define proper backup paths using config values
-    $BACKUP_ROOT = $config.BackupRoot
-    $MACHINE_NAME = $config.MachineName
-    $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
-
-    # Verify machine name is correct (not the default when we want a specific machine)
-    if ([string]::IsNullOrWhiteSpace($MACHINE_NAME) -or $MACHINE_NAME -eq "System.Collections.Hashtable") {
-        $MACHINE_NAME = $env:COMPUTERNAME
-        Write-Host "Machine name not properly configured. Using current computer name: $MACHINE_NAME" -ForegroundColor Yellow
-        
-        # Update configuration with proper machine name
-        Set-WindowsMelodyRecovery -MachineName $MACHINE_NAME
-        
-        # Update the machine backup path
-        $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
-    }
-
-    # Ensure machine backup directory exists
-    if (!(Test-Path -Path $MACHINE_BACKUP)) {
-        try {
-            New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
-            Write-Host "Created machine backup directory at: $MACHINE_BACKUP" -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to create machine backup directory: $_" -ForegroundColor Red
-            return
-        }
-    }
-
-    # Load backup configuration from configurable scripts list
-    $backupFunctions = Get-ScriptsConfig -Category 'backup'
-    
-    if (-not $backupFunctions) {
-        Write-Warning "No backup configuration found. Using fallback minimal list."
-        # Fallback to minimal essential backups
-        $backupFunctions = @(
-            @{ name = "Applications"; function = "Backup-Applications"; script = "backup-applications.ps1"; enabled = $true; required = $true }
-        )
-    }
-
-    # Collect any errors during backup
-    $backupErrors = @()
-
-    # Create a temporary file for capturing console output
-    $tempLogFile = [System.IO.Path]::GetTempFileName()
+    # Start transcript for logging
+    Start-Transcript -Path (Join-Path $logPath "Backup-WindowsMelodyRecovery-$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Append -Force
 
     try {
-        # Start transcript to capture all console output
-        Start-Transcript -Path $tempLogFile -Append
+        Write-Host "Starting Windows Melody Recovery Backup..." -ForegroundColor Cyan
 
-        # Backup scripts are now loaded via Import-PrivateScripts
-        $BackupRootPath = Join-Path $config.BackupRoot $config.MachineName
-        $availableBackups = @()
-        
-        # Check which backup functions are available after loading scripts
-        foreach ($backup in $backupFunctions) {
-            if (Get-Command $backup.function -ErrorAction SilentlyContinue) {
-                $availableBackups += $backup
-            } else {
-                Write-Verbose "Backup function $($backup.function) not available"
+        # Define proper backup paths using config values
+        $BACKUP_ROOT = $config.BackupRoot
+        $MACHINE_NAME = $config.MachineName
+        $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $MACHINE_NAME
+        $SHARED_BACKUP = Join-Path $BACKUP_ROOT "shared"
+
+        # Ensure necessary backup directories exist
+        if (-not (Test-Path -Path $MACHINE_BACKUP -PathType Container)) {
+            try {
+                New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
+                Write-Host "Created machine backup directory at: $MACHINE_BACKUP" -ForegroundColor Green
+            } catch {
+                Write-Host "Failed to create machine backup directory: $_" -ForegroundColor Red
+                throw "Failed to create machine backup directory."
+            }
+        }
+        if (-not (Test-Path -Path $SHARED_BACKUP -PathType Container)) {
+            try {
+                New-Item -ItemType Directory -Path $SHARED_BACKUP -Force | Out-Null
+                Write-Host "Created shared backup directory at: $SHARED_BACKUP" -ForegroundColor Green
+            } catch {
+                Write-Host "Failed to create shared backup directory: $_" -ForegroundColor Red
+                throw "Failed to create shared backup directory."
             }
         }
 
-        # Run all available backup functions
-        if ($availableBackups.Count -eq 0) {
-            Write-Host "No backup functions are available. Check that backup scripts exist in the Private\backup directory." -ForegroundColor Yellow
+        if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('TemplatePath')) {
+            # New template-based backup logic
+            Write-Host "Performing template-based backup using template: $TemplatePath"
+
+            # Create a timestamped directory for the current backup's state files
+            $Timestamp = (Get-Date -Format "yyyyMMdd_HHmmss")
+            $CurrentBackupDir = Join-Path $BACKUP_ROOT "template_backup_$Timestamp"
+
+            # Ensure the template backup directory exists
+            if (-not (Test-Path $CurrentBackupDir -PathType Container)) {
+                New-Item -ItemType Directory -Path $CurrentBackupDir -Force | Out-Null
+                Write-Host "Created template backup directory for state files: $CurrentBackupDir"
+            }
+
+            # Dot-source the InvokeWmrTemplate module
+            . (Join-Path $PSScriptRoot "..\Private\Core\InvokeWmrTemplate.ps1")
+
+            Invoke-WmrTemplate -TemplatePath $TemplatePath -Operation "Backup" -StateFilesDirectory $CurrentBackupDir
+            Write-Host "Template-based backup operation completed successfully."
+
         } else {
-            Write-Host "Found $($availableBackups.Count) available backup functions" -ForegroundColor Green
-            
-            # Run all backup functions with backup path
-            foreach ($backup in $availableBackups) {
-                try {
-                    $params = @{
-                        BackupRootPath = $MACHINE_BACKUP
-                        MachineBackupPath = $MACHINE_BACKUP
-                        SharedBackupPath = Join-Path $BACKUP_ROOT "shared"
+            # Original script-based backup logic
+            Write-Host "Performing script-based backup..."
+
+            # Load backup scripts on demand
+            Import-PrivateScripts -Category 'backup'
+
+            # Define this function directly in the script to avoid dependency issues
+            function Test-BackupPath {
+                param (
+                    [Parameter(Mandatory=$true)]
+                    [string]$Path,
+
+                    [Parameter(Mandatory=$true)]
+                    [string]$BackupType,
+                    
+                    [Parameter(Mandatory=$true)]
+                    [string]$MACHINE_BACKUP,
+                    
+                    [Parameter(Mandatory=$true)]
+                    [string]$SHARED_BACKUP
+                )
+                
+                # First check machine-specific backup
+                $machinePath = Join-Path $MACHINE_BACKUP $Path
+                if (Test-Path $machinePath) {
+                    Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
+                    return $machinePath
+                }
+                
+                # Fall back to shared backup
+                $sharedPath = Join-Path $SHARED_BACKUP $Path
+                if (Test-Path $sharedPath) {
+                    Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
+                    return $sharedPath
+                }
+                
+                Write-Host "No $BackupType backup found" -ForegroundColor Yellow
+                return $null
+            }
+
+            $backupFunctions = Get-ScriptsConfig -Category 'backup'
+
+            if (-not $backupFunctions) {
+                Write-Warning "No backup configuration found. Using fallback minimal list."
+                $backupFunctions = @(
+                    @{ name = "Applications"; function = "Backup-Applications"; script = "backup-applications.ps1"; enabled = $true; required = $true }
+                )
+            }
+
+            $availableBackups = 0
+
+            foreach ($backup in $backupFunctions) {
+                if (Get-Command $backup.function -ErrorAction SilentlyContinue) {
+                    try {
+                        $params = @{
+                            BackupRootPath = $MACHINE_BACKUP
+                            MachineBackupPath = $MACHINE_BACKUP
+                            SharedBackupPath = $SHARED_BACKUP
+                        }
+                        & $backup.function @params
+                        $availableBackups++
+                        Write-Verbose "Successfully executed $($backup.function)"
+                    } catch {
+                        Write-Host "Failed to execute $($backup.function) : $_" -ForegroundColor Red
                     }
-                    & $backup.function @params -ErrorAction Stop
-                } catch {
-                    $errorMessage = "Failed to backup $($backup.name): $_"
-                    Write-Host $errorMessage -ForegroundColor Red
-                    $backupErrors += $errorMessage
+                } else {
+                    Write-Verbose "Backup function $($backup.function) not available"
                 }
             }
 
-            Write-Host "Settings backup completed!" -ForegroundColor Green
+            if ($availableBackups -eq 0) {
+                Write-Host "No backup functions were found. Check that backup scripts exist in the Private\backup directory." -ForegroundColor Yellow
+            } else {
+                Write-Host "Script-based backup completed! ($availableBackups functions executed)" -ForegroundColor Green
+            }
+
+            # Run final post-backup applications analysis
+            Write-Host "`nRunning final post-backup applications analysis..." -ForegroundColor Blue
+            try {
+                $modulePath = (Get-Module -Name WindowsMelodyRecovery -ErrorAction SilentlyContinue).Path | Split-Path
+                $analyzeScript = Join-Path $modulePath "Private\backup\analyze-unmanaged.ps1"
+                if (Test-Path $analyzeScript) {
+                    . $analyzeScript
+                    if (Get-Command Compare-UnmanagedApplications -ErrorAction SilentlyContinue) {
+                        $params = @{
+                            BackupRootPath = $MACHINE_BACKUP
+                            MachineBackupPath = $MACHINE_BACKUP
+                            SharedBackupPath = $SHARED_BACKUP
+                        }
+                        $analysisResult = & Compare-UnmanagedApplications @params -ErrorAction Stop
+                        if ($analysisResult.Success) {
+                            Write-Host "`n=== BACKUP COMPLETE - POST-BACKUP ANALYSIS ===`" -ForegroundColor Yellow
+                            Write-Host "Post-backup analysis saved to: $($analysisResult.BackupPath)" -ForegroundColor Green
+
+                            if ($analysisResult.Analysis -and $analysisResult.Analysis.Summary) {
+                                $summary = $analysisResult.Analysis.Summary
+                                Write-Host "`nApplication Backup Summary:" -ForegroundColor Green
+                                Write-Host "  Total Applications Scanned: $($summary.TotalApplications)" -ForegroundColor White
+                                Write-Host "  Managed (Backed Up by Pkg Mgr): $($summary.ManagedApplications)" -ForegroundColor Green
+                                Write-Host "  Unmanaged (Need Manual Backup): $($summary.UnmanagedApplications)" -ForegroundColor Red
+                                Write-Host "  Coverage: $($summary.Coverage)%" -ForegroundColor Cyan
+
+                                if ($summary.UnmanagedApplications -gt 0) {
+                                    Write-Host "`nIMPORTANT: Consider manually backing up configuration for the following applications:" -ForegroundColor Yellow
+                                    Write-Host "  - unmanaged-apps.json: Technical details for scripts" -ForegroundColor Cyan
+                                    Write-Host "  - unmanaged-apps.csv: Excel-friendly format for review" -ForegroundColor Cyan
+                                    Write-Host "  - managed-apps.json: List of automatically managed applications" -ForegroundColor Green
+                                    Write-Host "`nThese applications were not managed by any known package manager." -ForegroundColor Yellow
+                                } else {
+                                    Write-Host "`n🎉 CONGRATULATIONS: All applications are managed by a package manager or custom script!" -ForegroundColor Green
+                                }
+                            }
+                        }
+                    } else {
+                        Write-Host "Compare-UnmanagedApplications function not found" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Host "Analysis script not found - skipping final post-backup analysis" -ForegroundColor Yellow
+                }
+            } catch {
+                Write-Host "Failed to run final post-backup applications analysis: $_" -ForegroundColor Red
+            }
         }
-
-        # Add timestamp to backup log
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logFile = Join-Path $MACHINE_BACKUP "backup_history.log"
-
-        try {
-            Add-Content -Path $logFile -Value "Backup completed at: $timestamp" -ErrorAction Stop
-            Write-Host "Backup log updated at: $logFile" -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to update backup log: $_" -ForegroundColor Yellow
-        }
-
     } finally {
-        # Stop transcript
         Stop-Transcript
-
-        # Read the console output and look for error patterns
-        $consoleOutput = Get-Content -Path $tempLogFile -Raw
-        $errorPatterns = @(
-            'error',
-            'exception',
-            'failed',
-            'failure',
-            'unable to'
-        )
-
-        foreach ($pattern in $errorPatterns) {
-            if ($consoleOutput -match "(?im)$pattern") {
-                $matchs = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
-                foreach ($match in $matchs) {
-                    $errorMessage = "Console output error: $($match.Value.Trim())"
-                    if ($backupErrors -notcontains $errorMessage) {
-                        $backupErrors += $errorMessage
-                    }
-                }
-            }
-        }
-
-        # Clean up temporary file
-        Remove-Item -Path $tempLogFile -Force
     }
 
     # Return results
     return @{
-        Success = $backupErrors.Count -eq 0
-        Errors = $backupErrors
+        Success = $availableBackups -gt 0
+        BackupCount = $availableBackups
         BackupPath = $MACHINE_BACKUP
     }
 }

@@ -159,19 +159,19 @@ function Invoke-WmrStageItem {
         $scriptOutput = ""
         if ($StageItem.type -eq "script") {
             if ($StageItem.path) {
-                $scriptOutput = & $StageItem.path @StageItem.parameters | Out-String
+                $scriptOutput = & $StageItem.path $StageItem.parameters
             } elseif ($StageItem.inline_script) {
                 $scriptBlock = [ScriptBlock]::Create($StageItem.inline_script)
-                $scriptOutput = & $scriptBlock @StageItem.parameters | Out-String
+                $scriptOutput = & $scriptBlock $StageItem.parameters
             }
         }
 
         if ($StageItem.type -eq "check") {
             if ($StageItem.path) {
-                $scriptOutput = & $StageItem.path @StageItem.parameters | Out-String
+                $scriptOutput = & $StageItem.path $StageItem.parameters
             } elseif ($StageItem.inline_script) {
                 $scriptBlock = [ScriptBlock]::Create($StageItem.inline_script)
-                $scriptOutput = & $scriptBlock @StageItem.parameters | Out-String
+                $scriptOutput = & $scriptBlock $StageItem.parameters
             }
             if ($scriptOutput -notmatch $StageItem.expected_output) {
                 throw "Check `'$($StageItem.name)`' failed. Expected output did not match. Output: `n$scriptOutput`n"
