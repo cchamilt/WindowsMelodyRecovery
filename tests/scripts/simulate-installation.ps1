@@ -19,23 +19,18 @@ Write-Host "🔧 Simulating WindowsMissingRecovery module installation..." -Fore
 # Define module name
 $moduleName = "WindowsMissingRecovery"
 
-# Create a realistic user profile structure in Docker
-$userProfile = "/root"
-$documentsPath = Join-Path $userProfile "Documents"
-$moduleRoot = "PowerShell"  # PowerShell 7.x
-$modulesPath = Join-Path $documentsPath "$moduleRoot\Modules\$moduleName"
+# Use the correct PowerShell 7+ user module path on Linux
+$userModulePath = "/root/.local/share/powershell/Modules/$moduleName"
+$modulesRoot = "/root/.local/share/powershell/Modules"
 
 # Create the directory structure
 $requiredDirs = @(
-    $documentsPath,
-    (Join-Path $documentsPath $moduleRoot),
-    (Join-Path $documentsPath "$moduleRoot\Modules"),
-    $modulesPath,
-    (Join-Path $modulesPath "Public"),
-    (Join-Path $modulesPath "Private"),
-    (Join-Path $modulesPath "Config"),
-    (Join-Path $modulesPath "Templates"),
-    (Join-Path $modulesPath "docs")
+    $userModulePath,
+    (Join-Path $userModulePath "Public"),
+    (Join-Path $userModulePath "Private"),
+    (Join-Path $userModulePath "Config"),
+    (Join-Path $userModulePath "Templates"),
+    (Join-Path $userModulePath "docs")
 )
 
 foreach ($dir in $requiredDirs) {
@@ -48,14 +43,14 @@ foreach ($dir in $requiredDirs) {
 }
 
 # Handle clean install option
-if ($CleanInstall -and (Test-Path $modulesPath)) {
+if ($CleanInstall -and (Test-Path $userModulePath)) {
     Write-Host "Clean install requested. Removing existing module..." -ForegroundColor Yellow
     try {
         # Try to remove the module from memory first
         if (Get-Module $moduleName -ErrorAction SilentlyContinue) {
             Remove-Module $moduleName -Force -ErrorAction SilentlyContinue
         }
-        Remove-Item -Path $modulesPath -Recurse -Force
+        Remove-Item -Path $userModulePath -Recurse -Force
         Write-Host "Existing module removed successfully." -ForegroundColor Green
     }
     catch {
@@ -72,18 +67,18 @@ Write-Host "Copying module files to simulated installation location..." -Foregro
 
 # Copy main module files
 if (Test-Path "/workspace/$moduleName.psd1") {
-    Copy-Item -Path "/workspace/$moduleName.psd1" -Destination $modulesPath -Force
+    Copy-Item -Path "/workspace/$moduleName.psd1" -Destination $userModulePath -Force
     if ($Verbose) { Write-Host "  Copied $moduleName.psd1" -ForegroundColor Gray }
 }
 
 if (Test-Path "/workspace/$moduleName.psm1") {
-    Copy-Item -Path "/workspace/$moduleName.psm1" -Destination $modulesPath -Force
+    Copy-Item -Path "/workspace/$moduleName.psm1" -Destination $userModulePath -Force
     if ($Verbose) { Write-Host "  Copied $moduleName.psm1" -ForegroundColor Gray }
 }
 
 # Copy Public directory
 if (Test-Path "/workspace/Public") {
-    $targetPublic = Join-Path $modulesPath "Public"
+    $targetPublic = Join-Path $userModulePath "Public"
     Get-ChildItem -Path "/workspace/Public" -File | ForEach-Object {
         Copy-Item -Path $_.FullName -Destination $targetPublic -Force
         if ($Verbose) { Write-Host "  Copied Public/$($_.Name)" -ForegroundColor Gray }
@@ -92,7 +87,7 @@ if (Test-Path "/workspace/Public") {
 
 # Copy Private directory
 if (Test-Path "/workspace/Private") {
-    $targetPrivate = Join-Path $modulesPath "Private"
+    $targetPrivate = Join-Path $userModulePath "Private"
     Get-ChildItem -Path "/workspace/Private" -Recurse | ForEach-Object {
         if ($_.PSIsContainer) {
             $targetDir = Join-Path $targetPrivate $_.FullName.Replace("/workspace/Private", "")
@@ -114,7 +109,7 @@ if (Test-Path "/workspace/Private") {
 
 # Copy Templates directory
 if (Test-Path "/workspace/Templates") {
-    $targetTemplates = Join-Path $modulesPath "Templates"
+    $targetTemplates = Join-Path $userModulePath "Templates"
     Get-ChildItem -Path "/workspace/Templates" -File | ForEach-Object {
         Copy-Item -Path $_.FullName -Destination $targetTemplates -Force
         if ($Verbose) { Write-Host "  Copied Templates/$($_.Name)" -ForegroundColor Gray }
@@ -123,7 +118,7 @@ if (Test-Path "/workspace/Templates") {
 
 # Copy docs directory
 if (Test-Path "/workspace/docs") {
-    $targetDocs = Join-Path $modulesPath "docs"
+    $targetDocs = Join-Path $userModulePath "docs"
     Get-ChildItem -Path "/workspace/docs" -Recurse | ForEach-Object {
         if ($_.PSIsContainer) {
             $targetDir = Join-Path $targetDocs $_.FullName.Replace("/workspace/docs", "")
@@ -143,16 +138,15 @@ if (Test-Path "/workspace/docs") {
     }
 }
 
-# Add the module path to PSModulePath
-$modulesRoot = Split-Path $modulesPath
-if (!($Env:PSModulePath -split ";" -contains $modulesRoot)) {
-    $Env:PSModulePath = "$modulesRoot;$Env:PSModulePath"
+# Add the module path to PSModulePath if not already present
+if (!($Env:PSModulePath -split ":" -contains $modulesRoot)) {
+    $Env:PSModulePath = "$modulesRoot" + ":" + "$Env:PSModulePath"
     if ($Verbose) { Write-Host "Added $modulesRoot to PSModulePath" -ForegroundColor Gray }
 }
 
 # Verify the module manifest is valid
 try {
-    $testResult = Test-ModuleManifest -Path (Join-Path $modulesPath "$moduleName.psd1") -ErrorAction Stop
+    $testResult = Test-ModuleManifest -Path (Join-Path $userModulePath "$moduleName.psd1") -ErrorAction Stop
     Write-Host "✓ Module manifest is valid" -ForegroundColor Green
 } catch {
     Write-Host "✗ Error validating module manifest: $_" -ForegroundColor Red
@@ -179,11 +173,11 @@ try {
 }
 
 Write-Host "✅ Module installation simulation completed successfully!" -ForegroundColor Green
-Write-Host "Module installed to: $modulesPath" -ForegroundColor Cyan
+Write-Host "Module installed to: $userModulePath" -ForegroundColor Cyan
 Write-Host "PSModulePath updated to include: $modulesRoot" -ForegroundColor Cyan
 
 return @{
     Success = $true
-    ModulePath = $modulesPath
+    ModulePath = $userModulePath
     ExportedFunctions = $exportedFunctions.Count
 }

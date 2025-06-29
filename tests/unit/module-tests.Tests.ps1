@@ -123,6 +123,14 @@ Describe "Windows Missing Recovery Module - Initialization Tests" -Tag "Initiali
             $status.Configuration.ModuleVersion | Should -Not -BeNullOrEmpty
             $status.Initialization.Initialized | Should -Not -BeNullOrEmpty
         }
+        
+        It "Should handle empty install path gracefully" {
+            { Initialize-WindowsMissingRecovery -InstallPath "" -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+        }
+        
+        It "Should initialize with valid install path" {
+            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt } | Should -Not -Throw
+        }
     }
     
     Context "Configuration Management" {
@@ -295,7 +303,7 @@ Describe "Windows Missing Recovery Module - Integration Tests" -Tag "Integration
     
     Context "Configuration Synchronization" {
         It "Should sync scripts successfully" {
-            { Sync-WindowsMissingRecoveryScripts -ErrorAction Stop } | Should -Not -Throw
+            { Sync-WindowsMissingRecoveryScripts -ErrorAction Stop -NoPrompt } | Should -Not -Throw
         }
         
         It "Should set scripts configuration" {
@@ -336,7 +344,7 @@ Describe "Windows Missing Recovery Module - Error Handling Tests" -Tag "ErrorHan
     
     Context "Missing Dependencies" {
         It "Should handle missing PowerShell modules gracefully" {
-            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir } | Should -Not -Throw
+            { Initialize-WindowsMissingRecovery -InstallPath $TestTempDir -NoPrompt } | Should -Not -Throw
         }
     }
     

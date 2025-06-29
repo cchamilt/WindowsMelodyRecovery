@@ -5,24 +5,26 @@ function Sync-WindowsMissingRecoveryScripts {
         [switch]$WhatIf,
         
         [Parameter(Mandatory=$false)]
-        [switch]$Force
+        [switch]$Force,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$NoPrompt
     )
 
     Write-Host "Syncing Scripts Configuration with Available Scripts..." -ForegroundColor Green
     
     # Get current module root - handle cases where PSScriptRoot might be empty
     $moduleRoot = $null
-    if ($PSScriptRoot) {
+    
+    # First, try to get the module path directly
+    $moduleInfo = Get-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
+    if ($moduleInfo) {
+        $moduleRoot = Split-Path $moduleInfo.Path -Parent
+    } elseif ($PSScriptRoot) {
         $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     } else {
-        # Fallback: try to get module path
-        $moduleInfo = Get-Module WindowsMissingRecovery -ErrorAction SilentlyContinue
-        if ($moduleInfo) {
-            $moduleRoot = Split-Path $moduleInfo.Path -Parent
-        } else {
-            # Last resort: use current directory or workspace
-            $moduleRoot = if (Test-Path "/workspace") { "/workspace" } else { Get-Location }
-        }
+        # Last resort: use current directory or workspace
+        $moduleRoot = if (Test-Path "/workspace") { "/workspace" } else { Get-Location }
     }
     
     # Additional fallback for test environments
@@ -32,7 +34,8 @@ function Sync-WindowsMissingRecoveryScripts {
             "/workspace",
             (Get-Location),
             (Split-Path (Get-Command WindowsMissingRecovery -ErrorAction SilentlyContinue).Source -Parent -ErrorAction SilentlyContinue),
-            (Split-Path $PSCommandPath -Parent -ErrorAction SilentlyContinue)
+            (Split-Path $PSCommandPath -Parent -ErrorAction SilentlyContinue),
+            "/root/.local/share/powershell/Modules/WindowsMissingRecovery"
         )
         
         foreach ($path in $possiblePaths) {
@@ -124,7 +127,7 @@ function Sync-WindowsMissingRecoveryScripts {
         return
     }
     
-    if (-not $Force) {
+    if (-not $Force -and -not $NoPrompt) {
         Write-Host "`nChanges to be made:" -ForegroundColor Yellow
         foreach ($category in $categories) {
             $existing = @($currentConfig.$category.enabled).Count

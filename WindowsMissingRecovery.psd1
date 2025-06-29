@@ -147,7 +147,4 @@
     
     # Help info URI
     HelpInfoUri = 'https://github.com/fyberlabs/WindowsMissingRecovery/wiki'
-    
-    # Default command prefix
-    DefaultCommandPrefix = 'WMR'
 } 
