@@ -37,13 +37,13 @@ function Get-WmrFileState {
     if ($FileConfig.type -eq "file") {
         $content = Get-Content -Path $resolvedPath -Encoding Byte -Raw
         if ($FileConfig.encrypt) {
-            # Placeholder for encryption
-            Write-Host "    (Simulating encryption of file content)"
-            # $encryptedContent = Protect-WmrData -Data $content
-            # $fileState.Content = $encryptedContent
-            $fileState.Content = [System.Convert]::ToBase64String($content) # Store as base64 for now
+            Write-Host "    Encrypting file content with AES-256"
+            $encryptedContent = Protect-WmrData -DataBytes $content
+            $fileState.Content = $encryptedContent
+            $fileState.Encrypted = $true
         } else {
             $fileState.Content = [System.Convert]::ToBase64String($content)
+            $fileState.Encrypted = $false
         }
 
         if ($FileConfig.checksum_type) {
@@ -53,7 +53,21 @@ function Get-WmrFileState {
         }
 
         # Save file content to dynamic_state_path
-        [System.IO.File]::WriteAllBytes($stateFilePath, $content)
+        if ($FileConfig.encrypt) {
+            # Save encrypted content as text (Base64 encoded within the encryption)
+            Set-Content -Path $stateFilePath -Value $fileState.Content -Encoding UTF8
+            # Save metadata about encryption
+            $metadata = @{ Encrypted = $true; OriginalSize = $content.Length }
+            $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
+        } else {
+            # Save raw bytes for non-encrypted content
+            [System.IO.File]::WriteAllBytes($stateFilePath, $content)
+            # Save metadata about non-encryption
+            $metadata = @{ Encrypted = $false; OriginalSize = $content.Length }
+            $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
+        }
 
     } elseif ($FileConfig.type -eq "directory") {
         # For directories, capture a list of files and their hashes/metadata
@@ -97,13 +111,28 @@ function Set-WmrFileState {
     if ($FileConfig.type -eq "file") {
         $contentBytes = [System.IO.File]::ReadAllBytes($stateFilePath)
 
-        if ($FileConfig.encrypt) {
-            # Placeholder for decryption
-            Write-Host "    (Simulating decryption of file content)"
-            # $decryptedContent = Unprotect-WmrData -Data $contentBytes
-            # [System.IO.File]::WriteAllBytes($destinationPath, $decryptedContent)
-            [System.IO.File]::WriteAllBytes($destinationPath, $contentBytes) # Write as is for now
+        # Check if the content was encrypted during backup
+        $wasEncrypted = $false
+        try {
+            # Try to read state metadata to check if content was encrypted
+            $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            if (Test-Path $stateMetadataPath) {
+                $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
+                $wasEncrypted = $metadata.Encrypted -eq $true
+            }
+        } catch {
+            # Fallback: assume encryption based on file config
+            $wasEncrypted = $FileConfig.encrypt -eq $true
+        }
+
+        if ($wasEncrypted) {
+            Write-Host "    Decrypting file content with AES-256"
+            # Content is encrypted string, not raw bytes
+            $encryptedContent = Get-Content -Path $stateFilePath -Raw -Encoding UTF8
+            $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedContent
+            [System.IO.File]::WriteAllBytes($destinationPath, $decryptedBytes)
         } else {
+            # Content is Base64 encoded bytes
             [System.IO.File]::WriteAllBytes($destinationPath, $contentBytes)
         }
 

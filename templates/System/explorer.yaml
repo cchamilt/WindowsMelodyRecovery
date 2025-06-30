@@ -1,0 +1,170 @@
+metadata:
+  name: Explorer Settings
+  description: Template for backing up and restoring Windows Explorer configuration, folder views, quick access, and related settings.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: registry
+    name: "Explorer Registry Keys Accessible"
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer"
+    on_missing: fail_backup
+
+registry:
+  # Core Explorer settings
+  - name: Explorer Base Settings
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/explorer_base.json"
+
+  - name: Explorer Advanced Settings
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/Advanced"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/explorer_advanced.json"
+
+  - name: Explorer File Extensions
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/file_exts.json"
+
+  - name: Explorer Stream MRU
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/StreamMRU"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/stream_mru.json"
+
+  - name: Explorer Typed Paths
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/TypedPaths"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/typed_paths.json"
+
+  - name: Explorer User Assist
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/UserAssist"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/user_assist.json"
+
+  - name: Explorer Visual Effects
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/VisualEffects"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/visual_effects.json"
+
+  - name: Explorer Wallpapers
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/Wallpapers"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/wallpapers.json"
+
+  # Quick Access settings
+  - name: Home Folder Settings
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/HomeFolder"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/home_folder.json"
+
+  - name: Home Folder Desktop
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/HomeFolderDesktop"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/home_folder_desktop.json"
+
+  - name: Home Folder NameSpace
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/HomeFolderNameSpace"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/home_folder_namespace.json"
+
+  # Recent items
+  - name: Recent Documents
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/RecentDocs"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/recent_docs.json"
+
+  - name: Run MRU
+    path: "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/RunMRU"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/run_mru.json"
+
+  # System-wide Explorer settings (HKLM)
+  - name: System Explorer Settings
+    path: "HKLM:/SOFTWARE/Microsoft/Windows/CurrentVersion/Explorer"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/system_explorer.json"
+
+  - name: System Explorer Advanced
+    path: "HKLM:/SOFTWARE/Microsoft/Windows/CurrentVersion/Explorer/Advanced"
+    type: key
+    action: sync
+    dynamic_state_path: "explorer/registry/system_explorer_advanced.json"
+
+files:
+  # Quick Access and recent items
+  - name: Quick Access Automatic Destinations
+    path: "$env:APPDATA/Microsoft/Windows/Recent/AutomaticDestinations"
+    type: directory
+    action: sync
+    dynamic_state_path: "explorer/files/quick_access"
+
+  - name: Recent Items
+    path: "$env:APPDATA/Microsoft/Windows/Recent"
+    type: directory
+    action: sync
+    dynamic_state_path: "explorer/files/recent_items"
+
+  # User shell folders
+  - name: Favorites
+    path: "$env:USERPROFILE/Favorites"
+    type: directory
+    action: sync
+    dynamic_state_path: "explorer/files/favorites"
+
+  - name: Desktop Configuration
+    path: "$env:USERPROFILE/Desktop"
+    type: directory
+    action: backup
+    dynamic_state_path: "explorer/files/desktop_config"
+
+  - name: Start Menu Configuration
+    path: "$env:APPDATA/Microsoft/Windows/Start Menu"
+    type: directory
+    action: sync
+    dynamic_state_path: "explorer/files/start_menu"
+
+stages:
+  prereqs:
+    - name: Stop Explorer Process
+      type: script
+      inline_script: |
+        Write-Host "Stopping Explorer process to allow settings changes..." -ForegroundColor Yellow
+        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+
+  post_update:
+    - name: Restart Explorer Process
+      type: script
+      inline_script: |
+        Write-Host "Restarting Explorer process..." -ForegroundColor Green
+        Start-Process -FilePath explorer.exe
+        Start-Sleep -Seconds 3
+        Write-Host "Explorer restarted successfully" -ForegroundColor Green
+
+  cleanup:
+    - name: Verify Explorer Running
+      type: check
+      inline_script: |
+        $explorerProcess = Get-Process -Name explorer -ErrorAction SilentlyContinue
+        if ($explorerProcess) {
+            Write-Output "Explorer is running"
+        } else {
+            Write-Output "Explorer is not running"
+            Start-Process -FilePath explorer.exe
+        }
+      expected_output: "Explorer is running" 

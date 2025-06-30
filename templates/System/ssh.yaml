@@ -1,0 +1,236 @@
+metadata:
+  name: SSH Configuration
+  description: Template for backing up and restoring SSH configuration including keys, config files, known_hosts, and application settings (PuTTY, WinSCP).
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "SSH Directory Check"
+    inline_script: |
+      $sshUserDir = "$env:USERPROFILE/.ssh"
+      $sshSystemDir = "$env:ProgramData/ssh"
+      if ((Test-Path $sshUserDir) -or (Test-Path $sshSystemDir)) {
+          Write-Output "SSH directories found"
+      } else {
+          Write-Output "No SSH directories found"
+      }
+    expected_output: "SSH directories found"
+    on_missing: warn
+
+registry:
+  # OpenSSH settings
+  - name: OpenSSH System Settings
+    path: "HKLM:/SOFTWARE/OpenSSH"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/openssh_system.json"
+
+  - name: OpenSSH User Settings
+    path: "HKCU:/Software/OpenSSH"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/openssh_user.json"
+
+  # PuTTY settings
+  - name: PuTTY Base Configuration
+    path: "HKCU:/Software/SimonTatham/PuTTY"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/putty_base.json"
+
+  - name: PuTTY Sessions
+    path: "HKCU:/Software/SimonTatham/PuTTY/Sessions"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/putty_sessions.json"
+
+  - name: PuTTY SSH Host Keys
+    path: "HKCU:/Software/SimonTatham/PuTTY/SshHostKeys"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/putty_hostkeys.json"
+
+  # WinSCP settings
+  - name: WinSCP Configuration
+    path: "HKCU:/Software/Martin Prikryl/WinSCP 2"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/winscp_config.json"
+
+  - name: WinSCP Sessions
+    path: "HKCU:/Software/Martin Prikryl/WinSCP 2/Sessions"
+    type: key
+    action: sync
+    encrypt: true
+    dynamic_state_path: "ssh/registry/winscp_sessions.json"
+
+  # SSH services
+  - name: OpenSSH Daemon Service
+    path: "HKLM:/SYSTEM/CurrentControlSet/Services/OpenSSHd"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/opensshd_service.json"
+
+  - name: SSH Agent Service
+    path: "HKLM:/SYSTEM/CurrentControlSet/Services/ssh-agent"
+    type: key
+    action: sync
+    dynamic_state_path: "ssh/registry/ssh_agent_service.json"
+
+files:
+  # User SSH configuration (excluding private keys)
+  - name: SSH User Config
+    path: "$env:USERPROFILE/.ssh/config"
+    type: file
+    action: sync
+    dynamic_state_path: "ssh/files/user_config"
+
+  - name: SSH User Authorized Keys
+    path: "$env:USERPROFILE/.ssh/authorized_keys"
+    type: file
+    action: sync
+    dynamic_state_path: "ssh/files/authorized_keys"
+
+  - name: SSH User Known Hosts
+    path: "$env:USERPROFILE/.ssh/known_hosts"
+    type: file
+    action: sync
+    dynamic_state_path: "ssh/files/known_hosts_user"
+
+  # SSH public keys (safe to backup without encryption)
+  - name: SSH Public Keys Directory
+    path: "$env:USERPROFILE/.ssh"
+    type: directory
+    action: backup
+    dynamic_state_path: "ssh/files/public_keys"
+
+  # System SSH configuration
+  - name: SSH System Config
+    path: "$env:ProgramData/ssh/sshd_config"
+    type: file
+    action: sync
+    dynamic_state_path: "ssh/files/system_config"
+
+  - name: SSH System Known Hosts
+    path: "$env:ProgramData/ssh/known_hosts"
+    type: file
+    action: sync
+    dynamic_state_path: "ssh/files/known_hosts_system"
+
+  # PuTTY configuration files
+  - name: PuTTY User Configuration
+    path: "$env:APPDATA/PuTTY"
+    type: directory
+    action: sync
+    dynamic_state_path: "ssh/files/putty_config"
+
+  # WinSCP configuration files
+  - name: WinSCP User Configuration
+    path: "$env:APPDATA/WinSCP"
+    type: directory
+    action: sync
+    encrypt: true
+    dynamic_state_path: "ssh/files/winscp_config"
+
+applications:
+  - name: SSH Private Keys
+    type: custom
+    dynamic_state_path: "ssh/applications/private_keys.json"
+    discovery_command: |
+      $sshDir = "$env:USERPROFILE\.ssh"
+      if (Test-Path $sshDir) {
+          Get-ChildItem -Path $sshDir -File | Where-Object { 
+              $_.Name -match "^(id_|.*_rsa|.*_dsa|.*_ed25519|.*_ecdsa)$" -and 
+              $_.Extension -ne ".pub" 
+          } | Select-Object FullName, Name, Length, LastWriteTime
+      } else {
+          @()
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $keys = @()
+      if ($DiscoveryOutput) {
+          foreach ($key in $DiscoveryOutput) {
+              $keys += @{
+                  Name = $key.Name
+                  Path = $key.FullName
+                  Size = $key.Length
+                  LastModified = $key.LastWriteTime
+              }
+          }
+      }
+      $keys | ConvertTo-Json -Compress
+    install_script: |
+      param($AppListJson)
+      $keys = $AppListJson | ConvertFrom-Json
+      foreach ($key in $keys) {
+          Write-Host "Restoring SSH private key: $($key.Name)" -ForegroundColor Yellow
+          $sourcePath = "$env:TEMP\ssh_restore\$($key.Name).enc"
+          if (Test-Path $sourcePath) {
+              try {
+                  # Decrypt the private key using our encryption utilities
+                  $encryptedContent = Get-Content -Path $sourcePath -Raw
+                  $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedContent
+                  $keyContent = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
+                  
+                  # Restore to original location
+                  Set-Content -Path $key.Path -Value $keyContent -NoNewline
+                  
+                  # Set proper permissions (Windows equivalent of chmod 600)
+                  icacls "$($key.Path)" /inheritance:r | Out-Null
+                  icacls "$($key.Path)" /grant:r "${env:USERNAME}:F" | Out-Null
+                  
+                  Write-Host "  Successfully restored $($key.Name)" -ForegroundColor Green
+              } catch {
+                  Write-Warning "  Failed to restore $($key.Name): $($_.Exception.Message)"
+              }
+          } else {
+              Write-Warning "  Encrypted key file not found: $sourcePath"
+          }
+      }
+
+stages:
+  prereqs:
+    - name: Prepare SSH Restore Directory
+      type: script
+      inline_script: |
+        $restoreDir = "$env:TEMP\ssh_restore"
+        if (!(Test-Path $restoreDir)) {
+            New-Item -ItemType Directory -Path $restoreDir -Force | Out-Null
+        }
+        # Set secure permissions
+        icacls $restoreDir /inheritance:r | Out-Null
+        icacls $restoreDir /grant:r "${env:USERNAME}:(OI)(CI)F" | Out-Null
+
+  post_update:
+    - name: Set SSH Directory Permissions
+      type: script
+      inline_script: |
+        $sshDir = "$env:USERPROFILE\.ssh"
+        if (Test-Path $sshDir) {
+            Write-Host "Setting proper permissions on SSH directory..." -ForegroundColor Yellow
+            # Set directory permissions (equivalent to chmod 700)
+            icacls $sshDir /inheritance:r | Out-Null
+            icacls $sshDir /grant:r "${env:USERNAME}:(OI)(CI)F" | Out-Null
+            
+            # Set file permissions for config files
+            Get-ChildItem -Path $sshDir -File | Where-Object { 
+                $_.Name -in @('config', 'known_hosts', 'authorized_keys') 
+            } | ForEach-Object {
+                icacls $_.FullName /inheritance:r | Out-Null
+                icacls $_.FullName /grant:r "${env:USERNAME}:F" | Out-Null
+            }
+            
+            Write-Host "SSH permissions configured successfully" -ForegroundColor Green
+        }
+
+  cleanup:
+    - name: Clean Temporary SSH Files
+      type: script
+      inline_script: |
+        $restoreDir = "$env:TEMP\ssh_restore"
+        if (Test-Path $restoreDir) {
+            Remove-Item -Path $restoreDir -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "Cleaned up temporary SSH restore files" -ForegroundColor Green
+        } 

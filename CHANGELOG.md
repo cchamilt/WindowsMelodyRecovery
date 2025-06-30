@@ -9,6 +9,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Template-Based State Management System
+- **YAML Template Configuration**: Complete declarative YAML-based configuration system for managing system state
+- **Template Schema**: Comprehensive schema definition in `docs/TEMPLATE_SCHEMA.md` with metadata, prerequisites, files, registry, applications, and stages sections
+- **State Management Guide**: Detailed documentation in `docs/STATE_MANAGEMENT_GUIDE.md` for using the template system
+
+#### Core Template Infrastructure
+- **Path Utilities**: `Convert-WmrPath` function in `Private/Core/PathUtilities.ps1` for handling Windows paths, URI paths (`file://`, `wsl://`, `winreg://`), and environment variable substitution
+- **YAML Parsing Module**: `WindowsMelodyRecovery.Template.psm1` with `Read-WmrTemplateConfig` and `Test-WmrTemplateSchema` functions
+- **Template Orchestration**: `Invoke-WmrTemplate` function for executing backup, restore, sync, and uninstall operations using templates
+
+#### State Management Components
+- **Prerequisite System**: `Test-WmrPrerequisites` function supporting application, registry, and script prerequisites with configurable failure policies
+- **File State Management**: `Get-WmrFileState` and `Set-WmrFileState` functions for managing files and directories with encryption support
+- **Registry State Management**: `Get-WmrRegistryState` and `Set-WmrRegistryState` functions for managing registry keys and values
+- **Application State Management**: `Get-WmrApplicationState`, `Set-WmrApplicationState`, and `Uninstall-WmrApplicationState` functions for package manager integration
+- **AES-256 Encryption**: `Protect-WmrData` and `Unprotect-WmrData` functions with proper AES-256-CBC symmetric encryption, PBKDF2 key derivation (100,000 iterations), and secure passphrase handling
+
+#### Template Examples
+- **Display Settings Template**: `Templates/System/display.yaml` for managing display configuration with registry-based state management
+- **Winget Applications Template**: `Templates/System/winget-apps.yaml` for managing Winget applications with discovery, parsing, and installation scripts
+
+#### Enhanced Public Functions
+- **Template-Enabled Backup**: `Backup-WindowsMelodyRecovery` now supports `-TemplatePath` parameter for template-based backups
+- **Template-Enabled Restore**: `Restore-WindowsMelodyRecovery` now supports `-TemplatePath` and `-RestoreFromDirectory` parameters for template-based restoration
+- **Backward Compatibility**: Full backward compatibility maintained with existing script-based backup/restore operations
+
+#### Enhanced Encryption System
+- **Production Cryptography**: Complete replacement of Base64 placeholder with production-ready AES-256 encryption
+- `Get-WmrEncryptionKey` - Secure key derivation and caching functionality with PBKDF2
+- `Clear-WmrEncryptionCache` - Secure memory cleanup for encryption keys and salts
+- `Test-WmrEncryption` - Built-in encryption testing and validation functionality
+- Real cryptographic protection for sensitive backup data with industry-standard security
+
+#### Comprehensive Testing
+- **Unit Test Coverage**: Complete unit tests for all template components in `tests/unit/`
+  - `PathUtilities.Tests.ps1` - Path conversion and normalization testing
+  - `TemplateModule.Tests.ps1` - YAML parsing and schema validation testing
+  - `Prerequisites.Tests.ps1` - Prerequisite checking for all types
+  - `FileState.Tests.ps1` - File and directory state management testing
+  - `RegistryState.Tests.ps1` - Registry state management testing
+  - `ApplicationState.Tests.ps1` - Application state management testing
+  - `EncryptionUtilities.Tests.ps1` - AES-256 encryption/decryption testing with comprehensive security scenarios
+- **Integration Testing**: `TemplateIntegration.Tests.ps1` with comprehensive template workflow testing including backup, restore, and prerequisite failure scenarios
+
+#### Template System Implementation & Script Conversion
+- **Explorer Settings Template**: Complete conversion of `backup-explorer.ps1`/`restore-explorer.ps1` to declarative YAML template (`Templates/System/explorer.yaml`)
+  - 15 registry configuration items for comprehensive Explorer settings backup/restore
+  - 5 file/directory items including Quick Access, Recent Items, Favorites, Desktop, and Start Menu configuration
+  - Process management stages for stopping/restarting Explorer during operations to ensure clean settings updates
+- **SSH Configuration Template**: Complete conversion of `backup-ssh.ps1`/`restore-ssh.ps1` to declarative YAML template (`Templates/System/ssh.yaml`)
+  - Registry settings for OpenSSH, PuTTY, and WinSCP configurations with proper encryption for sensitive data
+  - Secure handling of SSH private keys with custom application discovery and AES-256 encryption workflow
+  - Comprehensive file management for SSH configs, known_hosts, authorized_keys, and public key directories
+  - Proper permission management stages for SSH directory security (Windows equivalent of chmod 700/600)
+- **Template Execution Pipeline**: Full validation and testing of template parsing, loading, and execution pipeline
+  - YAML parsing with `powershell-yaml` module integration and escape character fixes for Windows paths
+  - Template schema validation, prerequisite checking, and stage execution working correctly
+  - File and registry state management with proper error handling and encryption support
+  - Successful end-to-end template invocation including prereqs, backup operations, and cleanup stages
+
+### Changed
+
+#### System Architecture
+- **Declarative Configuration**: Shift from imperative PowerShell scripts to declarative YAML-based templates for improved idempotency and maintainability
+- **Modular State Management**: Template system enables fine-grained control over what components are backed up and restored
+- **Dynamic State Generation**: State files are now dynamically generated during backup operations based on template definitions
+
+#### Enhanced Capabilities
+- **Multi-Format Path Support**: Extended path handling to support WSL, registry, and file URI formats with environment variable expansion
+- **Flexible Prerequisites**: Configurable prerequisite checking with warn, fail_backup, and fail_restore policies
+- **Encryption Integration**: Built-in encryption support for sensitive files and registry data
+- **Stage-Based Execution**: Support for pre-update, post-update, and cleanup stages in template execution
+
+### Security
+
+#### Data Protection
+- **AES-256 Encryption**: Strong symmetric encryption for sensitive files and registry values using industry-standard AES-256-CBC
+- **PBKDF2 Key Derivation**: Secure key derivation from passphrases using PBKDF2 with 100,000 iterations and random salts
+- **Cryptographic Security**: Proper initialization vector (IV) generation for each encryption operation ensuring unique ciphertext
+- **Secure Memory Handling**: Secure clearing of encryption keys and passphrases from memory after use
+- **Session Key Caching**: Intelligent key caching during session to avoid repeated passphrase prompts while maintaining security
+- **Secure Path Handling**: Robust path normalization and validation to prevent path traversal attacks
+- **Prerequisite Validation**: Security-conscious prerequisite checking before executing backup or restore operations
+
+---
+
+## [-.-.-] - 2025-06-29
+
+### Added
+
 #### Comprehensive Testing Framework
 - **Docker Containerization**: Complete Docker-based testing environment with `docker-compose.test.yml`
 - **Test Runner Container**: Dedicated PowerShell 7.4 Ubuntu container for consistent testing

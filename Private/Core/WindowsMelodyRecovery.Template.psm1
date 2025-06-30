@@ -15,20 +15,20 @@ function Read-WmrTemplateConfig {
 
     # Ensure the YAML module is available
     try {
-        Import-Module Posh-YAML -ErrorAction Stop
+        Import-Module powershell-yaml -ErrorAction Stop
     } catch {
-        Write-Warning "Posh-YAML module not found. Attempting to install..."
+        Write-Warning "powershell-yaml module not found. Attempting to install..."
         try {
-            Install-Module Posh-YAML -Scope CurrentUser -Force -ErrorAction Stop
-            Import-Module Posh-YAML -ErrorAction Stop
+            Install-Module powershell-yaml -Scope CurrentUser -Force -ErrorAction Stop
+            Import-Module powershell-yaml -ErrorAction Stop
         } catch {
-            throw "Failed to install and import Posh-YAML module. Please install it manually: Install-Module -Name Posh-YAML"
+            throw "Failed to install and import powershell-yaml module. Please install it manually: Install-Module -Name powershell-yaml"
         }
     }
 
     try {
         $yamlContent = Get-Content $TemplatePath -Raw
-        $templateConfig = $yamlContent | ConvertFrom-Yaml -AsCustomObject
+        $templateConfig = $yamlContent | ConvertFrom-Yaml
         return $templateConfig
     } catch {
         throw "Failed to parse YAML template file '$TemplatePath': $($_.Exception.Message)"

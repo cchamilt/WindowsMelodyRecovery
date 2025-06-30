@@ -46,10 +46,15 @@ function Get-WmrRegistryState {
             $registryState.Value = $value
 
             if ($RegistryConfig.encrypt) {
-                Write-Host "    (Simulating encryption of registry value)"
-                # $encryptedValue = Protect-WmrData -Data ($value | Out-String)
-                # $registryState.EncryptedValue = $encryptedValue
-                $registryState.Value = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($value))
+                Write-Host "    Encrypting registry value with AES-256"
+                $valueBytes = [System.Text.Encoding]::UTF8.GetBytes($value.ToString())
+                $encryptedValue = Protect-WmrData -DataBytes $valueBytes
+                $registryState.EncryptedValue = $encryptedValue
+                $registryState.Encrypted = $true
+                # Remove unencrypted value
+                $registryState.Remove('Value')
+            } else {
+                $registryState.Encrypted = $false
             }
             ($registryState | ConvertTo-Json -Compress) | Set-Content -Path $stateFilePath -Encoding Utf8
 
@@ -102,12 +107,13 @@ function Set-WmrRegistryState {
     try {
         if ($RegistryConfig.type -eq "value") {
             $valueToSet = $null
-            if ($stateData -and $stateData.Value) {
-                $valueToSet = $stateData.Value
-                if ($RegistryConfig.encrypt) {
-                    Write-Host "    (Simulating decryption of registry value)"
-                    # $valueToSet = Unprotect-WmrData -Data $valueToSet
-                    $valueToSet = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($valueToSet))
+            if ($stateData) {
+                if ($stateData.Encrypted -eq $true -and $stateData.EncryptedValue) {
+                    Write-Host "    Decrypting registry value with AES-256"
+                    $decryptedBytes = Unprotect-WmrData -EncodedData $stateData.EncryptedValue
+                    $valueToSet = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
+                } elseif ($stateData.Value) {
+                    $valueToSet = $stateData.Value
                 }
             } elseif ($RegistryConfig.value_data) {
                 $valueToSet = $RegistryConfig.value_data
@@ -116,7 +122,7 @@ function Set-WmrRegistryState {
 
             if ($valueToSet -ne $null) {
                 Set-ItemProperty -Path $resolvedPath -Name $RegistryConfig.key_name -Value $valueToSet -Force -ErrorAction Stop
-                Write-Host "  Registry value $($RegistryConfig.name) set to `$valueToSet at $resolvedPath\$($RegistryConfig.key_name)."
+                Write-Host "  Registry value $($RegistryConfig.name) set to $valueToSet at $resolvedPath/$($RegistryConfig.key_name)."
             } else {
                 Write-Warning "    No state data or default value_data found for registry value $($RegistryConfig.name). Skipping."
             }
