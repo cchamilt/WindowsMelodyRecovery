@@ -3,6 +3,8 @@
 # Build and test artifacts
 build-*.log
 test-results/
+test-backups/
+test-restore/
 *.testresults
 *.coverage
 coverage.xml

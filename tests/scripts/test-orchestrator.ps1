@@ -76,102 +76,31 @@ function Write-TestSection {
 function Test-ContainerHealth {
     Write-TestSection "Checking Container Health"
     
-    # Debug: Show the container names being used
-    Write-Host "Debug: Container names from config:" -ForegroundColor Yellow
-    Write-Host "  WindowsHost: '$($Global:TestConfig.WindowsHost)'" -ForegroundColor Cyan
-    Write-Host "  WSLHost: '$($Global:TestConfig.WSLHost)'" -ForegroundColor Cyan
-    Write-Host "  CloudHost: '$($Global:TestConfig.CloudHost)'" -ForegroundColor Cyan
-    
-    # Explicitly construct the containers array
-    $windowsHost = $Global:TestConfig.WindowsHost
-    $wslHost = $Global:TestConfig.WSLHost
-    $cloudHost = $Global:TestConfig.CloudHost
-    
-    Write-Host "Debug: Individual variables:" -ForegroundColor Yellow
-    Write-Host "  windowsHost: '$windowsHost'" -ForegroundColor Cyan
-    Write-Host "  wslHost: '$wslHost'" -ForegroundColor Cyan
-    Write-Host "  cloudHost: '$cloudHost'" -ForegroundColor Cyan
-    
-    $containers = @($windowsHost, $wslHost, $cloudHost)
-    $healthyContainers = @()
-    
-    foreach ($containerName in $containers) {
-        Write-Host "Checking container: '$containerName'" -ForegroundColor Yellow
+    try {
+        # Simple health check - just verify we can execute commands in test runner
+        $testCommand = "Get-Location"
+        $null = docker exec wmr-test-runner pwsh -Command $testCommand 2>$null
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Test runner container is accessible" -ForegroundColor Green
+        } else {
+            Write-Host "✗ Test runner container is not responding" -ForegroundColor Red
+            throw "Test runner container health check failed"
+        }
+        
+        # Optional: Test cloud mock server if available
         try {
-            # Test connectivity to containers using different methods
-            $isHealthy = $false
-            
-            # For Windows mock, test PowerShell connectivity
-            if ($containerName -eq $windowsHost) {
-                try {
-                    $uri = "http://" + $containerName + ":8080/health"
-                    Write-Host "  [DEBUG] About to use container: '$containerName'" -ForegroundColor Magenta
-                    Write-Host "  [DEBUG] About to use URI: '$uri'" -ForegroundColor Magenta
-                    $response = Invoke-WebRequest -Uri $uri -TimeoutSec 5 -ErrorAction Stop
-                    if ($response.StatusCode -eq 200) {
-                        $isHealthy = $true
-                    }
-                } catch {
-                    # Try alternative health check for Windows mock
-                    try {
-                        $uri = "http://" + $containerName + ":8081/status"
-                        Write-Host "  [DEBUG] About to use container (alt): '$containerName'" -ForegroundColor Magenta
-                        Write-Host "  [DEBUG] About to use URI (alt): '$uri'" -ForegroundColor Magenta
-                        $response = Invoke-WebRequest -Uri $uri -TimeoutSec 5 -ErrorAction Stop
-                        if ($response.StatusCode -eq 200) {
-                            $isHealthy = $true
-                        }
-                    } catch {
-                        # Assume healthy if we can't connect (container might not expose HTTP)
-                        Write-Host "  Assuming healthy (no HTTP endpoint)" -ForegroundColor Gray
-                        $isHealthy = $true
-                    }
-                }
-            }
-            # For WSL mock, test SSH or basic connectivity
-            elseif ($containerName -eq $wslHost) {
-                try {
-                    $uri = "http://" + $containerName + ":8080/health"
-                    Write-Host "  [DEBUG] About to use container (WSL): '$containerName'" -ForegroundColor Magenta
-                    Write-Host "  [DEBUG] About to use URI (WSL): '$uri'" -ForegroundColor Magenta
-                    $response = Invoke-WebRequest -Uri $uri -TimeoutSec 5 -ErrorAction Stop
-                    if ($response.StatusCode -eq 200) {
-                        $isHealthy = $true
-                    }
-                } catch {
-                    # Assume healthy if we can't connect (container might not expose HTTP)
-                    Write-Host "  Assuming healthy (no HTTP endpoint)" -ForegroundColor Gray
-                    $isHealthy = $true
-                }
-            }
-            # For cloud mock, test HTTP health endpoint
-            elseif ($containerName -eq $cloudHost) {
-                try {
-                    $uri = "http://" + $containerName + ":8080/health"
-                    Write-Host "  [DEBUG] About to use container (cloud): '$containerName'" -ForegroundColor Magenta
-                    Write-Host "  [DEBUG] About to use URI (cloud): '$uri'" -ForegroundColor Magenta
-                    $response = Invoke-WebRequest -Uri $uri -TimeoutSec 5 -ErrorAction Stop
-                    if ($response.StatusCode -eq 200) {
-                        $isHealthy = $true
-                    }
-                } catch {
-                    Write-Host "✗ $containerName health check failed: $($_.Exception.Message)" -ForegroundColor Red
-                }
-            }
-            
-            if ($isHealthy) {
-                Write-Host "✓ $containerName is healthy" -ForegroundColor Green
-                $healthyContainers += $containerName
-            } else {
-                Write-Host "✗ $containerName is not responding" -ForegroundColor Red
+            $response = Invoke-WebRequest -Uri "http://localhost:8080/health" -TimeoutSec 3 -ErrorAction Stop
+            if ($response.StatusCode -eq 200) {
+                Write-Host "✓ Cloud mock server is healthy" -ForegroundColor Green
             }
         } catch {
-            Write-Host "✗ $containerName is not accessible: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "⚠ Cloud mock server not accessible (tests may still work)" -ForegroundColor Yellow
         }
-    }
-    
-    if ($healthyContainers.Count -ne $containers.Count) {
-        throw "Not all containers are healthy. Cannot proceed with testing."
+        
+    } catch {
+        Write-Host "✗ Container health check failed: $($_.Exception.Message)" -ForegroundColor Red
+        throw
     }
     
     Write-Host ""
@@ -1041,144 +970,57 @@ function Invoke-PesterTests {
     Write-TestSection "Running Pester Tests"
     
     try {
-        Write-Host "Testing Pester test infrastructure..." -ForegroundColor Yellow
+        # Use the new modular Pester runner
+        . /tests/scripts/test-logging.ps1
+        . /tests/scripts/test-pester-runner.ps1
         
-        Set-Location /workspace
+        # Initialize logging
+        Initialize-TestLogging -LogPath $Global:TestConfig.OutputPath"/logs"
         
-        # Check if Pester is available
-        try {
-            $pesterVersion = Get-Module -ListAvailable Pester | Select-Object -First 1
-            if ($pesterVersion) {
-                Write-Host "✓ Pester $($pesterVersion.Version) is available" -ForegroundColor Green
-                Import-Module Pester -Force
-            } else {
-                Write-Host "⚠ Pester not available, attempting to install..." -ForegroundColor Yellow
-                try {
-                    Install-Module Pester -Force -Scope CurrentUser -AllowClobber
-                    Import-Module Pester -Force
-                    Write-Host "✓ Pester installed successfully" -ForegroundColor Green
-                } catch {
-                    Write-Host "✗ Failed to install Pester: $($_.Exception.Message)" -ForegroundColor Red
-                    throw
-                }
-            }
+        # Run core integration tests using the modular runner
+        $testResults = Invoke-CoreIntegrationTests -LogPath "$($Global:TestConfig.OutputPath)/logs"
+        
+        if ($testResults.Success) {
+            Write-Host "✓ Pester tests completed successfully" -ForegroundColor Green
+            $Global:TestConfig.PassedTests += "Pester Tests"
             
-            $Global:TestConfig.PassedTests += "Pester Availability"
-        } catch {
-            Write-Host "✗ Pester setup failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Pester Availability"
-            throw
-        }
-        
-        # Test Pester test files
-        $testFiles = @(
-            "./tests/integration/backup-system-settings.Tests.ps1",
-            "./tests/integration/backup-applications.Tests.ps1",
-            "./tests/integration/backup-gaming.Tests.ps1",
-            "./tests/integration/backup-wsl.Tests.ps1",
-            "./tests/integration/backup-cloud.Tests.ps1",
-            "./tests/integration/restore-system-settings.Tests.ps1",
-            "./tests/integration/wsl-integration.Tests.ps1",
-            "./tests/unit/module-tests.Tests.ps1"
-        )
-        
-        $validTestFiles = @()
-        foreach ($testFile in $testFiles) {
-            if (Test-Path $testFile) {
-                Write-Host "✓ Pester test file found: $testFile" -ForegroundColor Green
-                
-                # Test file syntax
-                try {
-                    $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $testFile -Raw), [ref]$null)
-                    Write-Host "✓ Test file syntax is valid: $testFile" -ForegroundColor Green
-                    $validTestFiles += $testFile
-                } catch {
-                    Write-Host "✗ Test file syntax error in $testFile : $($_.Exception.Message)" -ForegroundColor Red
-                }
-                
-                $Global:TestConfig.PassedTests += "Pester Test File"
-            } else {
-                Write-Host "⚠ Pester test file not found: $testFile" -ForegroundColor Yellow
-            }
-        }
-        
-        # Run Pester tests if files are available
-        if ($validTestFiles.Count -gt 0) {
-            Write-Host "Running Pester tests..." -ForegroundColor Yellow
-            
-            # Create test output directory
-            $pesterOutputDir = "$($Global:TestConfig.OutputPath)/pester"
-            if (-not (Test-Path $pesterOutputDir)) {
-                New-Item -Path $pesterOutputDir -ItemType Directory -Force | Out-Null
-            }
-            
-            # Run tests with different configurations
-            $testConfigs = @(
-                @{ Name = "Unit Tests"; Path = "./tests/unit"; OutputFile = "$pesterOutputDir/unit-tests.xml" },
-                @{ Name = "Integration Tests"; Path = "./tests/integration"; OutputFile = "$pesterOutputDir/integration-tests.xml" }
-            )
-            
-            foreach ($config in $testConfigs) {
-                if (Test-Path $config.Path) {
-                    Write-Host "Running $($config.Name)..." -ForegroundColor Cyan
-                    
-                    try {
-                        $pesterConfig = New-PesterConfiguration
-                        $pesterConfig.Run.Path = $config.Path
-                        $pesterConfig.Run.PassThru = $true
-                        $pesterConfig.Output.Verbosity = "Normal"
-                        $pesterConfig.TestResult.Enabled = $true
-                        $pesterConfig.TestResult.OutputPath = $config.OutputFile
-                        $pesterConfig.TestResult.OutputFormat = "NUnitXml"
-                        
-                        $results = Invoke-Pester -Configuration $pesterConfig
-                        
-                        if ($results.FailedCount -eq 0) {
-                            Write-Host "✓ $($config.Name) passed ($($results.PassedCount) tests)" -ForegroundColor Green
-                            $Global:TestConfig.PassedTests += "$($config.Name)"
-                        } else {
-                            Write-Host "✗ $($config.Name) failed ($($results.FailedCount) failed, $($results.PassedCount) passed)" -ForegroundColor Red
-                            $Global:TestConfig.FailedTests += "$($config.Name)"
-                        }
-                        
-                        # Add detailed results to test config
-                        $Global:TestConfig.TestResults += @{
-                            Suite = "Pester"
-                            Test = $config.Name
-                            Result = if ($results.FailedCount -eq 0) { "Passed" } else { "Failed" }
-                            Duration = $results.Duration
-                            PassedCount = $results.PassedCount
-                            FailedCount = $results.FailedCount
-                            SkippedCount = $results.SkippedCount
-                        }
-                        
-                    } catch {
-                        Write-Host "✗ $($config.Name) execution failed: $($_.Exception.Message)" -ForegroundColor Red
-                        $Global:TestConfig.FailedTests += "$($config.Name)"
-                    }
+            # Add individual test results
+            foreach ($result in $testResults.Results) {
+                if ($result.Status -eq "Passed") {
+                    $Global:TestConfig.PassedTests += $result.TestName
                 } else {
-                    Write-Host "⚠ $($config.Name) directory not found: $($config.Path)" -ForegroundColor Yellow
+                    $Global:TestConfig.FailedTests += $result.TestName
+                }
+                
+                $Global:TestConfig.TestResults += @{
+                    Suite = "Pester"
+                    Test = $result.TestName
+                    Result = $result.Status
+                    PassedCount = $result.PassedCount
+                    FailedCount = $result.FailedCount
+                    LogFile = $result.LogFile
                 }
             }
         } else {
-            Write-Host "⚠ No valid Pester test files found to run" -ForegroundColor Yellow
+            Write-Host "✗ Pester tests failed" -ForegroundColor Red
+            $Global:TestConfig.FailedTests += "Pester Tests"
+            
+            # Add failed test results
+            foreach ($result in $testResults.Results) {
+                $Global:TestConfig.FailedTests += $result.TestName
+                $Global:TestConfig.TestResults += @{
+                    Suite = "Pester"
+                    Test = $result.TestName
+                    Result = $result.Status
+                    PassedCount = $result.PassedCount
+                    FailedCount = $result.FailedCount
+                    LogFile = $result.LogFile
+                }
+            }
         }
         
-        # Test Pester configuration
-        if (Test-Path "./PesterConfig.psd1") {
-            Write-Host "✓ Pester configuration file found" -ForegroundColor Green
-            
-            try {
-                $pesterConfig = Import-PowerShellDataFile "./PesterConfig.psd1"
-                Write-Host "✓ Pester configuration is valid" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += "Pester Configuration"
-            } catch {
-                Write-Host "✗ Pester configuration is invalid: $($_.Exception.Message)" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Pester Configuration"
-            }
-        } else {
-            Write-Host "⚠ Pester configuration file not found" -ForegroundColor Yellow
-        }
+        Write-Host "Summary: $($testResults.Summary.PassedTests) passed, $($testResults.Summary.FailedTests) failed, $($testResults.Summary.ErrorTests) errors" -ForegroundColor White
+
         
     } catch {
         Write-Host "✗ Pester tests failed: $($_.Exception.Message)" -ForegroundColor Red

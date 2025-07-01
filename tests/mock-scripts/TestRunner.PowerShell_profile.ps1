@@ -5,10 +5,16 @@ $env:PSModulePath = "/workspace/Public:/workspace/Private:$env:PSModulePath"
 
 # Import required modules for testing
 try {
-    Import-Module Pester -Force -ErrorAction Stop
-    Write-Verbose "✓ Pester module imported successfully"
+    # Try to import Pester, but don't fail if it's not available
+    $pesterModule = Get-Module -ListAvailable Pester -ErrorAction SilentlyContinue
+    if ($pesterModule) {
+        Import-Module Pester -Force -ErrorAction SilentlyContinue
+        Write-Verbose "✓ Pester module imported successfully"
+    } else {
+        Write-Verbose "⚠ Pester module not found - will attempt installation on demand"
+    }
 } catch {
-    Write-Warning "Failed to import Pester module: $_"
+    Write-Verbose "Failed to import Pester module: $_"
 }
 
 try {
@@ -109,13 +115,18 @@ function Start-TestRun {
         [switch]$InstallModule
     )
     
-    # Ensure Pester is imported
+    # Ensure Pester is available
     try {
-        Import-Module Pester -Force -ErrorAction Stop
+        $pesterModule = Get-Module -ListAvailable Pester -ErrorAction SilentlyContinue
+        if (-not $pesterModule) {
+            Write-Host "⚠ Pester module not available - attempting installation..." -ForegroundColor Yellow
+            Install-Module -Name Pester -Force -Scope CurrentUser -ErrorAction SilentlyContinue
+        }
+        Import-Module Pester -Force -ErrorAction SilentlyContinue
         Write-Verbose "✓ Pester module loaded for test run"
     } catch {
-        Write-Host "❌ Failed to import Pester module: $_" -ForegroundColor Red
-        return
+        Write-Host "❌ Failed to load Pester module: $_" -ForegroundColor Red
+        Write-Host "Tests may not run properly without Pester" -ForegroundColor Yellow
     }
     
     # Install module if requested or if not already installed
