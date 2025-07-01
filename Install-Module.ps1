@@ -32,12 +32,31 @@ $moduleRoot = if ($isPS7) { "PowerShell" } else { "WindowsPowerShell" }
 
 # Determine module path based on OneDrive setup
 $documentsPath = [Environment]::GetFolderPath("MyDocuments")
-if ($documentsPath -notmatch "OneDrive" -and $userProfile -match "OneDrive") {
-    # OneDrive is in use but not properly detected
-    $documentsPath = Join-Path $userProfile "Documents"
-}
 
-$modulesPath = Join-Path $documentsPath "$moduleRoot\Modules\$moduleName"
+# Handle Linux/container environments where GetFolderPath might not work
+if ([string]::IsNullOrEmpty($documentsPath)) {
+    if ($IsLinux -or $IsMacOS -or [string]::IsNullOrEmpty([Environment]::GetFolderPath("MyDocuments"))) {
+        # In Linux/container environments, use PowerShell's standard module path
+        Write-Host "Detected non-Windows environment, using standard PowerShell module path..." -ForegroundColor Yellow
+        $standardModulePath = if ($psVersion -ge 7) {
+            "/usr/local/share/powershell/Modules"
+        } else {
+            "$HOME/.local/share/powershell/Modules"
+        }
+        $modulesPath = Join-Path $standardModulePath $moduleName
+    } else {
+        # Fallback for Windows when Documents path is not detected
+        $documentsPath = Join-Path $userProfile "Documents"
+        $modulesPath = Join-Path $documentsPath "$moduleRoot\Modules\$moduleName"
+    }
+} else {
+    # Normal Windows path logic
+    if ($documentsPath -notmatch "OneDrive" -and $userProfile -match "OneDrive") {
+        # OneDrive is in use but not properly detected
+        $documentsPath = Join-Path $userProfile "Documents"
+    }
+    $modulesPath = Join-Path $documentsPath "$moduleRoot\Modules\$moduleName"
+}
 
 # Handle clean install option
 if ($CleanInstall -and (Test-Path $modulesPath)) {
@@ -143,8 +162,9 @@ try {
 
     # Add the module path to PSModulePath if needed
     $modulesRoot = Split-Path $modulesPath
-    if (!($Env:PSModulePath -split ";" -contains $modulesRoot)) {
-        $Env:PSModulePath = "$modulesRoot;$Env:PSModulePath"
+    $pathSeparator = if ($IsWindows) { ";" } else { ":" }
+    if (!($Env:PSModulePath -split $pathSeparator -contains $modulesRoot)) {
+        $Env:PSModulePath = "$modulesRoot$pathSeparator$Env:PSModulePath"
     }
 
     Write-Host "$moduleName module installed successfully!" -ForegroundColor Green

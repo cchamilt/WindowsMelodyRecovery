@@ -12,9 +12,18 @@ BeforeAll {
     . $PSScriptRoot/../utilities/Test-Utilities.ps1
     . $PSScriptRoot/../utilities/Mock-Utilities.ps1
     
-    # Set up test environment
-    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
-    $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psd1"
+    # For Docker testing, use the installed module
+    $moduleInfo = Get-Module -ListAvailable WindowsMelodyRecovery | Select-Object -First 1
+    if ($moduleInfo) {
+        $TestModulePath = $moduleInfo.Path
+        $TestManifestPath = Join-Path $moduleInfo.ModuleBase "WindowsMelodyRecovery.psd1"
+        $modulePath = $moduleInfo.ModuleBase
+    } else {
+        # Fallback to relative paths for local testing
+        $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
+        $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psd1"
+        $modulePath = Join-Path $PSScriptRoot "../.."
+    }
     $TestInstallScriptPath = Join-Path $PSScriptRoot "../../Install-Module.ps1"
     
     # Create temporary test directory
@@ -40,11 +49,11 @@ Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Instal
             Test-Path $TestInstallScriptPath | Should -Be $true
             
             # Check public functions
-            $publicFunctions = Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Public") -Filter "*.ps1" -ErrorAction SilentlyContinue
+            $publicFunctions = Get-ChildItem -Path (Join-Path $modulePath "Public") -Filter "*.ps1" -ErrorAction SilentlyContinue
             $publicFunctions.Count | Should -BeGreaterThan 0
             
             # Check private functions
-            $privateFunctions = Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Private") -Recurse -Filter "*.ps1" -ErrorAction SilentlyContinue
+            $privateFunctions = Get-ChildItem -Path (Join-Path $modulePath "Private") -Recurse -Filter "*.ps1" -ErrorAction SilentlyContinue
             $privateFunctions.Count | Should -BeGreaterThan 0
         }
         
@@ -52,8 +61,8 @@ Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Instal
             $allScripts = @(
                 $TestModulePath,
                 $TestInstallScriptPath
-            ) + (Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Public") -Filter "*.ps1" -ErrorAction SilentlyContinue).FullName +
-               (Get-ChildItem -Path (Join-Path $PSScriptRoot "../../Private") -Recurse -Filter "*.ps1" -ErrorAction SilentlyContinue).FullName
+            ) + (Get-ChildItem -Path (Join-Path $modulePath "Public") -Filter "*.ps1" -ErrorAction SilentlyContinue).FullName +
+               (Get-ChildItem -Path (Join-Path $modulePath "Private") -Recurse -Filter "*.ps1" -ErrorAction SilentlyContinue).FullName
             
             foreach ($script in $allScripts) {
                 if (Test-Path $script) {

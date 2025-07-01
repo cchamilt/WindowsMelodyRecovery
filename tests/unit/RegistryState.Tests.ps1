@@ -25,8 +25,7 @@ AfterAll {
     # Clean up temporary directories
     Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
     # Unmock functions
-    Unmock Protect-WmrData
-    Unmock Unprotect-WmrData
+# Note: In Pester 5+, mocks are automatically cleaned up
 }
 
 Describe "Get-WmrRegistryState" {

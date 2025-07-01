@@ -73,6 +73,48 @@ COPY tests/unit/ /tests/unit/
 COPY tests/utilities/ /tests/utilities/
 COPY tests/scripts/ /tests/scripts/
 
+# Copy main module files to workspace for installation
+COPY WindowsMelodyRecovery.psm1 /workspace/
+COPY WindowsMelodyRecovery.psd1 /workspace/
+COPY Private/ /workspace/Private/
+COPY Public/ /workspace/Public/
+COPY Config/ /workspace/Config/
+COPY Templates/ /workspace/Templates/
+COPY docs/ /workspace/docs/
+COPY Install-Module.ps1 /workspace/
+
+# Install the module using the proper installation script (now with Linux support)
+RUN cd /workspace && pwsh -Command " \
+    Write-Host 'Installing WindowsMelodyRecovery module using Install-Module.ps1...'; \
+    ./Install-Module.ps1 -Force; \
+    Write-Host 'Verifying module installation...'; \
+    Import-Module WindowsMelodyRecovery -Force; \
+    Get-Module WindowsMelodyRecovery; \
+    Write-Host 'Module installation completed successfully'; \
+    "
+
+# Verify module installation
+RUN pwsh -Command " \
+    Write-Host 'Final verification of WindowsMelodyRecovery module...'; \
+    Write-Host 'Available module paths:'; \
+    \$env:PSModulePath -split ':' | ForEach-Object { Write-Host \"  - \$_\" }; \
+    Write-Host 'Looking for WindowsMelodyRecovery module...'; \
+    \$module = Get-Module -ListAvailable -Name WindowsMelodyRecovery; \
+    if (\$module) { \
+        Write-Host 'WindowsMelodyRecovery module found successfully'; \
+        Write-Host \"Module path: \$(\$module.ModuleBase)\"; \
+        Write-Host \"Module version: \$(\$module.Version)\"; \
+        Import-Module WindowsMelodyRecovery -Force; \
+        Write-Host 'Module imported successfully for testing'; \
+        Get-Module WindowsMelodyRecovery | Select-Object Name, Version, ModuleBase; \
+    } else { \
+        Write-Host 'ERROR: WindowsMelodyRecovery module not found'; \
+        Write-Host 'Available modules:'; \
+        Get-Module -ListAvailable | Select-Object Name, ModuleBase | Format-Table; \
+        exit 1; \
+    } \
+    "
+
 # Create test runner script
 COPY tests/scripts/run-tests.ps1 /tests/
 COPY tests/scripts/test-orchestrator.ps1 /tests/

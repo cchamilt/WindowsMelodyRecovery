@@ -78,6 +78,12 @@ Describe "Test-WmrPrerequisites" {
 
     Context "Registry Prerequisites" {
         BeforeEach {
+            # Skip registry tests on non-Windows systems
+            if (-not $IsWindows) {
+                Set-ItResult -Skipped -Because "Registry tests only run on Windows"
+                return
+            }
+            
             # Create a dummy registry key for testing
             New-Item -Path "HKCU:\SOFTWARE\WmrTest" -Force | Out-Null
             Set-ItemProperty -Path "HKCU:\SOFTWARE\WmrTest" -Name "TestValue" -Value "Expected" -Force | Out-Null
@@ -85,10 +91,12 @@ Describe "Test-WmrPrerequisites" {
         }
 
         AfterEach {
-            Remove-Item -Path "HKCU:\SOFTWARE\WmrTest" -Recurse -Force -ErrorAction SilentlyContinue
+            if ($IsWindows) {
+                Remove-Item -Path "HKCU:\SOFTWARE\WmrTest" -Recurse -Force -ErrorAction SilentlyContinue
+            }
         }
 
-        It "should pass if registry value matches expected_value" {
+        It "should pass if registry value matches expected_value" -Skip:(-not $IsWindows) {
             $templateConfig = @{
                 metadata = @{ name = "Reg Test" }
                 prerequisites = @(
@@ -98,7 +106,7 @@ Describe "Test-WmrPrerequisites" {
             { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Not Throw
         }
 
-        It "should pass if registry key exists when checking key only" {
+        It "should pass if registry key exists when checking key only" -Skip:(-not $IsWindows) {
             $templateConfig = @{
                 metadata = @{ name = "Reg Test" }
                 prerequisites = @(
@@ -108,7 +116,7 @@ Describe "Test-WmrPrerequisites" {
             { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Not Throw
         }
 
-        It "should fail if registry value does not match and on_missing is 'fail_restore'" {
+        It "should fail if registry value does not match and on_missing is 'fail_restore'" -Skip:(-not $IsWindows) {
             $templateConfig = @{
                 metadata = @{ name = "Reg Test" }
                 prerequisites = @(
@@ -118,7 +126,7 @@ Describe "Test-WmrPrerequisites" {
             { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Throw "Prerequisite 'Test Reg Value' failed. Cannot proceed with Restore operation as 'fail_restore' is set."
         }
 
-        It "should fail if registry key does not exist and on_missing is 'fail_restore'" {
+        It "should fail if registry key does not exist and on_missing is 'fail_restore'" -Skip:(-not $IsWindows) {
             $templateConfig = @{
                 metadata = @{ name = "Reg Test" }
                 prerequisites = @(
@@ -167,20 +175,28 @@ Describe "Test-WmrPrerequisites" {
                 param($Command)
                 if ($Command -eq "winget --version") { return "v1.0.0" }
             }
-            New-Item -Path "HKCU:\SOFTWARE\WmrCombinedTest" -Force | Out-Null
+            
+            $prerequisites = @(
+                @{ type = "application"; name = "Winget"; check_command = "winget --version"; expected_output = "^v\d"; on_missing = "warn" }
+            )
+            
+            # Only add registry prerequisite on Windows
+            if ($IsWindows) {
+                New-Item -Path "HKCU:\SOFTWARE\WmrCombinedTest" -Force | Out-Null
+                $prerequisites += @{ type = "registry"; name = "Combined Key"; path = "HKCU:\SOFTWARE\WmrCombinedTest"; on_missing = "warn" }
+            }
 
             $templateConfig = @{
                 metadata = @{ name = "Combined Test" }
-                prerequisites = @(
-                    @{ type = "application"; name = "Winget"; check_command = "winget --version"; expected_output = "^v\d"; on_missing = "warn" }
-                    @{ type = "registry"; name = "Combined Key"; path = "HKCU:\SOFTWARE\WmrCombinedTest"; on_missing = "warn" }
-                )
+                prerequisites = $prerequisites
             }
             $result = Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup"
             $result | Should Be $true
 
-            Remove-Item -Path "HKCU:\SOFTWARE\WmrCombinedTest" -Recurse -Force -ErrorAction SilentlyContinue
-            Unmock Invoke-Expression
+            if ($IsWindows) {
+                Remove-Item -Path "HKCU:\SOFTWARE\WmrCombinedTest" -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            Remove-Mock Invoke-Expression
         }
 
         It "should return false if any fail_backup prerequisite fails during Backup" {
@@ -196,7 +212,7 @@ Describe "Test-WmrPrerequisites" {
                 )
             }
             { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Throw "Prerequisite 'Winget Critical' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
-            Unmock Invoke-Expression
+            Remove-Mock Invoke-Expression
         }
     }
 } 

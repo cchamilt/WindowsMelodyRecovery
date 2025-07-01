@@ -64,8 +64,7 @@ AfterAll {
     Remove-Item -Path (Join-Path (Get-Item -Path $PSScriptRoot).Parent.Parent "InstalledApps") -Recurse -Force -ErrorAction SilentlyContinue
 
     # Unmock functions
-    Unmock Protect-WmrData
-    Unmock Unprotect-WmrData
+    # Note: In Pester 5+, mocks are automatically cleaned up
 }
 
 Describe "Get-WmrApplicationState" {
@@ -106,7 +105,7 @@ Package A            App.PackageA     1.2.3
         $content[1].Id | Should Be "Microsoft.WindowsTerminal"
         $content[2].Version | Should Be "1.2.3"
 
-        Unmock Invoke-Expression
+        # Unmock not needed in Pester 5+
     }
 
     It "should handle empty discovery command output" {
@@ -134,7 +133,7 @@ Package A            App.PackageA     1.2.3
         $content = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
         $content.Count | Should Be 0
 
-        Unmock Invoke-Expression
+        # Unmock not needed in Pester 5+
     }
 
     It "should warn if discovery command fails" {
@@ -155,7 +154,7 @@ Package A            App.PackageA     1.2.3
         { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir } | Should Not Throw # Should emit a warning
         (Test-Path (Join-Path $script:TempStateDir "apps/failing_discovery.json")) | Should Be $false # No state file should be created
 
-        Unmock Invoke-Expression
+        # Unmock not needed in Pester 5+
     }
 }
 

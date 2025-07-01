@@ -8,8 +8,8 @@
 #>
 
 BeforeAll {
-    # Import the module
-    Import-Module "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1" -Force
+    # Import the module from the installed location
+    Import-Module WindowsMelodyRecovery -Force
     
     # Setup test environment
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }

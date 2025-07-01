@@ -247,8 +247,7 @@ function Invoke-IntegrationTests {
         Write-Host "Executing test suite: $TestSuite" -ForegroundColor Cyan
         
         # Use the refactored orchestrator for all test suites
-        $testCommand = "pwsh /tests/test-orchestrator.ps1 -TestSuite $TestSuite"
-        docker exec wmr-test-runner $testCommand
+        docker exec wmr-test-runner pwsh /tests/test-orchestrator.ps1 -TestSuite $TestSuite | Out-Null
         $testExitCode = $LASTEXITCODE
         
         if ($testExitCode -eq 0) {
