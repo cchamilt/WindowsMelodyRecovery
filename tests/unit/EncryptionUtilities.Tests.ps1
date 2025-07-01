@@ -1,8 +1,8 @@
 # tests/unit/EncryptionUtilities.Tests.ps1
 
 BeforeAll {
-    # Dot-source the module to make functions available
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\EncryptionUtilities.ps1")
+    # Import the WindowsMelodyRecovery module to make functions available
+    Import-Module WindowsMelodyRecovery -Force
     
     # Create a test passphrase for consistent testing
     $script:TestPassphrase = ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force
@@ -53,7 +53,7 @@ Describe "AES-256 Encryption Utilities" {
         }
 
         It "should handle string with special characters and Unicode" {
-            $originalString = "!@#$%^&*()_+`-={}[]|\:;'"<>,.?/ 🔐 密码 العربية"
+            $originalString = "!@#$%^&*()_+-={}[]|\:;'.?/ 🔐 密码 العربية"
             $originalBytes = [System.Text.Encoding]::UTF8.GetBytes($originalString)
 
             $encryptedString = Protect-WmrData -DataBytes $originalBytes -Passphrase $script:TestPassphrase

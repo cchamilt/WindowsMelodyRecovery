@@ -12,9 +12,7 @@
     ProcessorArchitecture = 'Amd64'
     
     # Module dependencies
-    RequiredModules = @(
-        @{ModuleName='Pester'; ModuleVersion='5.0.0'}
-    )
+    RequiredModules = @()
     
     # Required assemblies
     RequiredAssemblies = @()
@@ -139,9 +137,7 @@
 '@
             Prerelease = $false
             RequireLicenseAcceptance = $false
-            ExternalModuleDependencies = @(
-                'Pester'
-            )
+            ExternalModuleDependencies = @()
         }
     }
     

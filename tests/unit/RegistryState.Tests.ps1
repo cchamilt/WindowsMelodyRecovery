@@ -1,10 +1,8 @@
 # tests/unit/RegistryState.Tests.ps1
 
 BeforeAll {
-    # Dot-source required modules
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\PathUtilities.ps1")
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\RegistryState.ps1")
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\EncryptionUtilities.ps1") # For mocked encryption
+    # Import the WindowsMelodyRecovery module to make functions available
+    Import-Module WindowsMelodyRecovery -Force # For mocked encryption
 
     # Setup a temporary directory for state files
     $script:TempStateDir = Join-Path $PSScriptRoot "..\..\Temp\RegistryStateTests"

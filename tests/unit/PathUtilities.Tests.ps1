@@ -1,8 +1,8 @@
 # tests/unit/PathUtilities.Tests.ps1
 
 BeforeAll {
-    # Dot-source the functions to make them available in the test session
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\PathUtilities.ps1")
+    # Import the WindowsMelodyRecovery module to make functions available
+    Import-Module WindowsMelodyRecovery -Force
 }
 
 Describe "Convert-WmrPath" {

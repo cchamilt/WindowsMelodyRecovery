@@ -13,7 +13,7 @@ prerequisites:
     inline_script: "Write-Output 'Hello'"
     expected_output: "Hello"
     on_missing: warn
-"
+"@
     $script:TempTemplatePath = Join-Path $PSScriptRoot "..\..\Temp\test_template.yaml"
     $script:TempTemplateDir = Split-Path -Path $script:TempTemplatePath
     if (-not (Test-Path $script:TempTemplateDir -PathType Container)) {
@@ -21,8 +21,8 @@ prerequisites:
     }
     $tempTemplateContent | Set-Content -Path $script:TempTemplatePath -Encoding Utf8
 
-    # Dot-source the module to make functions available
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\WindowsMelodyRecovery.Template.psm1")
+    # Import the WindowsMelodyRecovery module to make functions available
+    Import-Module WindowsMelodyRecovery -Force
 }
 
 AfterAll {

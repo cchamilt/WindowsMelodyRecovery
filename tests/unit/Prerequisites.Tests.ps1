@@ -1,9 +1,8 @@
 # tests/unit/Prerequisites.Tests.ps1
 
 BeforeAll {
-    # Dot-source required modules
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\PathUtilities.ps1")
-    . (Join-Path $PSScriptRoot "..\..\Private\Core\Prerequisites.ps1")
+    # Import the WindowsMelodyRecovery module to make functions available
+    Import-Module WindowsMelodyRecovery -Force
 
     # Create a dummy script for prerequisite testing
     $script:TempScriptPath = Join-Path $PSScriptRoot "..\..\Temp\test_prereq_script.ps1"
