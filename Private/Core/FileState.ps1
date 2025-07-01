@@ -163,7 +163,5 @@ function Set-WmrFileState {
     }
 }
 
-Export-ModuleMember -Function @(
-    "Get-WmrFileState",
-    "Set-WmrFileState"
-) 
+# Functions are available via dot-sourcing - no Export-ModuleMember needed
+# Available functions: Get-WmrFileState, Set-WmrFileState 

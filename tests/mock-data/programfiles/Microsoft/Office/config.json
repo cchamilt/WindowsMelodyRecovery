@@ -1,0 +1,12 @@
+{
+  "application": "Microsoft Office",
+  "version": "16.0.16130.20306",
+  "products": [
+    "Word",
+    "Excel", 
+    "PowerPoint",
+    "Outlook"
+  ],
+  "installPath": "/mock-programfiles/Microsoft/Office",
+  "lastUpdated": "2024-01-15T10:30:00Z"
+} 

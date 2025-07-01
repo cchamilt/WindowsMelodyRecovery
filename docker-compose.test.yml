@@ -8,9 +8,9 @@ services:
     volumes:
       - ./:/workspace
       - mock-cloud-storage:/mock-cloud
-      - mock-registry:/mock-registry
-      - mock-appdata:/mock-appdata
-      - mock-programfiles:/mock-programfiles
+      - ./tests/mock-data/registry:/mock-registry
+      - ./tests/mock-data/appdata:/mock-appdata
+      - ./tests/mock-data/programfiles:/mock-programfiles
     environment:
       - MOCK_MODE=true
       - CLOUD_PROVIDER=mock
@@ -132,9 +132,6 @@ services:
 
 volumes:
   mock-cloud-storage:
-  mock-registry:
-  mock-appdata:
-  mock-programfiles:
   wsl-home:
   wsl-etc:
   wsl-var:

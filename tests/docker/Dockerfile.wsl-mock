@@ -112,6 +112,13 @@ RUN pip3 install --user requests flask django pytest
 RUN git config --global user.name "Test User" && \
     git config --global user.email "test@example.com"
 
+# Create chezmoi source directory and initialize git repo first
+RUN mkdir -p ~/.local/share/chezmoi && \
+    cd ~/.local/share/chezmoi && \
+    git init && \
+    git config user.name "Test User" && \
+    git config user.email "test@example.com"
+
 # Initialize chezmoi for testuser
 RUN chezmoi init --source-path ~/.local/share/chezmoi
 

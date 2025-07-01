@@ -70,7 +70,8 @@ function Get-WmrRegistryState {
         return $registryState
 
     } catch {
-        Write-Warning "    Failed to get registry state for $($RegistryConfig.name): $($_.Exception.Message). Skipping."
+        $errorMessage = $_.Exception.Message
+        Write-Warning ("    Failed to get registry state for " + $RegistryConfig.name + ": " + $errorMessage + ". Skipping.")
         return $null
     }
 }
@@ -100,7 +101,8 @@ function Set-WmrRegistryState {
         try {
             $stateData = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
         } catch {
-            Write-Warning "    Failed to read or parse state file for $($RegistryConfig.name) at $stateFilePath: $($_.Exception.Message). Trying default value if available."
+            $errorMessage = $_.Exception.Message
+            Write-Warning ("    Failed to read or parse state file for " + $RegistryConfig.name + " at " + $stateFilePath + ": " + $errorMessage + ". Trying default value if available.")
         }
     }
 
@@ -140,11 +142,10 @@ function Set-WmrRegistryState {
             }
         }
     } catch {
-        Write-Warning "    Failed to set registry state for $($RegistryConfig.name): $($_.Exception.Message)"
+        $errorMessage = $_.Exception.Message
+        Write-Warning ("    Failed to set registry state for " + $RegistryConfig.name + ": " + $errorMessage)
     }
 }
 
-Export-ModuleMember -Function @(
-    "Get-WmrRegistryState",
-    "Set-WmrRegistryState"
-) 
+# Functions are available via dot-sourcing - no Export-ModuleMember needed
+# Available functions: Get-WmrRegistryState, Set-WmrRegistryState 

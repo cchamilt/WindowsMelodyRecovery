@@ -1,0 +1,19 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{12345678-1234-1234-1234-123456789012}]
+"DisplayName"="Test Application"
+"DisplayVersion"="1.0.0"
+"Publisher"="Test Publisher"
+"InstallDate"="20240115"
+"InstallLocation"="/mock-programfiles/TestApp"
+"UninstallString"="/mock-programfiles/TestApp/uninstall.exe"
+"EstimatedSize"=dword:00004000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{ABCDEFGH-ABCD-ABCD-ABCD-ABCDEFGHIJKL}]
+"DisplayName"="Microsoft Office Professional Plus 2021"
+"DisplayVersion"="16.0.16130.20306"
+"Publisher"="Microsoft Corporation"
+"InstallDate"="20240110"
+"InstallLocation"="/mock-programfiles/Microsoft/Office"
+"UninstallString"="\"C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeClickToRun.exe\" scenario=install scenariosubtype=ARP sourcetype=None productstoremove=O365ProPlusRetail.16_en-us_x-none culture=en-us version.16=16.0"
+"EstimatedSize"=dword:00200000 

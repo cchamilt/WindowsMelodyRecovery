@@ -6,8 +6,22 @@ function Convert-WmrPath {
         [string]$Path
     )
 
-    # Handle environment variables like $env:VAR, $HOME
-    $ExpandedPath = [System.Environment]::ExpandEnvironmentVariables($Path)
+    # Handle environment variables like $env:VAR, $HOME, and Windows %VAR%
+    $ExpandedPath = $Path
+    
+    # First expand PowerShell-style $env:VAR variables
+    $envVarPattern = '\$env:([A-Z_][A-Z0-9_]*)'
+    $matches = [regex]::Matches($ExpandedPath, $envVarPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    foreach ($match in $matches) {
+        $varName = $match.Groups[1].Value
+        $varValue = [System.Environment]::GetEnvironmentVariable($varName)
+        if ($varValue) {
+            $ExpandedPath = $ExpandedPath -replace [regex]::Escape($match.Value), $varValue
+        }
+    }
+    
+    # Then expand Windows-style %VAR% variables
+    $ExpandedPath = [System.Environment]::ExpandEnvironmentVariables($ExpandedPath)
 
     # Handle WSL paths (wsl:///home/$user/...) and winreg (winreg://HKLM/...)
     if ($ExpandedPath.StartsWith("wsl://")) {
@@ -48,6 +62,16 @@ function Convert-WmrPath {
         $regPath = $regPath -replace '^HKU\\', 'HKU:'
         $regPath = $regPath -replace '^HKCC\\', 'HKCC:'
 
+        [PSCustomObject]@{ 
+            PathType = "Registry"; 
+            Path = $regPath; 
+            Original = $Path 
+        }
+    }
+    elseif ($ExpandedPath -match '^HK(LM|CU|CR|U|CC):/') {
+        # Handle YAML-style registry paths: HKLM:/, HKCU:/, etc.
+        $regPath = $ExpandedPath -replace '/', '\'
+        
         [PSCustomObject]@{ 
             PathType = "Registry"; 
             Path = $regPath; 

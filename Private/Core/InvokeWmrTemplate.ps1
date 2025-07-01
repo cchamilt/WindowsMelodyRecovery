@@ -26,13 +26,16 @@ function Invoke-WmrTemplate {
 
     # 1. Import necessary modules/functions
     try {
-        Import-Module (Join-Path $PSScriptRoot "PathUtilities.ps1")
-        Import-Module (Join-Path $PSScriptRoot "WindowsMelodyRecovery.Template.psm1")
-        Import-Module (Join-Path $PSScriptRoot "Prerequisites.ps1")
-        Import-Module (Join-Path $PSScriptRoot "FileState.ps1")
-        Import-Module (Join-Path $PSScriptRoot "RegistryState.ps1")
-        Import-Module (Join-Path $PSScriptRoot "ApplicationState.ps1")
-        # No explicit import for EncryptionUtilities.ps1 as its functions are exported and used by others
+        # Dot-source PowerShell scripts (they contain Export-ModuleMember which fails when imported as modules)
+        . (Join-Path $PSScriptRoot "PathUtilities.ps1")
+        . (Join-Path $PSScriptRoot "Prerequisites.ps1")
+        . (Join-Path $PSScriptRoot "FileState.ps1")
+        . (Join-Path $PSScriptRoot "RegistryState.ps1")
+        . (Join-Path $PSScriptRoot "ApplicationState.ps1")
+        . (Join-Path $PSScriptRoot "EncryptionUtilities.ps1")
+        
+        # Import the actual PowerShell module
+        Import-Module (Join-Path $PSScriptRoot "WindowsMelodyRecovery.Template.psm1") -Force
     } catch {
         throw "Failed to load required core modules: $($_.Exception.Message)"
     }
@@ -185,7 +188,5 @@ function Invoke-WmrStageItem {
     }
 }
 
-Export-ModuleMember -Function @(
-    "Invoke-WmrTemplate",
-    "Invoke-WmrStageItem"
-) 
+# Functions are available via dot-sourcing - no Export-ModuleMember needed
+# Available functions: Invoke-WmrTemplate, Invoke-WmrStageItem 

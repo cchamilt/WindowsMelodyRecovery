@@ -116,4 +116,5 @@ function Test-WmrPrerequisites {
     return $allPrerequisitesMet
 }
 
-Export-ModuleMember -Function "Test-WmrPrerequisites" 
+# Function is available via dot-sourcing - no Export-ModuleMember needed
+# Available function: Test-WmrPrerequisites 

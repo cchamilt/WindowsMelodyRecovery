@@ -1,0 +1,28 @@
+"InstallConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"SourceModInstallPath"		"/mock-programfiles/Steam/steamapps/sourcemods"
+				"ToolInstallPath"		"/mock-programfiles/Steam/steamapps/common"
+				"language"		"english"
+				"LastGameNameUsed"		"Test Game"
+				"AutoLaunchGameListID"		"0"
+				"apps"
+				{
+					"440"
+					{
+						"name"		"Team Fortress 2"
+					}
+					"730"
+					{
+						"name"		"Counter-Strike 2"
+					}
+				}
+			}
+		}
+	}
+} 

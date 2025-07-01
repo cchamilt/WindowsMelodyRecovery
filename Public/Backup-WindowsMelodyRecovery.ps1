@@ -222,16 +222,20 @@ function Send-BackupNotification {
     
     try {
         # Create email body with more detailed information
+        $machineName = if ($MACHINE_NAME) { $MACHINE_NAME } else { $env:COMPUTERNAME }
+        $backupLocation = if ($MACHINE_BACKUP) { $MACHINE_BACKUP } else { "Unknown" }
+        $currentTime = if ($timestamp) { $timestamp } else { Get-Date -Format "yyyy-MM-dd HH:mm:ss" }
+        
         $body = @"
-Backup Status Report from $MACHINE_NAME
-Timestamp: $timestamp
+Backup Status Report from $machineName
+Timestamp: $currentTime
 
 Summary:
-- Total Errors: $($Errors.Count)
-- Backup Location: $MACHINE_BACKUP
+    Total Errors: $($Errors.Count)
+    Backup Location: $backupLocation
 
 Errors encountered during backup:
-$($Errors | ForEach-Object { "- $_`n" })
+$($Errors | ForEach-Object { "    * $_`n" })
 
 This is an automated message.
 "@
@@ -251,7 +255,7 @@ This is an automated message.
             -UseSsl `
             -Credential $credential
             
-        Write-Host "Backup notification email sent successfully" -ForegroundColor Green
+        Write-Host "Email notification sent successfully" -ForegroundColor Green
     } catch {
         Write-Host "Failed to send email notification: $_" -ForegroundColor Red
     }
@@ -259,7 +263,9 @@ This is an automated message.
 
 # Send email notification if there were any errors
 if ($backupErrors.Count -gt 0) {
-    $subject = "⚠️ Backup Failed on $MACHINE_NAME ($($backupErrors.Count) errors)"
+    $errorCount = $backupErrors.Count
+    $machineName = if ($MACHINE_NAME) { $MACHINE_NAME } else { $env:COMPUTERNAME }
+    $subject = "⚠️ Backup Failed on $machineName ($errorCount issues)"
     Send-BackupNotification -Errors $backupErrors -Subject $subject
 }
 

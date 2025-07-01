@@ -1,0 +1,21 @@
+{
+  "application": "Test Application",
+  "version": "1.0.0",
+  "settings": {
+    "theme": "dark",
+    "language": "en-US",
+    "autoSave": true,
+    "notifications": {
+      "enabled": true,
+      "sound": false
+    }
+  },
+  "user": {
+    "name": "TestUser",
+    "preferences": {
+      "startupBehavior": "restore",
+      "defaultView": "grid"
+    }
+  },
+  "lastOpened": "2024-01-15T14:30:00Z"
+} 
