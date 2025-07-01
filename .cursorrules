@@ -1,0 +1,63 @@
+{
+  // Project-wide settings for the Windows Melody Recovery project.
+  // These rules help tailor Cursor's AI behavior to the specific needs of
+  // PowerShell module development, system configuration, and recovery.
+
+  // --- General PowerShell Best Practices ---
+  // Ensure all PowerShell scripts and functions adhere to standard PowerShell naming conventions.
+  "Adhere to PowerShell naming conventions (Verb-Noun)": true,
+  // Mandate the use of comment-based help for all functions and modules.
+  "Require comment-based help for PowerShell functions and modules": true,
+  // Prefer using native PowerShell cmdlets over external executables.
+  "Prefer native PowerShell cmdlets over external executables": true,
+  // Enforce consistent use of `Write-Verbose`, `Write-Debug`, and `Write-Warning` for logging.
+  "Use standard PowerShell logging cmdlets (Write-Verbose, Write-Debug, Write-Warning)": true,
+  // Encourage modular design for PowerShell scripts and functions.
+  "Promote modular design for PowerShell scripts and functions": true,
+  // All scripts should handle errors gracefully using try-catch-finally.
+  "Implement robust try-catch-finally error handling in PowerShell scripts": true,
+
+  // --- Idempotency and Configuration Management ---
+  // Ensure all configuration and state capture/restore scripts are idempotent.
+  "All backup and restore operations must be idempotent": true,
+  // Maintain a consistent YAML format with 2 spaces for indentation and no tabs.
+  "Enforce consistent YAML formatting (2 spaces, no tabs)": true,
+  // Advise on schema validation for YAML configuration files where applicable.
+  "Suggest YAML schema validation for configuration files": true,
+  // Prioritize secure handling of sensitive configuration data.
+  "Prioritize secure handling of sensitive data in configurations": true,
+
+  // --- Windows System Interaction ---
+  // Be aware of Windows API interactions and potential side effects.
+  "Consider Windows API interactions and potential system impacts": true,
+  // Provide guidance on managing Windows registry entries safely.
+  "Guide on safe and reversible Windows registry modifications": true,
+  // Advise on proper file system permissions and ownership during backup/restore.
+  "Recommend appropriate file system permissions and ownership for recovered data": true,
+
+  // --- WSL and Dotfile Management ---
+  // Include considerations for WSL VM file systems and configurations.
+  "Address WSL file system and configuration specifics": true,
+  // Provide advice on integrating with chezmoi and git for dotfile management.
+  "Offer guidance on chezmoi and Git for dotfile management": true,
+
+  // --- Testing with Pester ---
+  // Ensure Pester tests are atomic and follow the Arrange-Act-Assert pattern.
+  "Write atomic Pester tests following AAA pattern": true,
+  // Emphasize the use of Pester's Mock functionality for testing external dependencies.
+  "Utilize Pester Mock for external dependency testing": true,
+  // Ensure descriptive names for Describe, Context, and It blocks in Pester tests.
+  "Use descriptive names for Pester test blocks (Describe, Context, It)": true,
+  // Encourage testing in isolated environments like Pester's TestDrive.
+  "Advise on using Pester's TestDrive for isolated file system tests": true,
+
+  // --- Code Quality and Maintainability ---
+  // Emphasize code readability and clear variable/function naming.
+  "Prioritize code readability and clear naming conventions": true,
+  // Encourage breaking down complex logic into smaller, manageable units.
+  "Break down complex logic into smaller, testable components": true,
+  // Focus on maintainable code that is easy to understand and modify.
+  "Focus on maintainable code structure": true,
+  // Ensure comments explain *why* something is done, not just *what*.
+  "Comments should explain reasoning, not just re-state code": true
+}

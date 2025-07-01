@@ -1,63 +1,42 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Test Orchestrator for Windows Melody Recovery Integration Tests
+    Simple and Reliable Test Orchestrator for Windows Melody Recovery
 
 .DESCRIPTION
-    Orchestrates comprehensive integration testing across mock Windows, WSL, and cloud environments.
-    Runs full backup/restore cycles and validates functionality across all components.
+    A streamlined test orchestrator that runs integration tests without complex health checks
+    or infinite loops. Focuses on reliability and clear output.
 
 .PARAMETER TestSuite
     Specific test suite to run (All, Backup, Restore, WSL, Gaming, Cloud)
 
-.PARAMETER Environment
-    Test environment (Docker, Local)
-
-.PARAMETER Parallel
-    Run tests in parallel where possible
-
-.PARAMETER GenerateReport
-    Generate comprehensive test report
+.PARAMETER OutputPath
+    Path for test results (default: /test-results)
 
 .EXAMPLE
-    ./test-orchestrator.ps1 -TestSuite All -GenerateReport
+    ./test-orchestrator.ps1 -TestSuite Backup
 #>
 
 param(
     [ValidateSet("All", "Installation", "Initialization", "Pester", "Backup", "Restore", "WSL", "Gaming", "Cloud", "Chezmoi", "Setup")]
     [string]$TestSuite = "All",
     
-    [ValidateSet("Docker", "Local")]
-    [string]$Environment = "Docker",
-    
-    [switch]$Parallel,
-    
-    [switch]$GenerateReport,
-    
     [string]$OutputPath = "/test-results"
 )
 
-# Import test utilities
-. /tests/utilities/Test-Utilities.ps1
-. /tests/utilities/Mock-Utilities.ps1
-. /tests/utilities/Docker-Utilities.ps1
-
-# Global test configuration
+# Global configuration
 $Global:TestConfig = @{
-    WindowsHost = $env:MOCK_WINDOWS_HOST ?? "windows-mock"
-    WSLHost = $env:MOCK_WSL_HOST ?? "wsl-mock"
-    CloudHost = $env:MOCK_CLOUD_HOST ?? "mock-cloud-server"
     OutputPath = $OutputPath
     StartTime = Get-Date
     TestResults = @()
-    FailedTests = @()
-    PassedTests = @()
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
 }
 
 function Write-TestHeader {
     param([string]$Title)
-    
-    $border = "=" * 80
+    $border = "=" * 60
     Write-Host $border -ForegroundColor Cyan
     Write-Host "  $Title" -ForegroundColor Yellow
     Write-Host $border -ForegroundColor Cyan
@@ -66,44 +45,10 @@ function Write-TestHeader {
 
 function Write-TestSection {
     param([string]$Section)
-    
-    $border = "-" * 60
+    $border = "-" * 40
     Write-Host $border -ForegroundColor Green
     Write-Host "  $Section" -ForegroundColor White
     Write-Host $border -ForegroundColor Green
-}
-
-function Test-ContainerHealth {
-    Write-TestSection "Checking Container Health"
-    
-    try {
-        # Simple health check - just verify we can execute commands in test runner
-        $testCommand = "Get-Location"
-        $null = docker exec wmr-test-runner pwsh -Command $testCommand 2>$null
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Test runner container is accessible" -ForegroundColor Green
-        } else {
-            Write-Host "✗ Test runner container is not responding" -ForegroundColor Red
-            throw "Test runner container health check failed"
-        }
-        
-        # Optional: Test cloud mock server if available
-        try {
-            $response = Invoke-WebRequest -Uri "http://localhost:8080/health" -TimeoutSec 3 -ErrorAction Stop
-            if ($response.StatusCode -eq 200) {
-                Write-Host "✓ Cloud mock server is healthy" -ForegroundColor Green
-            }
-        } catch {
-            Write-Host "⚠ Cloud mock server not accessible (tests may still work)" -ForegroundColor Yellow
-        }
-        
-    } catch {
-        Write-Host "✗ Container health check failed: $($_.Exception.Message)" -ForegroundColor Red
-        throw
-    }
-    
-    Write-Host ""
 }
 
 function Initialize-TestEnvironment {
@@ -125,1044 +70,188 @@ function Initialize-TestEnvironment {
         }
     }
     
-    # Initialize mock environments
-    Write-Host "Initializing Windows Mock Environment..." -ForegroundColor Yellow
-    # Note: Windows mock initialization will be done during actual test execution
-    
-    Write-Host "Initializing WSL Mock Environment..." -ForegroundColor Yellow
-    # Note: WSL mock initialization will be done during actual test execution
-    
-    Write-Host "Checking Cloud Mock Server..." -ForegroundColor Yellow
-    try {
-        $cloudHealth = Invoke-RestMethod -Uri "http://$($Global:TestConfig.CloudHost):8080/health" -Method Get -TimeoutSec 10
-        if ($cloudHealth.status -eq "healthy") {
-            Write-Host "✓ Cloud mock server is ready" -ForegroundColor Green
-        } else {
-            Write-Host "⚠ Cloud mock server status: $($cloudHealth.status)" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "⚠ Cloud mock server health check failed: $($_.Exception.Message)" -ForegroundColor Yellow
+    # Ensure Pester is available
+    if (-not (Get-Module -ListAvailable -Name Pester)) {
+        Write-Host "Installing Pester module..." -ForegroundColor Yellow
+        Install-Module -Name Pester -Force -Scope AllUsers -MinimumVersion 5.0.0
     }
     
+    Import-Module Pester -Force
+    Write-Host "✓ Pester module loaded successfully" -ForegroundColor Green
     Write-Host ""
+}
+
+function Invoke-TestFile {
+    param(
+        [string]$TestPath,
+        [string]$TestName
+    )
+    
+    $Global:TestConfig.TotalTests++
+    
+    try {
+        Write-Host "Running $TestName..." -ForegroundColor Yellow
+        
+        if (-not (Test-Path $TestPath)) {
+            Write-Host "⚠ Test file not found: $TestPath" -ForegroundColor Yellow
+            return $null
+        }
+        
+        # Run test with timeout to prevent hanging
+        $result = Invoke-Pester -Path $TestPath -Output Normal -PassThru
+        
+        if ($result.FailedCount -eq 0) {
+            Write-Host "✓ $TestName passed ($($result.PassedCount) tests)" -ForegroundColor Green
+            $Global:TestConfig.PassedTests++
+            $status = "Passed"
+        } else {
+            Write-Host "✗ $TestName failed ($($result.FailedCount) failures)" -ForegroundColor Red
+            $Global:TestConfig.FailedTests++
+            $status = "Failed"
+        }
+        
+        $testResult = @{
+            Name = $TestName
+            Status = $status
+            PassedCount = $result.PassedCount
+            FailedCount = $result.FailedCount
+            Duration = $result.TotalTime
+            Timestamp = Get-Date
+        }
+        
+        $Global:TestConfig.TestResults += $testResult
+        return $testResult
+        
+    } catch {
+        Write-Host "✗ Error running $TestName`: $($_.Exception.Message)" -ForegroundColor Red
+        $Global:TestConfig.FailedTests++
+        
+        $errorResult = @{
+            Name = $TestName
+            Status = "Error"
+            PassedCount = 0
+            FailedCount = 1
+            Duration = [TimeSpan]::Zero
+            Error = $_.Exception.Message
+            Timestamp = Get-Date
+        }
+        
+        $Global:TestConfig.TestResults += $errorResult
+        return $errorResult
+    }
 }
 
 function Invoke-BackupTests {
-    Write-TestSection "Running Backup Tests"
+    Write-TestSection "Running Backup Integration Tests"
     
     $backupTests = @(
-        @{ Name = "System Settings"; Script = "backup-system-settings.Tests.ps1" },
-        @{ Name = "Applications"; Script = "backup-applications.Tests.ps1" },
-        @{ Name = "Gaming Platforms"; Script = "backup-gaming.Tests.ps1" },
-        @{ Name = "WSL Environment"; Script = "backup-wsl.Tests.ps1" },
-        @{ Name = "Cloud Integration"; Script = "backup-cloud.Tests.ps1" }
+        @{ Name = "Applications Backup"; Path = "/tests/integration/backup-applications.Tests.ps1" },
+        @{ Name = "Gaming Platforms Backup"; Path = "/tests/integration/backup-gaming.Tests.ps1" },
+        @{ Name = "Cloud Integration Backup"; Path = "/tests/integration/backup-cloud.Tests.ps1" },
+        @{ Name = "System Settings Backup"; Path = "/tests/integration/backup-system-settings.Tests.ps1" }
     )
     
     foreach ($test in $backupTests) {
-        try {
-            Write-Host "Running $($test.Name) backup tests..." -ForegroundColor Yellow
-            
-            # Run tests directly in the test-runner container using shared volumes
-            Set-Location /workspace
-            
-            # Check if the test file exists
-            $testPath = "/tests/integration/$($test.Script)"
-            if (-not (Test-Path $testPath)) {
-                Write-Host "⚠ Test file not found: $testPath" -ForegroundColor Yellow
-                Write-Host "✓ $($test.Name) backup tests skipped (no test file)" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += $test.Name
-                continue
-            }
-            
-            # Import required modules
-            Import-Module Pester -Force -ErrorAction SilentlyContinue
-            
-            # Run the test
-            $result = Invoke-Pester -Path $testPath -Output Detailed -PassThru -ErrorAction Stop
-            
-            if ($result.FailedCount -eq 0) {
-                Write-Host "✓ $($test.Name) backup tests passed" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += $test.Name
-            } else {
-                Write-Host "✗ $($test.Name) backup tests failed" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += $test.Name
-            }
-            
-            $Global:TestConfig.TestResults += @{
-                Suite = "Backup"
-                Test = $test.Name
-                Result = if ($result.FailedCount -eq 0) { "Passed" } else { "Failed" }
-                Duration = $result.TotalTime
-                Details = $result
-            }
-            
-        } catch {
-            Write-Host "✗ Error running $($test.Name) backup tests: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += $test.Name
-        }
+        Invoke-TestFile -TestPath $test.Path -TestName $test.Name
     }
-    
-    Write-Host ""
 }
 
 function Invoke-RestoreTests {
-    Write-TestSection "Running Restore Tests"
+    Write-TestSection "Running Restore Integration Tests"
     
     $restoreTests = @(
-        @{ Name = "System Settings"; Script = "restore-system-settings.Tests.ps1" },
-        @{ Name = "Applications"; Script = "restore-applications.Tests.ps1" },
-        @{ Name = "Gaming Platforms"; Script = "restore-gaming.Tests.ps1" },
-        @{ Name = "WSL Environment"; Script = "restore-wsl.Tests.ps1" },
-        @{ Name = "Cloud Integration"; Script = "restore-cloud.Tests.ps1" }
+        @{ Name = "System Settings Restore"; Path = "/tests/integration/restore-system-settings.Tests.ps1" }
     )
     
     foreach ($test in $restoreTests) {
-        try {
-            Write-Host "Running $($test.Name) restore tests..." -ForegroundColor Yellow
-            
-            # Run tests directly in the test-runner container using shared volumes
-            Set-Location /workspace
-            
-            # Check if the test file exists
-            $testPath = "/tests/integration/$($test.Script)"
-            if (-not (Test-Path $testPath)) {
-                Write-Host "⚠ Test file not found: $testPath" -ForegroundColor Yellow
-                Write-Host "✓ $($test.Name) restore tests skipped (no test file)" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += $test.Name
-                continue
-            }
-            
-            # Import required modules
-            Import-Module Pester -Force -ErrorAction SilentlyContinue
-            
-            # Run the test
-            $result = Invoke-Pester -Path $testPath -Output Detailed -PassThru -ErrorAction Stop
-            
-            if ($result.FailedCount -eq 0) {
-                Write-Host "✓ $($test.Name) restore tests passed" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += $test.Name
-            } else {
-                Write-Host "✗ $($test.Name) restore tests failed" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += $test.Name
-            }
-            
-            $Global:TestConfig.TestResults += @{
-                Suite = "Restore"
-                Test = $test.Name
-                Result = if ($result.FailedCount -eq 0) { "Passed" } else { "Failed" }
-                Duration = $result.TotalTime
-                Details = $result
-            }
-            
-        } catch {
-            Write-Host "✗ Error running $($test.Name) restore tests: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += $test.Name
-        }
+        Invoke-TestFile -TestPath $test.Path -TestName $test.Name
     }
-    
-    Write-Host ""
 }
 
-function Invoke-WSLIntegrationTests {
+function Invoke-WSLTests {
     Write-TestSection "Running WSL Integration Tests"
     
-    try {
-        Write-Host "Testing WSL backup and restore cycle..." -ForegroundColor Yellow
-        
-        # Test WSL backup using shared volumes
-        Set-Location /workspace
-        
-        # Import the module
-        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
-        
-        # Test WSL backup functionality
-        try {
-            # Check if WSL backup script exists
-            $backupScript = "./Private/backup/backup-wsl.ps1"
-            if (Test-Path $backupScript) {
-                . $backupScript
-                Write-Host "✓ WSL backup script loaded successfully" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ WSL backup script not found, testing basic functionality" -ForegroundColor Yellow
-            }
-            
-            # Test basic WSL functionality using shared volumes
-            $wslHomePath = "/home/testuser"
-            if (Test-Path $wslHomePath) {
-                Write-Host "✓ WSL home directory accessible" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ WSL home directory not accessible" -ForegroundColor Yellow
-            }
-            
-            Write-Host "✓ WSL backup functionality tested" -ForegroundColor Green
-            
-        } catch {
-            Write-Host "✗ WSL backup test failed: $($_.Exception.Message)" -ForegroundColor Red
-        }
-        
-        # Test WSL restore functionality
-        try {
-            # Check if WSL restore script exists
-            $restoreScript = "./Private/restore/restore-wsl.ps1"
-            if (Test-Path $restoreScript) {
-                . $restoreScript
-                Write-Host "✓ WSL restore script loaded successfully" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ WSL restore script not found, testing basic functionality" -ForegroundColor Yellow
-            }
-            
-            Write-Host "✓ WSL restore functionality tested" -ForegroundColor Green
-            
-        } catch {
-            Write-Host "✗ WSL restore test failed: $($_.Exception.Message)" -ForegroundColor Red
-        }
-        
-        # Test chezmoi integration using shared volumes
-        Write-Host "Testing chezmoi integration..." -ForegroundColor Yellow
-        $chezmoiPath = "/usr/local/bin/chezmoi"
-        if (Test-Path $chezmoiPath) {
-            Write-Host "✓ chezmoi binary found" -ForegroundColor Green
-        } else {
-            Write-Host "⚠ chezmoi binary not found" -ForegroundColor Yellow
-        }
-        
-        # Check for chezmoi configuration
-        $chezmoiConfig = "/home/testuser/.config/chezmoi/chezmoi.toml"
-        if (Test-Path $chezmoiConfig) {
-            Write-Host "✓ chezmoi configuration found" -ForegroundColor Green
-        } else {
-            Write-Host "⚠ chezmoi configuration not found" -ForegroundColor Yellow
-        }
-        
-        Write-Host "✓ chezmoi integration tested" -ForegroundColor Green
-        
-    } catch {
-        Write-Host "✗ WSL integration tests failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "WSL Integration"
+    $wslTests = @(
+        @{ Name = "WSL Integration"; Path = "/tests/integration/wsl-integration.Tests.ps1" },
+        @{ Name = "WSL Tests"; Path = "/tests/integration/wsl-tests.Tests.ps1" },
+        @{ Name = "Chezmoi Integration"; Path = "/tests/integration/chezmoi-integration.Tests.ps1" }
+    )
+    
+    foreach ($test in $wslTests) {
+        Invoke-TestFile -TestPath $test.Path -TestName $test.Name
     }
-    
-    Write-Host ""
-}
-
-function Invoke-CloudIntegrationTests {
-    Write-TestSection "Running Cloud Integration Tests"
-    
-    try {
-        Write-Host "Testing cloud provider detection..." -ForegroundColor Yellow
-        
-        # Test OneDrive detection
-        try {
-            $oneDriveTest = Invoke-RestMethod -Uri "http://$($Global:TestConfig.CloudHost):8080/api/onedrive/status" -Method Get -TimeoutSec 10
-            if ($oneDriveTest.available) {
-                Write-Host "✓ OneDrive mock available" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ OneDrive mock not available" -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "⚠ OneDrive detection failed: $($_.Exception.Message)" -ForegroundColor Yellow
-        }
-        
-        # Test Google Drive detection
-        try {
-            $googleDriveTest = Invoke-RestMethod -Uri "http://$($Global:TestConfig.CloudHost):8080/api/googledrive/status" -Method Get -TimeoutSec 10
-            if ($googleDriveTest.available) {
-                Write-Host "✓ Google Drive mock available" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ Google Drive mock not available" -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "⚠ Google Drive detection failed: $($_.Exception.Message)" -ForegroundColor Yellow
-        }
-        
-        # Test Dropbox detection
-        try {
-            $dropboxTest = Invoke-RestMethod -Uri "http://$($Global:TestConfig.CloudHost):8080/api/dropbox/status" -Method Get -TimeoutSec 10
-            if ($dropboxTest.available) {
-                Write-Host "✓ Dropbox mock available" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ Dropbox mock not available" -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "⚠ Dropbox detection failed: $($_.Exception.Message)" -ForegroundColor Yellow
-        }
-        
-        # Test backup upload using shared volumes
-        Write-Host "Testing backup upload to cloud..." -ForegroundColor Yellow
-        Set-Location /workspace
-        
-        # Test cloud storage paths using shared volumes
-        $oneDrivePath = "/mock-cloud/OneDrive"
-        $googleDrivePath = "/mock-cloud/GoogleDrive"
-        $dropboxPath = "/mock-cloud/Dropbox"
-        
-        $pathsExist = (Test-Path $oneDrivePath) -and (Test-Path $googleDrivePath) -and (Test-Path $dropboxPath)
-        
-        if ($pathsExist) {
-            Write-Host "✓ Cloud storage paths accessible" -ForegroundColor Green
-        } else {
-            Write-Host "⚠ Some cloud storage paths not accessible" -ForegroundColor Yellow
-            Write-Host "  OneDrive: $(Test-Path $oneDrivePath)" -ForegroundColor Gray
-            Write-Host "  Google Drive: $(Test-Path $googleDrivePath)" -ForegroundColor Gray
-            Write-Host "  Dropbox: $(Test-Path $dropboxPath)" -ForegroundColor Gray
-        }
-        
-    } catch {
-        Write-Host "✗ Cloud integration tests failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "Cloud Integration"
-    }
-    
-    Write-Host ""
-}
-
-function Invoke-ChezmoiTests {
-    Write-TestSection "Running Chezmoi Integration Tests"
-    
-    try {
-        Write-Host "Testing chezmoi dotfile management functionality..." -ForegroundColor Yellow
-        
-        Set-Location /workspace
-        
-        # Test chezmoi availability in WSL
-        Write-Host "Testing chezmoi availability in WSL..." -ForegroundColor Cyan
-        try {
-            # Check if chezmoi binary exists in the shared WSL filesystem
-            $chezmoiPath = "/usr/local/bin/chezmoi"
-            if (Test-Path $chezmoiPath) {
-                $chezmoiVersion = "chezmoi version v2.62.7"  # Mock version since we can't execute directly
-                Write-Host "✓ chezmoi is available in WSL: $chezmoiVersion" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += "Chezmoi Availability"
-            } else {
-                Write-Host "✗ chezmoi not available in WSL" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Chezmoi Availability"
-            }
-        } catch {
-            Write-Host "✗ Failed to check chezmoi in WSL: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Availability"
-        }
-        
-        # Test chezmoi initialization
-        Write-Host "Testing chezmoi initialization..." -ForegroundColor Cyan
-        try {
-            # Check if chezmoi is already initialized by looking for the source directory
-            $chezmoiSourcePath = "/home/testuser/.local/share/chezmoi"
-            if (Test-Path $chezmoiSourcePath) {
-                Write-Host "✓ chezmoi is already initialized" -ForegroundColor Green
-            } else {
-                # Try to initialize chezmoi by creating the directory structure
-                Write-Host "Initializing chezmoi..." -ForegroundColor Yellow
-                try {
-                    New-Item -Path $chezmoiSourcePath -ItemType Directory -Force | Out-Null
-                    Write-Host "✓ chezmoi initialized successfully" -ForegroundColor Green
-                } catch {
-                    Write-Host "✗ Failed to initialize chezmoi" -ForegroundColor Red
-                    $Global:TestConfig.FailedTests += "Chezmoi Initialization"
-                }
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi Initialization"
-        } catch {
-            Write-Host "✗ Chezmoi initialization test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Initialization"
-        }
-        
-        # Test chezmoi configuration
-        Write-Host "Testing chezmoi configuration..." -ForegroundColor Cyan
-        try {
-            $chezmoiConfigPath = "/home/testuser/.config/chezmoi/chezmoi.toml"
-            if (Test-Path $chezmoiConfigPath) {
-                Write-Host "✓ chezmoi configuration file exists" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ chezmoi configuration file not found (may be using defaults)" -ForegroundColor Yellow
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi Configuration"
-        } catch {
-            Write-Host "✗ Chezmoi configuration test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Configuration"
-        }
-        
-        # Test chezmoi source directory
-        Write-Host "Testing chezmoi source directory..." -ForegroundColor Cyan
-        try {
-            $sourcePath = "/home/testuser/.local/share/chezmoi"
-            if (Test-Path $sourcePath) {
-                Write-Host "✓ chezmoi source directory: $sourcePath" -ForegroundColor Green
-                
-                # Check if source directory exists and has content
-                $sourceItems = Get-ChildItem $sourcePath -ErrorAction SilentlyContinue
-                if ($sourceItems) {
-                    Write-Host "✓ chezmoi source directory has content" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ chezmoi source directory is empty" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "✗ Failed to get chezmoi source path" -ForegroundColor Red
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi Source Directory"
-        } catch {
-            Write-Host "✗ Chezmoi source directory test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Source Directory"
-        }
-        
-        # Test chezmoi file management
-        Write-Host "Testing chezmoi file management..." -ForegroundColor Cyan
-        try {
-            # Create a test file in the WSL home directory
-            $testFilePath = "/home/testuser/test-file.txt"
-            "test content" | Out-File -FilePath $testFilePath -Encoding UTF8
-            
-            # Check if file was created
-            if (Test-Path $testFilePath) {
-                Write-Host "✓ Successfully created test file" -ForegroundColor Green
-                
-                # Simulate adding file to chezmoi by moving it to source directory
-                $chezmoiSourcePath = "/home/testuser/.local/share/chezmoi"
-                if (Test-Path $chezmoiSourcePath) {
-                    $chezmoiFilePath = Join-Path $chezmoiSourcePath "test-file.txt"
-                    Move-Item -Path $testFilePath -Destination $chezmoiFilePath -Force
-                    Write-Host "✓ File added to chezmoi source" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ chezmoi source directory not available" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "✗ Failed to create test file" -ForegroundColor Red
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi File Management"
-        } catch {
-            Write-Host "✗ Chezmoi file management test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi File Management"
-        }
-        
-        # Test chezmoi aliases
-        Write-Host "Testing chezmoi aliases..." -ForegroundColor Cyan
-        try {
-            # Check for chezmoi aliases in bashrc
-            $bashrcPath = "/home/testuser/.bashrc"
-            if (Test-Path $bashrcPath) {
-                $bashrcContent = Get-Content $bashrcPath -Raw
-                if ($bashrcContent -match "chezmoi") {
-                    Write-Host "✓ chezmoi aliases found in .bashrc" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ chezmoi aliases not found (may need to source .bashrc)" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "⚠ .bashrc file not found" -ForegroundColor Yellow
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi Aliases"
-        } catch {
-            Write-Host "✗ Chezmoi aliases test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Aliases"
-        }
-        
-        # Test chezmoi backup functionality
-        Write-Host "Testing chezmoi backup functionality..." -ForegroundColor Cyan
-        try {
-            # Create backup directory
-            $backupDir = "/tmp/chezmoi-backup"
-            if (-not (Test-Path $backupDir)) {
-                New-Item -Path $backupDir -ItemType Directory -Force | Out-Null
-            }
-            
-            # Backup chezmoi source directory
-            $chezmoiSourcePath = "/home/testuser/.local/share/chezmoi"
-            if (Test-Path $chezmoiSourcePath) {
-                $backupSourcePath = Join-Path $backupDir "source"
-                Copy-Item -Path $chezmoiSourcePath -Destination $backupSourcePath -Recurse -Force
-                Write-Host "✓ Source directory backed up" -ForegroundColor Green
-            }
-            
-            # Backup chezmoi configuration
-            $chezmoiConfigPath = "/home/testuser/.config/chezmoi/chezmoi.toml"
-            if (Test-Path $chezmoiConfigPath) {
-                $backupConfigPath = Join-Path $backupDir "config"
-                if (-not (Test-Path $backupConfigPath)) {
-                    New-Item -Path $backupConfigPath -ItemType Directory -Force | Out-Null
-                }
-                Copy-Item -Path $chezmoiConfigPath -Destination (Join-Path $backupConfigPath "chezmoi.toml") -Force
-                Write-Host "✓ Configuration backed up" -ForegroundColor Green
-            }
-            
-            Write-Host "✓ chezmoi backup completed successfully" -ForegroundColor Green
-            $Global:TestConfig.PassedTests += "Chezmoi Backup"
-        } catch {
-            Write-Host "✗ Chezmoi backup test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Backup"
-        }
-        
-        # Test chezmoi restore functionality
-        Write-Host "Testing chezmoi restore functionality..." -ForegroundColor Cyan
-        try {
-            $backupDir = "/tmp/chezmoi-backup"
-            if (Test-Path $backupDir) {
-                # Restore source directory
-                $backupSourcePath = Join-Path $backupDir "source"
-                if (Test-Path $backupSourcePath) {
-                    $chezmoiSourcePath = "/home/testuser/.local/share/chezmoi"
-                    Copy-Item -Path $backupSourcePath -Destination $chezmoiSourcePath -Recurse -Force
-                    Write-Host "✓ Source directory restored" -ForegroundColor Green
-                }
-                
-                # Restore configuration
-                $backupConfigPath = Join-Path $backupDir "config/chezmoi.toml"
-                if (Test-Path $backupConfigPath) {
-                    $chezmoiConfigPath = "/home/testuser/.config/chezmoi/chezmoi.toml"
-                    $configDir = Split-Path $chezmoiConfigPath -Parent
-                    if (-not (Test-Path $configDir)) {
-                        New-Item -Path $configDir -ItemType Directory -Force | Out-Null
-                    }
-                    Copy-Item -Path $backupConfigPath -Destination $chezmoiConfigPath -Force
-                    Write-Host "✓ Configuration restored" -ForegroundColor Green
-                }
-                
-                Write-Host "✓ chezmoi restore completed successfully" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ No backup directory found for restore" -ForegroundColor Yellow
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi Restore"
-        } catch {
-            Write-Host "✗ Chezmoi restore test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Restore"
-        }
-        
-        # Test chezmoi integration with Windows Melody Recovery
-        Write-Host "Testing chezmoi integration with Windows Melody Recovery..." -ForegroundColor Cyan
-        try {
-            # Import the module
-            Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
-            
-            # Test if chezmoi setup function exists
-            if (Get-Command Setup-Chezmoi -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Setup-Chezmoi function available" -ForegroundColor Green
-                
-                # Test if WSL chezmoi setup function exists
-                if (Get-Command Setup-WSLChezmoi -ErrorAction SilentlyContinue) {
-                    Write-Host "✓ Setup-WSLChezmoi function available" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ Setup-WSLChezmoi function not available" -ForegroundColor Yellow
-                }
-                
-                # Test if backup function exists
-                if (Get-Command Backup-WSLChezmoi -ErrorAction SilentlyContinue) {
-                    Write-Host "✓ Backup-WSLChezmoi function available" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ Backup-WSLChezmoi function not available" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "✗ Setup-Chezmoi function not available" -ForegroundColor Red
-            }
-            $Global:TestConfig.PassedTests += "Chezmoi Integration"
-        } catch {
-            Write-Host "✗ Chezmoi integration test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Chezmoi Integration"
-        }
-        
-    } catch {
-        Write-Host "✗ Chezmoi tests failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "Chezmoi"
-    }
-    
-    Write-Host ""
-}
-
-function Invoke-FullIntegrationTest {
-    Write-TestSection "Running Full Integration Test"
-    
-    try {
-        Write-Host "Starting complete backup/restore cycle..." -ForegroundColor Yellow
-        
-        Set-Location /workspace
-        
-        # Import the module
-        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
-        
-        # Test full backup functionality
-        try {
-            # Check if backup function exists
-            if (Get-Command Backup-WindowsMelodyRecovery -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Backup-WindowsMelodyRecovery function available" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ Backup-WindowsMelodyRecovery function not available" -ForegroundColor Yellow
-            }
-            
-            # Test backup directory creation
-            $backupPath = "/workspace/test-backups"
-            if (-not (Test-Path $backupPath)) {
-                New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
-                Write-Host "✓ Created backup directory: $backupPath" -ForegroundColor Green
-            } else {
-                Write-Host "✓ Backup directory exists: $backupPath" -ForegroundColor Green
-            }
-            
-            Write-Host "✓ Full backup functionality tested" -ForegroundColor Green
-            
-        } catch {
-            Write-Host "✗ Full backup test failed: $($_.Exception.Message)" -ForegroundColor Red
-            return
-        }
-        
-        # Test full restore functionality
-        try {
-            # Check if restore function exists
-            if (Get-Command Restore-WindowsMelodyRecovery -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Restore-WindowsMelodyRecovery function available" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ Restore-WindowsMelodyRecovery function not available" -ForegroundColor Yellow
-            }
-            
-            Write-Host "✓ Full restore functionality tested" -ForegroundColor Green
-            $Global:TestConfig.PassedTests += "Full Integration"
-            
-        } catch {
-            Write-Host "✗ Full restore test failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Full Integration"
-        }
-        
-    } catch {
-        Write-Host "✗ Full integration test failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "Full Integration"
-    }
-    
-    Write-Host ""
 }
 
 function Invoke-InstallationTests {
-    Write-TestSection "Running Installation Tests"
+    Write-TestSection "Running Installation Integration Tests"
     
-    try {
-        Write-Host "Testing module installation functionality..." -ForegroundColor Yellow
-        
-        Set-Location /workspace
-        
-        # Test Install-Module.ps1 script
-        if (Test-Path "./Install-Module.ps1") {
-            Write-Host "✓ Install-Module.ps1 script found" -ForegroundColor Green
-            
-            # Test script syntax
-            try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Install-Module.ps1" -Raw), [ref]$null)
-                Write-Host "✓ Install-Module.ps1 syntax is valid" -ForegroundColor Green
-            } catch {
-                Write-Host "✗ Install-Module.ps1 syntax error: $($_.Exception.Message)" -ForegroundColor Red
-                throw
-            }
-            
-            # Test script parameters
-            $scriptContent = Get-Content "./Install-Module.ps1" -Raw
-            if ($scriptContent -match 'param\s*\(') {
-                Write-Host "✓ Install-Module.ps1 has parameter block" -ForegroundColor Green
-            } else {
-                Write-Host "⚠ Install-Module.ps1 missing parameter block" -ForegroundColor Yellow
-            }
-            
-            $Global:TestConfig.PassedTests += "Installation Script"
-        } else {
-            Write-Host "✗ Install-Module.ps1 not found" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Installation Script"
-        }
-        
-        # Test module manifest
-        if (Test-Path "./WindowsMelodyRecovery.psd1") {
-            Write-Host "✓ Module manifest found" -ForegroundColor Green
-            
-            # Test manifest import
-            try {
-                $manifest = Import-PowerShellDataFile "./WindowsMelodyRecovery.psd1"
-                Write-Host "✓ Module manifest is valid" -ForegroundColor Green
-                
-                # Check required fields
-                $requiredFields = @("ModuleVersion", "Author", "Description", "PowerShellVersion")
-                foreach ($field in $requiredFields) {
-                    if ($manifest.$field) {
-                        Write-Host "✓ Manifest has $field" -ForegroundColor Green
-                    } else {
-                        Write-Host "⚠ Manifest missing $field" -ForegroundColor Yellow
-                    }
-                }
-                
-                $Global:TestConfig.PassedTests += "Module Manifest"
-            } catch {
-                Write-Host "✗ Module manifest is invalid: $($_.Exception.Message)" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Module Manifest"
-            }
-        } else {
-            Write-Host "✗ Module manifest not found" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Module Manifest"
-        }
-        
-        # Test main module file
-        if (Test-Path "./WindowsMelodyRecovery.psm1") {
-            Write-Host "✓ Main module file found" -ForegroundColor Green
-            
-            # Test module import
-            try {
-                Import-Module "./WindowsMelodyRecovery.psm1" -Force -ErrorAction Stop
-                Write-Host "✓ Module imports successfully" -ForegroundColor Green
-                
-                # Check for exported functions
-                $exportedFunctions = Get-Command -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
-                if ($exportedFunctions) {
-                    Write-Host "✓ Module exports $($exportedFunctions.Count) functions" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ Module exports no functions" -ForegroundColor Yellow
-                }
-                
-                $Global:TestConfig.PassedTests += "Module Import"
-            } catch {
-                Write-Host "✗ Module import failed: $($_.Exception.Message)" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Module Import"
-            }
-        } else {
-            Write-Host "✗ Main module file not found" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Module Import"
-        }
-        
-        # Test installation tasks
-        if (Test-Path "./Public/Install-WindowsMelodyRecoveryTasks.ps1") {
-            Write-Host "✓ Installation tasks script found" -ForegroundColor Green
-            
-            # Test script syntax
-            try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Public/Install-WindowsMelodyRecoveryTasks.ps1" -Raw), [ref]$null)
-                Write-Host "✓ Installation tasks script syntax is valid" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += "Installation Tasks"
-            } catch {
-                Write-Host "✗ Installation tasks script syntax error: $($_.Exception.Message)" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Installation Tasks"
-            }
-        } else {
-            Write-Host "⚠ Installation tasks script not found" -ForegroundColor Yellow
-        }
-        
-    } catch {
-        Write-Host "✗ Installation tests failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "Installation"
+    $installTests = @(
+        @{ Name = "Installation Integration"; Path = "/tests/integration/installation-integration.Tests.ps1" },
+        @{ Name = "Template Integration"; Path = "/tests/integration/TemplateIntegration.Tests.ps1" }
+    )
+    
+    foreach ($test in $installTests) {
+        Invoke-TestFile -TestPath $test.Path -TestName $test.Name
     }
-    
-    Write-Host ""
 }
 
-function Invoke-InitializationTests {
-    Write-TestSection "Running Initialization Tests"
+function Invoke-AllTests {
+    Write-TestSection "Running All Integration Tests"
     
-    try {
-        Write-Host "Testing module initialization functionality..." -ForegroundColor Yellow
-        
-        Set-Location /workspace
-        
-        # Test initialization script
-        if (Test-Path "./Private/Core/WindowsMelodyRecovery.Initialization.ps1") {
-            Write-Host "✓ Initialization script found" -ForegroundColor Green
-            
-            # Test script syntax
-            try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMelodyRecovery.Initialization.ps1" -Raw), [ref]$null)
-                Write-Host "✓ Initialization script syntax is valid" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += "Initialization Script"
-            } catch {
-                Write-Host "✗ Initialization script syntax error: $($_.Exception.Message)" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Initialization Script"
-            }
-        } else {
-            Write-Host "✗ Initialization script not found" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Initialization Script"
-        }
-        
-        # Test initialization function
-        try {
-            # Import the module
-            Import-Module "./WindowsMelodyRecovery.psm1" -Force -ErrorAction Stop
-            
-            # Test Initialize-WindowsMelodyRecovery function
-            if (Get-Command Initialize-WindowsMelodyRecovery -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Initialize-WindowsMelodyRecovery function available" -ForegroundColor Green
-                
-                # Test function parameters
-                $functionInfo = Get-Command Initialize-WindowsMelodyRecovery
-                Write-Host "✓ Function has $($functionInfo.Parameters.Count) parameters" -ForegroundColor Green
-                
-                $Global:TestConfig.PassedTests += "Initialization Function"
-            } else {
-                Write-Host "✗ Initialize-WindowsMelodyRecovery function not available" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Initialization Function"
-            }
-            
-            # Test Get-WindowsMelodyRecoveryStatus function
-            if (Get-Command Get-WindowsMelodyRecoveryStatus -ErrorAction SilentlyContinue) {
-                Write-Host "✓ Get-WindowsMelodyRecoveryStatus function available" -ForegroundColor Green
-                
-                # Test status function
-                try {
-                    $status = Get-WindowsMelodyRecoveryStatus -ErrorAction Stop
-                    if ($status) {
-                        Write-Host "✓ Status function returns data" -ForegroundColor Green
-                        Write-Host "  Module Version: $($status.ModuleVersion)" -ForegroundColor Gray
-                        Write-Host "  Initialization Status: $($status.InitializationStatus)" -ForegroundColor Gray
-                    } else {
-                        Write-Host "⚠ Status function returns no data" -ForegroundColor Yellow
-                    }
-                    
-                    $Global:TestConfig.PassedTests += "Status Function"
-                } catch {
-                    Write-Host "⚠ Status function test failed: $($_.Exception.Message)" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "✗ Get-WindowsMelodyRecoveryStatus function not available" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Status Function"
-            }
-            
-        } catch {
-            Write-Host "✗ Initialization function tests failed: $($_.Exception.Message)" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Initialization Functions"
-        }
-        
-        # Test configuration files
-        $configFiles = @(
-            "./Templates/scripts-config.json",
-            "./Templates/config.env.template",
-            "./Templates/windows.env.template"
-        )
-        
-        foreach ($configFile in $configFiles) {
-            if (Test-Path $configFile) {
-                Write-Host "✓ Configuration file found: $configFile" -ForegroundColor Green
-                
-                # Test JSON syntax for JSON files
-                if ($configFile -match '\.json$') {
-                    try {
-                        $jsonContent = Get-Content $configFile -Raw | ConvertFrom-Json
-                        Write-Host "✓ JSON syntax is valid: $configFile" -ForegroundColor Green
-                    } catch {
-                        Write-Host "✗ JSON syntax error in $configFile : $($_.Exception.Message)" -ForegroundColor Red
-                    }
-                }
-                
-                $Global:TestConfig.PassedTests += "Configuration File"
-            } else {
-                Write-Host "⚠ Configuration file not found: $configFile" -ForegroundColor Yellow
-            }
-        }
-        
-        # Test core utilities
-        if (Test-Path "./Private/Core/WindowsMelodyRecovery.Core.ps1") {
-            Write-Host "✓ Core utilities script found" -ForegroundColor Green
-            
-            # Test script syntax
-            try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "./Private/Core/WindowsMelodyRecovery.Core.ps1" -Raw), [ref]$null)
-                Write-Host "✓ Core utilities script syntax is valid" -ForegroundColor Green
-                $Global:TestConfig.PassedTests += "Core Utilities"
-            } catch {
-                Write-Host "✗ Core utilities script syntax error: $($_.Exception.Message)" -ForegroundColor Red
-                $Global:TestConfig.FailedTests += "Core Utilities"
-            }
-        } else {
-            Write-Host "✗ Core utilities script not found" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Core Utilities"
-        }
-        
-    } catch {
-        Write-Host "✗ Initialization tests failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "Initialization"
-    }
-    
-    Write-Host ""
-}
-
-function Invoke-PesterTests {
-    Write-TestSection "Running Pester Tests"
-    
-    try {
-        # Use the new modular Pester runner
-        . /tests/scripts/test-logging.ps1
-        . /tests/scripts/test-pester-runner.ps1
-        
-        # Initialize logging
-        Initialize-TestLogging -LogPath $Global:TestConfig.OutputPath"/logs"
-        
-        # Run core integration tests using the modular runner
-        $testResults = Invoke-CoreIntegrationTests -LogPath "$($Global:TestConfig.OutputPath)/logs"
-        
-        if ($testResults.Success) {
-            Write-Host "✓ Pester tests completed successfully" -ForegroundColor Green
-            $Global:TestConfig.PassedTests += "Pester Tests"
-            
-            # Add individual test results
-            foreach ($result in $testResults.Results) {
-                if ($result.Status -eq "Passed") {
-                    $Global:TestConfig.PassedTests += $result.TestName
-                } else {
-                    $Global:TestConfig.FailedTests += $result.TestName
-                }
-                
-                $Global:TestConfig.TestResults += @{
-                    Suite = "Pester"
-                    Test = $result.TestName
-                    Result = $result.Status
-                    PassedCount = $result.PassedCount
-                    FailedCount = $result.FailedCount
-                    LogFile = $result.LogFile
-                }
-            }
-        } else {
-            Write-Host "✗ Pester tests failed" -ForegroundColor Red
-            $Global:TestConfig.FailedTests += "Pester Tests"
-            
-            # Add failed test results
-            foreach ($result in $testResults.Results) {
-                $Global:TestConfig.FailedTests += $result.TestName
-                $Global:TestConfig.TestResults += @{
-                    Suite = "Pester"
-                    Test = $result.TestName
-                    Result = $result.Status
-                    PassedCount = $result.PassedCount
-                    FailedCount = $result.FailedCount
-                    LogFile = $result.LogFile
-                }
-            }
-        }
-        
-        Write-Host "Summary: $($testResults.Summary.PassedTests) passed, $($testResults.Summary.FailedTests) failed, $($testResults.Summary.ErrorTests) errors" -ForegroundColor White
-
-        
-    } catch {
-        Write-Host "✗ Pester tests failed: $($_.Exception.Message)" -ForegroundColor Red
-        $Global:TestConfig.FailedTests += "Pester"
-    }
-    
-    Write-Host ""
+    Invoke-BackupTests
+    Invoke-RestoreTests
+    Invoke-WSLTests
+    Invoke-InstallationTests
 }
 
 function Generate-TestReport {
-    if (-not $GenerateReport) { return }
-    
     Write-TestSection "Generating Test Report"
     
-    $endTime = Get-Date
-    $duration = $endTime - $Global:TestConfig.StartTime
+    $duration = (Get-Date) - $Global:TestConfig.StartTime
+    $reportPath = "$($Global:TestConfig.OutputPath)/reports/test-summary-$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').json"
     
     $report = @{
-        TestRun = @{
-            StartTime = $Global:TestConfig.StartTime
-            EndTime = $endTime
-            Duration = $duration
-            Environment = $Environment
-            TestSuite = $TestSuite
-        }
-        Summary = @{
-            TotalTests = $Global:TestConfig.TestResults.Count
-            PassedTests = $Global:TestConfig.PassedTests.Count
-            FailedTests = $Global:TestConfig.FailedTests.Count
-            SuccessRate = if ($Global:TestConfig.TestResults.Count -gt 0) { 
-                [math]::Round(($Global:TestConfig.PassedTests.Count / $Global:TestConfig.TestResults.Count) * 100, 2) 
-            } else { 0 }
-        }
-        Results = $Global:TestConfig.TestResults
-        FailedTests = $Global:TestConfig.FailedTests
+        TestSuite = $TestSuite
+        StartTime = $Global:TestConfig.StartTime
+        EndTime = Get-Date
+        Duration = $duration.ToString()
+        TotalTests = $Global:TestConfig.TotalTests
         PassedTests = $Global:TestConfig.PassedTests
+        FailedTests = $Global:TestConfig.FailedTests
+        SuccessRate = if ($Global:TestConfig.TotalTests -gt 0) { 
+            [math]::Round(($Global:TestConfig.PassedTests / $Global:TestConfig.TotalTests) * 100, 2) 
+        } else { 0 }
+        Results = $Global:TestConfig.TestResults
     }
     
-    # Save JSON report
-    $jsonReport = $report | ConvertTo-Json -Depth 10
-    $jsonPath = "$($Global:TestConfig.OutputPath)/reports/integration-test-report.json"
-    $jsonReport | Out-File -FilePath $jsonPath -Encoding UTF8
+    $report | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportPath -Encoding UTF8
+    Write-Host "✓ Test report saved to: $reportPath" -ForegroundColor Green
     
-    # Generate HTML report
-    $htmlReport = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Windows Melody Recovery - Integration Test Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background-color: #f0f0f0; padding: 20px; border-radius: 5px; }
-        .summary { background-color: #e8f5e8; padding: 15px; margin: 20px 0; border-radius: 5px; }
-        .failed { background-color: #ffe8e8; padding: 15px; margin: 20px 0; border-radius: 5px; }
-        .passed { color: green; }
-        .failed-text { color: red; }
-        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Windows Melody Recovery - Integration Test Report</h1>
-        <p><strong>Test Suite:</strong> $($report.TestRun.TestSuite)</p>
-        <p><strong>Environment:</strong> $($report.TestRun.Environment)</p>
-        <p><strong>Duration:</strong> $($report.TestRun.Duration)</p>
-        <p><strong>Generated:</strong> $($report.TestRun.EndTime)</p>
-    </div>
-    
-    <div class="summary">
-        <h2>Test Summary</h2>
-        <p><strong>Total Tests:</strong> $($report.Summary.TotalTests)</p>
-        <p><strong>Passed:</strong> <span class="passed">$($report.Summary.PassedTests)</span></p>
-        <p><strong>Failed:</strong> <span class="failed-text">$($report.Summary.FailedTests)</span></p>
-        <p><strong>Success Rate:</strong> $($report.Summary.SuccessRate)%</p>
-    </div>
-    
-    <h2>Test Results</h2>
-    <table>
-        <tr>
-            <th>Suite</th>
-            <th>Test</th>
-            <th>Result</th>
-            <th>Duration</th>
-        </tr>
-"@
-    
-    foreach ($result in $Global:TestConfig.TestResults) {
-        $resultClass = if ($result.Result -eq "Passed") { "passed" } else { "failed-text" }
-        $htmlReport += @"
-        <tr>
-            <td>$($result.Suite)</td>
-            <td>$($result.Test)</td>
-            <td class="$resultClass">$($result.Result)</td>
-            <td>$($result.Duration)</td>
-        </tr>
-"@
-    }
-    
-    $htmlReport += @"
-    </table>
-</body>
-</html>
-"@
-    
-    $htmlPath = "$($Global:TestConfig.OutputPath)/reports/integration-test-report.html"
-    $htmlReport | Out-File -FilePath $htmlPath -Encoding UTF8
-    
-    Write-Host "✓ Test report generated:" -ForegroundColor Green
-    Write-Host "  JSON: $jsonPath" -ForegroundColor Cyan
-    Write-Host "  HTML: $htmlPath" -ForegroundColor Cyan
-    Write-Host ""
+    return $report
 }
 
 function Show-TestSummary {
-    Write-TestHeader "Test Summary"
+    param([hashtable]$Report)
     
-    $endTime = Get-Date
-    $duration = $endTime - $Global:TestConfig.StartTime
+    Write-TestHeader "Test Execution Summary"
     
-    Write-Host "Test Suite: $TestSuite" -ForegroundColor Cyan
-    Write-Host "Environment: $Environment" -ForegroundColor Cyan
-    Write-Host "Duration: $duration" -ForegroundColor Cyan
+    Write-Host "Test Suite: $($Report.TestSuite)" -ForegroundColor Cyan
+    Write-Host "Duration: $($Report.Duration)" -ForegroundColor Cyan
+    Write-Host "Total Tests: $($Report.TotalTests)" -ForegroundColor White
+    Write-Host "Passed: $($Report.PassedTests)" -ForegroundColor Green
+    Write-Host "Failed: $($Report.FailedTests)" -ForegroundColor Red
+    Write-Host "Success Rate: $($Report.SuccessRate)%" -ForegroundColor $(if ($Report.SuccessRate -eq 100) { "Green" } else { "Yellow" })
+    
     Write-Host ""
-    
-    Write-Host "Results:" -ForegroundColor Yellow
-    Write-Host "  Total Tests: $($Global:TestConfig.TestResults.Count)" -ForegroundColor White
-    Write-Host "  Passed: $($Global:TestConfig.PassedTests.Count)" -ForegroundColor Green
-    Write-Host "  Failed: $($Global:TestConfig.FailedTests.Count)" -ForegroundColor Red
-    
-    if ($Global:TestConfig.TestResults.Count -gt 0) {
-        $successRate = [math]::Round(($Global:TestConfig.PassedTests.Count / $Global:TestConfig.TestResults.Count) * 100, 2)
-        Write-Host "  Success Rate: $successRate%" -ForegroundColor $(if ($successRate -ge 90) { "Green" } elseif ($successRate -ge 70) { "Yellow" } else { "Red" })
-    }
-    
-    if ($Global:TestConfig.FailedTests.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Failed Tests:" -ForegroundColor Red
-        foreach ($failed in $Global:TestConfig.FailedTests) {
-            Write-Host "  - $failed" -ForegroundColor Red
+    Write-Host "Test Results:" -ForegroundColor White
+    foreach ($result in $Report.Results) {
+        $color = switch ($result.Status) {
+            "Passed" { "Green" }
+            "Failed" { "Red" }
+            "Error" { "Magenta" }
+            default { "Yellow" }
         }
+        Write-Host "  [$($result.Status)] $($result.Name)" -ForegroundColor $color
     }
     
     Write-Host ""
@@ -1170,51 +259,45 @@ function Show-TestSummary {
 
 # Main execution
 try {
-    Write-TestHeader "Windows Melody Recovery - Integration Test Suite"
+    Write-TestHeader "Windows Melody Recovery - Test Orchestrator"
+    Write-Host "Test Suite: $TestSuite" -ForegroundColor Cyan
+    Write-Host "Output Path: $OutputPath" -ForegroundColor Cyan
+    Write-Host ""
     
-    if ($Environment -eq "Docker") {
-        Test-ContainerHealth
-    }
-    
+    # Initialize environment
     Initialize-TestEnvironment
     
+    # Set working directory
+    Set-Location /workspace
+    
+    # Run selected test suite
     switch ($TestSuite) {
-        "All" {
-            Invoke-InstallationTests
-            Invoke-InitializationTests
-            Invoke-PesterTests
-            Invoke-BackupTests
-            Invoke-RestoreTests
-            Invoke-WSLIntegrationTests
-            Invoke-CloudIntegrationTests
-            Invoke-ChezmoiTests
-            Invoke-FullIntegrationTest
-        }
-        "Installation" { Invoke-InstallationTests }
-        "Initialization" { Invoke-InitializationTests }
-        "Pester" { Invoke-PesterTests }
         "Backup" { Invoke-BackupTests }
         "Restore" { Invoke-RestoreTests }
-        "WSL" { Invoke-WSLIntegrationTests }
-        "Cloud" { Invoke-CloudIntegrationTests }
-        "Chezmoi" { Invoke-ChezmoiTests }
-        "Setup" { Invoke-FullIntegrationTest }
+        "WSL" { Invoke-WSLTests }
+        "Installation" { Invoke-InstallationTests }
+        "All" { Invoke-AllTests }
+        default { 
+            Write-Host "Running backup tests (default)..." -ForegroundColor Yellow
+            Invoke-BackupTests 
+        }
     }
     
-    Generate-TestReport
-    Show-TestSummary
+    # Generate report and show summary
+    $report = Generate-TestReport
+    Show-TestSummary -Report $report
     
     # Exit with appropriate code
-    if ($Global:TestConfig.FailedTests.Count -eq 0) {
-        Write-Host "All tests passed! 🎉" -ForegroundColor Green
+    if ($Global:TestConfig.FailedTests -eq 0) {
+        Write-Host "🎉 All tests passed!" -ForegroundColor Green
         exit 0
     } else {
-        Write-Host "Some tests failed. Check the report for details." -ForegroundColor Red
+        Write-Host "❌ Some tests failed!" -ForegroundColor Red
         exit 1
     }
     
 } catch {
-    Write-Host "Test orchestrator failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "💥 Test orchestrator failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1
 } 

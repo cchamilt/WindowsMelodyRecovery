@@ -34,15 +34,18 @@ services:
     container_name: wmr-wsl-mock
     volumes:
       - ./:/workspace
-      - wsl-home:/home/testuser
-      - wsl-etc:/etc
-      - wsl-var:/var
-      - wsl-usr-local:/usr/local
+      # Mount mock data to dedicated test paths instead of overriding system directories
+      - ./tests/mock-data/wsl/home:/mnt/test-data/home
+      - ./tests/mock-data/wsl/config:/mnt/test-data/config
+      - ./tests/mock-data/wsl/dotfiles:/mnt/test-data/dotfiles
     environment:
       - WSL_DISTRO_NAME=Ubuntu-22.04
       - WSL_VERSION=2
       - USER=testuser
       - HOME=/home/testuser
+      - MOCK_TEST_DATA_HOME=/mnt/test-data/home
+      - MOCK_TEST_DATA_CONFIG=/mnt/test-data/config
+      - MOCK_TEST_DATA_DOTFILES=/mnt/test-data/dotfiles
     networks:
       - wmr-test-network
     command: /bin/bash -c "tail -f /dev/null"
@@ -76,11 +79,7 @@ services:
     volumes:
       - ./:/workspace
       - mock-cloud-storage:/mock-cloud
-      - test-results:/test-results
-      - wsl-home:/home/testuser
-      - wsl-etc:/etc
-      - wsl-var:/var
-      - wsl-usr-local:/usr/local
+      - ./test-results:/test-results
       - ./tests/mock-data/registry:/mock-registry
       - ./tests/mock-data/appdata:/mock-appdata
       - ./tests/mock-data/programfiles:/mock-programfiles
@@ -88,6 +87,8 @@ services:
       - ./tests/mock-data/epic:/mock-epic
       - ./tests/mock-data/gog:/mock-gog
       - ./tests/mock-data/ea:/mock-ea
+      # Mount Docker socket to allow test-runner to communicate with other containers
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PESTER_OUTPUT_PATH=/test-results
       - MOCK_WINDOWS_HOST=wmr-windows-mock
@@ -139,11 +140,6 @@ services:
 
 volumes:
   mock-cloud-storage:
-  wsl-home:
-  wsl-etc:
-  wsl-var:
-  wsl-usr-local:
-  test-results:
   mock-steam:
   mock-epic:
   mock-gog:

@@ -44,6 +44,47 @@ function Global:Setup-Chezmoi {
     return @{ Success = $true; Message = "Chezmoi setup completed" }
 }
 
+# Mock Invoke-WSLScript function for tests that don't use the real container
+function Global:Invoke-WSLScript {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ScriptContent,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$Distribution,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$WorkingDirectory,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$AsRoot,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$PassThru
+    )
+    
+    # In test environment, simulate WSL script execution
+    Write-Verbose "Mock WSL Script Execution:"
+    Write-Verbose "Distribution: $($Distribution ?? 'default')"
+    Write-Verbose "AsRoot: $AsRoot"
+    Write-Verbose "WorkingDirectory: $($WorkingDirectory ?? 'default')"
+    Write-Verbose "Script: $($ScriptContent.Substring(0, [Math]::Min(100, $ScriptContent.Length)))..."
+    
+    # Simulate successful execution
+    $output = "Mock WSL script execution completed successfully"
+    
+    if ($PassThru) {
+        return @{
+            ExitCode = 0
+            Output = $output
+            Error = ""
+            Success = $true
+        }
+    }
+    
+    Write-Host $output -ForegroundColor Green
+}
+
 # Function to simulate module installation
 function Install-TestModule {
     param(

@@ -246,39 +246,10 @@ function Invoke-IntegrationTests {
         # Run tests in the test-runner container
         Write-Host "Executing test suite: $TestSuite" -ForegroundColor Cyan
         
-        # Use simple direct test execution instead of complex orchestrator
-        if ($TestSuite -eq "Pester" -or $TestSuite -eq "All") {
-            # Run the core backup tests that we know work
-            $coreTests = @(
-                "tests/integration/backup-applications.Tests.ps1",
-                "tests/integration/backup-gaming.Tests.ps1",
-                "tests/integration/backup-cloud.Tests.ps1",
-                "tests/integration/backup-system-settings.Tests.ps1"
-            )
-            
-            $allPassed = $true
-            foreach ($testFile in $coreTests) {
-                $testName = [System.IO.Path]::GetFileNameWithoutExtension($testFile)
-                Write-Host "  Running $testName..." -ForegroundColor White
-                
-                $testCommand = "cd /workspace && Import-Module Pester -Force && Invoke-Pester $testFile -Output Normal"
-                docker exec wmr-test-runner pwsh -Command $testCommand
-                
-                if ($LASTEXITCODE -ne 0) {
-                    $allPassed = $false
-                    Write-Host "  ✗ $testName failed" -ForegroundColor Red
-                } else {
-                    Write-Host "  ✓ $testName passed" -ForegroundColor Green
-                }
-            }
-            
-            $testExitCode = if ($allPassed) { 0 } else { 1 }
-        } else {
-            # Fallback to orchestrator for other test suites
-            $testCommand = "pwsh /tests/test-orchestrator.ps1 " + ($testArgs -join " ")
-            docker exec wmr-test-runner $testCommand
-            $testExitCode = $LASTEXITCODE
-        }
+        # Use the refactored orchestrator for all test suites
+        $testCommand = "pwsh /tests/test-orchestrator.ps1 -TestSuite $TestSuite"
+        docker exec wmr-test-runner $testCommand
+        $testExitCode = $LASTEXITCODE
         
         if ($testExitCode -eq 0) {
             Write-Host "✓ All tests passed!" -ForegroundColor Green
@@ -349,14 +320,14 @@ function Stop-TestEnvironment {
     }
 }
 
-# Add NoCleanup parameter and cleanup functionality
+# Cleanup test artifacts function
 function Clean-TestArtifacts {
     if ($NoCleanup) {
-        Write-TestLog "Skipping cleanup due to -NoCleanup flag" "INFO" "CLEANUP"
+        Write-Host "🧹 Skipping cleanup due to -NoCleanup flag" -ForegroundColor Yellow
         return
     }
     
-    Write-TestLog "Starting cleanup of test artifacts..." "INFO" "CLEANUP"
+    Write-Host "🧹 Cleaning up test artifacts..." -ForegroundColor Yellow
     
     # Clean up test directories
     $testDirs = @("test-backups", "test-restore")
@@ -364,24 +335,15 @@ function Clean-TestArtifacts {
         if (Test-Path $testDir) {
             try {
                 Remove-Item -Path $testDir -Recurse -Force
-                Write-TestLog "Removed test directory: $testDir" "SUCCESS" "CLEANUP"
+                Write-Host "✓ Removed test directory: $testDir" -ForegroundColor Green
             } catch {
-                Write-TestLog "Failed to remove $testDir`: $($_.Exception.Message)" "WARN" "CLEANUP"
+                Write-Host "⚠ Failed to remove ${testDir}: $($_.Exception.Message)" -ForegroundColor Yellow
             }
         }
     }
     
-    # Stop Docker containers if running
-    try {
-        $runningContainers = docker compose -f docker-compose.test.yml ps -q 2>$null
-        if ($runningContainers) {
-            Write-TestLog "Stopping Docker containers..." "INFO" "CLEANUP"
-            docker compose -f docker-compose.test.yml down 2>&1 | Out-Null
-            Write-TestLog "Docker containers stopped" "SUCCESS" "CLEANUP"
-        }
-    } catch {
-        Write-TestLog "Error stopping containers: $($_.Exception.Message)" "WARN" "CLEANUP"
-    }
+    # Note: Docker container cleanup is handled by Stop-TestEnvironment
+    Write-Host "✓ Cleanup completed" -ForegroundColor Green
 }
 
 # Main execution

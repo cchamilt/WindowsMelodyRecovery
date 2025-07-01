@@ -442,9 +442,13 @@ Invoke-ScriptAnalyzer -Path . -Recurse
 # Run unit tests locally
 Invoke-Pester tests/unit/
 
-# Or use Docker for local testing
-.\run-integration-tests.ps1
+# Run comprehensive Docker-based tests
+.\run-integration-tests.ps1 -TestSuite All -GenerateReport
 ```
+
+For detailed testing information, see:
+- **[Docker Testing Framework Guide](docs/DOCKER_TESTING_FRAMEWORK.md)** - Comprehensive testing documentation
+- **[Testing Quick Reference](docs/TESTING_QUICK_REFERENCE.md)** - Common commands and workflows
 
 ## 📋 Project Status
 

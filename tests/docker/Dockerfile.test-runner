@@ -25,14 +25,25 @@ RUN apt-get update && apt-get install -y \
 # Create the modules directory first
 RUN mkdir -p /usr/local/share/powershell/Modules
 
-# Install modules with explicit path verification
-RUN pwsh -Command "Install-Module -Name Pester -Force -Scope AllUsers -MinimumVersion 5.0.0 -Verbose"
-RUN pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers -Verbose"
-RUN pwsh -Command "Install-Module -Name ImportExcel -Force -Scope AllUsers -Verbose"
+# Install PowerShell modules with proper error handling
+RUN pwsh -Command " \
+    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; \
+    Install-Module -Name Pester -Force -Scope AllUsers -MinimumVersion 5.0.0 -AcceptLicense -SkipPublisherCheck; \
+    Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
+    Install-Module -Name ImportExcel -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
+    "
 
-# Verify installations
-RUN ls -la /usr/local/share/powershell/Modules/
-RUN pwsh -Command "Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel | Select-Object Name, Version"
+# Verify installations and create a simple test
+RUN pwsh -Command " \
+    Write-Host 'Verifying PowerShell modules installation...'; \
+    \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel; \
+    \$modules | Select-Object Name, Version | Format-Table; \
+    if (-not (Get-Module -ListAvailable -Name Pester)) { \
+        throw 'Pester module not found after installation'; \
+    } else { \
+        Write-Host 'Pester installation verified successfully'; \
+    } \
+    "
 
 # Install Docker CLI for container management
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
@@ -48,6 +59,13 @@ RUN mkdir -p /test-results/unit && \
 # Set up PowerShell profile for testing
 RUN mkdir -p /root/.config/powershell
 COPY tests/mock-scripts/TestRunner.PowerShell_profile.ps1 /root/.config/powershell/Microsoft.PowerShell_profile.ps1
+
+# Copy mock executables and make them available in PATH
+COPY tests/mock-scripts/windows/ /usr/local/bin/mock-windows/
+RUN chmod +x /usr/local/bin/mock-windows/* && \
+    ln -sf /usr/local/bin/mock-windows/wsl.sh /usr/local/bin/wsl && \
+    ln -sf /usr/local/bin/mock-windows/winget.sh /usr/local/bin/winget && \
+    ln -sf /usr/local/bin/mock-windows/reg.sh /usr/local/bin/reg
 
 # Copy test scripts and utilities
 COPY tests/integration/ /tests/integration/

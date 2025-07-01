@@ -173,10 +173,10 @@ Write-Host "Test $testName completed at `$(Get-Date)" | Tee-Object -FilePath '$c
             $testEndTime = Get-Date
             $duration = $testEndTime - $testStartTime
             
-            # Log the test output to main log
-            "Test output for $testName:" | Tee-Object -FilePath $global:mainLogFile -Append
-            $testOutput | Tee-Object -FilePath $global:mainLogFile -Append
-            "Test duration: $($duration.TotalSeconds) seconds" | Tee-Object -FilePath $global:mainLogFile -Append
+                         # Log the test output to main log
+             "Test output for ${testName}:" | Tee-Object -FilePath $global:mainLogFile -Append
+             $testOutput | Tee-Object -FilePath $global:mainLogFile -Append
+             "Test duration: $($duration.TotalSeconds) seconds" | Tee-Object -FilePath $global:mainLogFile -Append
             
             if ($LASTEXITCODE -eq 0) {
                 # Parse the results from output
@@ -195,9 +195,9 @@ Write-Host "Test $testName completed at `$(Get-Date)" | Tee-Object -FilePath '$c
                 $status = if ($failed -gt 0) { "Failed" } else { "Passed" }
                 $color = if ($failed -gt 0) { "Red" } else { "Green" }
                 
-                $resultMsg = "$testName`: $passed passed, $failed failed, $skipped skipped"
-                $resultMsg | Tee-Object -FilePath $global:mainLogFile -Append
-                Write-Host "✓ $resultMsg" -ForegroundColor $color
+                                 $resultMsg = "${testName}: $passed passed, $failed failed, $skipped skipped"
+                 $resultMsg | Tee-Object -FilePath $global:mainLogFile -Append
+                 Write-Host "✓ $resultMsg" -ForegroundColor $color
                 
                 $allTestResults += @{
                     Test = $testName
@@ -211,9 +211,9 @@ Write-Host "Test $testName completed at `$(Get-Date)" | Tee-Object -FilePath '$c
                     EndTime = $testEndTime
                 }
             } else {
-                $errorMsg = "$testName`: Test execution failed (exit code: $LASTEXITCODE)"
-                $errorMsg | Tee-Object -FilePath $global:mainLogFile -Append
-                Write-Host "✗ $errorMsg" -ForegroundColor Red
+                                 $errorMsg = "${testName}: Test execution failed (exit code: $LASTEXITCODE)"
+                 $errorMsg | Tee-Object -FilePath $global:mainLogFile -Append
+                 Write-Host "✗ $errorMsg" -ForegroundColor Red
                 $totalFailed += 1
                 
                 $allTestResults += @{
@@ -229,9 +229,9 @@ Write-Host "Test $testName completed at `$(Get-Date)" | Tee-Object -FilePath '$c
                 }
             }
         } catch {
-            $errorMsg = "$testName`: Exception occurred: $($_.Exception.Message)"
-            $errorMsg | Tee-Object -FilePath $global:mainLogFile -Append
-            Write-Host "✗ $errorMsg" -ForegroundColor Red
+                         $errorMsg = "${testName}: Exception occurred: $($_.Exception.Message)"
+             $errorMsg | Tee-Object -FilePath $global:mainLogFile -Append
+             Write-Host "✗ $errorMsg" -ForegroundColor Red
             $totalFailed += 1
             
             $allTestResults += @{
@@ -376,7 +376,7 @@ function Clean-TestArtifacts {
                 $cleanupMsg | Tee-Object -FilePath $global:mainLogFile -Append
                 Write-Host "✓ $cleanupMsg" -ForegroundColor Green
             } catch {
-                $errorMsg = "Failed to remove $testDir`: $($_.Exception.Message)"
+                                 $errorMsg = "Failed to remove ${testDir}: $($_.Exception.Message)"
                 $errorMsg | Tee-Object -FilePath $global:mainLogFile -Append
                 Write-Host "⚠ $errorMsg" -ForegroundColor Yellow
             }
