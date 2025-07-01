@@ -74,6 +74,25 @@ Windows Registry Editor Version 5.00
     Context "Backup Validation" {
         It "Should create backup manifest" {
             $manifestPath = Join-Path $testBackupPath "backup-manifest.json"
+            
+            # Create the files referenced in the manifest
+            $registryPath = Join-Path $testBackupPath "mock-registry.reg"
+            $preferencesPath = Join-Path $testBackupPath "user-preferences.json"
+            
+            # Create the actual files that the manifest references
+            @"
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\WindowsMelodyRecovery\Test]
+"TestValue"="TestData"
+"@ | Out-File -FilePath $registryPath -Encoding ASCII
+            
+            @{
+                Theme = "Dark"
+                Language = "en-US"
+                TimeZone = "UTC"
+            } | ConvertTo-Json | Out-File -FilePath $preferencesPath -Encoding UTF8
+            
             @{
                 BackupType = "SystemSettings"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"

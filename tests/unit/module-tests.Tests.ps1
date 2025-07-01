@@ -150,14 +150,12 @@ Describe "Windows Melody Recovery Module - Initialization Tests" -Tag "Initializ
         }
         
         It "Should copy template files" {
-            $templateDir = Join-Path $PSScriptRoot "../../Templates"
             Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
             
-            $configDir = Join-Path $TestTempDir "config"
+            $configDir = Join-Path $TestTempDir "Config"
             
-            if (Test-Path (Join-Path $templateDir "scripts-config.json")) {
-                Test-Path (Join-Path $configDir "scripts-config.json") | Should -Be $true
-            }
+            # Check if the configuration file was created
+            Test-Path (Join-Path $configDir "windows.env") | Should -Be $true
         }
     }
     

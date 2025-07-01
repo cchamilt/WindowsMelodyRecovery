@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EAConfiguration>
+  <InstallPath>C:\Program Files\EA Games</InstallPath>
+  <LauncherPath>C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe</LauncherPath>
+  <InstalledGames>
+    <Game id="1">
+      <Name>Test EA Game 1</Name>
+      <Path>C:\Program Files\EA Games\TestEAGame1</Path>
+    </Game>
+    <Game id="2">
+      <Name>Test EA Game 2</Name>
+      <Path>C:\Program Files\EA Games\TestEAGame2</Path>
+    </Game>
+  </InstalledGames>
+</EAConfiguration> 

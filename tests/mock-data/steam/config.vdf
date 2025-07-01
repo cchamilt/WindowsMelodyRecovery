@@ -1,0 +1,16 @@
+"InstallConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"BaseInstallFolder_1"		"C:\\Program Files (x86)\\Steam\\steamapps"
+				"tool_760"		"0"
+				"ToolMappingConfigStoreEntry_120"		"testapp1.exe"
+				"ToolMappingConfigStoreEntry_121"		"testapp2.exe"
+			}
+		}
+	}
+} 

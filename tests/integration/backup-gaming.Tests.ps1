@@ -307,6 +307,18 @@ Describe "Gaming Platforms Backup Tests" {
     Context "Backup Validation" {
         It "Should create gaming platforms backup manifest" {
             $manifestPath = Join-Path $testBackupPath "gaming-manifest.json"
+            
+            # Create the directories referenced in the manifest
+            $platformPaths = @("steam", "epic", "gog", "ea")
+            foreach ($platform in $platformPaths) {
+                $platformPath = Join-Path $testBackupPath $platform
+                if (-not (Test-Path $platformPath)) {
+                    New-Item -Path $platformPath -ItemType Directory -Force | Out-Null
+                }
+                # Create a sample file in each platform directory
+                "Sample $platform data" | Out-File -FilePath (Join-Path $platformPath "backup.json") -Encoding UTF8
+            }
+            
             @{
                 BackupType = "GamingPlatforms"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"

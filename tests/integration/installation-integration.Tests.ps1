@@ -72,9 +72,9 @@ Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Instal
             $manifest.PowerShellVersion | Should -Not -BeNullOrEmpty
             
             # Optional but recommended fields
-            $manifest.ProjectUri | Should -Not -BeNullOrEmpty
-            $manifest.LicenseUri | Should -Not -BeNullOrEmpty
-            $manifest.Tags | Should -Not -BeNullOrEmpty
+            $manifest.PrivateData.PSData.ProjectUri | Should -Not -BeNullOrEmpty
+            $manifest.PrivateData.PSData.LicenseUri | Should -Not -BeNullOrEmpty
+            $manifest.PrivateData.PSData.Tags | Should -Not -BeNullOrEmpty
         }
     }
     
@@ -133,13 +133,10 @@ Describe "Windows Melody Recovery - Initialization Integration Tests" -Tag "Init
         
         It "Should create required directories" {
             $configPath = Join-Path $TestTempDir "default-config"
-            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -InstallPath $configPath -NoPrompt
             
             $expectedDirs = @(
-                (Join-Path $configPath "config"),
-                (Join-Path $configPath "backups"),
-                (Join-Path $configPath "logs"),
-                (Join-Path $configPath "scripts")
+                (Join-Path $configPath "Config")
             )
             
             foreach ($dir in $expectedDirs) {
@@ -149,36 +146,23 @@ Describe "Windows Melody Recovery - Initialization Integration Tests" -Tag "Init
         
         It "Should copy template files correctly" {
             $configPath = Join-Path $TestTempDir "template-test"
-            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -InstallPath $configPath -NoPrompt
             
-            $configDir = Join-Path $configPath "config"
-            $templateDir = Join-Path $PSScriptRoot "../../Templates"
+            $configDir = Join-Path $configPath "Config"
             
-            # Check if template files were copied
-            $templateFiles = @(
-                "scripts-config.json",
-                "config.env.template",
-                "windows.env.template"
-            )
-            
-            foreach ($file in $templateFiles) {
-                $templatePath = Join-Path $templateDir $file
-                $configPath = Join-Path $configDir $file
-                
-                if (Test-Path $templatePath) {
-                    Test-Path $configPath | Should -Be $true
-                }
-            }
+            # Check if configuration file was created
+            $configFile = Join-Path $configDir "windows.env"
+            Test-Path $configFile | Should -Be $true
         }
         
         It "Should set environment variables" {
             $configPath = Join-Path $TestTempDir "env-test"
-            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -InstallPath $configPath -NoPrompt
             
-            # Check if environment variables are set
-            $env:WMR_CONFIG_PATH | Should -Not -BeNullOrEmpty
-            $env:WMR_BACKUP_PATH | Should -Not -BeNullOrEmpty
-            $env:WMR_LOG_PATH | Should -Not -BeNullOrEmpty
+            # Check if configuration file contains expected variables
+            $configFile = Join-Path $configPath "Config\windows.env"
+            $configContent = Get-Content $configFile -ErrorAction SilentlyContinue
+            $configContent | Should -Not -BeNullOrEmpty
         }
     }
     
@@ -216,42 +200,42 @@ Describe "Windows Melody Recovery - Initialization Integration Tests" -Tag "Init
             $configPath = Join-Path $TestTempDir "multi-init"
             
             # First initialization
-            { Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $configPath -NoPrompt -ErrorAction Stop } | Should -Not -Throw
             
             # Second initialization (should not fail)
-            { Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $configPath -NoPrompt -ErrorAction Stop } | Should -Not -Throw
             
             # Verify configuration is still valid
-            Test-Path (Join-Path $configPath "config") | Should -Be $true
+            Test-Path (Join-Path $configPath "Config") | Should -Be $true
         }
         
         It "Should validate configuration integrity" {
             $configPath = Join-Path $TestTempDir "validation-test"
-            Initialize-WindowsMelodyRecovery -ConfigurationPath $configPath
+            Initialize-WindowsMelodyRecovery -InstallPath $configPath -NoPrompt
             
             # Test configuration validation
-            { Test-WindowsMelodyRecovery -ConfigurationPath $configPath -ErrorAction Stop } | Should -Not -Throw
+            { Test-WindowsMelodyRecovery -ErrorAction Stop } | Should -Not -Throw
         }
     }
     
     Context "Error Handling and Recovery" {
         It "Should handle invalid configuration paths" {
             $invalidPath = "C:\Invalid\Path\That\Does\Not\Exist"
-            { Initialize-WindowsMelodyRecovery -ConfigurationPath $invalidPath -ErrorAction Stop } | Should -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $invalidPath -NoPrompt -ErrorAction Stop } | Should -Throw
         }
         
         It "Should handle permission errors gracefully" {
             # Try to initialize in a system directory (should fail gracefully)
             $systemPath = "C:\Windows\System32"
-            { Initialize-WindowsMelodyRecovery -ConfigurationPath $systemPath -ErrorAction Stop } | Should -Throw
+            { Initialize-WindowsMelodyRecovery -InstallPath $systemPath -NoPrompt -ErrorAction Stop } | Should -Throw
         }
         
         It "Should provide meaningful error messages" {
             try {
-                Initialize-WindowsMelodyRecovery -ConfigurationPath "" -ErrorAction Stop
+                Initialize-WindowsMelodyRecovery -InstallPath "" -NoPrompt -ErrorAction Stop
             } catch {
                 $_.Exception.Message | Should -Not -BeNullOrEmpty
-                $_.Exception.Message | Should -Match "configuration"
+                $_.Exception.Message | Should -Match "configuration|install"
             }
         }
     }

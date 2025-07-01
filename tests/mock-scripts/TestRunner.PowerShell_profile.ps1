@@ -27,6 +27,17 @@ if (Test-Path "/tests/utilities/TestHelper.ps1") {
 Set-Alias -Name "trun" -Value "Invoke-Pester"
 Set-Alias -Name "thealth" -Value "health-check.ps1"
 
+# Mock Setup-Chezmoi function for integration tests
+function Global:Setup-Chezmoi {
+    param(
+        [string]$SourcePath,
+        [string]$ConfigPath,
+        [switch]$Force
+    )
+    Write-Host "Mock Setup-Chezmoi completed" -ForegroundColor Green
+    return @{ Success = $true; Message = "Chezmoi setup completed" }
+}
+
 # Function to simulate module installation
 function Install-TestModule {
     param(
