@@ -3,6 +3,21 @@
 # Set up environment
 $env:PSModulePath = "/workspace/Public:/workspace/Private:$env:PSModulePath"
 
+# Import required modules for testing
+try {
+    Import-Module Pester -Force -ErrorAction Stop
+    Write-Verbose "✓ Pester module imported successfully"
+} catch {
+    Write-Warning "Failed to import Pester module: $_"
+}
+
+try {
+    Import-Module PSScriptAnalyzer -Force -ErrorAction SilentlyContinue
+    Write-Verbose "✓ PSScriptAnalyzer module imported successfully"
+} catch {
+    Write-Verbose "PSScriptAnalyzer module not available"
+}
+
 # Import test utilities
 if (Test-Path "/tests/utilities/TestHelper.ps1") {
     . "/tests/utilities/TestHelper.ps1"
@@ -83,6 +98,15 @@ function Start-TestRun {
         [switch]$InstallModule
     )
     
+    # Ensure Pester is imported
+    try {
+        Import-Module Pester -Force -ErrorAction Stop
+        Write-Verbose "✓ Pester module loaded for test run"
+    } catch {
+        Write-Host "❌ Failed to import Pester module: $_" -ForegroundColor Red
+        return
+    }
+    
     # Install module if requested or if not already installed
     if ($InstallModule -or -not (Get-Module -ListAvailable -Name "WindowsMelodyRecovery")) {
         Write-Host "📦 Installing module for test run..." -ForegroundColor Cyan
@@ -95,16 +119,39 @@ function Start-TestRun {
     $params = @{
         Path = $TestPath
         PassThru = $true
+        Output = 'Detailed'
     }
     
     if ($Verbose) {
         $params.Verbose = $true
     }
     
+    # Run the tests
+    Write-Host "🧪 Running tests from: $TestPath" -ForegroundColor Cyan
     $results = Invoke-Pester @params
     
     if ($GenerateReport) {
         & "/tests/scripts/generate-reports.ps1" -TestResults $results
+    }
+    
+    # Display summary
+    if ($results) {
+        $total = $results.TotalCount
+        $passed = $results.PassedCount
+        $failed = $results.FailedCount
+        $skipped = $results.SkippedCount
+        
+        Write-Host "`n📊 Test Summary:" -ForegroundColor Cyan
+        Write-Host "  Total: $total" -ForegroundColor White
+        Write-Host "  Passed: $passed" -ForegroundColor Green
+        Write-Host "  Failed: $failed" -ForegroundColor $(if ($failed -eq 0) { 'Green' } else { 'Red' })
+        Write-Host "  Skipped: $skipped" -ForegroundColor Yellow
+        
+        if ($failed -eq 0) {
+            Write-Host "✅ All tests passed!" -ForegroundColor Green
+        } else {
+            Write-Host "⚠️ Some tests failed" -ForegroundColor Yellow
+        }
     }
     
     return $results

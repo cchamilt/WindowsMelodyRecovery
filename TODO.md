@@ -2,8 +2,7 @@
 
 ## Features
 
-- Develop new Melody concept
-- Rename module
+- Convert backup/restore scripts to templates/states
 - Clean up verb practices and naming for gallery release
 - Secure encrypted key/file options with password prompts
 - private ssh key and cert logic

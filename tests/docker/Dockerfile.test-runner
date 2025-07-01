@@ -22,9 +22,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PowerShell modules for testing
-RUN pwsh -Command "Install-Module -Name Pester -Force -Scope AllUsers -RequiredVersion 5.5.0"
-RUN pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers"
-RUN pwsh -Command "Install-Module -Name ImportExcel -Force -Scope AllUsers"
+# Create the modules directory first
+RUN mkdir -p /usr/local/share/powershell/Modules
+
+# Install modules with explicit path verification
+RUN pwsh -Command "Install-Module -Name Pester -Force -Scope AllUsers -MinimumVersion 5.0.0 -Verbose"
+RUN pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers -Verbose"
+RUN pwsh -Command "Install-Module -Name ImportExcel -Force -Scope AllUsers -Verbose"
+
+# Verify installations
+RUN ls -la /usr/local/share/powershell/Modules/
+RUN pwsh -Command "Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel | Select-Object Name, Version"
 
 # Install Docker CLI for container management
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \

@@ -193,6 +193,8 @@ function Import-PrivateScripts {
                             Write-Host "Mock backup of game managers completed" -ForegroundColor Green
                             return @{ Success = $true; Message = "Game managers backup completed" }
                         }
+                        # Create alias for test compatibility
+                        Set-Alias -Name Backup-GamingPlatforms -Value Backup-GameManagers -Scope Global
                     }
                 }
                 
