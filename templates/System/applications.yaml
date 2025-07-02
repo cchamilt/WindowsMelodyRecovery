@@ -1,0 +1,157 @@
+metadata:
+  name: Applications
+  description: Template for backing up installed applications and package managers.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "Package Managers Available"
+    inline_script: |
+      $managers = @()
+      if (Get-Command winget -ErrorAction SilentlyContinue) { $managers += "winget" }
+      if (Get-Command choco -ErrorAction SilentlyContinue) { $managers += "chocolatey" }
+      if (Get-Command scoop -ErrorAction SilentlyContinue) { $managers += "scoop" }
+      Write-Output "Package managers available: $($managers -join ', ')"
+    expected_output: "Package managers available:"
+    on_missing: warn
+
+applications:
+  # Winget applications
+  - name: Winget Installed Applications
+    type: custom
+    dynamic_state_path: "applications/winget_apps.json"
+    discovery_command: "winget list --accept-source-agreements"
+    parse_script: |
+      param($WingetOutput)
+      try {
+          $apps = @()
+          $lines = $WingetOutput -split "`n"
+          foreach ($line in $lines) {
+              if ($line -match "^\s*(.+?)\s+(.+?)\s+(.+?)\s*$" -and $line -notmatch "^Name\s+Id\s+Version") {
+                  $apps += @{
+                      Name = $matches[1].Trim()
+                      Id = $matches[2].Trim() 
+                      Version = $matches[3].Trim()
+                  }
+              }
+          }
+          $apps | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse winget output: $_"
+          return "[]"
+      }
+    install_script: |
+      param($AppsJson)
+      try {
+          $apps = $AppsJson | ConvertFrom-Json
+          foreach ($app in $apps) {
+              Write-Host "Installing: $($app.Name) ($($app.Id))"
+              winget install --id $app.Id --accept-source-agreements --accept-package-agreements
+          }
+      } catch {
+          Write-Warning "Failed to install winget applications: $_"
+      }
+
+  # Chocolatey applications
+  - name: Chocolatey Installed Applications
+    type: custom
+    dynamic_state_path: "applications/chocolatey_apps.json"
+    discovery_command: "choco list --local-only"
+    parse_script: |
+      param($ChocoOutput)
+      try {
+          $apps = @()
+          $lines = $ChocoOutput -split "`n"
+          foreach ($line in $lines) {
+              if ($line -match "^(.+?)\s+(.+?)$" -and $line -notmatch "packages installed") {
+                  $apps += @{
+                      Name = $matches[1].Trim()
+                      Version = $matches[2].Trim()
+                  }
+              }
+          }
+          $apps | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse chocolatey output: $_"
+          return "[]"
+      }
+    install_script: |
+      param($AppsJson)
+      try {
+          $apps = $AppsJson | ConvertFrom-Json
+          foreach ($app in $apps) {
+              Write-Host "Installing: $($app.Name)"
+              choco install $app.Name -y
+          }
+      } catch {
+          Write-Warning "Failed to install chocolatey applications: $_"
+      }
+
+  # Scoop applications
+  - name: Scoop Installed Applications
+    type: custom
+    dynamic_state_path: "applications/scoop_apps.json"
+    discovery_command: "scoop list"
+    parse_script: |
+      param($ScoopOutput)
+      try {
+          $apps = @()
+          $lines = $ScoopOutput -split "`n"
+          foreach ($line in $lines) {
+              if ($line -match "^\s*(.+?)\s+(.+?)\s*$" -and $line -notmatch "^Name\s+Version") {
+                  $apps += @{
+                      Name = $matches[1].Trim()
+                      Version = $matches[2].Trim()
+                  }
+              }
+          }
+          $apps | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse scoop output: $_"
+          return "[]"
+      }
+    install_script: |
+      param($AppsJson)
+      try {
+          $apps = $AppsJson | ConvertFrom-Json
+          foreach ($app in $apps) {
+              Write-Host "Installing: $($app.Name)"
+              scoop install $app.Name
+          }
+      } catch {
+          Write-Warning "Failed to install scoop applications: $_"
+      }
+
+files:
+  # Package manager configuration
+  - name: Winget Settings
+    path: '%LOCALAPPDATA%\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/winget_settings"
+    encrypt: false
+
+  - name: Chocolatey Configuration
+    path: '%ChocolateyInstall%\config'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/chocolatey_config"
+    encrypt: false
+
+  - name: Scoop Configuration
+    path: '%USERPROFILE%\scoop'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/scoop_config"
+    encrypt: false
+
+stages:
+  post_update:
+    - name: Applications Restoration Complete
+      type: script
+      inline_script: |
+        Write-Host "Application backup/restore completed." -ForegroundColor Green
+        Write-Host "Package manager configurations have been restored." -ForegroundColor Yellow
+        Write-Host "Run package manager updates to ensure all applications are current." -ForegroundColor Yellow
+      parameters: {} 

@@ -1,0 +1,126 @@
+metadata:
+  name: Terminal Settings
+  description: Template for backing up Windows Terminal and console settings.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "Console System Available"
+    inline_script: |
+      try {
+          Test-Path 'HKCU:\Console' | Out-Null
+          Write-Output "Console system available"
+      } catch {
+          Write-Output "Console system not available"
+      }
+    expected_output: "Console system available"
+    on_missing: warn
+
+registry:
+  # Console settings
+  - name: Console Base Settings
+    path: 'HKCU:\Console'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/console.json"
+
+  - name: System Command Processor
+    path: 'HKLM:\SOFTWARE\Microsoft\Command Processor'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_command_processor.json"
+
+  # Windows Terminal settings
+  - name: Windows Terminal App Path
+    path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wt.exe'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/wt_app_path.json"
+
+  - name: Windows Terminal Background Context
+    path: 'HKCU:\SOFTWARE\Classes\Directory\Background\shell\wt'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/wt_background_shell.json"
+
+  - name: Windows Terminal Directory Context
+    path: 'HKCU:\SOFTWARE\Classes\Directory\shell\wt'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/wt_directory_shell.json"
+
+  # Default terminal application
+  - name: Console Startup Settings
+    path: 'HKCU:\Console\%Startup'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/console_startup.json"
+
+  # PowerShell settings
+  - name: User PowerShell Settings
+    path: 'HKCU:\SOFTWARE\Microsoft\PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/user_powershell.json"
+
+  - name: System PowerShell Settings
+    path: 'HKLM:\SOFTWARE\Microsoft\PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_powershell.json"
+
+  # Command prompt settings
+  - name: User Command Processor
+    path: 'HKCU:\SOFTWARE\Microsoft\Command Processor'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/user_command_processor.json"
+
+files:
+  # Windows Terminal settings
+  - name: Windows Terminal Settings
+    path: '%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/windows_terminal"
+    encrypt: false
+
+  - name: Windows Terminal Preview Settings
+    path: '%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/windows_terminal_preview"
+    encrypt: false
+
+  # PowerShell profiles
+  - name: PowerShell User Profile
+    path: '%USERPROFILE%\Documents\PowerShell'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/powershell_profile"
+    encrypt: false
+
+  - name: PowerShell Windows Profile
+    path: '%USERPROFILE%\Documents\WindowsPowerShell'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/windows_powershell_profile"
+    encrypt: false
+
+  # Command prompt customizations
+  - name: Command Prompt Startup Scripts
+    path: '%USERPROFILE%\cmd'
+    type: directory
+    action: sync
+    dynamic_state_path: "files/cmd_scripts"
+    encrypt: false
+
+stages:
+  post_update:
+    - name: Restart Terminal Applications
+      type: script
+      inline_script: |
+        Write-Host "Terminal settings have been restored." -ForegroundColor Green
+        Write-Host "You may need to restart terminal applications for all changes to take effect." -ForegroundColor Yellow
+      parameters: {} 

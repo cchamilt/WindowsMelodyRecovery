@@ -13,16 +13,16 @@ function Read-WmrTemplateConfig {
         throw "Template file not found: $TemplatePath"
     }
 
-    # Ensure the YAML module is available
+    # Ensure the Yayaml module is available
     try {
-        Import-Module powershell-yaml -ErrorAction Stop
+        Import-Module Yayaml -ErrorAction Stop
     } catch {
-        Write-Warning "powershell-yaml module not found. Attempting to install..."
+        Write-Warning "Yayaml module not found. Attempting to install..."
         try {
-            Install-Module powershell-yaml -Scope CurrentUser -Force -ErrorAction Stop
-            Import-Module powershell-yaml -ErrorAction Stop
+            Install-Module Yayaml -Scope CurrentUser -Force -ErrorAction Stop
+            Import-Module Yayaml -ErrorAction Stop
         } catch {
-            throw "Failed to install and import powershell-yaml module. Please install it manually: Install-Module -Name powershell-yaml"
+            throw "Failed to install and import Yayaml module. Please install it manually: Install-Module -Name Yayaml"
         }
     }
 

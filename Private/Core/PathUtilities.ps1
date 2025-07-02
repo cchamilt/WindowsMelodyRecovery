@@ -78,6 +78,27 @@ function Convert-WmrPath {
             Original = $Path 
         }
     }
+    elseif ($ExpandedPath -match '^HK(LM|CU|CR|U|CC):\\') {
+        # Handle standard Windows registry paths: HKLM:\, HKCU:\, etc.
+        [PSCustomObject]@{ 
+            PathType = "Registry"; 
+            Path = $ExpandedPath; 
+            Original = $Path 
+        }
+    }
+    elseif ($ExpandedPath -match '^HK(LM|CU|CR|U|CC):\\\\') {
+        # Handle YAML-escaped registry paths: HKLM:\\, HKCU:\\, etc.
+        # First replace the initial hive double backslash with colon
+        $regPath = $ExpandedPath -replace '^(HK(?:LM|CU|CR|U|CC)):\\\\', '$1:\'
+        # Then replace remaining double backslashes with single backslashes
+        $regPath = $regPath -replace '\\\\', '\'
+        
+        [PSCustomObject]@{ 
+            PathType = "Registry"; 
+            Path = $regPath; 
+            Original = $Path 
+        }
+    }
     elseif ($ExpandedPath.StartsWith("file://")) {
         # Remove "file://" prefix and normalize slashes
         $filePath = $ExpandedPath.Substring("file://".Length)

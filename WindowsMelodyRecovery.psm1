@@ -164,6 +164,17 @@ function Import-PrivateScripts {
         return
     }
     
+    # For backup and restore, recommend using the template system instead
+    if ($Category -in @('backup', 'restore')) {
+        Write-Warning "The '$Category' category is being migrated to the template system for better consistency."
+        Write-Host "Consider using template-based operations:" -ForegroundColor Yellow
+        Write-Host "  Invoke-WmrTemplate -TemplatePath 'Templates/System/display.yaml' -Operation 'Backup' -StateFilesDirectory 'path/to/state'" -ForegroundColor Cyan
+        Write-Host "  Available templates: display.yaml, ssh.yaml, explorer.yaml, winget-apps.yaml" -ForegroundColor Cyan
+        
+        # Still load legacy scripts for backward compatibility, but warn about deprecation
+        Write-Host "Loading legacy $Category scripts for backward compatibility..." -ForegroundColor Yellow
+    }
+    
     $categoryPath = Join-Path $PSScriptRoot "Private\$Category"
     Write-Verbose "Looking for $Category scripts in: $categoryPath"
     

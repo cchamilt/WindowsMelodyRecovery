@@ -1,0 +1,170 @@
+metadata:
+  name: System Settings
+  description: Template for backing up general Windows system configuration.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "System Registry Available"
+    inline_script: |
+      try {
+          Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control' | Out-Null
+          Write-Output "System registry available"
+      } catch {
+          Write-Output "System registry not available"
+      }
+    expected_output: "System registry available"
+    on_missing: warn
+
+registry:
+  # System control settings
+  - name: System Control Settings
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_control.json"
+
+  - name: Windows Setup Configuration
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windows_setup.json"
+
+  # Performance and memory management
+  - name: Memory Management Settings
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/memory_management.json"
+
+  - name: Visual Effects Settings
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/visual_effects.json"
+
+  - name: Priority Control Settings
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/priority_control.json"
+
+  # System environment variables
+  - name: System Environment Variables
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_environment.json"
+
+  - name: User Environment Variables
+    path: 'HKCU:\Environment'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/user_environment.json"
+
+  # Power management settings
+  - name: Power Control Settings
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Power'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/power_control.json"
+
+  - name: Power Options Explorer
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\PowerOptions'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/power_options.json"
+
+  # Time, date, and region settings
+  - name: Time Zone Information
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\TimeZoneInformation'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/timezone.json"
+
+  - name: International Settings
+    path: 'HKCU:\Control Panel\International'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/international.json"
+
+  - name: National Language Support
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/nls.json"
+
+  # System restore settings
+  - name: System Restore Configuration
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_restore.json"
+
+  - name: System Restore Policies
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_restore_policies.json"
+
+  # Remote access settings
+  - name: Remote Assistance Settings
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/remote_assistance.json"
+
+  - name: Terminal Server Settings
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/terminal_server.json"
+
+  - name: Terminal Services Policies
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/terminal_services_policies.json"
+
+  # Security and UAC settings
+  - name: System Policies
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_policies.json"
+
+  - name: Local Security Authority
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/lsa.json"
+
+  - name: Explorer Policies
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/explorer_policies.json"
+
+  # Windows Update settings
+  - name: Windows Update Configuration
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windows_update.json"
+
+  - name: Windows Update Policies
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windows_update_policies.json"
+
+stages:
+  post_update:
+    - name: System Settings Notification
+      type: script
+      inline_script: |
+        Write-Host "System settings have been restored." -ForegroundColor Green
+        Write-Host "Some changes may require a restart to take effect." -ForegroundColor Yellow
+        Write-Host "Environment variables and system policies will be active after restart." -ForegroundColor Yellow
+      parameters: {} 
