@@ -1,0 +1,339 @@
+metadata:
+  name: "Outlook Settings"
+  description: "Backup and restore Microsoft Outlook configuration including profiles, settings, signatures, rules, and customizations across all Office versions"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Outlook System Available"
+    inline_script: |
+      try {
+          $outlookInstalled = $false
+          $officeVersions = @("16.0", "19.0", "15.0", "14.0")
+          foreach ($version in $officeVersions) {
+              if (Test-Path "HKCU:\Software\Microsoft\Office\$version\Outlook") {
+                  $outlookInstalled = $true
+                  break
+              }
+          }
+          if ($outlookInstalled) {
+              Write-Output "Outlook system available"
+          } else {
+              Write-Output "Outlook system not available"
+          }
+      } catch {
+          Write-Output "Outlook system not available"
+      }
+    expected_output: "Outlook system available"
+    on_missing: warn
+
+registry:
+  # Outlook 2016/365 Settings
+  - name: "Outlook 2016 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_main.yaml"
+
+  - name: "Outlook 2016 Preferences"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_preferences.yaml"
+
+  - name: "Outlook 2016 Profiles"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Profiles'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_profiles.yaml"
+
+  - name: "Outlook 2016 Security"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_security.yaml"
+
+  - name: "Outlook 2016 Options"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_options.yaml"
+
+  - name: "Outlook 2016 AutoNameCheck"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\AutoNameCheck'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_autonamecheck.yaml"
+
+  - name: "Outlook 2016 Today"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Today'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_today.yaml"
+
+  - name: "Outlook 2016 Calendar"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Calendar'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_calendar.yaml"
+
+  - name: "Outlook 2016 Mail"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Mail'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_16_mail.yaml"
+
+  # Outlook 2019 Settings
+  - name: "Outlook 2019 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_19_main.yaml"
+
+  - name: "Outlook 2019 Preferences"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook\Preferences'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_19_preferences.yaml"
+
+  - name: "Outlook 2019 Profiles"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook\Profiles'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_19_profiles.yaml"
+
+  - name: "Outlook 2019 Security"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_19_security.yaml"
+
+  # Outlook 2013 Settings
+  - name: "Outlook 2013 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Outlook'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_15_main.yaml"
+
+  - name: "Outlook 2013 Preferences"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Outlook\Preferences'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_15_preferences.yaml"
+
+  - name: "Outlook 2013 Profiles"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Outlook\Profiles'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_15_profiles.yaml"
+
+  # Outlook 2010 Settings
+  - name: "Outlook 2010 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Outlook'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_14_main.yaml"
+
+  - name: "Outlook 2010 Preferences"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Outlook\Preferences'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/outlook_14_preferences.yaml"
+
+  # System-wide Outlook Settings
+  - name: "System Outlook 2016 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Outlook'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/system_outlook_16.yaml"
+
+  - name: "System Outlook 2019 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\19.0\Outlook'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/system_outlook_19.yaml"
+
+  # Common Office Settings
+  - name: "Mail Settings"
+    path: 'HKCU:\Software\Microsoft\Office\Common\MailSettings'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/mail_settings.yaml"
+
+  - name: "User Info"
+    path: 'HKCU:\Software\Microsoft\Office\Common\UserInfo'
+    type: key
+    action: sync
+    dynamic_state_path: "outlook/registry/user_info.yaml"
+
+files:
+  # Outlook Configuration Files
+  - name: "Signatures Folder"
+    path: "$env:APPDATA/Microsoft/Signatures"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/signatures.yaml"
+
+  - name: "Outlook Templates"
+    path: "$env:APPDATA/Microsoft/Templates"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/templates.yaml"
+
+  - name: "Outlook Rules"
+    path: "$env:APPDATA/Microsoft/Outlook"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/outlook_data.yaml"
+
+  - name: "Office Forms"
+    path: "$env:APPDATA/Microsoft/Forms"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/forms.yaml"
+
+  - name: "Stationery"
+    path: "$env:APPDATA/Microsoft/Stationery"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/stationery.yaml"
+
+  - name: "Quick Parts"
+    path: "$env:APPDATA/Microsoft/Document Building Blocks"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/quickparts.yaml"
+
+  - name: "Custom Ribbon UI"
+    path: "$env:APPDATA/Microsoft/Office/16.0/User Content/Ribbon"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/custom_ui.yaml"
+
+  - name: "Office Add-ins"
+    path: "$env:APPDATA/Microsoft/AddIns"
+    type: directory
+    action: sync
+    dynamic_state_path: "outlook/files/addins.yaml"
+
+application_state:
+  # Outlook Installation Discovery
+  - name: "Outlook Installations"
+    type: custom
+    discovery_command: |
+      try {
+          $installations = @()
+          $officeVersions = @{
+              "16.0" = "Office 2016/365"
+              "19.0" = "Office 2019"
+              "15.0" = "Office 2013"
+              "14.0" = "Office 2010"
+          }
+          
+          foreach ($version in $officeVersions.Keys) {
+              $regPath = "HKCU:\Software\Microsoft\Office\$version\Outlook"
+              if (Test-Path $regPath) {
+                  $outlookSettings = Get-ItemProperty $regPath -ErrorAction SilentlyContinue
+                  $installations += @{
+                      Version = $version
+                      Name = $officeVersions[$version]
+                      HasSettings = [bool]$outlookSettings
+                      InstallRoot = if ($outlookSettings) { $outlookSettings.InstallRoot } else { $null }
+                  }
+              }
+          }
+          
+          $installations | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $installs = $State | ConvertFrom-Json
+      return @{
+          OutlookVersionCount = $installs.Count
+          InstalledVersions = $installs | ForEach-Object { $_.Name }
+          ConfiguredVersions = ($installs | Where-Object { $_.HasSettings }).Count
+          LatestVersion = if ($installs) { ($installs | Sort-Object Version -Descending)[0].Name } else { "None" }
+      }
+    dynamic_state_path: "outlook/installations.yaml"
+
+  - name: "Outlook Profiles"
+    type: custom
+    discovery_command: |
+      try {
+          $profiles = @()
+          $officeVersions = @("16.0", "19.0", "15.0", "14.0")
+          
+          foreach ($version in $officeVersions) {
+              $profilePath = "HKCU:\Software\Microsoft\Office\$version\Outlook\Profiles"
+              if (Test-Path $profilePath) {
+                  $profileKeys = Get-ChildItem $profilePath -ErrorAction SilentlyContinue
+                  foreach ($profile in $profileKeys) {
+                      $profileName = $profile.PSChildName
+                      $profiles += @{
+                          Version = $version
+                          ProfileName = $profileName
+                          RegistryPath = $profile.Name
+                      }
+                  }
+              }
+          }
+          
+          $profiles | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $profiles = $State | ConvertFrom-Json
+      return @{
+          TotalProfiles = $profiles.Count
+          ProfilesByVersion = $profiles | Group-Object Version | ForEach-Object { "$($_.Name): $($_.Count) profiles" }
+          ProfileNames = $profiles | ForEach-Object { $_.ProfileName } | Sort-Object -Unique
+      }
+    dynamic_state_path: "outlook/profiles.yaml"
+
+  - name: "Outlook Configuration Files Status"
+    type: custom
+    discovery_command: |
+      try {
+          $configPaths = @{
+              "Signatures" = "$env:APPDATA\Microsoft\Signatures"
+              "Templates" = "$env:APPDATA\Microsoft\Templates"
+              "Rules" = "$env:APPDATA\Microsoft\Outlook"
+              "Forms" = "$env:APPDATA\Microsoft\Forms"
+              "Stationery" = "$env:APPDATA\Microsoft\Stationery"
+              "QuickParts" = "$env:APPDATA\Microsoft\Document Building Blocks"
+              "AddIns" = "$env:APPDATA\Microsoft\AddIns"
+          }
+          
+          $fileStatus = @()
+          foreach ($config in $configPaths.GetEnumerator()) {
+              $exists = Test-Path $config.Value
+              $itemCount = 0
+              if ($exists) {
+                  $items = Get-ChildItem $config.Value -ErrorAction SilentlyContinue
+                  $itemCount = if ($items) { $items.Count } else { 0 }
+              }
+              
+              $fileStatus += @{
+                  ConfigType = $config.Key
+                  Path = $config.Value
+                  Exists = $exists
+                  ItemCount = $itemCount
+              }
+          }
+          
+          $fileStatus | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $status = $State | ConvertFrom-Json
+      return @{
+          ConfigurationCount = $status.Count
+          ExistingConfigs = ($status | Where-Object { $_.Exists }).Count
+          TotalItems = ($status | Measure-Object ItemCount -Sum).Sum
+          ConfigTypes = $status | Where-Object { $_.Exists } | ForEach-Object { "$($_.ConfigType): $($_.ItemCount) items" }
+      }
+    dynamic_state_path: "outlook/config_files.yaml" 

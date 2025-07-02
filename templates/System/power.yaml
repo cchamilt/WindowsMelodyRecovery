@@ -1,0 +1,250 @@
+metadata:
+  name: "Power Management Settings"
+  description: "Backup and restore Windows power management configuration including power schemes, sleep settings, and advanced power options"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Power Management Available"
+    inline_script: |
+      try {
+          Get-Command powercfg -ErrorAction Stop | Out-Null
+          Write-Output "Power management available"
+      } catch {
+          Write-Output "Power management not available"
+      }
+    expected_output: "Power management available"
+    on_missing: warn
+
+files:
+  # Power Scheme Exports (will be created during backup)
+  - name: "Power Schemes List"
+    path: "${BackupPath}\\power\\files\\power_schemes.txt"
+    type: file
+    action: sync
+    dynamic_state_path: "power/files/power_schemes.txt"
+
+  - name: "Active Power Scheme"
+    path: "${BackupPath}\\power\\files\\active_scheme.txt"
+    type: file
+    action: sync
+    dynamic_state_path: "power/files/active_scheme.txt"
+
+  - name: "Power Capabilities"
+    path: "${BackupPath}\\power\\files\\power_capabilities.txt"
+    type: file
+    action: sync
+    dynamic_state_path: "power/files/power_capabilities.txt"
+
+registry:
+  # Power Control Registry Settings
+  - name: "System Power Control"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/system_power_control.json"
+
+  - name: "Power Options Policies"
+    path: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Power\\PowerSettings"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/power_policies.json"
+
+  - name: "User Power Settings"
+    path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\PowerOptions"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/user_power_options.json"
+
+  - name: "Session Manager Power"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/session_manager_power.json"
+
+  # Advanced Power Management
+  - name: "Processor Power Management"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\\54533251-82be-4824-96c1-47b60b740d00"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/processor_power.json"
+
+  - name: "Sleep Power Settings"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\\238C9FA8-0AAD-41ED-83F4-97BE242C8F20"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/sleep_settings.json"
+
+  - name: "Display Power Settings"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\\7516b95f-f776-4464-8c53-06167f40cc99"
+    type: key
+    action: sync
+    dynamic_state_path: "power/registry/display_power.json"
+
+applications:
+  # Power Schemes Information
+  - name: "Power Schemes Configuration"
+    type: custom
+    discovery_command: "powercfg /list"
+    parse_script: |
+      param([string]$PowerOutput)
+      try {
+          $schemes = @()
+          $lines = $PowerOutput -split "`n"
+          foreach ($line in $lines) {
+              if ($line -match "Power Scheme GUID:\s*([a-fA-F0-9\-]+)\s*\((.+)\)(\s*\*)?") {
+                  $schemes += @{
+                      GUID = $matches[1].Trim()
+                      Name = $matches[2].Trim()
+                      IsActive = ($matches[3] -eq " *")
+                  }
+              }
+          }
+          $schemes | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse power schemes: $_"
+          return "[]"
+      }
+    dynamic_state_path: "power/applications/power_schemes.json"
+
+  # Active Power Scheme Details
+  - name: "Active Power Scheme Details"
+    type: custom
+    discovery_command: "powercfg /getactivescheme"
+    parse_script: |
+      param([string]$ActiveScheme)
+      try {
+          if ($ActiveScheme -match "Power Scheme GUID:\s*([a-fA-F0-9\-]+)\s*\((.+)\)") {
+              $schemeInfo = @{
+                  GUID = $matches[1].Trim()
+                  Name = $matches[2].Trim()
+                  IsActive = $true
+              }
+              $schemeInfo | ConvertTo-Json -Compress
+          } else {
+              return "{}"
+          }
+      } catch {
+          Write-Warning "Failed to parse active scheme: $_"
+          return "{}"
+      }
+    dynamic_state_path: "power/applications/active_scheme.json"
+
+  # Power Capabilities
+  - name: "System Power Capabilities"
+    type: custom
+    discovery_command: "powercfg /availablesleepstates"
+    parse_script: |
+      param([string]$SleepStates)
+      try {
+          $capabilities = @{
+              AvailableSleepStates = $SleepStates -split "`n" | Where-Object { $_.Trim() -ne "" }
+              Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+          }
+          $capabilities | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse sleep states: $_"
+          return "{}"
+      }
+    dynamic_state_path: "power/applications/power_capabilities.json"
+
+  # Battery Information (if available)
+  - name: "Battery Information"
+    type: custom
+    discovery_command: |
+      try {
+          $batteries = Get-WmiObject -Class Win32_Battery -ErrorAction SilentlyContinue
+          if ($batteries) {
+              $batteries | Select-Object Name, DeviceID, EstimatedChargeRemaining, EstimatedRunTime, Status
+          } else {
+              @()
+          }
+      } catch {
+          Write-Warning "Could not retrieve battery information: $_"
+          @()
+      }
+    parse_script: |
+      param([object]$BatteryInfo)
+      try {
+          if ($BatteryInfo) {
+              $batteries = $BatteryInfo | Select-Object -Property *
+              $result = $batteries | ConvertTo-Json -Depth 5
+              return $result
+          } else {
+              return "[]"
+          }
+      } catch {
+          Write-Warning "Failed to parse battery information: $_"
+          return "[]"
+      }
+    dynamic_state_path: "power/applications/battery_info.json"
+
+  # Detailed Power Settings for Current Scheme
+  - name: "Current Scheme Detailed Settings"
+    type: custom
+    discovery_command: |
+      try {
+          $activeScheme = powercfg /getactivescheme
+          if ($activeScheme -match "Power Scheme GUID:\s*([a-fA-F0-9\-]+)") {
+              $guid = $matches[1].Trim()
+              powercfg /query $guid
+          } else {
+              "No active scheme found"
+          }
+      } catch {
+          Write-Warning "Could not retrieve detailed power settings: $_"
+          "Error retrieving power settings"
+      }
+    parse_script: |
+      param([string]$DetailedSettings)
+      try {
+          # Store as raw text since powercfg output is complex
+          $settings = @{
+              RawOutput = $DetailedSettings
+              Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+          }
+          $settings | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse detailed settings: $_"
+          return "{}"
+      }
+    dynamic_state_path: "power/applications/detailed_settings.json"
+
+  # Power Device Information
+  - name: "Power Management Devices"
+    type: custom
+    discovery_command: |
+      try {
+          $powerDevices = Get-WmiObject -Query "SELECT * FROM Win32_PowerManagementEvent" -ErrorAction SilentlyContinue
+          if ($powerDevices) {
+              $powerDevices | Select-Object EventType, OEMEventCode, Time
+          } else {
+              @()
+          }
+      } catch {
+          Write-Warning "Could not retrieve power management events: $_"
+          @()
+      }
+    parse_script: |
+      param([object]$PowerDevices)
+      try {
+          if ($PowerDevices) {
+              $devices = $PowerDevices | Select-Object -Property *
+              $result = $devices | ConvertTo-Json -Depth 5
+              return $result
+          } else {
+              return "[]"
+          }
+      } catch {
+          Write-Warning "Failed to parse power devices: $_"
+          return "[]"
+      }
+    dynamic_state_path: "power/applications/power_devices.json"
+
+cleanup:
+  - name: "Verify Power Service Running"
+    type: check
+    command: "Get-Service -Name 'Power' -ErrorAction SilentlyContinue"
+    expected_result: "Running"
+    on_failure: warn 

@@ -4,6 +4,7 @@
 # Requires EncryptionUtilities.ps1 for encryption/decryption (will be created in Task 2.5)
 
 function Get-WmrFileState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$FileConfig,
@@ -17,6 +18,17 @@ function Get-WmrFileState {
     $resolvedPath = (Convert-WmrPath -Path $FileConfig.path).Path
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $FileConfig.dynamic_state_path
     $stateFileDirectory = Split-Path -Path $stateFilePath
+
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would backup file state from $resolvedPath to $stateFilePath" -ForegroundColor Yellow
+        if (-not (Test-Path $resolvedPath)) {
+            Write-Warning "    WhatIf: Source path not found: $resolvedPath. Would skip backup for this item."
+        } else {
+            Write-Host "    WhatIf: Would create state file directory: $stateFileDirectory" -ForegroundColor Yellow
+            Write-Host "    WhatIf: Would backup $($FileConfig.type) content" -ForegroundColor Yellow
+        }
+        return $null
+    }
 
     # Ensure the target directory for state file exists
     if (-not (Test-Path $stateFileDirectory -PathType Container)) {
@@ -35,7 +47,7 @@ function Get-WmrFileState {
     }
 
     if ($FileConfig.type -eq "file") {
-        $content = Get-Content -Path $resolvedPath -Encoding Byte -Raw
+        $content = Get-Content -Path $resolvedPath -AsByteStream -Raw
         if ($FileConfig.encrypt) {
             Write-Host "    Encrypting file content with AES-256"
             $encryptedContent = Protect-WmrData -DataBytes $content
@@ -85,6 +97,7 @@ function Get-WmrFileState {
 }
 
 function Set-WmrFileState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$FileConfig,
@@ -95,7 +108,17 @@ function Set-WmrFileState {
 
     Write-Host "  Setting file state for: $($FileConfig.name)"
 
-    $destinationPath = (Convert-WmrPath -Path ($FileConfig.destination -or $FileConfig.path)).Path
+    $pathToUse = $FileConfig.destination -or $FileConfig.path
+    if ([string]::IsNullOrWhiteSpace($pathToUse)) {
+        Write-Warning "    No valid path found for $($FileConfig.name). Skipping restore for this item."
+        return
+    }
+    $destinationPath = (Convert-WmrPath -Path $pathToUse).Path
+    if ([string]::IsNullOrWhiteSpace($destinationPath)) {
+        Write-Warning "    Could not resolve destination path for $($FileConfig.name). Original path: $pathToUse. Skipping restore for this item."
+        return
+    }
+    
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $FileConfig.dynamic_state_path
 
     if (-not (Test-Path $stateFilePath)) {
@@ -103,9 +126,40 @@ function Set-WmrFileState {
         return
     }
 
-    $targetDirectory = Split-Path -Path $destinationPath
-    if (-not (Test-Path $targetDirectory -PathType Container)) {
-        New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would restore file state from $stateFilePath to $destinationPath" -ForegroundColor Yellow
+        Write-Host "    WhatIf: Would create target directory if needed" -ForegroundColor Yellow
+        
+        if ($FileConfig.type -eq "file") {
+            $wasEncrypted = $false
+            try {
+                $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+                if (Test-Path $stateMetadataPath) {
+                    $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
+                    $wasEncrypted = $metadata.Encrypted -eq $true
+                }
+            } catch {
+                $wasEncrypted = $FileConfig.encrypt -eq $true
+            }
+            
+            if ($wasEncrypted) {
+                Write-Host "    WhatIf: Would decrypt file content with AES-256" -ForegroundColor Yellow
+            }
+            Write-Host "    WhatIf: Would restore file $($FileConfig.name) to $destinationPath" -ForegroundColor Yellow
+        } elseif ($FileConfig.type -eq "directory") {
+            Write-Host "    WhatIf: Would recreate directory structure for $($FileConfig.name) at $destinationPath" -ForegroundColor Yellow
+        }
+        return
+    }
+
+    try {
+        $targetDirectory = Split-Path -Path $destinationPath -ErrorAction Stop
+        if (-not (Test-Path $targetDirectory -PathType Container)) {
+            New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+        }
+    } catch {
+        Write-Warning "    Failed to determine target directory for $($FileConfig.name). Destination path: '$destinationPath'. Error: $($_.Exception.Message). Skipping restore for this item."
+        return
     }
 
     if ($FileConfig.type -eq "file") {

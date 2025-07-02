@@ -82,23 +82,29 @@ function Test-WmrPrerequisites {
             }
 
             if (-not $prereqMet) {
-                $allPrerequisitesMet = $false
                 Write-Host " FAILED."
                 Write-Warning "    Prerequisite `'$($prereq.name)`' is missing or failed: $($prereq.check_command) $($prereq.path) $checkResult"
 
                 switch ($prereq.on_missing) {
                     "warn" {
                         Write-Warning "    Warning: This prerequisite is set to `'$($prereq.on_missing)`' and will not stop the operation."
+                        # Don't set allPrerequisitesMet to false for warnings
                     }
                     "fail_backup" {
                         if ($Operation -eq "Backup") {
+                            $allPrerequisitesMet = $false
                             throw "    Error: Prerequisite `'$($prereq.name)`' failed. Cannot proceed with Backup operation as `'$($prereq.on_missing)`' is set."
                         }
                     }
                     "fail_restore" {
                         if ($Operation -eq "Restore") {
+                            $allPrerequisitesMet = $false
                             throw "    Error: Prerequisite `'$($prereq.name)`' failed. Cannot proceed with Restore operation as `'$($prereq.on_missing)`' is set."
                         }
+                    }
+                    default {
+                        # For any other on_missing value or if not specified, fail the prerequisites
+                        $allPrerequisitesMet = $false
                     }
                 }
             } else {

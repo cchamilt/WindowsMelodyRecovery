@@ -4,6 +4,7 @@
 # Requires EncryptionUtilities.ps1 for encryption/decryption (will be created in Task 2.5)
 
 function Get-WmrApplicationState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$AppConfig,
@@ -13,6 +14,14 @@ function Get-WmrApplicationState {
     )
 
     Write-Host "  Getting application state for: $($AppConfig.name) (Type: $($AppConfig.type))"
+
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would run discovery command: $($AppConfig.discovery_command)" -ForegroundColor Yellow
+        Write-Host "    WhatIf: Would parse output with parse script" -ForegroundColor Yellow
+        $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $AppConfig.dynamic_state_path
+        Write-Host "    WhatIf: Would save application list to $stateFilePath" -ForegroundColor Yellow
+        return
+    }
 
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $AppConfig.dynamic_state_path
     $stateFileDirectory = Split-Path -Path $stateFilePath
@@ -25,24 +34,54 @@ function Get-WmrApplicationState {
     $installedAppsJson = "[]"
     try {
         Write-Host "    Running discovery command: $($AppConfig.discovery_command)"
-        $discoveryOutput = Invoke-Expression $AppConfig.discovery_command | Out-String
+        
+        # Check if discovery command is a PowerShell script file
+        if ($AppConfig.discovery_command -match '\.ps1(\s|$)') {
+            # For PowerShell scripts, execute directly and capture output as string
+            $discoveryOutput = & { Invoke-Expression $AppConfig.discovery_command } | Out-String
+        } else {
+            # For other commands, use traditional approach
+            $discoveryOutput = Invoke-Expression $AppConfig.discovery_command | Out-String
+        }
 
         Write-Host "    Parsing discovery output with parse_script..."
         # Pass output to the parse_script (inline or file)
-        if ($AppConfig.parse_script.StartsWith("#")) { # Assuming inline script starts with # or some identifier
-            # Execute inline script
-            $scriptBlock = [ScriptBlock]::Create($AppConfig.parse_script)
-            $installedAppsJson = & $scriptBlock -InputObject $discoveryOutput | Out-String
-        } else {
-            # Execute script from path
-            $installedAppsJson = & $AppConfig.parse_script -InputObject $discoveryOutput | Out-String
+        try {
+            if (Test-Path $AppConfig.parse_script -PathType Leaf) {
+                # Execute script from file path
+                $installedAppsJson = (& $AppConfig.parse_script -DiscoveryOutput $discoveryOutput.Trim()) -join ""
+            } else {
+                # Execute inline script (from YAML template)
+                $scriptBlock = [ScriptBlock]::Create($AppConfig.parse_script)
+                $installedAppsJson = (& $scriptBlock $discoveryOutput.Trim()) -join ""
+            }
+        } catch {
+            throw "Error executing parse script: $($_.Exception.Message)"
         }
 
-        # Basic validation: ensure it's valid JSON array
+        # Basic validation: ensure it's valid JSON (array or single object)
         try {
-            $parsedApps = $installedAppsJson | ConvertFrom-Json
-            if ($parsedApps -isnot [array]) {
-                throw "Parse script did not return a JSON array."
+            # Handle empty arrays specifically
+            if ($installedAppsJson.Trim() -eq "[]") {
+                $parsedApps = @()
+            } else {
+                $parsedApps = $installedAppsJson | ConvertFrom-Json
+                
+                # PowerShell ConvertFrom-Json returns single objects for single-element arrays
+                # So we need to handle both arrays and single objects
+                if ($parsedApps -is [array]) {
+                    # Already an array, good
+                } elseif ($parsedApps -is [PSCustomObject] -or $parsedApps -is [Hashtable]) {
+                    # Single object, wrap in array for consistency
+                    $parsedApps = @($parsedApps)
+                    $installedAppsJson = $parsedApps | ConvertTo-Json -Depth 10 -AsArray
+                } elseif ($parsedApps -eq $null) {
+                    # Null result, treat as empty array
+                    $parsedApps = @()
+                    $installedAppsJson = "[]"
+                } else {
+                    throw "Parse script returned unexpected data type: $($parsedApps.GetType().Name)"
+                }
             }
         } catch {
             throw "Invalid JSON output from parse_script: $($_.Exception.Message)"
@@ -63,6 +102,7 @@ function Get-WmrApplicationState {
 }
 
 function Set-WmrApplicationState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$AppConfig,
@@ -80,6 +120,20 @@ function Set-WmrApplicationState {
         return
     }
 
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would restore applications from $stateFilePath" -ForegroundColor Yellow
+        try {
+            $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
+            $parsedApps = $installedAppsJson | ConvertFrom-Json
+            $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
+            Write-Host "    WhatIf: Would run install script for $appCount applications" -ForegroundColor Yellow
+            Write-Host "    WhatIf: Install script: $($AppConfig.install_script)" -ForegroundColor Yellow
+        } catch {
+            Write-Host "    WhatIf: Would attempt to restore applications (state file parse failed)" -ForegroundColor Yellow
+        }
+        return
+    }
+
     try {
         $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
 
@@ -91,11 +145,13 @@ function Set-WmrApplicationState {
 
         Write-Host "    Running installation script: $($AppConfig.install_script)"
         # Pass the JSON list to the install_script (inline or file)
-        if ($AppConfig.install_script.StartsWith("#")) { # Assuming inline script starts with # or some identifier
-            $scriptBlock = [ScriptBlock]::Create($AppConfig.install_script)
-            & $scriptBlock -AppListJson $installedAppsJson
+        if (Test-Path $AppConfig.install_script -PathType Leaf) {
+            # Execute script from file path
+            & $AppConfig.install_script -StateJson $installedAppsJson
         } else {
-            & $AppConfig.install_script -AppListJson $installedAppsJson
+            # Execute inline script (from YAML template)
+            $scriptBlock = [ScriptBlock]::Create($AppConfig.install_script)
+            & $scriptBlock $installedAppsJson
         }
 
         Write-Host "  Applications for $($AppConfig.name) restored."
@@ -106,6 +162,7 @@ function Set-WmrApplicationState {
 }
 
 function Uninstall-WmrApplicationState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$AppConfig,
@@ -128,16 +185,32 @@ function Uninstall-WmrApplicationState {
         return
     }
 
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would uninstall applications from $stateFilePath" -ForegroundColor Yellow
+        try {
+            $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
+            $parsedApps = $installedAppsJson | ConvertFrom-Json
+            $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
+            Write-Host "    WhatIf: Would run uninstall script for $appCount applications" -ForegroundColor Yellow
+            Write-Host "    WhatIf: Uninstall script: $($AppConfig.uninstall_script)" -ForegroundColor Yellow
+        } catch {
+            Write-Host "    WhatIf: Would attempt to uninstall applications (state file parse failed)" -ForegroundColor Yellow
+        }
+        return
+    }
+
     try {
         $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
 
         Write-Host "    Running uninstallation script: $($AppConfig.uninstall_script)"
         # Pass the JSON list to the uninstall_script (inline or file)
-        if ($AppConfig.uninstall_script.StartsWith("#")) { 
-            $scriptBlock = [ScriptBlock]::Create($AppConfig.uninstall_script)
-            & $scriptBlock -AppListJson $installedAppsJson
+        if (Test-Path $AppConfig.uninstall_script -PathType Leaf) {
+            # Execute script from file path
+            & $AppConfig.uninstall_script -StateJson $installedAppsJson
         } else {
-            & $AppConfig.uninstall_script -AppListJson $installedAppsJson
+            # Execute inline script (from YAML template)
+            $scriptBlock = [ScriptBlock]::Create($AppConfig.uninstall_script)
+            & $scriptBlock $installedAppsJson
         }
 
         Write-Host "  Applications for $($AppConfig.name) uninstalled."

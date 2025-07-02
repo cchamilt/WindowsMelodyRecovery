@@ -5,6 +5,7 @@ build-*.log
 test-results/
 test-backups/
 test-restore/
+test-template-state/
 *.testresults
 *.coverage
 coverage.xml

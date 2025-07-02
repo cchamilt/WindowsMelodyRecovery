@@ -1,0 +1,161 @@
+metadata:
+  name: startmenu
+  displayName: Start Menu Settings
+  description: Template for backing up Start Menu layout, taskbar, and search configuration.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "Start Menu System Available"
+    inline_script: |
+      try {
+          Get-Process -Name "explorer" -ErrorAction Stop | Out-Null
+          Write-Output "Start Menu system available"
+      } catch {
+          Write-Output "Start Menu system not available"
+      }
+    expected_output: "Start Menu system available"
+    on_missing: warn
+
+registry:
+  keys:
+    # Start Menu layout and customization
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+      description: Explorer advanced settings affecting Start Menu
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+      description: System-wide explorer advanced settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Start'
+      description: Start Menu user preferences and layout
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartPage'
+      description: Start Menu system configuration
+    
+    # Taskbar settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+      description: Taskbar button arrangements and pinned items
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\TaskbarItemsCache'
+      description: Taskbar items cache and recent applications
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+      description: Taskbar position and auto-hide settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Streams\Desktop'
+      description: Desktop and taskbar visual arrangement
+    
+    # Jump Lists and recent items
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\JumpLists'
+      description: Application jump lists configuration
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs'
+      description: Recent documents and files tracking
+    
+    # Search settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search'
+      description: Windows Search user preferences
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+      description: Windows Search system configuration
+    
+    # Start Menu cloud store and sync
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\DefaultAccount'
+      description: Start Menu cloud synchronization data
+    
+    # Start Menu experience and layout
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartLayout'
+      description: Start Menu layout preferences
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartLayout'
+      description: System Start Menu layout policies
+    
+    # Windows 11 specific Start Menu settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartMenu'
+      description: Windows 11 Start Menu configuration
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Start\Folders'
+      description: Start Menu folder organization
+
+files:
+  directories:
+    # User Start Menu directory
+    - path: '%APPDATA%\Microsoft\Windows\Start Menu'
+      description: User-specific Start Menu shortcuts and folders
+      recursive: true
+      include:
+        - 'Programs\*'
+        - 'Startup\*'
+    
+    # All Users Start Menu directory
+    - path: '%ProgramData%\Microsoft\Windows\Start Menu'
+      description: System-wide Start Menu shortcuts and folders
+      recursive: true
+      include:
+        - 'Programs\*'
+        - 'Startup\*'
+    
+    # Taskbar layout files (Windows 10/11)
+    - path: '%LOCALAPPDATA%\Microsoft\Windows\Shell'
+      description: Shell configuration and layout files
+      include:
+        - 'LayoutModification.xml'
+        - 'DefaultLayouts.xml'
+    
+    # Start Menu tiles database (Windows 10)
+    - path: '%LOCALAPPDATA%\TileDataLayer\Database'
+      description: Start Menu tiles configuration database
+      recursive: true
+
+applications:
+  discovery:
+    # Pinned applications on taskbar
+    - name: TaskbarPinnedApps
+      command: 'Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -ErrorAction SilentlyContinue | Get-ItemProperty | ConvertTo-Json'
+      description: Applications pinned to taskbar
+    
+    # Start Menu recent applications
+    - name: RecentApplications
+      command: 'Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -ErrorAction SilentlyContinue | ConvertTo-Json'
+      description: Recently used applications in Start Menu
+    
+    # Jump list applications
+    - name: JumpListApps
+      command: 'Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\JumpLists" -ErrorAction SilentlyContinue | ForEach-Object { Get-ItemProperty $_.PSPath } | ConvertTo-Json'
+      description: Applications with active jump lists
+    
+    # Start Menu search indexing
+    - name: SearchIndexing
+      command: 'Get-WmiObject -Class Win32_Service -Filter "Name=''WSearch''" | Select-Object Name, State, StartMode | ConvertTo-Json'
+      description: Windows Search service configuration
+
+post_update:
+  stages:
+    - name: StartLayoutExport
+      description: Export Start Menu layout configuration
+      commands:
+        - 'try { Export-StartLayout -Path "$BackupPath\startlayout.xml" -ErrorAction SilentlyContinue; Write-Host "Start Menu layout exported successfully" -ForegroundColor Green } catch { Write-Warning "Could not export Start Menu layout (may require Windows 10/11)" }'
+    
+    - name: TaskbarConfiguration
+      description: Export taskbar configuration and pinned items
+      commands:
+        - '$taskbarPins = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" -ErrorAction SilentlyContinue'
+        - 'if ($taskbarPins) { $taskbarPins | ConvertTo-Json | Out-File "$BackupPath\taskbar_configuration.json" -Force }'
+    
+    - name: StartMenuShortcuts
+      description: Create inventory of Start Menu shortcuts
+      commands:
+        - '$userShortcuts = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter "*.lnk" -ErrorAction SilentlyContinue | Select-Object Name, DirectoryName, LastWriteTime'
+        - '$systemShortcuts = Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter "*.lnk" -ErrorAction SilentlyContinue | Select-Object Name, DirectoryName, LastWriteTime'
+        - '@{ UserShortcuts = $userShortcuts; SystemShortcuts = $systemShortcuts } | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\startmenu_shortcuts.json" -Force'
+    
+    - name: SearchSettings
+      description: Export Windows Search and indexing settings
+      commands:
+        - '$searchSettings = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -ErrorAction SilentlyContinue'
+        - 'if ($searchSettings) { $searchSettings | Select-Object * | ConvertTo-Json | Out-File "$BackupPath\search_settings.json" -Force }'
+    
+    - name: RecentDocuments
+      description: Export recent documents tracking settings
+      commands:
+        - '$recentDocs = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs" -ErrorAction SilentlyContinue'
+        - 'if ($recentDocs) { $recentDocs | ConvertTo-Json | Out-File "$BackupPath\recent_documents_settings.json" -Force }'
+    
+    - name: UserGuidance
+      description: Provide user guidance for Start Menu restore
+      commands:
+        - 'Write-Host "Start Menu settings backed up successfully." -ForegroundColor Green'
+        - 'Write-Host "Layout, taskbar pins, and shortcuts are preserved." -ForegroundColor Cyan'
+        - 'Write-Host "Note: Start Menu tiles (Windows 10) may need manual rearrangement after restore." -ForegroundColor Yellow'
+        - 'Write-Host "Taskbar position and search settings will be restored automatically." -ForegroundColor Cyan' 

@@ -56,6 +56,8 @@
   "Prioritize code readability and clear naming conventions": true,
   // Encourage breaking down complex logic into smaller, manageable units.
   "Break down complex logic into smaller, testable components": true,
+  // Do not remove features or simplify for laziness.
+  "Do not remove features or arbitrarily simplify code for time or effort": true,
   // Focus on maintainable code that is easy to understand and modify.
   "Focus on maintainable code structure": true,
   // Ensure comments explain *why* something is done, not just *what*.

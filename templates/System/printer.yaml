@@ -1,0 +1,158 @@
+metadata:
+  name: "Printer Settings"
+  description: "Backup and restore printer configuration including printers, drivers, ports, default settings, and print preferences"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Printer System Available"
+    inline_script: |
+      try {
+          Get-Command Get-Printer -ErrorAction Stop | Out-Null
+          Write-Output "Printer system available"
+      } catch {
+          Write-Output "Printer system not available"
+      }
+    expected_output: "Printer system available"
+    on_missing: warn
+
+registry:
+  # Print System Configuration
+  - name: "Print System Printers"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Printers'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/printers.yaml"
+
+  - name: "Print Monitors"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Monitors'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/monitors.yaml"
+
+  - name: "Print Providers"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Providers'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/providers.yaml"
+
+  - name: "Print Environments"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/environments.yaml"
+
+  - name: "NT Print Configuration"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Printers'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/nt_printers.yaml"
+
+  - name: "NT Print Providers"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/nt_providers.yaml"
+
+  - name: "Printer Cache Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Printer Cache'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/cache.yaml"
+
+  # User Printer Settings
+  - name: "User Printer Settings"
+    path: 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/user_settings.yaml"
+
+  - name: "User Printers"
+    path: 'HKCU:\Printers'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/user_printers.yaml"
+
+  - name: "Printer Ports"
+    path: 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\PrinterPorts'
+    type: key
+    action: sync
+    dynamic_state_path: "printer/registry/printer_ports.yaml"
+
+application_state:
+  # Printer Information Discovery
+  - name: "Installed Printers"
+    type: custom
+    discovery_command: |
+      try {
+          Get-Printer | Select-Object Name, DriverName, PortName, Shared, ShareName, Published, DeviceType, Status, Location, Comment | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $printers = $State | ConvertFrom-Json
+      return @{
+          PrinterCount = $printers.Count
+          InstalledPrinters = $printers | ForEach-Object { $_.Name }
+          DefaultPrinter = (Get-Printer | Where-Object IsDefault).Name
+      }
+    dynamic_state_path: "printer/printers.yaml"
+
+  - name: "Printer Ports"
+    type: custom
+    discovery_command: |
+      try {
+          Get-PrinterPort | Select-Object Name, HostAddress, PortNumber, Protocol, Description, SNMPEnabled, SNMPCommunity | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $ports = $State | ConvertFrom-Json
+      return @{
+          PortCount = $ports.Count
+          PortTypes = $ports | Group-Object Protocol | ForEach-Object { "$($_.Name): $($_.Count)" }
+      }
+    dynamic_state_path: "printer/ports.yaml"
+
+  - name: "Printer Drivers"
+    type: custom
+    discovery_command: |
+      try {
+          Get-PrinterDriver | Select-Object Name, Manufacturer, DriverVersion, Environment, PrinterEnvironment, InfPath, ConfigFile, DataFile, DriverPath, HelpFile | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $drivers = $State | ConvertFrom-Json
+      return @{
+          DriverCount = $drivers.Count
+          Manufacturers = $drivers | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count) drivers" }
+          Environments = $drivers | Group-Object Environment | ForEach-Object { $_.Name }
+      }
+    dynamic_state_path: "printer/drivers.yaml"
+
+  - name: "Printer Preferences"
+    type: custom
+    discovery_command: |
+      try {
+          $defaultPrinter = Get-Printer | Where-Object IsDefault
+          $deviceSetting = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows" -Name "Device" -ErrorAction SilentlyContinue
+          $printerPorts = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\PrinterPorts" -ErrorAction SilentlyContinue
+          
+          @{
+              DefaultPrinter = if ($defaultPrinter) { $defaultPrinter.Name } else { $null }
+              DeviceSetting = if ($deviceSetting) { $deviceSetting.Device } else { $null }
+              PrinterPorts = $printerPorts
+          } | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      $prefs = $State | ConvertFrom-Json
+      return @{
+          HasDefaultPrinter = [bool]$prefs.DefaultPrinter
+          DefaultPrinterName = $prefs.DefaultPrinter
+          PortCount = if ($prefs.PrinterPorts) { ($prefs.PrinterPorts | Get-Member -MemberType NoteProperty).Count } else { 0 }
+      }
+    dynamic_state_path: "printer/preferences.yaml" 

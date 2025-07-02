@@ -10,6 +10,7 @@
 #   - Private/Core/EncryptionUtilities.ps1 (for Protect-WmrData, Unprotect-WmrData) - implicitly used by state functions
 
 function Invoke-WmrTemplate {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [string]$TemplatePath,
@@ -22,7 +23,10 @@ function Invoke-WmrTemplate {
         [string]$StateFilesDirectory # Base directory for storing/reading dynamic state files
     )
 
-    Write-Host "Invoking template: $TemplatePath for $Operation operation..."
+    Write-Host "Invoking template: $TemplatePath for $Operation operation..." -ForegroundColor Cyan
+    if ($WhatIfPreference) {
+        Write-Host "*** RUNNING IN WHATIF MODE - NO ACTUAL CHANGES WILL BE MADE ***" -ForegroundColor Yellow -BackgroundColor DarkRed
+    }
 
     # 1. Import necessary modules/functions
     try {
@@ -78,20 +82,20 @@ function Invoke-WmrTemplate {
         if ($templateConfig.files) {
             foreach ($file in $templateConfig.files) {
                 if ($file.action -eq "backup" -or $file.action -eq "sync") {
-                    Get-WmrFileState -FileConfig $file -StateFilesDirectory $StateFilesDirectory
+                    Get-WmrFileState -FileConfig $file -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.registry) {
             foreach ($reg in $templateConfig.registry) {
                 if ($reg.action -eq "backup" -or $reg.action -eq "sync") {
-                    Get-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $StateFilesDirectory
+                    Get-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
-                Get-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory
+                Get-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
             }
         }
     }
@@ -101,20 +105,20 @@ function Invoke-WmrTemplate {
         if ($templateConfig.files) {
             foreach ($file in $templateConfig.files) {
                 if ($file.action -eq "restore" -or $file.action -eq "sync") {
-                    Set-WmrFileState -FileConfig $file -StateFilesDirectory $StateFilesDirectory
+                    Set-WmrFileState -FileConfig $file -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.registry) {
             foreach ($reg in $templateConfig.registry) {
                 if ($reg.action -eq "restore" -or $reg.action -eq "sync") {
-                    Set-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $StateFilesDirectory
+                    Set-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
-                Set-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory
+                Set-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
             }
         }
     }
@@ -123,7 +127,7 @@ function Invoke-WmrTemplate {
         Write-Host "Performing uninstall operations..."
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
-                Uninstall-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory
+                Uninstall-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
             }
         }
     }

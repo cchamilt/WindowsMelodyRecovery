@@ -1,0 +1,373 @@
+metadata:
+  name: "Excel Settings"
+  description: "Backup and restore Microsoft Excel configuration including settings, options, security preferences, templates, add-ins, and recent files across all Office versions"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Excel System Available"
+    inline_script: |
+      try {
+          $excelInstalled = $false
+          $officeVersions = @("16.0", "19.0", "15.0", "14.0")
+          foreach ($version in $officeVersions) {
+              if (Test-Path "HKCU:\Software\Microsoft\Office\$version\Excel") {
+                  $excelInstalled = $true
+                  break
+              }
+          }
+          if ($excelInstalled) {
+              Write-Output "Excel system available"
+          } else {
+              Write-Output "Excel system not available"
+          }
+      } catch {
+          Write-Output "Excel system not available"
+      }
+    expected_output: "Excel system available"
+    on_missing: warn
+
+registry:
+  # Excel 2016/365 Settings
+  - name: "Excel 2016 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_16_main.yaml"
+
+  - name: "Excel 2016 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Common\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_16_common.yaml"
+
+  - name: "Excel 2016 Options"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Excel\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_16_options.yaml"
+
+  - name: "Excel 2016 Security"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Excel\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_16_security.yaml"
+
+  - name: "Excel 2016 Recent Files"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Excel\Recent Files'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_16_recent.yaml"
+
+  # Excel 2019 Settings  
+  - name: "Excel 2019 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_19_main.yaml"
+
+  - name: "Excel 2019 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Common\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_19_common.yaml"
+
+  - name: "Excel 2019 Options"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Excel\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_19_options.yaml"
+
+  - name: "Excel 2019 Security"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Excel\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_19_security.yaml"
+
+  - name: "Excel 2019 Recent Files"
+    path: 'HKCU:\Software\Microsoft\Office\19.0\Excel\Recent Files'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_19_recent.yaml"
+
+  # Excel 2013 Settings
+  - name: "Excel 2013 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_15_main.yaml"
+
+  - name: "Excel 2013 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Common\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_15_common.yaml"
+
+  - name: "Excel 2013 Options"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Excel\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_15_options.yaml"
+
+  - name: "Excel 2013 Security"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Excel\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_15_security.yaml"
+
+  - name: "Excel 2013 Recent Files"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Excel\Recent Files'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_15_recent.yaml"
+
+  # Excel 2010 Settings
+  - name: "Excel 2010 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_14_main.yaml"
+
+  - name: "Excel 2010 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Common\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_14_common.yaml"
+
+  - name: "Excel 2010 Options"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Excel\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_14_options.yaml"
+
+  - name: "Excel 2010 Security"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Excel\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_14_security.yaml"
+
+  - name: "Excel 2010 Recent Files"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Excel\Recent Files'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/excel_14_recent.yaml"
+
+  # System-wide Excel Settings
+  - name: "System Excel 2016 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/system_excel_16.yaml"
+
+  - name: "System Excel 2019 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\19.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/system_excel_19.yaml"
+
+  - name: "System Excel 2015 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/system_excel_15.yaml"
+
+  - name: "System Excel 2014 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\14.0\Excel'
+    type: key
+    action: sync
+    dynamic_state_path: "excel/registry/system_excel_14.yaml"
+
+files:
+  # Excel Configuration Files
+  - name: "Excel AppData Folder"
+    path: "$env:APPDATA/Microsoft/Excel"
+    type: directory
+    action: sync
+    dynamic_state_path: "excel/files/appdata.yaml"
+
+  - name: "Excel Templates"
+    path: "$env:APPDATA/Microsoft/Templates"
+    type: directory
+    action: sync
+    dynamic_state_path: "excel/files/templates.yaml"
+
+  - name: "Excel XLSTART Folder"
+    path: "$env:APPDATA/Microsoft/Excel/XLSTART"
+    type: directory
+    action: sync
+    dynamic_state_path: "excel/files/xlstart.yaml"
+
+  - name: "Excel Add-Ins"
+    path: "$env:APPDATA/Microsoft/AddIns"
+    type: directory
+    action: sync
+    dynamic_state_path: "excel/files/addins.yaml"
+
+  - name: "Excel Quick Access"
+    path: "$env:APPDATA/Microsoft/Windows/Recent/Excel.lnk"
+    type: file
+    action: sync
+    dynamic_state_path: "excel/files/quickaccess.yaml"
+
+applications:
+  # Excel Recent Files Information
+  - name: "Excel Recent Files"
+    type: custom
+    dynamic_state_path: "excel/recent_files.yaml"
+    discovery_command: |
+      try {
+          $recentFiles = @()
+          if (Test-Path "$env:APPDATA\Microsoft\Office\Recent") {
+              $recentFiles += Get-ChildItem "$env:APPDATA\Microsoft\Office\Recent\*.xls*" -ErrorAction SilentlyContinue
+          }
+          
+          $result = @()
+          foreach ($file in $recentFiles) {
+              $result += @{
+                  Name = $file.Name
+                  LastWriteTime = $file.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                  Size = $file.Length
+                  Extension = $file.Extension
+              }
+          }
+          
+          $result | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $recentFiles = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      foreach ($file in $recentFiles) {
+          $applications += @{
+              Name = "Recent-$($file.Name)"
+              Version = "File"
+              Status = "Recent"
+              LastAccessed = $file.LastWriteTime
+              Size = $file.Size
+              Extension = $file.Extension
+          }
+      }
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $recentFiles = $StateJson | ConvertFrom-Json
+      if ($recentFiles.Count -gt 0) {
+          Write-Host "Excel recent files information restored: $($recentFiles.Count) files" -ForegroundColor Green
+          foreach ($file in $recentFiles) {
+              Write-Host "  - $($file.Name) (Last accessed: $($file.LastAccessed))" -ForegroundColor Cyan
+          }
+      } else {
+          Write-Host "No Excel recent files were found in the backup" -ForegroundColor Yellow
+      }
+
+  # Excel Installation Information
+  - name: "Excel Installation Info"
+    type: custom
+    dynamic_state_path: "excel/installation_info.yaml"
+    discovery_command: |
+      try {
+          $excelInfo = @{
+              Versions = @()
+              InstallPath = ""
+              DefaultVersion = ""
+          }
+          
+          $officeVersions = @(
+              @{ Version = "16.0"; Name = "Office 2016/365" },
+              @{ Version = "19.0"; Name = "Office 2019" },
+              @{ Version = "15.0"; Name = "Office 2013" },
+              @{ Version = "14.0"; Name = "Office 2010" }
+          )
+          
+          foreach ($office in $officeVersions) {
+              $regPath = "HKCU:\Software\Microsoft\Office\$($office.Version)\Excel"
+              if (Test-Path $regPath) {
+                  $excelInfo.Versions += @{
+                      Version = $office.Version
+                      Name = $office.Name
+                      RegistryPath = $regPath
+                  }
+              }
+          }
+          
+          # Try to find Excel executable
+          $commonPaths = @(
+              "$env:ProgramFiles\Microsoft Office\root\Office16\EXCEL.EXE",
+              "$env:ProgramFiles\Microsoft Office\root\Office15\EXCEL.EXE",
+              "$env:ProgramFiles\Microsoft Office\Office16\EXCEL.EXE",
+              "$env:ProgramFiles\Microsoft Office\Office15\EXCEL.EXE",
+              "$env:ProgramFiles\Microsoft Office\Office14\EXCEL.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\root\Office16\EXCEL.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\root\Office15\EXCEL.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office16\EXCEL.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office15\EXCEL.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office14\EXCEL.EXE"
+          )
+          
+          foreach ($path in $commonPaths) {
+              if (Test-Path $path) {
+                  $excelInfo.InstallPath = $path
+                  $excelInfo.DefaultVersion = Split-Path (Split-Path $path) -Leaf
+                  break
+              }
+          }
+          
+          $excelInfo | ConvertTo-Json -Depth 5
+      } catch {
+          (@{
+              Versions = @()
+              InstallPath = ""
+              DefaultVersion = ""
+          } | ConvertTo-Json -Depth 5)
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $excelInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($version in $excelInfo.Versions) {
+          $applications += @{
+              Name = "Excel-$($version.Name)"
+              Version = $version.Version
+              Status = "Installed"
+              RegistryPath = $version.RegistryPath
+          }
+      }
+      
+      if ($excelInfo.InstallPath) {
+          $applications += @{
+              Name = "Excel-Executable"
+              Version = $excelInfo.DefaultVersion
+              Status = "Available"
+              InstallPath = $excelInfo.InstallPath
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $excelInstalls = $StateJson | ConvertFrom-Json
+      if ($excelInstalls.Count -gt 0) {
+          Write-Host "Excel installation information restored:" -ForegroundColor Green
+          foreach ($install in $excelInstalls) {
+              if ($install.RegistryPath) {
+                  Write-Host "  - $($install.Name) (Registry: $($install.RegistryPath))" -ForegroundColor Cyan
+              }
+              if ($install.InstallPath) {
+                  Write-Host "  - $($install.Name) (Path: $($install.InstallPath))" -ForegroundColor Cyan
+              }
+          }
+      } else {
+          Write-Host "No Excel installation information found in backup" -ForegroundColor Yellow
+      } 

@@ -4,6 +4,7 @@
 # Requires EncryptionUtilities.ps1 for encryption/decryption (will be created in Task 2.5)
 
 function Get-WmrRegistryState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$RegistryConfig,
@@ -13,6 +14,19 @@ function Get-WmrRegistryState {
     )
 
     Write-Host "  Getting registry state for: $($RegistryConfig.name)"
+
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would backup registry state from $($RegistryConfig.path)" -ForegroundColor Yellow
+        $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $RegistryConfig.dynamic_state_path
+        Write-Host "    WhatIf: Would save registry data to $stateFilePath" -ForegroundColor Yellow
+        
+        if (-not (Test-Path $RegistryConfig.path)) {
+            Write-Warning "    WhatIf: Registry path not found: $($RegistryConfig.path). Would skip backup for this item."
+        } else {
+            Write-Host "    WhatIf: Would capture registry $($RegistryConfig.type) values" -ForegroundColor Yellow
+        }
+        return $null
+    }
 
     $resolvedPathObj = Convert-WmrPath -Path $RegistryConfig.path
     if ($resolvedPathObj.PathType -ne "Registry") {
@@ -77,6 +91,7 @@ function Get-WmrRegistryState {
 }
 
 function Set-WmrRegistryState {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$RegistryConfig,
@@ -95,6 +110,39 @@ function Set-WmrRegistryState {
     $resolvedPath = $resolvedPathObj.Path
 
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $RegistryConfig.dynamic_state_path
+
+    if ($WhatIfPreference) {
+        Write-Host "    WhatIf: Would restore registry state from $stateFilePath to $resolvedPath" -ForegroundColor Yellow
+        
+        if (Test-Path $stateFilePath) {
+            try {
+                $stateData = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
+                
+                if ($RegistryConfig.type -eq "value") {
+                    $valueToShow = "?"
+                    if ($stateData.Encrypted -eq $true -and $stateData.EncryptedValue) {
+                        Write-Host "    WhatIf: Would decrypt registry value with AES-256" -ForegroundColor Yellow
+                        $valueToShow = "<encrypted>"
+                    } elseif ($stateData.Value) {
+                        $valueToShow = $stateData.Value
+                    } elseif ($RegistryConfig.value_data) {
+                        $valueToShow = $RegistryConfig.value_data
+                    }
+                    Write-Host "    WhatIf: Would set registry value '$($RegistryConfig.key_name)' to '$valueToShow' at $resolvedPath" -ForegroundColor Yellow
+                } elseif ($RegistryConfig.type -eq "key") {
+                    if ($stateData.Values) {
+                        $valueCount = ($stateData.Values.PSObject.Properties | Measure-Object).Count
+                        Write-Host "    WhatIf: Would restore $valueCount registry values under key $resolvedPath" -ForegroundColor Yellow
+                    }
+                }
+            } catch {
+                Write-Host "    WhatIf: Would attempt to restore registry from $stateFilePath (state file parse failed)" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Warning "    WhatIf: No state data found for registry $($RegistryConfig.name). Would skip."
+        }
+        return
+    }
 
     $stateData = $null
     if (Test-Path $stateFilePath) {

@@ -1,0 +1,412 @@
+metadata:
+  name: "KeePassXC Settings"
+  description: "Backup and restore KeePassXC password manager configuration including settings, plugins, key files, auto-type configurations, and browser integration"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "KeePassXC System Available"
+    inline_script: |
+      try {
+          $keepassInstalled = $false
+          
+          # Check registry for KeePassXC installation
+          if (Test-Path "HKCU:\Software\KeePassXC") {
+              $keepassInstalled = $true
+          }
+          
+          # Also check for executable in common locations
+          $commonPaths = @(
+              "$env:ProgramFiles\KeePassXC\KeePassXC.exe",
+              "${env:ProgramFiles(x86)}\KeePassXC\KeePassXC.exe",
+              "$env:LOCALAPPDATA\KeePassXC\KeePassXC.exe"
+          )
+          
+          foreach ($path in $commonPaths) {
+              if (Test-Path $path) {
+                  $keepassInstalled = $true
+                  break
+              }
+          }
+          
+          if ($keepassInstalled) {
+              Write-Output "KeePassXC system available"
+          } else {
+              Write-Output "KeePassXC system not available"
+          }
+      } catch {
+          Write-Output "KeePassXC system not available"
+      }
+    expected_output: "KeePassXC system available"
+    on_missing: warn
+
+registry:
+  # KeePassXC Main Settings
+  - name: "KeePassXC Main Settings"
+    path: 'HKCU:\Software\KeePassXC'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_main.yaml"
+
+  - name: "KeePassXC Application Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_app.yaml"
+
+  - name: "KeePassXC Auto-Type Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC\Auto-Type'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_autotype.yaml"
+
+  - name: "KeePassXC Browser Integration Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC\Browser Integration'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_browser.yaml"
+
+  - name: "KeePassXC General Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC\General'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_general.yaml"
+
+  - name: "KeePassXC GUI Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC\GUI'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_gui.yaml"
+
+  - name: "KeePassXC Security Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_security.yaml"
+
+  - name: "KeePassXC SSH Agent Settings"
+    path: 'HKCU:\Software\KeePassXC\KeePassXC\SSHAgent'
+    type: key
+    action: sync
+    dynamic_state_path: "keepassxc/registry/keepassxc_sshagent.yaml"
+
+files:
+  # KeePassXC Configuration Files
+  - name: "KeePassXC Config Directory"
+    path: "$env:APPDATA/KeePassXC"
+    type: directory
+    action: sync
+    dynamic_state_path: "keepassxc/files/config.yaml"
+
+  - name: "KeePassXC Plugins"
+    path: "$env:APPDATA/KeePassXC/plugins"
+    type: directory
+    action: sync
+    dynamic_state_path: "keepassxc/files/plugins.yaml"
+
+  - name: "KeePassXC Key Files"
+    path: "$env:APPDATA/KeePassXC/keyfiles"
+    type: directory
+    action: sync
+    dynamic_state_path: "keepassxc/files/keyfiles.yaml"
+
+  - name: "KeePassXC Auto-Type Files"
+    path: "$env:APPDATA/KeePassXC/autotype"
+    type: directory
+    action: sync
+    dynamic_state_path: "keepassxc/files/autotype.yaml"
+
+  # Browser Integration Files
+  - name: "Chrome KeePassXC Extension"
+    path: "$env:LOCALAPPDATA/Google/Chrome/User Data/Default/Local Extension Settings/oboonakemofpalcgghocfoadofidjkkk"
+    type: directory
+    action: sync
+    dynamic_state_path: "keepassxc/files/chrome_extension.yaml"
+
+  - name: "Edge KeePassXC Extension"
+    path: "$env:LOCALAPPDATA/Microsoft/Edge/User Data/Default/Local Extension Settings/pdffhmdngciaglkoonimfcmckehcpafo"
+    type: directory
+    action: sync
+    dynamic_state_path: "keepassxc/files/edge_extension.yaml"
+
+applications:
+  # Firefox Browser Integration (requires wildcard handling)
+  - name: "Firefox KeePassXC Integration"
+    type: custom
+    dynamic_state_path: "keepassxc/firefox_integration.yaml"
+    discovery_command: |
+      try {
+          $firefoxData = @()
+          $firefoxProfilesPath = "$env:APPDATA\Mozilla\Firefox\Profiles"
+          
+          if (Test-Path $firefoxProfilesPath) {
+              $profiles = Get-ChildItem $firefoxProfilesPath -Directory
+              foreach ($profile in $profiles) {
+                  $extensionPath = Join-Path $profile.FullName "browser-extension-data\keepassxc-browser@keepassxc.org"
+                  if (Test-Path $extensionPath) {
+                      $firefoxData += @{
+                          ProfileName = $profile.Name
+                          ProfilePath = $profile.FullName
+                          ExtensionPath = $extensionPath
+                          HasKeePassXC = $true
+                      }
+                  }
+              }
+          }
+          
+          $firefoxData | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $firefoxData = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($profile in $firefoxData) {
+          $applications += @{
+              Name = "Firefox-KeePassXC-$($profile.ProfileName)"
+              Version = "Extension"
+              Status = if ($profile.HasKeePassXC) { "Configured" } else { "Not Configured" }
+              ProfilePath = $profile.ProfilePath
+              ExtensionPath = $profile.ExtensionPath
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $firefoxProfiles = $StateJson | ConvertFrom-Json
+      if ($firefoxProfiles.Count -gt 0) {
+          Write-Host "Firefox KeePassXC integration information restored:" -ForegroundColor Green
+          foreach ($profile in $firefoxProfiles) {
+              Write-Host "  - Profile: $($profile.Name) (Status: $($profile.Status))" -ForegroundColor Cyan
+              if ($profile.ExtensionPath) {
+                  Write-Host "    Extension Path: $($profile.ExtensionPath)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No Firefox KeePassXC integration found in backup" -ForegroundColor Yellow
+      }
+
+  # KeePassXC Installation Information
+  - name: "KeePassXC Installation Info"
+    type: custom
+    dynamic_state_path: "keepassxc/installation_info.yaml"
+    discovery_command: |
+      try {
+          $keepassInfo = @{
+              Installed = $false
+              Version = ""
+              InstallPath = ""
+              ConfigPath = ""
+              HasBrowserIntegration = @{}
+          }
+          
+          # Check for KeePassXC executable
+          $commonPaths = @(
+              "$env:ProgramFiles\KeePassXC\KeePassXC.exe",
+              "${env:ProgramFiles(x86)}\KeePassXC\KeePassXC.exe",
+              "$env:LOCALAPPDATA\KeePassXC\KeePassXC.exe"
+          )
+          
+          foreach ($path in $commonPaths) {
+              if (Test-Path $path) {
+                  $keepassInfo.Installed = $true
+                  $keepassInfo.InstallPath = $path
+                  
+                  # Try to get version information
+                  try {
+                      $versionInfo = (Get-Item $path).VersionInfo
+                      $keepassInfo.Version = $versionInfo.ProductVersion
+                  } catch {
+                      $keepassInfo.Version = "Unknown"
+                  }
+                  break
+              }
+          }
+          
+          # Check for configuration directory
+          if (Test-Path "$env:APPDATA\KeePassXC") {
+              $keepassInfo.ConfigPath = "$env:APPDATA\KeePassXC"
+          }
+          
+          # Check browser integration status
+          $browserPaths = @{
+              "Chrome" = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Local Extension Settings\oboonakemofpalcgghocfoadofidjkkk"
+              "Edge" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Local Extension Settings\pdffhmdngciaglkoonimfcmckehcpafo"
+          }
+          
+          foreach ($browser in $browserPaths.GetEnumerator()) {
+              $keepassInfo.HasBrowserIntegration[$browser.Key] = Test-Path $browser.Value
+          }
+          
+          # Check Firefox separately
+          $firefoxCount = 0
+          if (Test-Path "$env:APPDATA\Mozilla\Firefox\Profiles") {
+              $profiles = Get-ChildItem "$env:APPDATA\Mozilla\Firefox\Profiles" -Directory
+              foreach ($profile in $profiles) {
+                  if (Test-Path (Join-Path $profile.FullName "browser-extension-data\keepassxc-browser@keepassxc.org")) {
+                      $firefoxCount++
+                  }
+              }
+          }
+          $keepassInfo.HasBrowserIntegration["Firefox"] = $firefoxCount -gt 0
+          
+          $keepassInfo | ConvertTo-Json -Depth 5
+      } catch {
+          (@{
+              Installed = $false
+              Version = ""
+              InstallPath = ""
+              ConfigPath = ""
+              HasBrowserIntegration = @{}
+          } | ConvertTo-Json -Depth 5)
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $keepassInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($keepassInfo.Installed) {
+          $applications += @{
+              Name = "KeePassXC"
+              Version = $keepassInfo.Version
+              Status = "Installed"
+              InstallPath = $keepassInfo.InstallPath
+              ConfigPath = $keepassInfo.ConfigPath
+          }
+          
+          # Add browser integration status
+          foreach ($browser in $keepassInfo.HasBrowserIntegration.PSObject.Properties) {
+              $applications += @{
+                  Name = "KeePassXC-$($browser.Name)-Integration"
+                  Version = "Extension"
+                  Status = if ($browser.Value) { "Configured" } else { "Not Configured" }
+                  Browser = $browser.Name
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $keepassInstalls = $StateJson | ConvertFrom-Json
+      if ($keepassInstalls.Count -gt 0) {
+          Write-Host "KeePassXC installation information restored:" -ForegroundColor Green
+          foreach ($install in $keepassInstalls) {
+              if ($install.InstallPath) {
+                  Write-Host "  - KeePassXC v$($install.Version) (Path: $($install.InstallPath))" -ForegroundColor Cyan
+                  if ($install.ConfigPath) {
+                      Write-Host "    Config Path: $($install.ConfigPath)" -ForegroundColor Gray
+                  }
+              } elseif ($install.Browser) {
+                  Write-Host "  - $($install.Name): $($install.Status)" -ForegroundColor Cyan
+              }
+          }
+      } else {
+          Write-Host "No KeePassXC installation information found in backup" -ForegroundColor Yellow
+      }
+
+  # KeePassXC Database Information (Recent Databases)
+  - name: "KeePassXC Database Info"
+    type: custom
+    dynamic_state_path: "keepassxc/database_info.yaml"
+    discovery_command: |
+      try {
+          $databaseInfo = @()
+          
+          # Check registry for recent databases
+          if (Test-Path "HKCU:\Software\KeePassXC\KeePassXC") {
+              $keepassKey = Get-Item "HKCU:\Software\KeePassXC\KeePassXC"
+              $recentDatabases = $keepassKey.GetValueNames() | Where-Object { $_ -like "*recent*" -or $_ -like "*database*" }
+              
+              foreach ($dbKey in $recentDatabases) {
+                  try {
+                      $value = $keepassKey.GetValue($dbKey)
+                      if ($value -and $value.ToString().EndsWith(".kdbx")) {
+                          $databaseInfo += @{
+                              RegistryKey = $dbKey
+                              DatabasePath = $value.ToString()
+                              Exists = Test-Path $value.ToString()
+                          }
+                      }
+                  } catch {
+                      # Skip if we can't read the value
+                  }
+              }
+          }
+          
+          # Also check for .kdbx files in common locations
+          $commonLocations = @(
+              "$env:USERPROFILE\Documents",
+              "$env:USERPROFILE\Desktop",
+              "$env:USERPROFILE\OneDrive",
+              "$env:USERPROFILE\Dropbox"
+          )
+          
+          foreach ($location in $commonLocations) {
+              if (Test-Path $location) {
+                  $kdbxFiles = Get-ChildItem $location -Filter "*.kdbx" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 10
+                  foreach ($file in $kdbxFiles) {
+                      $databaseInfo += @{
+                          RegistryKey = "Found"
+                          DatabasePath = $file.FullName
+                          Exists = $true
+                          Size = $file.Length
+                          LastModified = $file.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                      }
+                  }
+              }
+          }
+          
+          $databaseInfo | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $databaseInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($db in $databaseInfo) {
+          $applications += @{
+              Name = "Database-$(Split-Path $db.DatabasePath -Leaf)"
+              Version = "KeePassXC Database"
+              Status = if ($db.Exists) { "Available" } else { "Missing" }
+              DatabasePath = $db.DatabasePath
+              Source = $db.RegistryKey
+              Size = $db.Size
+              LastModified = $db.LastModified
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $databases = $StateJson | ConvertFrom-Json
+      if ($databases.Count -gt 0) {
+          Write-Host "KeePassXC database information restored:" -ForegroundColor Green
+          foreach ($db in $databases) {
+              Write-Host "  - $($db.Name) (Status: $($db.Status))" -ForegroundColor Cyan
+              Write-Host "    Path: $($db.DatabasePath)" -ForegroundColor Gray
+              if ($db.LastModified) {
+                  Write-Host "    Last Modified: $($db.LastModified)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No KeePassXC database information found in backup" -ForegroundColor Yellow
+      }

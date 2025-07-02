@@ -1,3 +1,4 @@
 !test-backups/
 !test-restore/
 !test-results/
+!test-template-state/

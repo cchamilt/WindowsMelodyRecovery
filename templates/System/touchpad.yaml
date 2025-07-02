@@ -1,0 +1,227 @@
+metadata:
+  name: "Touchpad Settings"
+  description: "Backup and restore touchpad configuration including precision touchpad settings, gestures, device drivers, and hardware parameters"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Touchpad System Available"
+    inline_script: |
+      try {
+          Get-Command Get-PnpDevice -ErrorAction Stop | Out-Null
+          Write-Output "Touchpad system available"
+      } catch {
+          Write-Output "Touchpad system not available"
+      }
+    expected_output: "Touchpad system available"
+    on_missing: warn
+
+registry:
+  # Windows Precision Touchpad Settings
+  - name: "User Precision Touchpad Settings"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/user_precision.yaml"
+
+  - name: "System Precision Touchpad Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/system_precision.yaml"
+
+  # Mouse Properties (affects touchpad)
+  - name: "Mouse Control Panel Settings"
+    path: 'HKCU:\Control Panel\Mouse'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/mouse_settings.yaml"
+
+  - name: "System Mouse Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\ControlPanel\Mouse'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/system_mouse.yaml"
+
+  # Touchpad-specific Settings
+  - name: "Touchpad Settings"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\TouchpadSettings'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/touchpad_settings.yaml"
+
+  - name: "Precision Touchpad Status"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/status.yaml"
+
+  - name: "Scrolling Settings"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\ScrollingSettings'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/scrolling.yaml"
+
+  - name: "Tapping Settings"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\TappingSettings'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/tapping.yaml"
+
+  - name: "Three Finger Gestures"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\ThreeFingerGestureSettings'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/three_finger.yaml"
+
+  - name: "Four Finger Gestures"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\FourFingerGestureSettings'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/four_finger.yaml"
+
+  # Vendor-specific Touchpad Settings
+  - name: "Synaptics System Settings"
+    path: 'HKLM:\SOFTWARE\Synaptics'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/synaptics_system.yaml"
+
+  - name: "Synaptics User Settings"
+    path: 'HKCU:\Software\Synaptics'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/synaptics_user.yaml"
+
+  - name: "Elantech System Settings"
+    path: 'HKLM:\SOFTWARE\Elantech'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/elantech_system.yaml"
+
+  - name: "Elantech User Settings"
+    path: 'HKCU:\Software\Elantech'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/elantech_user.yaml"
+
+  - name: "Alps System Settings"
+    path: 'HKLM:\SOFTWARE\Alps'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/alps_system.yaml"
+
+  - name: "Alps User Settings"
+    path: 'HKCU:\Software\Alps'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/alps_user.yaml"
+
+  # Input Settings
+  - name: "User Input Settings"
+    path: 'HKCU:\Software\Microsoft\Input'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/user_input.yaml"
+
+  - name: "System Input Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Input'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/system_input.yaml"
+
+  - name: "Tablet Input Settings"
+    path: 'HKCU:\Software\Microsoft\TabletTip'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/tablet_tip_user.yaml"
+
+  - name: "System Tablet Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\TabletTip'
+    type: key
+    action: sync
+    dynamic_state_path: "touchpad/registry/tablet_tip_system.yaml"
+
+application_state:
+  # Touchpad Device Discovery
+  - name: "Touchpad Devices"
+    type: custom
+    discovery_command: |
+      try {
+          Get-PnpDevice | Where-Object { 
+              ($_.Class -eq "Mouse" -or $_.Class -eq "HIDClass") -and 
+              ($_.FriendlyName -match "touchpad|synaptics|elan|precision|alps" -or
+               $_.Manufacturer -match "synaptics|elan|alps|microsoft")
+          } | Select-Object InstanceId, FriendlyName, Manufacturer, Status, Class, DeviceID, ConfigManagerErrorCode | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $devices = $State | ConvertFrom-Json
+      return @{
+          TouchpadDeviceCount = $devices.Count
+          EnabledDevices = ($devices | Where-Object { $_.Status -eq "OK" }).Count
+          Manufacturers = $devices | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count)" }
+          DeviceTypes = $devices | Group-Object Class | ForEach-Object { "$($_.Name): $($_.Count)" }
+      }
+    dynamic_state_path: "touchpad/devices.yaml"
+
+  - name: "Precision Touchpad Status"
+    type: custom
+    discovery_command: |
+      try {
+          $precisionEnabled = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status" -Name "Enabled" -ErrorAction SilentlyContinue
+          $touchpadEnabled = Get-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name "MouseSensitivity" -ErrorAction SilentlyContinue
+          $gestureSettings = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\ThreeFingerGestureSettings" -ErrorAction SilentlyContinue
+          
+          @{
+              PrecisionTouchpadEnabled = if ($precisionEnabled) { [bool]$precisionEnabled.Enabled } else { $false }
+              MouseSensitivity = if ($touchpadEnabled) { $touchpadEnabled.MouseSensitivity } else { $null }
+              HasGestureSettings = [bool]$gestureSettings
+              ThreeFingerSwipeEnabled = if ($gestureSettings) { $gestureSettings.SwipeEnabled } else { $null }
+          } | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      $status = $State | ConvertFrom-Json
+      return @{
+          IsPrecisionTouchpadEnabled = $status.PrecisionTouchpadEnabled
+          CurrentMouseSensitivity = $status.MouseSensitivity
+          HasConfiguredGestures = $status.HasGestureSettings
+          GesturesEnabled = $status.ThreeFingerSwipeEnabled
+      }
+    dynamic_state_path: "touchpad/precision_status.yaml"
+
+  - name: "Touchpad Services Status"
+    type: custom
+    discovery_command: |
+      try {
+          $services = @("SynTP", "ETD", "ApntEx", "MouseLikeTouchPad")
+          $serviceStatus = @()
+          
+          foreach ($serviceName in $services) {
+              $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+              if ($service) {
+                  $serviceStatus += @{
+                      Name = $serviceName
+                      Status = $service.Status.ToString()
+                      StartType = $service.StartType.ToString()
+                  }
+              }
+          }
+          
+          $serviceStatus | ConvertTo-Json -Depth 10
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      $services = $State | ConvertFrom-Json
+      return @{
+          TouchpadServiceCount = $services.Count
+          RunningServices = ($services | Where-Object { $_.Status -eq "Running" }).Count
+          AutoStartServices = ($services | Where-Object { $_.StartType -eq "Automatic" }).Count
+          ServiceNames = $services | ForEach-Object { "$($_.Name) ($($_.Status))" }
+      }
+    dynamic_state_path: "touchpad/services.yaml" 

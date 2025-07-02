@@ -1,0 +1,227 @@
+metadata:
+  name: "Mouse Settings"
+  description: "Backup and restore mouse configuration including pointer settings, cursor schemes, accessibility options, and device parameters"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Mouse System Available"
+    inline_script: |
+      try {
+          Get-Command Get-CimInstance -ErrorAction Stop | Out-Null
+          Write-Output "Mouse system available"
+      } catch {
+          Write-Output "Mouse system not available"
+      }
+    expected_output: "Mouse system available"
+    on_missing: warn
+
+registry:
+  # Basic Mouse Settings
+  - name: "Mouse Control Panel Settings"
+    path: "HKCU:\\Control Panel\\Mouse"
+    type: key
+    action: sync
+    dynamic_state_path: "mouse/registry/mouse_control_panel.json"
+
+  - name: "Cursor Schemes and Settings"
+    path: "HKCU:\\Control Panel\\Cursors"
+    type: key
+    action: sync
+    dynamic_state_path: "mouse/registry/cursor_settings.json"
+
+  # Mouse Accessibility Options
+  - name: "Mouse Keys Accessibility"
+    path: "HKCU:\\Control Panel\\Accessibility\\MouseKeys"
+    type: key
+    action: sync
+    dynamic_state_path: "mouse/registry/mouse_keys_accessibility.json"
+
+  # Mouse Hardware and Driver Settings
+  - name: "Mouse Class Driver Parameters"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters"
+    type: key
+    action: sync
+    dynamic_state_path: "mouse/registry/mouse_class_parameters.json"
+
+  - name: "Mouse HID Driver Parameters"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouhid\\Parameters"
+    type: key
+    action: sync
+    dynamic_state_path: "mouse/registry/mouse_hid_parameters.json"
+
+  - name: "PS/2 Port Driver Parameters"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\i8042prt\\Parameters"
+    type: key
+    action: sync
+    dynamic_state_path: "mouse/registry/ps2_port_parameters.json"
+
+applications:
+  # Mouse Device Information
+  - name: "Mouse Devices"
+    type: custom
+    discovery_command: "Get-CimInstance -ClassName Win32_PointingDevice | Select-Object Name, Manufacturer, DeviceID, Status, HardwareType"
+    parse_script: |
+      param([object]$MouseDevices)
+      try {
+          $devices = $MouseDevices | Select-Object -Property *
+          $result = $devices | ConvertTo-Json -Depth 10
+          return $result
+      } catch {
+          Write-Warning "Failed to parse mouse devices: $_"
+          return "[]"
+      }
+    dynamic_state_path: "mouse/applications/mouse_devices.json"
+
+  # Mouse Control Panel Settings
+  - name: "Mouse Control Panel Configuration"
+    type: custom
+    discovery_command: |
+      try {
+          $mouseSettings = @{}
+          
+          # Get mouse settings with error handling for each property
+          $mouseProperties = @(
+              "DoubleClickSpeed", "MouseSpeed", "MouseThreshold1", "MouseThreshold2", 
+              "MouseSensitivity", "SnapToDefaultButton", "SwapMouseButtons", 
+              "MouseHoverTime", "MouseTrails", "ActiveWindowTracking"
+          )
+          
+          foreach ($property in $mouseProperties) {
+              try {
+                  $value = Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name $property -ErrorAction SilentlyContinue
+                  if ($value) {
+                      $mouseSettings[$property] = $value.$property
+                  }
+              } catch {
+                  Write-Verbose "Could not retrieve mouse property: $property"
+              }
+          }
+          
+          $mouseSettings
+      } catch {
+          Write-Warning "Could not retrieve mouse settings: $_"
+          @{}
+      }
+    parse_script: |
+      param([object]$MouseSettings)
+      try {
+          $settings = $MouseSettings | Select-Object -Property *
+          $result = $settings | ConvertTo-Json -Depth 10
+          return $result
+      } catch {
+          Write-Warning "Failed to parse mouse settings: $_"
+          return "{}"
+      }
+    dynamic_state_path: "mouse/applications/mouse_settings.json"
+
+  # Cursor Scheme Information
+  - name: "Cursor Scheme Configuration"
+    type: custom
+    discovery_command: |
+      try {
+          $cursorSettings = Get-ItemProperty -Path "HKCU:\\Control Panel\\Cursors" -ErrorAction SilentlyContinue
+          if ($cursorSettings) {
+              # Convert PSObject to hashtable for better JSON serialization
+              $cursorHash = @{}
+              $cursorSettings.PSObject.Properties | ForEach-Object {
+                  if ($_.Name -notmatch '^PS') {
+                      $cursorHash[$_.Name] = $_.Value
+                  }
+              }
+              $cursorHash
+          } else {
+              @{}
+          }
+      } catch {
+          Write-Warning "Could not retrieve cursor settings: $_"
+          @{}
+      }
+    parse_script: |
+      param([object]$CursorSettings)
+      try {
+          $settings = $CursorSettings | Select-Object -Property *
+          $result = $settings | ConvertTo-Json -Depth 5
+          return $result
+      } catch {
+          Write-Warning "Failed to parse cursor settings: $_"
+          return "{}"
+      }
+    dynamic_state_path: "mouse/applications/cursor_scheme.json"
+
+  # Mouse Pointer Speed and Acceleration
+  - name: "Mouse Pointer Configuration"
+    type: custom
+    discovery_command: |
+      try {
+          # Get basic mouse settings from registry instead of P/Invoke to avoid YAML parsing issues
+          $pointerConfig = @{
+              MouseSpeed = (Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseSensitivity" -ErrorAction SilentlyContinue).MouseSensitivity
+              MouseThreshold1 = (Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold1" -ErrorAction SilentlyContinue).MouseThreshold1
+              MouseThreshold2 = (Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold2" -ErrorAction SilentlyContinue).MouseThreshold2
+              DoubleClickSpeed = (Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "DoubleClickSpeed" -ErrorAction SilentlyContinue).DoubleClickSpeed
+          }
+          
+          $pointerConfig
+      } catch {
+          Write-Warning "Could not retrieve pointer configuration: $_"
+          @{ MouseSpeed = $null; MouseThreshold1 = $null; MouseThreshold2 = $null; DoubleClickSpeed = $null }
+      }
+    parse_script: |
+      param([object]$PointerConfig)
+      try {
+          $config = $PointerConfig | Select-Object -Property *
+          $result = $config | ConvertTo-Json -Depth 5
+          return $result
+      } catch {
+          Write-Warning "Failed to parse pointer configuration: $_"
+          return "{}"
+      }
+    dynamic_state_path: "mouse/applications/pointer_config.json"
+
+  # Mouse Wheel Settings
+  - name: "Mouse Wheel Configuration"
+    type: custom
+    discovery_command: |
+      try {
+          $wheelSettings = @{}
+          
+          # Get wheel scroll settings
+          try {
+              $wheelScrollLines = Get-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "WheelScrollLines" -ErrorAction SilentlyContinue
+              if ($wheelScrollLines) {
+                  $wheelSettings["WheelScrollLines"] = $wheelScrollLines.WheelScrollLines
+              }
+          } catch { }
+          
+          try {
+              $wheelScrollChars = Get-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "WheelScrollChars" -ErrorAction SilentlyContinue
+              if ($wheelScrollChars) {
+                  $wheelSettings["WheelScrollChars"] = $wheelScrollChars.WheelScrollChars
+              }
+          } catch { }
+          
+          $wheelSettings
+      } catch {
+          Write-Warning "Could not retrieve wheel settings: $_"
+          @{}
+      }
+    parse_script: |
+      param([object]$WheelSettings)
+      try {
+          $settings = $WheelSettings | Select-Object -Property *
+          $result = $settings | ConvertTo-Json -Depth 5
+          return $result
+      } catch {
+          Write-Warning "Failed to parse wheel settings: $_"
+          return "{}"
+      }
+    dynamic_state_path: "mouse/applications/wheel_settings.json"
+
+cleanup:
+  - name: "Verify Mouse Input Available"
+    type: check
+    command: "Get-Service -Name 'mouclass' -ErrorAction SilentlyContinue"
+    expected_result: "Present"
+    on_failure: warn 

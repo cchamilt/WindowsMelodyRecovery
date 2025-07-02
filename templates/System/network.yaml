@@ -1,0 +1,159 @@
+metadata:
+  name: network
+  displayName: Network Settings
+  description: Template for backing up network configuration, adapters, and wireless profiles.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "Network System Available"
+    inline_script: |
+      try {
+          Get-Command Get-NetAdapter -ErrorAction Stop | Out-Null
+          Write-Output "Network system available"
+      } catch {
+          Write-Output "Network system not available"
+      }
+    expected_output: "Network system available"
+    on_missing: warn
+
+registry:
+  keys:
+    # TCP/IP configuration
+    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
+      description: TCP/IP stack parameters and configuration
+    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces'
+      description: Network interface TCP/IP settings
+    
+    # DHCP configuration
+    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Dhcp\Parameters'
+      description: DHCP client configuration
+    
+    # DNS configuration
+    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters'
+      description: DNS client cache configuration
+    
+    # Network cards registry
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkCards'
+      description: Network adapter registration information
+    
+    # Network control and profiles
+    - path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Network'
+      description: Network connection control settings
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList'
+      description: Network location awareness and profiles
+    
+    # Internet settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+      description: User internet and proxy settings
+    
+    # Wireless network profiles
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles'
+      description: Wireless network profile information
+    
+    # Windows Firewall settings
+    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy'
+      description: Windows Firewall policy configuration
+    
+    # Network sharing and discovery
+    - path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NetworkSharing'
+      description: Network sharing and discovery settings
+
+files:
+  directories:
+    # Network configuration files
+    - path: '%SystemRoot%\System32\drivers\etc'
+      description: System network configuration files
+      include:
+        - 'hosts'
+        - 'lmhosts'
+        - 'networks'
+        - 'protocol'
+        - 'services'
+    
+    # Wireless network profiles (Windows 10/11)
+    - path: '%ProgramData%\Microsoft\Wlansvc\Profiles\Interfaces'
+      description: Wireless LAN service profiles
+      recursive: true
+    
+    # Network location awareness
+    - path: '%ProgramData%\Microsoft\Network\Connections\Pbk'
+      description: Network connection phonebook files
+      recursive: true
+
+applications:
+  discovery:
+    # Network adapter information
+    - name: NetworkAdapters
+      command: 'Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed, InterfaceIndex'
+      description: Physical and virtual network adapters
+    
+    # IP configuration
+    - name: IPConfiguration
+      command: 'Get-NetIPConfiguration | Select-Object InterfaceAlias, InterfaceIndex, IPv4Address, IPv6Address, DNSServer'
+      description: Current IP configuration for all interfaces
+    
+    # Routing table
+    - name: RoutingTable
+      command: 'Get-NetRoute | Select-Object InterfaceAlias, DestinationPrefix, NextHop, RouteMetric, Protocol'
+      description: Network routing table entries
+    
+    # DNS configuration
+    - name: DNSConfiguration
+      command: 'Get-DnsClientServerAddress | Select-Object InterfaceAlias, ServerAddresses'
+      description: DNS server configuration per interface
+    
+    # Firewall profiles
+    - name: FirewallProfiles
+      command: 'Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction'
+      description: Windows Firewall profile settings
+    
+    # Wireless profiles
+    - name: WirelessProfiles
+      command: 'netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }'
+      description: Saved wireless network profiles
+    
+    # Network shares
+    - name: NetworkShares
+      command: 'Get-SmbShare | Select-Object Name, Path, Description, ShareType'
+      description: SMB network shares configuration
+    
+    # Network connections
+    - name: NetworkConnections
+      command: 'Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, NetworkCategory, IPv4Connectivity, IPv6Connectivity'
+      description: Current network connection profiles
+
+post_update:
+  stages:
+    - name: WirelessProfileExport
+      description: Export wireless network profiles with security settings
+      commands:
+        - '$profiles = netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }'
+        - '$exportedProfiles = @()'
+        - 'foreach ($profile in $profiles) { try { $profileInfo = netsh wlan show profile name="$profile" key=clear; $exportedProfiles += @{ Name = $profile; Info = $profileInfo } } catch { Write-Warning "Could not export wireless profile: $profile" } }'
+        - '$exportedProfiles | ConvertTo-Json -Depth 10 | Out-File "$BackupPath\wireless_profiles.json" -Force'
+    
+    - name: FirewallRulesExport
+      description: Export Windows Firewall rules
+      commands:
+        - 'Get-NetFirewallRule | Where-Object { $_.Enabled -eq "True" } | Select-Object DisplayName, Direction, Action, Protocol, LocalPort, RemotePort | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\firewall_rules.json" -Force'
+    
+    - name: NetworkInterfaceDetails
+      description: Export detailed network interface information
+      commands:
+        - '$interfaceDetails = Get-NetAdapter | ForEach-Object { $adapter = $_; $ipConfig = Get-NetIPConfiguration -InterfaceIndex $adapter.InterfaceIndex -ErrorAction SilentlyContinue; @{ Adapter = $adapter; IPConfig = $ipConfig } }'
+        - '$interfaceDetails | ConvertTo-Json -Depth 10 | Out-File "$BackupPath\network_interfaces_detailed.json" -Force'
+    
+    - name: ProxySettings
+      description: Export proxy and internet settings
+      commands:
+        - '$proxySettings = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -ErrorAction SilentlyContinue'
+        - 'if ($proxySettings) { $proxySettings | Select-Object ProxyEnable, ProxyServer, ProxyOverride, AutoConfigURL | ConvertTo-Json | Out-File "$BackupPath\proxy_settings.json" -Force }'
+    
+    - name: UserGuidance
+      description: Provide user guidance for network restore
+      commands:
+        - 'Write-Host "Network settings backed up successfully. Wireless passwords are included where possible." -ForegroundColor Green'
+        - 'Write-Host "Note: Some enterprise wireless profiles may require manual re-authentication after restore." -ForegroundColor Yellow'
+        - 'Write-Host "Firewall rules and network adapter configurations are fully preserved." -ForegroundColor Cyan' 

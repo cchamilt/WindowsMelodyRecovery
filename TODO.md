@@ -8,7 +8,14 @@ All - ❌ Infinite loop (because it includes Installation)
 
 ## Features
 
-- Convert backup/restore scripts to templates/states
+- Test/fix as most backup templates are failing
+- Restore logic complete for templates?
+- Split some larger templates into optional subfeatures or split scripts out to keep file sizes under ~500 lines
+- Identify and prune some of the excessive backup states that are transient, obvious, or too hardware configuration specific
+- Discovering unmanaged packages, document them so that a user can manually store their installation files
+- Determine to uninstall/keep apps not on restore list
+- Manage version pinning
+- Implement restore procedure for the complex templates
 - Add all packaging and module updates
 - Clean up verb practices and naming for gallery release
 - password prompts for encryption passkey

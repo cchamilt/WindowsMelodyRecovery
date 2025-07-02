@@ -1,0 +1,571 @@
+metadata:
+  name: "Windows Features and Capabilities Backup"
+  description: "Comprehensive backup of Windows Features, capabilities, server features, and system components"
+  version: "1.0.0"
+  category: "System Configuration"
+  author: "WindowsMelodyRecovery"
+  tags: ["windows-features", "capabilities", "optional-features", "server-features", "appx", "updates", "dism"]
+
+prerequisites:
+  - type: script
+    name: "Administrative Privileges Required"
+    inline_script: |
+      try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if ($isAdmin) {
+              Write-Output "Administrative privileges confirmed"
+          } else {
+              Write-Output "Administrative privileges required for Windows Features backup"
+          }
+      } catch {
+          Write-Output "Unable to verify administrative privileges"
+      }
+    expected_output: "Administrative privileges confirmed"
+    on_missing: warn
+
+registry:
+  # Windows Features Core Settings
+  - name: "Optional Features Registry"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OptionalFeatures'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/optional_features.yaml"
+
+  - name: "Optional Components Policies"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\OptionalComponents'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/optional_components_policies.yaml"
+
+  # Component Based Servicing
+  - name: "Component Based Servicing"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/component_based_servicing.yaml"
+
+  - name: "Windows Features Registry"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Features'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/features.yaml"
+
+  # Feature Staging and Services
+  - name: "Feature Staging Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup\FeatureStaging'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/feature_staging.yaml"
+
+  - name: "TrustedInstaller Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TrustedInstaller'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/trusted_installer.yaml"
+
+  # Windows Update and Servicing
+  - name: "Windows Update Services Pending"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/windows_update_pending.yaml"
+
+  - name: "Servicing Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Servicing'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/servicing.yaml"
+
+  # Feature on Demand and Policies
+  - name: "Servicing Policies"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Servicing'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/servicing_policies.yaml"
+
+  - name: "Windows Update Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/windows_update_policies.yaml"
+
+  # DISM Settings
+  - name: "DISM Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DISM'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/dism.yaml"
+
+  # Windows Subsystem Settings
+  - name: "Linux Subsystem Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/lxss.yaml"
+
+  - name: "LxssManager Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\LxssManager'
+    type: key
+    action: sync
+    dynamic_state_path: "windows-features/registry/lxss_manager.yaml"
+
+applications:
+  # Windows Optional Features
+  - name: "Windows Optional Features"
+    type: custom
+    dynamic_state_path: "windows-features/optional_features.yaml"
+    discovery_command: |
+      try {
+          $allFeatures = Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State, Description
+          $enabledFeatures = $allFeatures | Where-Object { $_.State -eq "Enabled" }
+          
+          $result = @{
+              AllFeatures = $allFeatures
+              EnabledFeatures = $enabledFeatures
+              FeatureCount = $allFeatures.Count
+              EnabledCount = $enabledFeatures.Count
+          }
+          
+          $result | ConvertTo-Json -Depth 10 -Compress
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $featuresInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($featuresInfo -and $featuresInfo.AllFeatures) {
+          foreach ($feature in $featuresInfo.AllFeatures) {
+              $applications += @{
+                  Name = "OptionalFeature-$($feature.FeatureName)"
+                  Version = "Windows Optional Feature"
+                  Status = $feature.State
+                  FeatureName = $feature.FeatureName
+                  Description = $feature.Description
+                  IsEnabled = ($feature.State -eq "Enabled")
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $features = $StateJson | ConvertFrom-Json
+      if ($features.Count -gt 0) {
+          $enabledFeatures = $features | Where-Object { $_.IsEnabled -eq $true }
+          Write-Host "Windows Optional Features information restored:" -ForegroundColor Green
+          Write-Host "  Total Features: $($features.Count)" -ForegroundColor Cyan
+          Write-Host "  Enabled Features: $($enabledFeatures.Count)" -ForegroundColor Cyan
+          
+          if ($enabledFeatures.Count -gt 0) {
+              Write-Host "Enabled Features:" -ForegroundColor Yellow
+              foreach ($feature in $enabledFeatures) {
+                  Write-Host "  - $($feature.FeatureName): $($feature.Description)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No Windows Optional Features found in backup" -ForegroundColor Yellow
+      }
+
+  # Windows Capabilities
+  - name: "Windows Capabilities"
+    type: custom
+    dynamic_state_path: "windows-features/capabilities.yaml"
+    discovery_command: |
+      try {
+          $allCapabilities = Get-WindowsCapability -Online | Select-Object Name, State, Description
+          $installedCapabilities = $allCapabilities | Where-Object { $_.State -eq "Installed" }
+          
+          $result = @{
+              AllCapabilities = $allCapabilities
+              InstalledCapabilities = $installedCapabilities
+              CapabilityCount = $allCapabilities.Count
+              InstalledCount = $installedCapabilities.Count
+          }
+          
+          $result | ConvertTo-Json -Depth 10 -Compress
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $capabilitiesInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($capabilitiesInfo -and $capabilitiesInfo.AllCapabilities) {
+          foreach ($capability in $capabilitiesInfo.AllCapabilities) {
+              $applications += @{
+                  Name = "Capability-$($capability.Name -replace '[^a-zA-Z0-9]', '')"
+                  Version = "Windows Capability"
+                  Status = $capability.State
+                  CapabilityName = $capability.Name
+                  Description = $capability.Description
+                  IsInstalled = ($capability.State -eq "Installed")
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $capabilities = $StateJson | ConvertFrom-Json
+      if ($capabilities.Count -gt 0) {
+          $installedCapabilities = $capabilities | Where-Object { $_.IsInstalled -eq $true }
+          Write-Host "Windows Capabilities information restored:" -ForegroundColor Green
+          Write-Host "  Total Capabilities: $($capabilities.Count)" -ForegroundColor Cyan
+          Write-Host "  Installed Capabilities: $($installedCapabilities.Count)" -ForegroundColor Cyan
+          
+          if ($installedCapabilities.Count -gt 0) {
+              Write-Host "Installed Capabilities:" -ForegroundColor Yellow
+              foreach ($capability in $installedCapabilities) {
+                  Write-Host "  - $($capability.CapabilityName)" -ForegroundColor Gray
+                  if ($capability.Description) {
+                      Write-Host "    Description: $($capability.Description)" -ForegroundColor DarkGray
+                  }
+              }
+          }
+      } else {
+          Write-Host "No Windows Capabilities found in backup" -ForegroundColor Yellow
+      }
+
+  # Windows Server Features (if applicable)
+  - name: "Windows Server Features"
+    type: custom
+    dynamic_state_path: "windows-features/server_features.yaml"
+    discovery_command: |
+      try {
+          $osInfo = Get-WmiObject -Class Win32_OperatingSystem
+          if ($osInfo.ProductType -ne 1) {
+              # This is a server OS
+              $serverFeatures = Get-WindowsFeature | Where-Object { $_.Installed -eq $true }
+              $result = @{
+                  IsServer = $true
+                  ServerFeatures = $serverFeatures | Select-Object Name, InstallState, Description
+                  InstalledCount = $serverFeatures.Count
+              }
+              $result | ConvertTo-Json -Depth 10 -Compress
+          } else {
+              $result = @{
+                  IsServer = $false
+                  ServerFeatures = @()
+                  InstalledCount = 0
+              }
+              $result | ConvertTo-Json -Depth 10 -Compress
+          }
+      } catch {
+          Write-Output '{"IsServer": false, "ServerFeatures": [], "InstalledCount": 0}'
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $serverInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($serverInfo.IsServer -and $serverInfo.ServerFeatures) {
+          foreach ($feature in $serverInfo.ServerFeatures) {
+              $applications += @{
+                  Name = "ServerFeature-$($feature.Name)"
+                  Version = "Windows Server Feature"
+                  Status = $feature.InstallState
+                  FeatureName = $feature.Name
+                  Description = $feature.Description
+                  IsInstalled = ($feature.InstallState -eq "Installed")
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $serverFeatures = $StateJson | ConvertFrom-Json
+      if ($serverFeatures.Count -gt 0) {
+          Write-Host "Windows Server Features information restored:" -ForegroundColor Green
+          Write-Host "  Installed Server Features: $($serverFeatures.Count)" -ForegroundColor Cyan
+          
+          foreach ($feature in $serverFeatures) {
+              Write-Host "  - $($feature.FeatureName): $($feature.Description)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Windows Server Features found in backup (likely client OS)" -ForegroundColor Yellow
+      }
+
+  # DISM Packages Information
+  - name: "DISM Packages Information"
+    type: custom
+    dynamic_state_path: "windows-features/dism_packages.yaml"
+    discovery_command: |
+      try {
+          $dismOutput = dism /online /get-packages /format:table 2>&1
+          $packages = @()
+          
+          # Parse DISM output
+          $lines = $dismOutput -split "`n"
+          foreach ($line in $lines) {
+              if ($line -match "Package Identity : (.+)") {
+                  $packageName = $matches[1].Trim()
+                  $packages += @{
+                      PackageIdentity = $packageName
+                      Source = "DISM"
+                  }
+              }
+          }
+          
+          $result = @{
+              DISMOutput = $dismOutput -join "`n"
+              ParsedPackages = $packages
+              PackageCount = $packages.Count
+          }
+          
+          $result | ConvertTo-Json -Depth 10 -Compress
+      } catch {
+          Write-Output '{"DISMOutput": "", "ParsedPackages": [], "PackageCount": 0}'
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $dismInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($dismInfo.ParsedPackages) {
+          foreach ($package in $dismInfo.ParsedPackages) {
+              $applications += @{
+                  Name = "DISMPackage-$($package.PackageIdentity -replace '[^a-zA-Z0-9]', '')"
+                  Version = "DISM Package"
+                  Status = "Installed"
+                  PackageIdentity = $package.PackageIdentity
+                  Source = $package.Source
+              }
+          }
+      }
+      
+      # Also include raw DISM output as metadata
+      if ($dismInfo.DISMOutput) {
+          $applications += @{
+              Name = "DISM-RawOutput"
+              Version = "DISM Command Output"
+              Status = "Available"
+              DISMOutput = $dismInfo.DISMOutput
+              PackageCount = $dismInfo.PackageCount
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $dismPackages = $StateJson | ConvertFrom-Json
+      if ($dismPackages.Count -gt 0) {
+          $packages = $dismPackages | Where-Object { $_.PackageIdentity }
+          $rawOutput = $dismPackages | Where-Object { $_.Name -eq "DISM-RawOutput" }
+          
+          Write-Host "DISM Packages information restored:" -ForegroundColor Green
+          if ($rawOutput) {
+              Write-Host "  Package Count: $($rawOutput.PackageCount)" -ForegroundColor Cyan
+          }
+          Write-Host "  Parsed Packages: $($packages.Count)" -ForegroundColor Cyan
+      } else {
+          Write-Host "No DISM packages information found in backup" -ForegroundColor Yellow
+      }
+
+  # Windows Updates Information
+  - name: "Windows Updates Information"
+    type: custom
+    dynamic_state_path: "windows-features/installed_updates.yaml"
+    discovery_command: |
+      try {
+          $updatePackages = Get-HotFix | Select-Object Description, HotFixID, InstalledBy, InstalledOn
+          $result = @{
+              InstalledUpdates = $updatePackages
+              UpdateCount = $updatePackages.Count
+          }
+          
+          $result | ConvertTo-Json -Depth 10 -Compress
+      } catch {
+          Write-Output '{"InstalledUpdates": [], "UpdateCount": 0}'
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $updatesInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($updatesInfo.InstalledUpdates) {
+          foreach ($update in $updatesInfo.InstalledUpdates) {
+              $applications += @{
+                  Name = "Update-$($update.HotFixID)"
+                  Version = "Windows Update"
+                  Status = "Installed"
+                  HotFixID = $update.HotFixID
+                  Description = $update.Description
+                  InstalledBy = $update.InstalledBy
+                  InstalledOn = $update.InstalledOn
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $updates = $StateJson | ConvertFrom-Json
+      if ($updates.Count -gt 0) {
+          Write-Host "Windows Updates information restored:" -ForegroundColor Green
+          Write-Host "  Installed Updates: $($updates.Count)" -ForegroundColor Cyan
+          
+          # Show recent updates
+          $recentUpdates = $updates | Sort-Object InstalledOn -Descending | Select-Object -First 10
+          Write-Host "Recent Updates:" -ForegroundColor Yellow
+          foreach ($update in $recentUpdates) {
+              Write-Host "  - $($update.HotFixID): $($update.Description)" -ForegroundColor Gray
+              if ($update.InstalledOn) {
+                  Write-Host "    Installed: $($update.InstalledOn)" -ForegroundColor DarkGray
+              }
+          }
+      } else {
+          Write-Host "No Windows Updates information found in backup" -ForegroundColor Yellow
+      }
+
+  # Windows Store Apps (AppX Packages)
+  - name: "Windows Store Apps"
+    type: custom
+    dynamic_state_path: "windows-features/appx_packages.yaml"
+    discovery_command: |
+      try {
+          $appxPackages = Get-AppxPackage | Select-Object Name, PackageFullName, Version, Architecture, Publisher
+          $result = @{
+              AppXPackages = $appxPackages
+              PackageCount = $appxPackages.Count
+          }
+          
+          $result | ConvertTo-Json -Depth 10 -Compress
+      } catch {
+          Write-Output '{"AppXPackages": [], "PackageCount": 0}'
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $appxInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($appxInfo.AppXPackages) {
+          foreach ($package in $appxInfo.AppXPackages) {
+              $applications += @{
+                  Name = "AppX-$($package.Name)"
+                  Version = $package.Version
+                  Status = "Installed"
+                  PackageName = $package.Name
+                  PackageFullName = $package.PackageFullName
+                  Architecture = $package.Architecture
+                  Publisher = $package.Publisher
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $appxPackages = $StateJson | ConvertFrom-Json
+      if ($appxPackages.Count -gt 0) {
+          Write-Host "Windows Store Apps information restored:" -ForegroundColor Green
+          Write-Host "  AppX Packages: $($appxPackages.Count)" -ForegroundColor Cyan
+          
+          # Group by publisher
+          $groupedPackages = $appxPackages | Group-Object Publisher | Sort-Object Count -Descending
+          Write-Host "Top Publishers:" -ForegroundColor Yellow
+          foreach ($group in $groupedPackages | Select-Object -First 5) {
+              Write-Host "  - $($group.Name): $($group.Count) packages" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Windows Store Apps information found in backup" -ForegroundColor Yellow
+      }
+
+  # System Information
+  - name: "System Information"
+    type: custom
+    dynamic_state_path: "windows-features/system_info.yaml"
+    discovery_command: |
+      try {
+          $osInfo = Get-WmiObject -Class Win32_OperatingSystem
+          $systemInfo = @{
+              LastBackupDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              OSVersion = $osInfo.Version
+              OSBuildNumber = $osInfo.BuildNumber
+              OSArchitecture = $osInfo.OSArchitecture
+              ProductType = $osInfo.ProductType
+              IsServer = ($osInfo.ProductType -ne 1)
+              ServicePackMajorVersion = $osInfo.ServicePackMajorVersion
+              ServicePackMinorVersion = $osInfo.ServicePackMinorVersion
+              WindowsDirectory = $osInfo.WindowsDirectory
+              SystemDirectory = $osInfo.SystemDirectory
+              Caption = $osInfo.Caption
+              Manufacturer = $osInfo.Manufacturer
+              TotalPhysicalMemory = $osInfo.TotalVisibleMemorySize
+          }
+          
+          $systemInfo | ConvertTo-Json -Depth 10 -Compress
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $systemInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($systemInfo -and $systemInfo.OSVersion) {
+          $applications += @{
+              Name = "SystemInfo-WindowsOS"
+              Version = $systemInfo.OSVersion
+              Status = "Active"
+              OSBuildNumber = $systemInfo.OSBuildNumber
+              OSArchitecture = $systemInfo.OSArchitecture
+              IsServer = $systemInfo.IsServer
+              WindowsDirectory = $systemInfo.WindowsDirectory
+              SystemDirectory = $systemInfo.SystemDirectory
+              Caption = $systemInfo.Caption
+              Manufacturer = $systemInfo.Manufacturer
+              TotalPhysicalMemory = $systemInfo.TotalPhysicalMemory
+              LastBackupDate = $systemInfo.LastBackupDate
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $systemInfo = $StateJson | ConvertFrom-Json
+      if ($systemInfo.Count -gt 0) {
+          $info = $systemInfo[0]
+          Write-Host "System Information restored:" -ForegroundColor Green
+          Write-Host "  OS: $($info.Caption)" -ForegroundColor Cyan
+          Write-Host "  Version: $($info.Version) (Build $($info.OSBuildNumber))" -ForegroundColor Cyan
+          Write-Host "  Architecture: $($info.OSArchitecture)" -ForegroundColor Cyan
+          Write-Host "  Server OS: $($info.IsServer)" -ForegroundColor Cyan
+          Write-Host "  Windows Directory: $($info.WindowsDirectory)" -ForegroundColor Cyan
+          Write-Host "  Last Backup: $($info.LastBackupDate)" -ForegroundColor Cyan
+      } else {
+          Write-Host "No system information found in backup" -ForegroundColor Yellow
+      } 

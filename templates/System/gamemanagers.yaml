@@ -1,0 +1,210 @@
+metadata:
+  name: gamemanagers
+  displayName: Game Managers
+  description: Template for backing up gaming platform configurations and game libraries.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "Gaming System Available"
+    inline_script: |
+      try {
+          Get-Command Get-ItemProperty -ErrorAction Stop | Out-Null
+          Write-Output "Gaming system available"
+      } catch {
+          Write-Output "Gaming system not available"
+      }
+    expected_output: "Gaming system available"
+    on_missing: warn
+
+registry:
+  keys:
+    # Steam registry settings
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam'
+      description: Steam installation and configuration registry
+    - path: 'HKCU:\Software\Valve\Steam'
+      description: Steam user preferences and settings
+    
+    # Epic Games Launcher
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\Epic Games\EpicGamesLauncher'
+      description: Epic Games Launcher system configuration
+    - path: 'HKCU:\Software\Epic Games\EpicGamesLauncher'
+      description: Epic Games Launcher user settings
+    
+    # GOG Galaxy
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient'
+      description: GOG Galaxy installation registry
+    - path: 'HKCU:\Software\GOG.com\Galaxy'
+      description: GOG Galaxy user configuration
+    
+    # EA Desktop (Origin)
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\Electronic Arts\EA Desktop'
+      description: EA Desktop system configuration
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\Origin'
+      description: Origin legacy configuration
+    - path: 'HKCU:\Software\Electronic Arts\EA Desktop'
+      description: EA Desktop user settings
+    
+    # Ubisoft Connect
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher'
+      description: Ubisoft Connect system settings
+    - path: 'HKCU:\Software\Ubisoft\Launcher'
+      description: Ubisoft Connect user configuration
+    
+    # Xbox app and Game Bar
+    - path: 'HKCU:\Software\Microsoft\GameBar'
+      description: Xbox Game Bar settings
+    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR'
+      description: Game DVR and recording settings
+    
+    # Battle.net
+    - path: 'HKLM:\SOFTWARE\WOW6432Node\Blizzard Entertainment\Battle.net'
+      description: Battle.net system configuration
+    - path: 'HKCU:\Software\Blizzard Entertainment\Battle.net'
+      description: Battle.net user settings
+
+files:
+  directories:
+    # Steam configuration and libraries
+    - path: 'C:\Program Files (x86)\Steam'
+      description: Steam installation directory
+      include:
+        - 'config\*'
+        - 'userdata\*'
+        - 'steamapps\libraryfolders.vdf'
+        - 'steamapps\appmanifest_*.acf'
+    
+    # Epic Games Launcher
+    - path: '%LOCALAPPDATA%\EpicGamesLauncher'
+      description: Epic Games Launcher configuration
+      recursive: true
+      include:
+        - 'Saved\Config\*'
+        - 'Saved\Data\*'
+    - path: '%PROGRAMDATA%\Epic\EpicGamesLauncher'
+      description: Epic Games Launcher system data
+      recursive: true
+    
+    # GOG Galaxy
+    - path: '%PROGRAMDATA%\GOG.com\Galaxy'
+      description: GOG Galaxy system configuration
+      recursive: true
+      include:
+        - 'Configuration\*'
+        - 'Storage\*'
+    - path: '%LOCALAPPDATA%\GOG.com\Galaxy'
+      description: GOG Galaxy user data
+      recursive: true
+    
+    # EA Desktop/Origin
+    - path: '%PROGRAMDATA%\Electronic Arts\EA Desktop'
+      description: EA Desktop system configuration
+      recursive: true
+    - path: '%LOCALAPPDATA%\Electronic Arts\EA Desktop'
+      description: EA Desktop user configuration
+      recursive: true
+    - path: '%PROGRAMDATA%\Origin'
+      description: Origin legacy configuration
+      recursive: true
+    
+    # Ubisoft Connect
+    - path: '%LOCALAPPDATA%\Ubisoft Game Launcher'
+      description: Ubisoft Connect configuration
+      recursive: true
+      include:
+        - 'settings.yml'
+        - 'cache\*'
+    
+    # Battle.net
+    - path: '%PROGRAMDATA%\Battle.net'
+      description: Battle.net system configuration
+      recursive: true
+    - path: '%APPDATA%\Battle.net'
+      description: Battle.net user settings
+      recursive: true
+    
+    # Xbox app data
+    - path: '%LOCALAPPDATA%\Packages\Microsoft.GamingApp_*'
+      description: Xbox app configuration and data
+      recursive: true
+      include:
+        - 'LocalState\*'
+        - 'Settings\*'
+
+applications:
+  discovery:
+    # Steam games discovery
+    - name: SteamGames
+      command: 'if (Test-Path "C:\Program Files (x86)\Steam\steamapps") { Get-ChildItem "C:\Program Files (x86)\Steam\steamapps\appmanifest_*.acf" | ForEach-Object { $content = Get-Content $_.FullName; $appId = ($content | Select-String "appid").ToString().Split("`t")[1].Trim(); $name = ($content | Select-String "name").ToString().Split("`t")[1].Trim(); @{ AppId = $appId; Name = $name; ManifestFile = $_.Name } } }'
+      description: Installed Steam games with App IDs
+    
+    # Epic Games discovery
+    - name: EpicGames
+      command: 'if (Test-Path "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests") { Get-ChildItem "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests\*.item" | ForEach-Object { $json = Get-Content $_.FullName | ConvertFrom-Json; @{ DisplayName = $json.DisplayName; InstallLocation = $json.InstallLocation; AppName = $json.AppName } } }'
+      description: Installed Epic Games Store games
+    
+    # GOG games discovery
+    - name: GOGGames
+      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games\*" -ErrorAction SilentlyContinue | Select-Object PSChildName, gameName, path, ver'
+      description: Installed GOG games from registry
+    
+    # EA games discovery
+    - name: EAGames
+      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Electronic Arts\EA Play\*" -ErrorAction SilentlyContinue | Select-Object PSChildName, DisplayName, Install*'
+      description: Installed EA games and applications
+    
+    # Ubisoft games discovery
+    - name: UbisoftGames
+      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs\*" -ErrorAction SilentlyContinue | Select-Object PSChildName, InstallDir'
+      description: Installed Ubisoft Connect games
+    
+    # Xbox/Microsoft Store games
+    - name: XboxGames
+      command: 'Get-AppxPackage | Where-Object { $_.Publisher -match "Microsoft Corporation" -and $_.Name -match "Game" } | Select-Object Name, Version, InstallLocation'
+      description: Xbox and Microsoft Store games
+    
+    # Game launcher processes
+    - name: GameLaunchers
+      command: 'Get-Process | Where-Object { $_.ProcessName -match "(Steam|EpicGamesLauncher|GalaxyClient|Origin|EADesktop|upc|Battle)" } | Select-Object ProcessName, Path, StartTime'
+      description: Currently running game launchers
+
+post_update:
+  stages:
+    - name: SteamLibraryExport
+      description: Export Steam library configuration and game manifests
+      commands:
+        - 'if (Test-Path "C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf") { Copy-Item "C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf" "$BackupPath\" -Force }'
+        - 'if (Test-Path "C:\Program Files (x86)\Steam\config\config.vdf") { Copy-Item "C:\Program Files (x86)\Steam\config\config.vdf" "$BackupPath\" -Force }'
+        - 'if (Test-Path "C:\Program Files (x86)\Steam\userdata") { $steamUserData = Get-ChildItem "C:\Program Files (x86)\Steam\userdata" | Select-Object Name, LastWriteTime; $steamUserData | ConvertTo-Json | Out-File "$BackupPath\steam_userdata.json" -Force }'
+    
+    - name: EpicGamesManifests
+      description: Export Epic Games manifests and configuration
+      commands:
+        - 'if (Test-Path "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests") { $epicManifests = Get-ChildItem "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests\*.item" | ForEach-Object { $json = Get-Content $_.FullName | ConvertFrom-Json; @{ File = $_.Name; Game = $json.DisplayName; Location = $json.InstallLocation } }; $epicManifests | ConvertTo-Json | Out-File "$BackupPath\epic_games_manifests.json" -Force }'
+    
+    - name: GameLibrarySummary
+      description: Create comprehensive game library summary
+      commands:
+        - '$gameLibrary = @{}'
+        - 'if (Test-Path "C:\Program Files (x86)\Steam") { $gameLibrary.Steam = "Found - Steam installation detected" }'
+        - 'if (Test-Path "$env:LOCALAPPDATA\EpicGamesLauncher") { $gameLibrary.Epic = "Found - Epic Games Launcher detected" }'
+        - 'if (Test-Path "$env:PROGRAMDATA\GOG.com\Galaxy") { $gameLibrary.GOG = "Found - GOG Galaxy detected" }'
+        - 'if (Test-Path "$env:PROGRAMDATA\Electronic Arts") { $gameLibrary.EA = "Found - EA Desktop/Origin detected" }'
+        - 'if (Test-Path "$env:LOCALAPPDATA\Ubisoft Game Launcher") { $gameLibrary.Ubisoft = "Found - Ubisoft Connect detected" }'
+        - '$gameLibrary | ConvertTo-Json | Out-File "$BackupPath\game_platforms_summary.json" -Force'
+    
+    - name: GamepadSettings
+      description: Export gamepad and controller settings
+      commands:
+        - '$gamepadSettings = Get-ItemProperty "HKCU:\System\GameConfigStore" -ErrorAction SilentlyContinue'
+        - 'if ($gamepadSettings) { $gamepadSettings | ConvertTo-Json | Out-File "$BackupPath\gamepad_settings.json" -Force }'
+    
+    - name: UserGuidance
+      description: Provide user guidance for game managers restore
+      commands:
+        - 'Write-Host "Game platform configurations backed up successfully." -ForegroundColor Green'
+        - 'Write-Host "Game library manifests and installation records are preserved." -ForegroundColor Cyan'
+        - 'Write-Host "Note: Games themselves are not backed up, only configuration and library data." -ForegroundColor Yellow'
+        - 'Write-Host "After restore, game launchers should recognize installed games automatically." -ForegroundColor Cyan'
+        - 'Write-Host "Some games may require verification or re-authentication after restore." -ForegroundColor Yellow' 

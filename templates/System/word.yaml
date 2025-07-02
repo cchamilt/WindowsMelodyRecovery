@@ -1,0 +1,574 @@
+metadata:
+  name: "Microsoft Word Settings Backup"
+  description: "Comprehensive backup of Microsoft Word settings, configurations, and customizations"
+  version: "1.0.0"
+  category: "Office Applications"
+  author: "WindowsMelodyRecovery"
+  tags: ["word", "office", "settings", "templates", "dictionaries", "autocorrect", "building-blocks"]
+
+prerequisites:
+  - type: script
+    name: "Word System Available"
+    inline_script: |
+      try {
+          $wordInstalled = $false
+          $officeVersions = @("16.0", "15.0", "14.0")
+          
+          # Check for Word registry keys
+          foreach ($version in $officeVersions) {
+              if (Test-Path "HKCU:\Software\Microsoft\Office\$version\Word") {
+                  $wordInstalled = $true
+                  break
+              }
+          }
+          
+          # Also check for Word executable
+          $wordExePaths = @(
+              "${env:ProgramFiles}\Microsoft Office\root\Office16\WINWORD.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\root\Office16\WINWORD.EXE",
+              "${env:ProgramFiles}\Microsoft Office\Office15\WINWORD.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office15\WINWORD.EXE",
+              "${env:ProgramFiles}\Microsoft Office\Office14\WINWORD.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office14\WINWORD.EXE"
+          )
+          
+          foreach ($path in $wordExePaths) {
+              if (Test-Path $path) {
+                  $wordInstalled = $true
+                  break
+              }
+          }
+          
+          if ($wordInstalled) {
+              Write-Output "Microsoft Word installation detected"
+          } else {
+              Write-Output "Microsoft Word not found on this system"
+          }
+      } catch {
+          Write-Output "Microsoft Word not found on this system"
+      }
+    expected_output: "Microsoft Word installation detected"
+    on_missing: warn
+
+registry:
+  # Word 2016/365 Settings
+  - name: "Word 2016/365 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Word'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/word_16_user.yaml"
+
+  - name: "Word 2016/365 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Word'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/word_16_system.yaml"
+
+  # Word 2013 Settings
+  - name: "Word 2013 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Word'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/word_15_user.yaml"
+
+  - name: "Word 2013 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Word'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/word_15_system.yaml"
+
+  # Word 2010 Settings
+  - name: "Word 2010 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Word'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/word_14_user.yaml"
+
+  - name: "Word 2010 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\14.0\Word'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/word_14_system.yaml"
+
+  # Common Office Settings that affect Word
+  - name: "Office 16.0 Common User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/office_16_common_user.yaml"
+
+  - name: "Office 15.0 Common User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/office_15_common_user.yaml"
+
+  - name: "Office 14.0 Common User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/office_14_common_user.yaml"
+
+  # File Associations - User
+  - name: "Word Document File Association (.doc) - User"
+    path: 'HKCU:\Software\Classes\.doc'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_doc_user.yaml"
+
+  - name: "Word Document File Association (.docx) - User"
+    path: 'HKCU:\Software\Classes\.docx'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_docx_user.yaml"
+
+  - name: "Word Macro Document File Association (.docm) - User"
+    path: 'HKCU:\Software\Classes\.docm'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_docm_user.yaml"
+
+  - name: "Word Template File Association (.dotx) - User"
+    path: 'HKCU:\Software\Classes\.dotx'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_dotx_user.yaml"
+
+  - name: "Word Macro Template File Association (.dotm) - User"
+    path: 'HKCU:\Software\Classes\.dotm'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_dotm_user.yaml"
+
+  # File Associations - System
+  - name: "Word Document File Association (.doc) - System"
+    path: 'HKLM:\SOFTWARE\Classes\.doc'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_doc_system.yaml"
+
+  - name: "Word Document File Association (.docx) - System"
+    path: 'HKLM:\SOFTWARE\Classes\.docx'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_docx_system.yaml"
+
+  - name: "Word Macro Document File Association (.docm) - System"
+    path: 'HKLM:\SOFTWARE\Classes\.docm'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_docm_system.yaml"
+
+  - name: "Word Template File Association (.dotx) - System"
+    path: 'HKLM:\SOFTWARE\Classes\.dotx'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_dotx_system.yaml"
+
+  - name: "Word Macro Template File Association (.dotm) - System"
+    path: 'HKLM:\SOFTWARE\Classes\.dotm'
+    type: key
+    action: sync
+    dynamic_state_path: "word/registry/file_assoc_dotm_system.yaml"
+
+files:
+  # Main Word Settings
+  - name: "Word Settings"
+    path: "$env:APPDATA/Microsoft/Word"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/settings.yaml"
+    exclude_patterns: ["*.tmp", "~*.*", "*.asd"]
+
+  # Custom Templates
+  - name: "Word Templates"
+    path: "$env:APPDATA/Microsoft/Templates"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/templates.yaml"
+    exclude_patterns: ["*.tmp", "~*.*"]
+
+  # Quick Access and Recent Items
+  - name: "Office Recent Files"
+    path: "$env:APPDATA/Microsoft/Office/Recent"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/recent_files.yaml"
+
+  # Custom Dictionaries
+  - name: "Custom Dictionary"
+    path: "$env:APPDATA/Microsoft/UProof"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/custom_dictionary.yaml"
+
+  # AutoCorrect Entries
+  - name: "AutoCorrect Settings"
+    path: "$env:APPDATA/Microsoft/Office"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/autocorrect.yaml"
+    exclude_patterns: ["*.tmp", "~*.*"]
+
+  # Building Blocks
+  - name: "Document Building Blocks"
+    path: "$env:APPDATA/Microsoft/Document Building Blocks"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/building_blocks.yaml"
+
+  # Custom Styles
+  - name: "QuickStyles"
+    path: "$env:APPDATA/Microsoft/QuickStyles"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/quick_styles.yaml"
+
+  # Custom Toolbars and Ribbons
+  - name: "Word Ribbons Customization"
+    path: "$env:APPDATA/Microsoft/Office/16.0/Word/Ribbons"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/ribbons.yaml"
+
+  # Startup Items
+  - name: "Word Startup"
+    path: "$env:APPDATA/Microsoft/Word/STARTUP"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/startup.yaml"
+
+  # QuickParts
+  - name: "Word QuickParts"
+    path: "$env:APPDATA/Microsoft/Word/QuickParts"
+    type: directory
+    action: sync
+    dynamic_state_path: "word/files/quickparts.yaml"
+
+applications:
+  # Word Installation Information
+  - name: "Word Installation Information"
+    type: custom
+    dynamic_state_path: "word/installation.yaml"
+    discovery_command: |
+      try {
+          $wordInfo = @{}
+          $wordVersions = @()
+          $officeVersions = @("16.0", "15.0", "14.0")
+          
+          foreach ($version in $officeVersions) {
+              $versionKey = "HKLM:\SOFTWARE\Microsoft\Office\$version\Word\InstallRoot"
+              if (Test-Path $versionKey) {
+                  try {
+                      $installPath = Get-ItemProperty -Path $versionKey -Name "Path" -ErrorAction SilentlyContinue
+                      if ($installPath) {
+                          $wordVersions += @{
+                              Version = $version
+                              InstallPath = $installPath.Path
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read Word $version install path"
+                  }
+              }
+          }
+          
+          if ($wordVersions.Count -gt 0) {
+              $wordInfo.InstalledVersions = $wordVersions
+              $wordInfo | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "{}"
+          }
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $wordInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($wordInfo -and $wordInfo.InstalledVersions) {
+          foreach ($version in $wordInfo.InstalledVersions) {
+              $versionName = switch ($version.Version) {
+                  "16.0" { "Word 2016/365" }
+                  "15.0" { "Word 2013" }
+                  "14.0" { "Word 2010" }
+                  default { "Word $($version.Version)" }
+              }
+              
+              $applications += @{
+                  Name = "Word-$($version.Version)"
+                  Version = $versionName
+                  Status = "Installed"
+                  InstallPath = $version.InstallPath
+                  OfficeVersion = $version.Version
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $installations = $StateJson | ConvertFrom-Json
+      if ($installations.Count -gt 0) {
+          Write-Host "Word installation information restored:" -ForegroundColor Green
+          foreach ($install in $installations) {
+              Write-Host "  - $($install.Version)" -ForegroundColor Cyan
+              Write-Host "    Install Path: $($install.InstallPath)" -ForegroundColor Gray
+              Write-Host "    Office Version: $($install.OfficeVersion)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Word installations found in backup" -ForegroundColor Yellow
+      }
+
+  # Word Add-ins Information
+  - name: "Word Add-ins Information"
+    type: custom
+    dynamic_state_path: "word/addins.yaml"
+    discovery_command: |
+      try {
+          $addInsInfo = @()
+          $officeVersions = @("16.0", "15.0", "14.0")
+          
+          foreach ($version in $officeVersions) {
+              $addInsKey = "HKCU:\Software\Microsoft\Office\$version\Word\AddIns"
+              if (Test-Path $addInsKey) {
+                  try {
+                      $addIns = Get-ChildItem -Path $addInsKey -ErrorAction SilentlyContinue
+                      foreach ($addIn in $addIns) {
+                          $addInProps = Get-ItemProperty -Path $addIn.PSPath -ErrorAction SilentlyContinue
+                          if ($addInProps) {
+                              $addInsInfo += @{
+                                  Version = $version
+                                  Name = $addIn.PSChildName
+                                  Properties = $addInProps
+                              }
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read Word $version add-ins"
+                  }
+              }
+          }
+          
+          if ($addInsInfo.Count -gt 0) {
+              $addInsInfo | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $addInsInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($addIn in $addInsInfo) {
+          $versionName = switch ($addIn.Version) {
+              "16.0" { "Word 2016/365" }
+              "15.0" { "Word 2013" }
+              "14.0" { "Word 2010" }
+              default { "Word $($addIn.Version)" }
+          }
+          
+          $applications += @{
+              Name = "AddIn-$($addIn.Name)"
+              Version = $versionName
+              Status = "Configured"
+              AddInName = $addIn.Name
+              OfficeVersion = $addIn.Version
+              Properties = $addIn.Properties
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $addins = $StateJson | ConvertFrom-Json
+      if ($addins.Count -gt 0) {
+          Write-Host "Word add-ins information restored:" -ForegroundColor Green
+          foreach ($addin in $addins) {
+              Write-Host "  - $($addin.AddInName) ($($addin.Version))" -ForegroundColor Cyan
+              Write-Host "    Office Version: $($addin.OfficeVersion)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Word add-ins found in backup" -ForegroundColor Yellow
+      }
+
+  # Word Templates Information
+  - name: "Word Templates Information"
+    type: custom
+    dynamic_state_path: "word/templates.yaml"
+    discovery_command: |
+      try {
+          $templatesInfo = @()
+          $templatePaths = @(
+              "$env:APPDATA\Microsoft\Templates",
+              "$env:APPDATA\Microsoft\Word\STARTUP",
+              "$env:ProgramFiles\Microsoft Office\root\Office16\STARTUP",
+              "$env:ProgramFiles(x86)\Microsoft Office\root\Office16\STARTUP"
+          )
+          
+          foreach ($templatePath in $templatePaths) {
+              if (Test-Path $templatePath) {
+                  try {
+                      $templates = Get-ChildItem -Path $templatePath -Recurse -File -Include "*.dotx", "*.dotm", "*.dot" -ErrorAction SilentlyContinue
+                      foreach ($template in $templates) {
+                          $templatesInfo += @{
+                              Name = $template.Name
+                              FullName = $template.FullName
+                              Directory = $template.DirectoryName
+                              Extension = $template.Extension
+                              Length = $template.Length
+                              LastWriteTime = $template.LastWriteTime
+                              CreationTime = $template.CreationTime
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read templates from $templatePath"
+                  }
+              }
+          }
+          
+          if ($templatesInfo.Count -gt 0) {
+              $templatesInfo | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $templatesInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($template in $templatesInfo) {
+          $templateType = switch ($template.Extension) {
+              ".dotx" { "Word Template" }
+              ".dotm" { "Word Macro-Enabled Template" }
+              ".dot" { "Word 97-2003 Template" }
+              default { "Template" }
+          }
+          
+          $applications += @{
+              Name = "Template-$($template.Name -replace '[^a-zA-Z0-9]', '')"
+              Version = $templateType
+              Status = "Available"
+              TemplateName = $template.Name
+              TemplateDirectory = $template.Directory
+              FileSize = $template.Length
+              LastModified = $template.LastWriteTime
+              Created = $template.CreationTime
+              Extension = $template.Extension
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $templates = $StateJson | ConvertFrom-Json
+      if ($templates.Count -gt 0) {
+          Write-Host "Word templates information restored:" -ForegroundColor Green
+          foreach ($template in $templates) {
+              Write-Host "  - $($template.TemplateName)" -ForegroundColor Cyan
+              Write-Host "    Type: $($template.Version), Size: $($template.FileSize) bytes" -ForegroundColor Gray
+              Write-Host "    Location: $($template.TemplateDirectory)" -ForegroundColor Gray
+              Write-Host "    Last Modified: $($template.LastModified)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Word templates found in backup" -ForegroundColor Yellow
+      }
+
+  # Word Building Blocks Information
+  - name: "Word Building Blocks Information"
+    type: custom
+    dynamic_state_path: "word/building_blocks.yaml"
+    discovery_command: |
+      try {
+          $buildingBlocksInfo = @()
+          $buildingBlocksPaths = @(
+              "$env:APPDATA\Microsoft\Document Building Blocks",
+              "$env:APPDATA\Microsoft\Word\Building Blocks"
+          )
+          
+          foreach ($bbPath in $buildingBlocksPaths) {
+              if (Test-Path $bbPath) {
+                  try {
+                      $buildingBlocks = Get-ChildItem -Path $bbPath -Recurse -File -Include "*.dotx", "*.dotm" -ErrorAction SilentlyContinue
+                      foreach ($bb in $buildingBlocks) {
+                          $buildingBlocksInfo += @{
+                              Name = $bb.Name
+                              FullName = $bb.FullName
+                              Directory = $bb.DirectoryName
+                              Language = if ($bb.Name -match "_(\d+)\.") { $matches[1] } else { "Default" }
+                              Length = $bb.Length
+                              LastWriteTime = $bb.LastWriteTime
+                              CreationTime = $bb.CreationTime
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read building blocks from $bbPath"
+                  }
+              }
+          }
+          
+          if ($buildingBlocksInfo.Count -gt 0) {
+              $buildingBlocksInfo | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $buildingBlocksInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($bb in $buildingBlocksInfo) {
+          $applications += @{
+              Name = "BuildingBlock-$($bb.Name -replace '[^a-zA-Z0-9]', '')"
+              Version = "Building Blocks Template"
+              Status = "Available"
+              BuildingBlockName = $bb.Name
+              BuildingBlockDirectory = $bb.Directory
+              Language = $bb.Language
+              FileSize = $bb.Length
+              LastModified = $bb.LastWriteTime
+              Created = $bb.CreationTime
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $buildingBlocks = $StateJson | ConvertFrom-Json
+      if ($buildingBlocks.Count -gt 0) {
+          Write-Host "Word building blocks information restored:" -ForegroundColor Green
+          foreach ($bb in $buildingBlocks) {
+              Write-Host "  - $($bb.BuildingBlockName)" -ForegroundColor Cyan
+              Write-Host "    Language: $($bb.Language), Size: $($bb.FileSize) bytes" -ForegroundColor Gray
+              Write-Host "    Location: $($bb.BuildingBlockDirectory)" -ForegroundColor Gray
+              Write-Host "    Last Modified: $($bb.LastModified)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Word building blocks found in backup" -ForegroundColor Yellow
+      } 

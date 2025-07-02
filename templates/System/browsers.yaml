@@ -1,0 +1,196 @@
+metadata:
+  name: browsers
+  displayName: Browser Settings
+  description: Template for backing up web browser configurations, bookmarks, and extensions.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "Browser System Available"
+    inline_script: |
+      try {
+          Get-Command Get-ItemProperty -ErrorAction Stop | Out-Null
+          Write-Output "Browser system available"
+      } catch {
+          Write-Output "Browser system not available"
+      }
+    expected_output: "Browser system available"
+    on_missing: warn
+
+registry:
+  # Chrome registry settings
+  - name: Chrome User Settings
+    path: 'HKCU:\Software\Google\Chrome'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/chrome_user.json"
+  
+  - name: Chrome System Policies
+    path: 'HKLM:\SOFTWARE\Google\Chrome'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/chrome_system.json"
+  
+  - name: Chrome 32-bit Policies
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Google\Chrome'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/chrome_32bit.json"
+  
+  # Edge registry settings
+  - name: Edge User Settings
+    path: 'HKCU:\Software\Microsoft\Edge'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/edge_user.json"
+  
+  - name: Edge System Policies
+    path: 'HKLM:\SOFTWARE\Microsoft\Edge'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/edge_system.json"
+  
+  - name: Edge 32-bit Policies
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Edge'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/edge_32bit.json"
+  
+  # Firefox registry settings
+  - name: Firefox User Settings
+    path: 'HKCU:\Software\Mozilla\Firefox'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/firefox_user.json"
+  
+  - name: Firefox System Settings
+    path: 'HKLM:\SOFTWARE\Mozilla\Firefox'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/firefox_system.json"
+  
+  # Internet Explorer / Legacy settings
+  - name: Internet Explorer User Settings
+    path: 'HKCU:\Software\Microsoft\Internet Explorer'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/ie_user.json"
+  
+  - name: Internet Explorer System Settings
+    path: 'HKLM:\SOFTWARE\Microsoft\Internet Explorer'
+    type: key
+    action: sync
+    dynamic_state_path: "browsers/registry/ie_system.json"
+
+files:
+  directories:
+    # Chrome profile directories
+    - path: '%LOCALAPPDATA%\Google\Chrome\User Data'
+      description: Chrome user profiles and extensions
+      recursive: true
+      include: 
+        - 'Default\Bookmarks'
+        - 'Default\Preferences'
+        - 'Default\Favicons'
+        - 'Default\Extensions'
+        - 'Default\Local Storage'
+        - 'Profile *\Bookmarks'
+        - 'Profile *\Preferences'
+        - 'Profile *\Favicons'
+        - 'Profile *\Extensions'
+    
+    # Edge profile directories
+    - path: '%LOCALAPPDATA%\Microsoft\Edge\User Data'
+      description: Microsoft Edge user profiles
+      recursive: true
+      include:
+        - 'Default\Bookmarks'
+        - 'Default\Preferences'
+        - 'Default\Favicons'
+        - 'Default\Extensions'
+        - 'Profile *\Bookmarks'
+        - 'Profile *\Preferences'
+        - 'Profile *\Favicons'
+        - 'Profile *\Extensions'
+    
+    # Firefox profiles
+    - path: '%APPDATA%\Mozilla\Firefox'
+      description: Firefox profiles and configuration
+      recursive: true
+      include:
+        - 'profiles.ini'
+        - 'Profiles\*.default*\bookmarkbackups'
+        - 'Profiles\*.default*\prefs.js'
+        - 'Profiles\*.default*\extensions.json'
+        - 'Profiles\*.default*\extensions'
+        - 'Profiles\*.default*\sessionstore.jsonlz4'
+    
+    # Brave browser
+    - path: '%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data'
+      description: Brave browser profiles
+      recursive: true
+      include:
+        - 'Default\Bookmarks'
+        - 'Default\Preferences'
+        - 'Default\Favicons'
+        - 'Default\Extensions'
+    
+    # Vivaldi browser
+    - path: '%LOCALAPPDATA%\Vivaldi\User Data'
+      description: Vivaldi browser profiles
+      recursive: true
+      include:
+        - 'Default\Bookmarks'
+        - 'Default\Preferences'
+        - 'Default\Favicons'
+        - 'Default\Extensions'
+    
+    # Opera browser
+    - path: '%APPDATA%\Opera Software\Opera Stable'
+      description: Opera browser configuration
+      recursive: true
+      include:
+        - 'Bookmarks'
+        - 'Preferences'
+        - 'Extensions'
+
+applications:
+  discovery:
+    # Discover installed browsers
+    - name: InstalledBrowsers
+      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -match "(Chrome|Firefox|Edge|Brave|Vivaldi|Opera)" } | Select-Object DisplayName, DisplayVersion, InstallLocation'
+      description: List of installed web browsers
+    
+    # Browser extension information
+    - name: ChromeExtensions
+      command: 'if (Test-Path "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions") { Get-ChildItem "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions" | Select-Object Name, LastWriteTime }'
+      description: Installed Chrome extensions
+    
+    - name: EdgeExtensions
+      command: 'if (Test-Path "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Extensions") { Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Extensions" | Select-Object Name, LastWriteTime }'
+      description: Installed Edge extensions
+    
+    # Browser processes and versions
+    - name: BrowserVersions
+      command: 'Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -match "(Chrome|Firefox|Edge|Brave|Vivaldi|Opera)" } | Select-Object Name, Version, InstallDate'
+      description: Browser version information
+
+post_update:
+  stages:
+    - name: BrowserExtensionList
+      description: Export browser extension lists to JSON files
+      commands:
+        - 'if (Test-Path "$BackupPath\Chrome") { Get-ChildItem "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions" -ErrorAction SilentlyContinue | Select-Object Name, LastWriteTime | ConvertTo-Json | Out-File "$BackupPath\Chrome\extensions.json" -Force }'
+        - 'if (Test-Path "$BackupPath\Edge") { Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Extensions" -ErrorAction SilentlyContinue | Select-Object Name, LastWriteTime | ConvertTo-Json | Out-File "$BackupPath\Edge\extensions.json" -Force }'
+    
+    - name: FirefoxProfiles
+      description: Export Firefox profile information
+      commands:
+        - 'if (Test-Path "$env:APPDATA\Mozilla\Firefox\profiles.ini") { Copy-Item "$env:APPDATA\Mozilla\Firefox\profiles.ini" "$BackupPath\Firefox\" -Force }'
+    
+    - name: UserGuidance
+      description: Provide user guidance for browser restore
+      commands:
+        - 'Write-Host "Browser settings backed up successfully. Note: Some extensions may need to be re-enabled after restore." -ForegroundColor Green'
+        - 'Write-Host "Bookmarks and preferences are fully backed up and will be restored automatically." -ForegroundColor Cyan' 

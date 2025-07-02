@@ -1,0 +1,250 @@
+metadata:
+  name: "OneNote Settings"
+  description: "Backup and restore Microsoft OneNote configuration including settings, templates, notebook locations, and both OneNote 2016 and UWP app configurations"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "OneNote System Available"
+    inline_script: |
+      try {
+          $oneNoteInstalled = $false
+          
+          # Check for OneNote 2016 registry settings
+          if (Test-Path "HKCU:\Software\Microsoft\Office\16.0\OneNote") {
+              $oneNoteInstalled = $true
+          }
+          
+          # Check for OneNote standalone registry settings
+          if (Test-Path "HKCU:\Software\Microsoft\OneNote") {
+              $oneNoteInstalled = $true
+          }
+          
+          # Check for OneNote UWP app
+          if (Test-Path "$env:LOCALAPPDATA\Packages\Microsoft.Office.OneNote_8wekyb3d8bbwe") {
+              $oneNoteInstalled = $true
+          }
+          
+          # Check for OneNote executable in common locations
+          $commonPaths = @(
+              "$env:ProgramFiles\Microsoft Office\root\Office16\ONENOTE.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\root\Office16\ONENOTE.EXE",
+              "$env:ProgramFiles\Microsoft Office\Office16\ONENOTE.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office16\ONENOTE.EXE"
+          )
+          
+          foreach ($path in $commonPaths) {
+              if (Test-Path $path) {
+                  $oneNoteInstalled = $true
+                  break
+              }
+          }
+          
+          if ($oneNoteInstalled) {
+              Write-Output "OneNote system available"
+          } else {
+              Write-Output "OneNote system not available"
+          }
+      } catch {
+          Write-Output "OneNote system not available"
+      }
+    expected_output: "OneNote system available"
+    on_missing: warn
+
+registry:
+  # OneNote 2016 Settings
+  - name: "OneNote 2016 Main Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\OneNote'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/onenote_16_main.yaml"
+
+  - name: "OneNote 2016 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Common\OneNote'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/onenote_16_common.yaml"
+
+  - name: "OneNote Standalone Settings"
+    path: 'HKCU:\Software\Microsoft\OneNote'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/onenote_standalone.yaml"
+
+  - name: "OneNote File Associations .one"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.one'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/fileext_one.yaml"
+
+  - name: "OneNote File Associations .onepkg"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.onepkg'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/fileext_onepkg.yaml"
+
+  - name: "Office User Info"
+    path: 'HKCU:\Software\Microsoft\Office\Common\UserInfo'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/office_userinfo.yaml"
+
+  - name: "Office 2016 General Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Common\General'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/office_16_general.yaml"
+
+  # System-wide OneNote Settings
+  - name: "System OneNote 2016 Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\OneNote'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/system_onenote_16.yaml"
+
+  - name: "System OneNote Standalone Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\OneNote'
+    type: key
+    action: sync
+    dynamic_state_path: "onenote/registry/system_onenote_standalone.yaml"
+
+files:
+  # OneNote Configuration Files
+  - name: "OneNote Local AppData"
+    path: "$env:LOCALAPPDATA/Microsoft/OneNote"
+    type: directory
+    action: sync
+    dynamic_state_path: "onenote/files/localappdata.yaml"
+
+  - name: "OneNote AppData Settings"
+    path: "$env:APPDATA/Microsoft/OneNote"
+    type: directory
+    action: sync
+    dynamic_state_path: "onenote/files/appdata.yaml"
+
+  - name: "OneNote Templates"
+    path: "$env:APPDATA/Microsoft/Templates"
+    type: directory
+    action: sync
+    dynamic_state_path: "onenote/files/templates.yaml"
+
+  - name: "Office Recent Files"
+    path: "$env:APPDATA/Microsoft/Office/Recent"
+    type: directory
+    action: sync
+    dynamic_state_path: "onenote/files/recent.yaml"
+
+  - name: "OneNote UWP Settings"
+    path: "$env:LOCALAPPDATA/Packages/Microsoft.Office.OneNote_8wekyb3d8bbwe/LocalState"
+    type: directory
+    action: sync
+    dynamic_state_path: "onenote/files/uwp_settings.yaml"
+
+  # Specific OneNote Files
+  - name: "Notebook List"
+    path: "$env:APPDATA/Microsoft/OneNote/16.0/NotebookList.xml"
+    type: file
+    action: sync
+    dynamic_state_path: "onenote/files/notebook_list.yaml"
+
+applications:
+  # OneNote Notebook Locations
+  - name: "OneNote Notebook Locations"
+    type: custom
+    dynamic_state_path: "onenote/notebook_locations.yaml"
+    discovery_command: |
+      try {
+          $notebookData = @()
+          $notebookListPath = "$env:APPDATA\Microsoft\OneNote\16.0\NotebookList.xml"
+          
+          if (Test-Path $notebookListPath) {
+              try {
+                  [xml]$notebookXml = Get-Content $notebookListPath
+                  if ($notebookXml.Notebooks) {
+                      foreach ($notebook in $notebookXml.Notebooks.Notebook) {
+                          $notebookData += @{
+                              Name = $notebook.name
+                              Path = $notebook.path
+                              ID = $notebook.id
+                              LastAccessTime = $notebook.lastAccessTime
+                              Color = $notebook.color
+                              IsShared = $notebook.isShared -eq "true"
+                          }
+                      }
+                  }
+              } catch {
+                  Write-Verbose "Failed to parse notebook list XML: $_"
+              }
+          }
+          
+          # Also check for OneNote files in common locations
+          $commonLocations = @(
+              "$env:USERPROFILE\Documents",
+              "$env:USERPROFILE\OneDrive",
+              "$env:USERPROFILE\Desktop"
+          )
+          
+          foreach ($location in $commonLocations) {
+              if (Test-Path $location) {
+                  $oneFiles = Get-ChildItem $location -Filter "*.one" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 10
+                  foreach ($file in $oneFiles) {
+                      $notebookData += @{
+                          Name = $file.BaseName
+                          Path = $file.FullName
+                          ID = "File"
+                          LastAccessTime = $file.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                          Color = ""
+                          IsShared = $false
+                          Size = $file.Length
+                          Type = "OneNote File"
+                      }
+                  }
+              }
+          }
+          
+          $notebookData | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $notebookData = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($notebook in $notebookData) {
+          $applications += @{
+              Name = "Notebook-$($notebook.Name)"
+              Version = if ($notebook.Type) { $notebook.Type } else { "OneNote Notebook" }
+              Status = if (Test-Path $notebook.Path) { "Available" } else { "Missing" }
+              NotebookPath = $notebook.Path
+              LastAccessed = $notebook.LastAccessTime
+              IsShared = $notebook.IsShared
+              Color = $notebook.Color
+              Size = $notebook.Size
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $notebooks = $StateJson | ConvertFrom-Json
+      if ($notebooks.Count -gt 0) {
+          Write-Host "OneNote notebook information restored:" -ForegroundColor Green
+          foreach ($notebook in $notebooks) {
+              Write-Host "  - $($notebook.Name) (Status: $($notebook.Status))" -ForegroundColor Cyan
+              Write-Host "    Path: $($notebook.NotebookPath)" -ForegroundColor Gray
+              if ($notebook.LastAccessed) {
+                  Write-Host "    Last Accessed: $($notebook.LastAccessed)" -ForegroundColor Gray
+              }
+              if ($notebook.IsShared) {
+                  Write-Host "    Shared: Yes" -ForegroundColor Yellow
+              }
+          }
+      } else {
+          Write-Host "No OneNote notebook information found in backup" -ForegroundColor Yellow
+      }

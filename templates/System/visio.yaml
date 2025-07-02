@@ -1,0 +1,668 @@
+metadata:
+  name: "Microsoft Visio Settings Backup"
+  description: "Comprehensive backup of Microsoft Visio settings, configurations, and customizations"
+  version: "1.0.0"
+  category: "Office Applications"
+  author: "WindowsMelodyRecovery"
+  tags: ["visio", "office", "settings", "configurations", "templates", "stencils", "add-ins"]
+
+prerequisites:
+  - type: script
+    name: "Visio System Available"
+    inline_script: |
+      try {
+          $visioFound = $false
+          $officeVersions = @("16.0", "15.0", "14.0", "12.0")
+          foreach ($version in $officeVersions) {
+              if ((Test-Path "HKCU:\Software\Microsoft\Office\$version\Visio") -or 
+                  (Test-Path "HKLM:\SOFTWARE\Microsoft\Office\$version\Visio")) {
+                  $visioFound = $true
+                  break
+              }
+          }
+          
+          # Also check for Visio executable
+          $visioExePaths = @(
+              "${env:ProgramFiles}\Microsoft Office\root\Office16\VISIO.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\root\Office16\VISIO.EXE",
+              "${env:ProgramFiles}\Microsoft Office\Office15\VISIO.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office15\VISIO.EXE",
+              "${env:ProgramFiles}\Microsoft Office\Office14\VISIO.EXE",
+              "${env:ProgramFiles(x86)}\Microsoft Office\Office14\VISIO.EXE"
+          )
+          
+          foreach ($path in $visioExePaths) {
+              if (Test-Path $path) {
+                  $visioFound = $true
+                  break
+              }
+          }
+          
+          if ($visioFound) {
+              Write-Output "Microsoft Visio installation detected"
+          } else {
+              Write-Output "Microsoft Visio not found on this system"
+          }
+      } catch {
+          Write-Output "Microsoft Visio not found on this system"
+      }
+    expected_output: "Microsoft Visio installation detected"
+    on_missing: warn
+
+registry:
+  # Visio 2019/365 (Office 16.0) Settings
+  - name: "Visio 2019/365 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_user.yaml"
+
+  - name: "Visio 2019/365 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_system.yaml"
+
+  - name: "Visio 2019/365 Options"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_options.yaml"
+
+  - name: "Visio 2019/365 Security Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_security.yaml"
+
+  - name: "Visio 2019/365 Add-ins"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio\AddIns'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_addins.yaml"
+
+  - name: "Visio 2019/365 Drawing Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio\Drawing'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_drawing.yaml"
+
+  - name: "Visio 2019/365 File MRU"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio\File MRU'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_file_mru.yaml"
+
+  - name: "Visio 2019/365 Place MRU"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Visio\Place MRU'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_16_place_mru.yaml"
+
+  # Visio 2016 (Office 15.0) Settings
+  - name: "Visio 2016 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_15_user.yaml"
+
+  - name: "Visio 2016 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_15_system.yaml"
+
+  - name: "Visio 2016 Options"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Visio\Options'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_15_options.yaml"
+
+  - name: "Visio 2016 Security Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Visio\Security'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_15_security.yaml"
+
+  - name: "Visio 2016 Add-ins"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Visio\AddIns'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_15_addins.yaml"
+
+  # Visio 2013 (Office 14.0) Settings
+  - name: "Visio 2013 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_14_user.yaml"
+
+  - name: "Visio 2013 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\14.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_14_system.yaml"
+
+  # Visio 2010 (Office 12.0) Settings
+  - name: "Visio 2010 User Settings"
+    path: 'HKCU:\Software\Microsoft\Office\12.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_12_user.yaml"
+
+  - name: "Visio 2010 System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Office\12.0\Visio'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_12_system.yaml"
+
+  # Common Office Settings that affect Visio
+  - name: "Office 16.0 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\16.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/office_16_common.yaml"
+
+  - name: "Office 15.0 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\15.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/office_15_common.yaml"
+
+  - name: "Office 14.0 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\14.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/office_14_common.yaml"
+
+  - name: "Office 12.0 Common Settings"
+    path: 'HKCU:\Software\Microsoft\Office\12.0\Common'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/office_12_common.yaml"
+
+  # File Associations
+  - name: "Visio Drawing File Association (.vsd)"
+    path: 'HKCU:\Software\Classes\.vsd'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vsd.yaml"
+
+  - name: "Visio Drawing File Association (.vsdx)"
+    path: 'HKCU:\Software\Classes\.vsdx'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vsdx.yaml"
+
+  - name: "Visio Stencil File Association (.vss)"
+    path: 'HKCU:\Software\Classes\.vss'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vss.yaml"
+
+  - name: "Visio Stencil File Association (.vssx)"
+    path: 'HKCU:\Software\Classes\.vssx'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vssx.yaml"
+
+  - name: "Visio Template File Association (.vst)"
+    path: 'HKCU:\Software\Classes\.vst'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vst.yaml"
+
+  - name: "Visio Template File Association (.vstx)"
+    path: 'HKCU:\Software\Classes\.vstx'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vstx.yaml"
+
+  - name: "Visio XML Drawing File Association (.vdx)"
+    path: 'HKCU:\Software\Classes\.vdx'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vdx.yaml"
+
+  - name: "Visio XML Template File Association (.vtx)"
+    path: 'HKCU:\Software\Classes\.vtx'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vtx.yaml"
+
+  - name: "Visio XML Stencil File Association (.vsx)"
+    path: 'HKCU:\Software\Classes\.vsx'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/file_assoc_vsx.yaml"
+
+  # Visio Viewer Settings
+  - name: "Visio Viewer User Settings"
+    path: 'HKCU:\Software\Microsoft\Visio Viewer'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_viewer_user.yaml"
+
+  - name: "Visio Viewer System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Visio Viewer'
+    type: key
+    action: sync
+    dynamic_state_path: "visio/registry/visio_viewer_system.yaml"
+
+files:
+  # User Configuration Files
+  - name: "Visio Settings"
+    path: "$env:APPDATA/Microsoft/Visio"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/settings.yaml"
+    exclude_patterns: ["*.tmp", "~*.*", "*.bak", "*.old", "*.log"]
+
+  - name: "Visio Templates"
+    path: "$env:APPDATA/Microsoft/Templates"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/templates.yaml"
+    exclude_patterns: ["*.tmp", "~*.*", "*.bak", "*.old", "*.log"]
+
+  - name: "Office Recent Files"
+    path: "$env:APPDATA/Microsoft/Office/Recent"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/recent_files.yaml"
+
+  - name: "Custom Dictionary"
+    path: "$env:APPDATA/Microsoft/UProof"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/custom_dictionary.yaml"
+
+  - name: "AutoCorrect Settings"
+    path: "$env:APPDATA/Microsoft/Office"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/autocorrect.yaml"
+    exclude_patterns: ["*.tmp", "~*.*", "*.bak", "*.old", "*.log"]
+
+  - name: "Visio Ribbons Customization"
+    path: "$env:APPDATA/Microsoft/Office/16.0/Visio/Ribbons"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/ribbons.yaml"
+
+  - name: "Visio Add-ons"
+    path: "$env:APPDATA/Microsoft/Visio/AddOns"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/addons.yaml"
+
+  - name: "Visio Stencils"
+    path: "$env:APPDATA/Microsoft/Visio/Stencils"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/stencils.yaml"
+
+  - name: "My Shapes"
+    path: "$env:APPDATA/Microsoft/Visio/My Shapes"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/my_shapes.yaml"
+
+  - name: "Visio Themes"
+    path: "$env:APPDATA/Microsoft/Visio/Themes"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/themes.yaml"
+
+  - name: "Visio Workspace"
+    path: "$env:APPDATA/Microsoft/Visio/Workspace"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/workspace.yaml"
+
+  - name: "Visio Macros"
+    path: "$env:APPDATA/Microsoft/Visio/Macros"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/macros.yaml"
+
+  - name: "Visio Quick Access"
+    path: "$env:APPDATA/Microsoft/Office/16.0/Visio/QuickAccess"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/quick_access.yaml"
+
+  - name: "Visio Custom UI"
+    path: "$env:APPDATA/Microsoft/Office/16.0/Visio/CustomUI"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/custom_ui.yaml"
+
+  - name: "Visio VBA Projects"
+    path: "$env:APPDATA/Microsoft/Office/16.0/Visio/VBA"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/vba_projects.yaml"
+
+  - name: "Visio Preferences"
+    path: "$env:APPDATA/Microsoft/Office/16.0/Visio/Preferences"
+    type: directory
+    action: sync
+    dynamic_state_path: "visio/files/preferences.yaml"
+
+applications:
+  # Visio Installation Information
+  - name: "Visio Installation Information"
+    type: custom
+    dynamic_state_path: "visio/installation.yaml"
+    discovery_command: |
+      try {
+          $visioInfo = @{}
+          $visioVersions = @()
+          $officeVersions = @("16.0", "15.0", "14.0", "12.0")
+          
+          foreach ($version in $officeVersions) {
+              $versionKey = "HKLM:\SOFTWARE\Microsoft\Office\$version\Visio\InstallRoot"
+              if (Test-Path $versionKey) {
+                  try {
+                      $installPath = Get-ItemProperty -Path $versionKey -Name "Path" -ErrorAction SilentlyContinue
+                      if ($installPath) {
+                          $visioVersions += @{
+                              Version = $version
+                              InstallPath = $installPath.Path
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read Visio $version install path"
+                  }
+              }
+          }
+          
+          if ($visioVersions.Count -gt 0) {
+              $visioInfo.InstalledVersions = $visioVersions
+              $visioInfo | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "{}"
+          }
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $visioInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($visioInfo -and $visioInfo.InstalledVersions) {
+          foreach ($version in $visioInfo.InstalledVersions) {
+              $versionName = switch ($version.Version) {
+                  "16.0" { "Visio 2019/365" }
+                  "15.0" { "Visio 2016" }
+                  "14.0" { "Visio 2013" }
+                  "12.0" { "Visio 2010" }
+                  default { "Visio $($version.Version)" }
+              }
+              
+              $applications += @{
+                  Name = "Visio-$($version.Version)"
+                  Version = $versionName
+                  Status = "Installed"
+                  InstallPath = $version.InstallPath
+                  OfficeVersion = $version.Version
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $installations = $StateJson | ConvertFrom-Json
+      if ($installations.Count -gt 0) {
+          Write-Host "Visio installation information restored:" -ForegroundColor Green
+          foreach ($install in $installations) {
+              Write-Host "  - $($install.Version)" -ForegroundColor Cyan
+              Write-Host "    Install Path: $($install.InstallPath)" -ForegroundColor Gray
+              Write-Host "    Office Version: $($install.OfficeVersion)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Visio installations found in backup" -ForegroundColor Yellow
+      }
+
+  # Visio Add-ins Information
+  - name: "Visio Add-ins Information"
+    type: custom
+    dynamic_state_path: "visio/addins.yaml"
+    discovery_command: |
+      try {
+          $addInsInfo = @()
+          $officeVersions = @("16.0", "15.0", "14.0", "12.0")
+          
+          foreach ($version in $officeVersions) {
+              $addInsKey = "HKCU:\Software\Microsoft\Office\$version\Visio\AddIns"
+              if (Test-Path $addInsKey) {
+                  try {
+                      $addIns = Get-ChildItem -Path $addInsKey -ErrorAction SilentlyContinue
+                      foreach ($addIn in $addIns) {
+                          $addInProps = Get-ItemProperty -Path $addIn.PSPath -ErrorAction SilentlyContinue
+                          if ($addInProps) {
+                              $addInsInfo += @{
+                                  Version = $version
+                                  Name = $addIn.PSChildName
+                                  Properties = $addInProps
+                              }
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read Visio $version add-ins"
+                  }
+              }
+          }
+          
+          if ($addInsInfo.Count -gt 0) {
+              $addInsInfo | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $addInsInfo = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($addIn in $addInsInfo) {
+          $versionName = switch ($addIn.Version) {
+              "16.0" { "Visio 2019/365" }
+              "15.0" { "Visio 2016" }
+              "14.0" { "Visio 2013" }
+              "12.0" { "Visio 2010" }
+              default { "Visio $($addIn.Version)" }
+          }
+          
+          $applications += @{
+              Name = "AddIn-$($addIn.Name)"
+              Version = $versionName
+              Status = "Configured"
+              AddInName = $addIn.Name
+              OfficeVersion = $addIn.Version
+              Properties = $addIn.Properties
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $addins = $StateJson | ConvertFrom-Json
+      if ($addins.Count -gt 0) {
+          Write-Host "Visio add-ins information restored:" -ForegroundColor Green
+          foreach ($addin in $addins) {
+              Write-Host "  - $($addin.AddInName) ($($addin.Version))" -ForegroundColor Cyan
+              Write-Host "    Office Version: $($addin.OfficeVersion)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Visio add-ins found in backup" -ForegroundColor Yellow
+      }
+
+  # Visio File Associations
+  - name: "Visio File Associations"
+    type: custom
+    dynamic_state_path: "visio/file_associations.yaml"
+    discovery_command: |
+      try {
+          $fileAssociations = @{}
+          $visioExtensions = @(".vsd", ".vsdx", ".vss", ".vssx", ".vst", ".vstx", ".vdx", ".vtx", ".vsx")
+          
+          foreach ($ext in $visioExtensions) {
+              $extKey = "HKCU:\Software\Classes\$ext"
+              if (Test-Path $extKey) {
+                  try {
+                      $assoc = Get-ItemProperty -Path $extKey -ErrorAction SilentlyContinue
+                      if ($assoc) {
+                          $fileAssociations[$ext] = $assoc
+                      }
+                  } catch {
+                      Write-Verbose "Could not read file association for $ext"
+                  }
+              }
+          }
+          
+          if ($fileAssociations.Count -gt 0) {
+              $fileAssociations | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "{}"
+          }
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $fileAssociations = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      if ($fileAssociations -and $fileAssociations.PSObject.Properties.Count -gt 0) {
+          foreach ($property in $fileAssociations.PSObject.Properties) {
+              $extension = $property.Name
+              $association = $property.Value
+              
+              $applications += @{
+                  Name = "FileAssoc-$($extension.Replace('.', ''))"
+                  Version = "File Association"
+                  Status = "Configured"
+                  Extension = $extension
+                  Association = $association
+              }
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $associations = $StateJson | ConvertFrom-Json
+      if ($associations.Count -gt 0) {
+          Write-Host "Visio file associations restored:" -ForegroundColor Green
+          foreach ($assoc in $associations) {
+              Write-Host "  - $($assoc.Extension) file association" -ForegroundColor Cyan
+              Write-Host "    Status: $($assoc.Status)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Visio file associations found in backup" -ForegroundColor Yellow
+      }
+
+  # Visio COM Add-ins Information
+  - name: "Visio COM Add-ins Information"
+    type: custom
+    dynamic_state_path: "visio/com_addins.yaml"
+    discovery_command: |
+      try {
+          $comAddIns = @()
+          $officeVersions = @("16.0", "15.0", "14.0", "12.0")
+          
+          foreach ($version in $officeVersions) {
+              $comKey = "HKCU:\Software\Microsoft\Office\$version\Visio\AddIns"
+              if (Test-Path $comKey) {
+                  try {
+                      $addIns = Get-ChildItem -Path $comKey -ErrorAction SilentlyContinue
+                      foreach ($addIn in $addIns) {
+                          $addInInfo = Get-ItemProperty -Path $addIn.PSPath -ErrorAction SilentlyContinue
+                          if ($addInInfo) {
+                              $comAddIns += @{
+                                  Version = $version
+                                  Name = $addIn.PSChildName
+                                  LoadBehavior = $addInInfo.LoadBehavior
+                                  FriendlyName = $addInInfo.FriendlyName
+                                  Description = $addInInfo.Description
+                              }
+                          }
+                      }
+                  } catch {
+                      Write-Verbose "Could not read COM add-ins for Visio $version"
+                  }
+              }
+          }
+          
+          if ($comAddIns.Count -gt 0) {
+              $comAddIns | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $comAddIns = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      
+      foreach ($addIn in $comAddIns) {
+          $versionName = switch ($addIn.Version) {
+              "16.0" { "Visio 2019/365" }
+              "15.0" { "Visio 2016" }
+              "14.0" { "Visio 2013" }
+              "12.0" { "Visio 2010" }
+              default { "Visio $($addIn.Version)" }
+          }
+          
+          $applications += @{
+              Name = "COMAddIn-$($addIn.Name)"
+              Version = $versionName
+              Status = "Registered"
+              AddInName = $addIn.Name
+              FriendlyName = $addIn.FriendlyName
+              Description = $addIn.Description
+              LoadBehavior = $addIn.LoadBehavior
+              OfficeVersion = $addIn.Version
+          }
+      }
+      
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $comAddins = $StateJson | ConvertFrom-Json
+      if ($comAddins.Count -gt 0) {
+          Write-Host "Visio COM add-ins information restored:" -ForegroundColor Green
+          foreach ($addin in $comAddins) {
+              Write-Host "  - $($addin.FriendlyName) ($($addin.AddInName))" -ForegroundColor Cyan
+              Write-Host "    Version: $($addin.Version), Load Behavior: $($addin.LoadBehavior)" -ForegroundColor Gray
+              if ($addin.Description) {
+                  Write-Host "    Description: $($addin.Description)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No Visio COM add-ins found in backup" -ForegroundColor Yellow
+      }

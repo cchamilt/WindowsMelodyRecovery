@@ -524,4 +524,51 @@ To use the new template-based system, you will primarily interact with `Backup-W
 
 We encourage you to explore the `Templates/System/` directory for example templates to get started.
 
+## 🧪 Testing Framework
+
+The project includes comprehensive testing scripts for safe template development and validation:
+
+### Safe Testing Scripts
+
+- **`test-template-backup.ps1`** - Tests backup operations (always safe, read-only)
+- **`test-template-restore.ps1`** - Tests restore operations with WhatIf simulation
+- **`test-template-workflow.ps1`** - Tests complete backup→restore workflows
+
+### WhatIf Safety Mechanism
+
+**⚠️ IMPORTANT SAFETY FEATURE**: All restore testing operations run in **WhatIf mode by default** to prevent accidental system changes during development.
+
+```powershell
+# Safe simulation (default) - NO system changes
+.\test-template-restore.ps1 -TemplatePath word.yaml -BackupName word
+
+# Actual restore (dangerous) - requires explicit Force flag
+.\test-template-restore.ps1 -TemplatePath word.yaml -BackupName word -Force
+```
+
+**Benefits:**
+- ✅ **Safe by default** - No accidental system modifications during testing
+- ✅ **Detailed simulation** - Shows exactly what would be restored
+- ✅ **Graceful handling** - Missing files/registry keys are handled appropriately
+- ✅ **Force flag protection** - Actual changes require explicit intent
+
+### Testing Operations
+
+```powershell
+# Test a single template backup
+.\test-template-workflow.ps1 -Operation backup -TemplatePath word.yaml
+
+# Test restore simulation (safe)
+.\test-template-workflow.ps1 -Operation restore -TemplatePath word.yaml -BackupName word
+
+# Test complete workflow (safe restore)
+.\test-template-workflow.ps1 -Operation workflow -TemplatePath word.yaml
+
+# Clean test directories
+.\test-template-workflow.ps1 -Operation clean
+
+# List available test backups
+.\test-template-workflow.ps1 -Operation list
+```
+
 

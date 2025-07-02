@@ -1,0 +1,180 @@
+metadata:
+  name: powershell
+  displayName: PowerShell Settings
+  description: Template for backing up PowerShell configuration, profiles, and modules.
+  version: "1.0"
+  author: Windows Melody Recovery
+
+prerequisites:
+  - type: script
+    name: "PowerShell System Available"
+    inline_script: |
+      try {
+          Get-Command Get-ExecutionPolicy -ErrorAction Stop | Out-Null
+          Write-Output "PowerShell system available"
+      } catch {
+          Write-Output "PowerShell system not available"
+      }
+    expected_output: "PowerShell system available"
+    on_missing: warn
+
+registry:
+  keys:
+    # PowerShell execution policies
+    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+      description: PowerShell 1.0 execution policy (legacy)
+    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShell\3\ShellIds\Microsoft.PowerShell'
+      description: PowerShell 3.0+ execution policy
+    - path: 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+      description: PowerShell 32-bit execution policy on 64-bit systems
+    
+    # PowerShell logging policies
+    - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging'
+      description: PowerShell module logging configuration
+    - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging'
+      description: PowerShell script block logging settings
+    - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription'
+      description: PowerShell transcription logging settings
+    
+    # Console and PSReadLine settings
+    - path: 'HKCU:\Console'
+      description: Console window and buffer settings
+    - path: 'HKCU:\Software\Microsoft\PowerShell'
+      description: User-specific PowerShell settings
+    
+    # PowerShell Core and additional settings
+    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShell'
+      description: System-wide PowerShell configuration
+    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShellCore'
+      description: PowerShell Core system configuration
+    - path: 'HKCU:\Software\Microsoft\PowerShellCore'
+      description: PowerShell Core user configuration
+    
+    # PowerShell ISE settings
+    - path: 'HKCU:\Software\Microsoft\PowerShell\3\ISE'
+      description: PowerShell ISE user preferences
+
+files:
+  directories:
+    # Windows PowerShell user profile directory
+    - path: '%USERPROFILE%\Documents\WindowsPowerShell'
+      description: Windows PowerShell 5.1 user profiles and modules
+      recursive: true
+      include:
+        - 'Microsoft.PowerShell_profile.ps1'
+        - 'profile.ps1'
+        - 'Modules\*'
+        - 'Scripts\*'
+    
+    # PowerShell 7+ user profile directory
+    - path: '%USERPROFILE%\Documents\PowerShell'
+      description: PowerShell 7+ user profiles and modules
+      recursive: true
+      include:
+        - 'Microsoft.PowerShell_profile.ps1'
+        - 'profile.ps1'
+        - 'Modules\*'
+        - 'Scripts\*'
+    
+    # System PowerShell configuration
+    - path: '%ProgramFiles%\PowerShell'
+      description: PowerShell Core system installation
+      recursive: true
+      include:
+        - 'profile.ps1'
+        - '7\profile.ps1'
+        - 'Modules\*'
+    
+    # PSReadLine settings and history
+    - path: '%APPDATA%\Microsoft\Windows\PowerShell\PSReadLine'
+      description: PSReadLine configuration and command history
+      include:
+        - 'ConsoleHost_history.txt'
+        - 'Settings.json'
+    
+    # PowerShell help files
+    - path: '%USERPROFILE%\Documents\WindowsPowerShell\Help'
+      description: Downloaded PowerShell help files
+      recursive: true
+    - path: '%USERPROFILE%\Documents\PowerShell\Help'
+      description: PowerShell 7+ help files
+      recursive: true
+    
+    # Module installation paths
+    - path: '%ProgramFiles%\WindowsPowerShell\Modules'
+      description: System-wide PowerShell 5.1 modules
+      recursive: true
+    - path: '%ProgramFiles%\PowerShell\Modules'
+      description: System-wide PowerShell 7+ modules
+      recursive: true
+
+applications:
+  discovery:
+    # PowerShell version information
+    - name: PowerShellVersions
+      command: '$PSVersionTable | ConvertTo-Json'
+      description: Current PowerShell version and build information
+    
+    # Installed PowerShell modules
+    - name: InstalledModules
+      command: 'Get-Module -ListAvailable | Select-Object Name, Version, Path, ModuleType | ConvertTo-Json'
+      description: All available PowerShell modules
+    
+    # PowerShell execution policy
+    - name: ExecutionPolicies
+      command: 'Get-ExecutionPolicy -List | ConvertTo-Json'
+      description: Current execution policy settings for all scopes
+    
+    # PowerShell providers
+    - name: PSProviders
+      command: 'Get-PSProvider | Select-Object Name, Drives, Description | ConvertTo-Json'
+      description: Available PowerShell providers
+    
+    # PowerShell snap-ins (legacy)
+    - name: PSSnapins
+      command: 'Get-PSSnapin -Registered -ErrorAction SilentlyContinue | Select-Object Name, Version, Description | ConvertTo-Json'
+      description: Registered PowerShell snap-ins
+    
+    # PowerShell drives
+    - name: PSDrives
+      command: 'Get-PSDrive | Select-Object Name, Provider, Root, Description | ConvertTo-Json'
+      description: Current PowerShell drives
+    
+    # Module paths
+    - name: ModulePaths
+      command: '$env:PSModulePath -split ";" | ConvertTo-Json'
+      description: PowerShell module search paths
+
+post_update:
+  stages:
+    - name: ProfileValidation
+      description: Validate PowerShell profile backup integrity
+      commands:
+        - 'if (Test-Path "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1") { Write-Host "Windows PowerShell profile found and backed up" -ForegroundColor Green }'
+        - 'if (Test-Path "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1") { Write-Host "PowerShell 7+ profile found and backed up" -ForegroundColor Green }'
+    
+    - name: ModuleExport
+      description: Export detailed module information
+      commands:
+        - 'Get-Module -ListAvailable | Where-Object { $_.ModuleBase -like "*Documents*" } | Select-Object Name, Version, Path, Description | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\user_modules.json" -Force'
+        - 'Get-Module -ListAvailable | Where-Object { $_.ModuleBase -like "*Program Files*" } | Select-Object Name, Version, Path, Description | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\system_modules.json" -Force'
+    
+    - name: PSReadLineHistory
+      description: Backup PSReadLine command history and settings
+      commands:
+        - 'if (Test-Path "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt") { Copy-Item "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" "$BackupPath\" -Force }'
+        - 'if (Get-Module PSReadLine -ListAvailable) { Get-PSReadLineOption | ConvertTo-Json | Out-File "$BackupPath\PSReadLine_settings.json" -Force }'
+    
+    - name: PowerShellAliases
+      description: Export PowerShell aliases and functions
+      commands:
+        - 'Get-Alias | Where-Object { $_.Source -eq "" } | ConvertTo-Json | Out-File "$BackupPath\custom_aliases.json" -Force'
+        - 'Get-Command -CommandType Function | Where-Object { $_.Source -eq "" } | Select-Object Name, Definition | ConvertTo-Json | Out-File "$BackupPath\custom_functions.json" -Force'
+    
+    - name: UserGuidance
+      description: Provide user guidance for PowerShell restore
+      commands:
+        - 'Write-Host "PowerShell configuration backed up successfully." -ForegroundColor Green'
+        - 'Write-Host "Profiles, modules, and execution policies are preserved." -ForegroundColor Cyan'
+        - 'Write-Host "Note: Some modules may need to be reinstalled if they were installed from PowerShell Gallery." -ForegroundColor Yellow'
+        - 'Write-Host "Command history and PSReadLine settings are included in the backup." -ForegroundColor Cyan' 

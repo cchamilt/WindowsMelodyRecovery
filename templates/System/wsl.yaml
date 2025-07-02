@@ -1,0 +1,221 @@
+metadata:
+  name: "WSL Environment"
+  description: "Backup and restore Windows Subsystem for Linux environment including packages, configuration files, dotfiles, and chezmoi setup"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "WSL Available"
+    inline_script: |
+      try {
+          if (Get-Command wsl -ErrorAction SilentlyContinue) {
+              $wslDistros = wsl --list --quiet 2>$null
+              if ($wslDistros -and $wslDistros.Count -gt 0) {
+                  Write-Output "WSL system available with distributions"
+              } else {
+                  Write-Output "WSL system available but no distributions"
+              }
+          } else {
+              Write-Output "WSL system not available"
+          }
+      } catch {
+          Write-Output "WSL system not available"
+      }
+    expected_output: "WSL system available"
+    on_missing: warn
+
+registry:
+  # WSL Configuration Registry Keys
+  - name: "WSL System Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss'
+    type: key
+    action: sync
+    dynamic_state_path: "wsl/registry/lxss_system.yaml"
+
+  - name: "WSL Service Settings"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\LxssManager'
+    type: key
+    action: sync
+    dynamic_state_path: "wsl/registry/lxss_manager.yaml"
+
+  - name: "WSL User Settings"
+    path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss'
+    type: key
+    action: sync
+    dynamic_state_path: "wsl/registry/lxss_user.yaml"
+
+files:
+  # Windows-side WSL configuration files
+  - name: "WSL Configuration File"
+    path: "C:/Users/$env:USERNAME/.wslconfig"
+    type: file
+    action: sync
+    dynamic_state_path: "wsl/files/wslconfig"
+
+  - name: "WSL Global Configuration"
+    path: "C:/ProgramData/Microsoft/WSL/wsl.conf"
+    type: file
+    action: sync
+    dynamic_state_path: "wsl/files/wsl_global_conf"
+
+applications:
+  # WSL Distribution Information
+  - name: "WSL Distribution Info"
+    type: custom
+    dynamic_state_path: "wsl/wsl_distributions.yaml"
+    discovery_command: "Private/backup/wsl-discovery-distributions.ps1"
+    parse_script: "Private/backup/wsl-parse-distributions.ps1"
+    install_script: |
+      param([string]$StateJson)
+      Write-Host "WSL Distribution information restored from backup" -ForegroundColor Green
+
+  # WSL Package Management - All Packages
+  - name: "WSL Packages"
+    type: custom
+    dynamic_state_path: "wsl/packages/all_packages.yaml"
+    discovery_command: "Private/backup/wsl-discovery-packages.ps1 -PackageManager all"
+    parse_script: "Private/backup/wsl-parse-packages.ps1"
+    install_script: "Private/backup/wsl-install-packages.ps1"
+
+  # WSL Configuration Files Status  
+  - name: "WSL Configuration Files"
+    type: custom
+    dynamic_state_path: "wsl/config_files.yaml"
+    discovery_command: |
+      try {
+          if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
+              Write-Output "[]"
+              return
+          }
+          
+          $configPaths = @(
+              "/etc/wsl.conf", "/etc/fstab", "/etc/hosts", "/etc/environment", 
+              "~/.bashrc", "~/.bash_profile", "~/.bash_aliases", "~/.profile",
+              "~/.zshrc", "~/.gitconfig", "~/.vimrc", "~/.tmux.conf",
+              "~/.ssh/config", "~/.aws/config"
+          )
+          
+          $configs = @()
+          foreach ($path in $configPaths) {
+              $result = wsl --exec bash -c "if [ -e '$path' ]; then echo 'EXISTS:$path'; fi" 2>$null
+              if ($result -and $result.StartsWith("EXISTS:")) {
+                  $actualPath = $result.Substring(7)
+                  $configs += @{
+                      Path = $actualPath
+                      Exists = $true
+                  }
+              }
+          }
+          
+          $configs | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $configs = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      foreach ($config in $configs) {
+          $applications += @{
+              Name = "Config-$(Split-Path $config.Path -Leaf)"
+              Version = "1.0"
+              Status = if ($config.Exists) { "Present" } else { "Missing" }
+              Path = $config.Path
+          }
+      }
+      $applications | ConvertTo-Json -Depth 5
+    install_script: |
+      param([string]$StateJson)
+      Write-Host "WSL configuration file information restored from backup" -ForegroundColor Green
+
+  # chezmoi Status
+  - name: "chezmoi Configuration"
+    type: custom
+    dynamic_state_path: "wsl/chezmoi_status.yaml"
+    discovery_command: |
+      try {
+          if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
+              Write-Output (@{
+                  chezmoiAvailable = $false
+                  chezmoiInitialized = $false
+                  managedFiles = @()
+                  sourceDirectory = ""
+                  version = ""
+              } | ConvertTo-Json -Depth 5)
+              return
+          }
+          
+          $chezmoiAvailable = wsl --exec bash -c "if command -v chezmoi >/dev/null 2>&1; then echo 'true'; else echo 'false'; fi" 2>$null
+          
+          if ($chezmoiAvailable -eq "true") {
+              $version = wsl --exec bash -c "chezmoi --version 2>/dev/null | head -1 || echo 'unknown'" 2>$null
+              $initialized = wsl --exec bash -c "if [ -d \`$HOME/.local/share/chezmoi\` ]; then echo 'true'; else echo 'false'; fi" 2>$null
+              
+              $chezmoiData = @{
+                  chezmoiAvailable = $true
+                  chezmoiInitialized = ($initialized -eq "true")
+                  version = $version
+                  managedFiles = @()
+                  sourceDirectory = ""
+              }
+              
+              if ($initialized -eq "true") {
+                  $sourceDir = wsl --exec bash -c "chezmoi source-path 2>/dev/null || echo '\$HOME/.local/share/chezmoi'" 2>$null
+                  $chezmoiData.sourceDirectory = $sourceDir
+                  
+                  $managedCount = wsl --exec bash -c "chezmoi managed 2>/dev/null | wc -l || echo '0'" 2>$null
+                  $chezmoiData.managedFileCount = [int]$managedCount
+              }
+              
+              $chezmoiData | ConvertTo-Json -Depth 5
+          } else {
+              (@{
+                  chezmoiAvailable = $false
+                  chezmoiInitialized = $false
+                  managedFiles = @()
+                  sourceDirectory = ""
+                  version = ""
+              } | ConvertTo-Json -Depth 5)
+          }
+      } catch {
+          (@{
+              chezmoiAvailable = $false
+              chezmoiInitialized = $false
+              managedFiles = @()
+              sourceDirectory = ""
+              version = ""
+          } | ConvertTo-Json -Depth 5)
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      $chezmoiData = $DiscoveryOutput | ConvertFrom-Json
+      $applications = @()
+      $applications += @{
+          Name = "chezmoi"
+          Version = $chezmoiData.version
+          Status = if ($chezmoiData.chezmoiAvailable) { 
+              if ($chezmoiData.chezmoiInitialized) { "Initialized" } else { "Available" }
+          } else { "Not Available" }
+          ManagedFileCount = if ($chezmoiData.managedFileCount) { $chezmoiData.managedFileCount } else { 0 }
+          SourceDirectory = $chezmoiData.sourceDirectory
+      }
+      if ($applications.Count -eq 0) {
+          "[]"
+      } else {
+          $applications | ConvertTo-Json -Depth 5 -AsArray
+      }
+    install_script: |
+      param([string]$StateJson)
+      $chezmoiData = $StateJson | ConvertFrom-Json
+      if ($chezmoiData.Count -gt 0) {
+          $chezmoi = $chezmoiData[0]
+          if ($chezmoi.Status -eq "Initialized") {
+              Write-Host "chezmoi was previously configured with $($chezmoi.ManagedFileCount) managed files" -ForegroundColor Green
+              if ($chezmoi.SourceDirectory) {
+                  Write-Host "  Source directory: $($chezmoi.SourceDirectory)" -ForegroundColor Cyan
+              }
+          } else {
+              Write-Host "chezmoi was not configured in the backed up environment" -ForegroundColor Yellow
+          }
+      }

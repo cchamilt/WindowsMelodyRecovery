@@ -1,0 +1,223 @@
+metadata:
+  name: "Keyboard Settings"
+  description: "Backup and restore keyboard configuration including layouts, input methods, accessibility options, and hardware settings"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+
+prerequisites:
+  - type: script
+    name: "Keyboard System Available"
+    inline_script: |
+      try {
+          Get-Command Get-WmiObject -ErrorAction Stop | Out-Null
+          Write-Output "Keyboard system available"
+      } catch {
+          Write-Output "Keyboard system not available"
+      }
+    expected_output: "Keyboard system available"
+    on_missing: warn
+
+registry:
+  # Keyboard Layouts and Input Methods
+  - name: "User Keyboard Layout"
+    path: "HKCU:\\Keyboard Layout"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/user_keyboard_layout.json"
+
+  - name: "CTF Input Framework"
+    path: "HKCU:\\Software\\Microsoft\\CTF"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/ctf_framework.json"
+
+  - name: "Input Method Settings"
+    path: "HKCU:\\Software\\Microsoft\\Input"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/input_method.json"
+
+  - name: "System Keyboard Layout"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/system_keyboard_layout.json"
+
+  - name: "System Keyboard Layouts"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/system_keyboard_layouts.json"
+
+  # Input Method Preferences
+  - name: "Input Method Preferences"
+    path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\InputMethod"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/input_method_prefs.json"
+
+  - name: "IME Settings"
+    path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\IME"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/ime_settings.json"
+
+  # Keyboard Hardware Settings
+  - name: "PS/2 Port Driver Settings"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\i8042prt"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/ps2_port_driver.json"
+
+  - name: "Keyboard Class Driver"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/keyboard_class_driver.json"
+
+  # AutoHotkey Settings
+  - name: "AutoHotkey Configuration"
+    path: "HKCU:\\Software\\AutoHotkey"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/autohotkey.json"
+
+  # Keyboard Accessibility Options
+  - name: "Keyboard Response Accessibility"
+    path: "HKCU:\\Control Panel\\Accessibility\\Keyboard Response"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/keyboard_response.json"
+
+  - name: "Sticky Keys Settings"
+    path: "HKCU:\\Control Panel\\Accessibility\\StickyKeys"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/sticky_keys.json"
+
+  - name: "Toggle Keys Settings"
+    path: "HKCU:\\Control Panel\\Accessibility\\ToggleKeys"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/toggle_keys.json"
+
+  - name: "Filter Keys Settings"
+    path: "HKCU:\\Control Panel\\Accessibility\\FilterKeys"
+    type: key
+    action: sync
+    dynamic_state_path: "keyboard/registry/filter_keys.json"
+
+applications:
+  # Keyboard Device Information
+  - name: "Keyboard Devices"
+    type: custom
+    discovery_command: "Get-WmiObject Win32_Keyboard | Select-Object -Property *"
+    parse_script: |
+      param([object]$KeyboardDevices)
+      try {
+          $devices = $KeyboardDevices | Select-Object -Property *
+          $result = $devices | ConvertTo-Json -Depth 10
+          return $result
+      } catch {
+          Write-Warning "Failed to parse keyboard devices: $_"
+          return "[]"
+      }
+    dynamic_state_path: "keyboard/applications/keyboard_devices.json"
+
+  # Input Language Settings
+  - name: "Input Language Configuration"
+    type: custom
+    discovery_command: |
+      try {
+          $inputSettings = @{
+              Languages = Get-WinUserLanguageList
+              DefaultInputMethod = (Get-WinDefaultInputMethodOverride).InputMethodTip
+              LanguageBarOptions = Get-WinLanguageBarOption
+          }
+          $inputSettings
+      } catch {
+          Write-Warning "Could not retrieve input language settings: $_"
+          @{}
+      }
+    parse_script: |
+      param([object]$InputSettings)
+      try {
+          $settings = $InputSettings | Select-Object -Property *
+          $result = $settings | ConvertTo-Json -Depth 10
+          return $result
+      } catch {
+          Write-Warning "Failed to parse input settings: $_"
+          return "{}"
+      }
+    dynamic_state_path: "keyboard/applications/input_settings.json"
+
+  # Scan Code Mappings
+  - name: "Scan Code Mappings"
+    type: custom
+    discovery_command: |
+      try {
+          $scanCodeMappings = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout" -Name "Scancode Map" -ErrorAction SilentlyContinue
+          if ($scanCodeMappings) {
+              @{
+                  ScancodeMap = $scanCodeMappings.'Scancode Map'
+                  MapExists = $true
+              }
+          } else {
+              @{
+                  ScancodeMap = $null
+                  MapExists = $false
+              }
+          }
+      } catch {
+          Write-Warning "Could not retrieve scancode mappings: $_"
+          @{ ScancodeMap = $null; MapExists = $false }
+      }
+    parse_script: |
+      param([object]$ScanCodeData)
+      try {
+          $mappings = $ScanCodeData | Select-Object -Property *
+          $result = $mappings | ConvertTo-Json -Depth 5
+          return $result
+      } catch {
+          Write-Warning "Failed to parse scancode mappings: $_"
+          return "{}"
+      }
+    dynamic_state_path: "keyboard/applications/scancode_mappings.json"
+
+  # Keyboard Layout Information
+  - name: "Active Keyboard Layouts"
+    type: custom
+    discovery_command: |
+      try {
+          # Get loaded keyboard layouts
+          $layouts = [System.Windows.Forms.InputLanguage]::InstalledInputLanguages | ForEach-Object {
+              @{
+                  Culture = $_.Culture.Name
+                  DisplayName = $_.Culture.DisplayName
+                  LayoutName = $_.LayoutName
+                  Handle = $_.Handle.ToString()
+              }
+          }
+          $layouts
+      } catch {
+          Write-Warning "Could not retrieve keyboard layouts (requires Windows Forms): $_"
+          @()
+      }
+    parse_script: |
+      param([object]$LayoutData)
+      try {
+          $layouts = $LayoutData | Select-Object -Property *
+          $result = $layouts | ConvertTo-Json -Depth 5
+          return $result
+      } catch {
+          Write-Warning "Failed to parse keyboard layouts: $_"
+          return "[]"
+      }
+    dynamic_state_path: "keyboard/applications/keyboard_layouts.json"
+
+cleanup:
+  - name: "Verify Keyboard Input Available"
+    type: check
+    command: "Get-Service -Name 'i8042prt' -ErrorAction SilentlyContinue"
+    expected_result: "Present"
+    on_failure: warn 
