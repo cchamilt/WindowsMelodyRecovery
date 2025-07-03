@@ -1,651 +1,381 @@
 # Backup Details
 
-This document describes what each backup script captures and restores in the Windows Melody Recovery module.
+This document describes what each backup template captures and restores in the Windows Melody Recovery module.
 
-## System Settings
+## Template-Based System
 
-`backup-system-settings.ps1`
+Windows Melody Recovery uses a modern template-based backup and restore system. Each component has a corresponding YAML template in `Templates/System/` that defines:
 
-- System-wide Windows settings
-- Performance and memory settings
-- Environment variables
-- Power schemes and settings
-- Time and region settings
-- System restore points
-- Page file configuration
-- Remote settings
-- System security settings
-- Printer configurations
-- Network profiles and adapters
-- Scheduled tasks
-- Mapped network drives
+- **Registry Components**: Windows registry keys and values
+- **File Components**: Configuration files and user data directories  
+- **Application Components**: Installed software and application-specific configurations
 
-## Applications
+Templates are executed through the `Invoke-WmrTemplate` function with automatic prerequisite checking, error handling, and state management.
 
-`backup-applications.ps1`
+## System Configuration Templates
 
-- Installed applications list (winget, chocolatey, scoop)
-- Package manager configurations
-- Application-specific settings
-- Installation sources and versions
-- Custom installation paths
+### System Settings Template
+**Template**: `system-settings.yaml`
 
-## Default Applications
+- System-wide Windows registry settings
+- Performance and memory management
+- Environment variables and system paths
+- Control Panel configurations
+- UAC and security policies
+- Windows Update settings
+- System file associations
+- System-level user interface settings
 
-`backup-defaultapps.ps1`
+### Power Settings Template
+**Template**: `power.yaml`
 
-- Default browser settings
-- Default email client
-- Default media players
+- Power plans and schemes (High Performance, Balanced, Power Saver)
+- Advanced power settings per plan
+- Battery optimization settings
+- Display and sleep timeouts
+- USB power management
+- Processor power management
+- Hard disk power settings
+- Wireless adapter power policies
+
+### Display Settings Template
+**Template**: `display.yaml`
+
+- Monitor configuration and arrangements
+- Display scaling and DPI settings
+- Color profiles and calibration
+- Night light and blue light settings
+- Multiple monitor setups
+- Graphics driver settings
+- Custom display modes and refresh rates
+- HDR and advanced display features
+
+### Windows Features Template
+**Template**: `windows-features.yaml`
+
+- Windows optional features state
+- System capabilities and packages
+- Windows Update installed features
+- DISM feature information
+- AppX package inventory
+- System components status
+
+## Hardware and Input Templates
+
+### Sound Settings Template
+**Template**: `sound.yaml`
+
+- Audio devices and endpoints configuration
+- Volume mixer settings per application
+- Sound schemes and system sounds
+- Audio driver settings
+- Spatial audio and enhancements
+- Recording device preferences
+- Communication device settings
+- Audio format and quality preferences
+
+### Keyboard Settings Template
+**Template**: `keyboard.yaml`
+
+- Keyboard layout and input languages
+- Key repeat rates and delays
+- Accessibility features (Sticky Keys, Filter Keys)
+- Input method preferences
+- Custom key mappings
+- Multilingual typing settings
+- Text input and IME settings
+
+### Mouse Settings Template
+**Template**: `mouse.yaml`
+
+- Mouse pointer speed and acceleration
+- Button configuration and assignments
+- Wheel scrolling behavior
+- Pointer appearance and themes
+- Double-click timing
+- Mouse trails and visibility
+- Left/right handed configuration
+- Gaming mouse specific settings
+
+### Touchpad Settings Template
+**Template**: `touchpad.yaml`
+
+- Precision touchpad configuration
+- Gesture settings and customizations
+- Palm rejection settings
+- Two-finger scrolling preferences
+- Tap to click and pressure sensitivity
+- Multi-finger gesture assignments
+- Edge swipe actions
+- Vendor-specific touchpad features
+
+### Touchscreen Settings Template
+**Template**: `touchscreen.yaml`
+
+- Touch input calibration and sensitivity
+- Pen and ink settings for stylus input
+- Touch keyboard and handwriting options
+- Gesture recognition settings
+- Palm rejection for touch input
+- Tablet mode configurations
+- Touch feedback and visual cues
+
+### Printer Settings Template
+**Template**: `printer.yaml`
+
+- Installed printers and print queues
+- Default printer settings
+- Print server configurations
+- Driver settings and preferences
+- Paper sizes and print quality settings
+- Network printer discovery and connections
+- Print spooler configuration
+
+## Network and Remote Access Templates
+
+### Network Settings Template
+**Template**: `network.yaml`
+
+- Network adapter configurations
+- WiFi profiles and saved networks
+- Ethernet settings and protocols
+- Network location profiles (Private/Public)
+- Proxy settings and configurations
+- VPN client settings
+- Network discovery and sharing settings
+- Advanced TCP/IP settings
+
+### VPN Settings Template
+**Template**: `vpn.yaml`
+
+- Built-in Windows VPN connections
+- Network credentials and authentication
+- VPN client configurations
+- IPSec and L2TP settings
+- OpenVPN configurations
+- Azure VPN and Cisco VPN settings
+- VPN adapter settings
+- Connection profiles and certificates
+
+### SSH Settings Template
+**Template**: `ssh.yaml`
+
+- OpenSSH client and server configuration
+- SSH key pairs and authentication
+- SSH Agent service settings
+- Known hosts and authorized keys
+- SSH configuration files
+- Custom SSH client settings
+- Port forwarding configurations
+
+### Remote Desktop Settings Template
+**Template**: `rdp.yaml`
+
+- Remote Desktop Protocol settings
+- RDP user permissions and access
+- Network Level Authentication settings
+- Session configuration and timeouts
+- Display and performance settings
+- Audio and clipboard redirection
+- Drive and printer redirection
+- Security and encryption settings
+
+## User Interface Templates
+
+### Terminal Settings Template
+**Template**: `terminal.yaml`
+
+- Windows Terminal configuration and profiles
+- PowerShell console settings
+- Command Prompt customizations
+- Console font and color schemes
+- Keyboard shortcuts and key bindings
+- Startup and default terminal settings
+- Tab and pane configurations
+- Background images and transparency
+
+### Explorer Settings Template
+**Template**: `explorer.yaml`
+
+- File Explorer view preferences
+- Folder options and display settings
+- Navigation pane customizations
+- Search settings and indexing
 - File type associations
-- Protocol handlers
-- App defaults by file type
-- Default apps by file extension
-- System-wide default applications
-
-## Browser Settings
-
-`backup-browsers.ps1`
-
-- Browser profiles for Chrome, Edge, Firefox, Brave, and Vivaldi
-- Bookmarks and favorites
-- Browser preferences and settings
-- Extensions list
-- Custom search engines
-- Saved form data (excluding passwords)
-- Browser themes and customizations
-
-## Office Applications
-
-### OneNote Settings
-
-`backup-onenote.ps1`
-
-- Application settings and preferences
-- Custom templates
-- Quick access locations
-- Recent files list
-- Notebook list and locations
-- Custom dictionaries
-- User interface customizations
-
-### Outlook Settings
-
-`backup-outlook.ps1`
-
-- Account settings and profiles (excluding PST files)
-- View preferences and customizations
-- Signatures
-- Templates
-- AutoCorrect settings
-- Rules and alerts
-- Custom dictionaries
-- Security settings
-
-### Word Settings
-
-`backup-word.ps1`
-
-- Custom templates
-- AutoCorrect settings
-- Custom dictionaries
-- Building blocks (reusable content)
-- Custom styles
-- Ribbon customizations
-- Recent files and locations
-- User preferences and settings
-
-### Excel Settings
-
-`backup-excel.ps1`
-
-- Custom templates and workbooks
-- Add-ins
-- AutoCorrect settings
-- Custom ribbons and toolbars
-- Personal macro workbook (PERSONAL.XLSB)
-- Custom views and workspaces
-- Recent files and locations
-- User preferences and settings
-
-### Visio Settings
-
-`backup-visio.ps1`
-
-- Custom templates and stencils
-- Add-ins
-- Custom themes
-- Workspace settings
-- Custom macros
-- Drawing settings
-- Recent files and locations
-- User preferences and settings
-
-## Gaming Platforms
-
-### Steam Settings
-
-`backup-steam-games.ps1`
-
-- Steam client configuration and preferences
-- Game library information and metadata
-- User profiles and achievements data
-- Workshop subscriptions and content
-- Friends list and community settings
-- Custom game categories and collections
-- Steam overlay and in-game settings
-- Controller configurations
-- Screenshot and video settings
-- Download and bandwidth preferences
-- Game installation paths and library folders
-- Custom skin and theme settings
-- Auto-launch and startup preferences
-
-### Epic Games Settings
-
-`backup-epic-games.ps1`
-
-- Epic Games Launcher configuration
-- Game library and installation information
-- User account preferences
-- Download and installation settings
-- Legendary CLI configuration (if installed)
-- Game metadata and playtime tracking
-- Friends and social features settings
-- Store preferences and wishlist
-- Parental controls and restrictions
-- Cloud save synchronization settings
-- Custom installation directories
-- Launcher appearance and behavior settings
-
-### GOG Galaxy Settings
-
-`backup-gog-games.ps1`
-
-- GOG Galaxy client configuration
-- Game library and installation data
-- User profile and achievements
-- Integration settings for other platforms
-- Download and update preferences
-- Game metadata and playtime statistics
-- Friends and community features
-- Store and wishlist preferences
-- Cloud save synchronization
-- Custom game categories and tags
-- Installation directories and paths
-- Client appearance and behavior settings
-
-### EA Games Settings
-
-`backup-ea-games.ps1`
-
-- EA App (formerly Origin) configuration
-- Game library and installation information
-- User account and profile settings
-- Download and installation preferences
-- Game metadata and playtime tracking
-- Friends and social features
-- Store and purchase history preferences
-- Cloud save synchronization settings
-- Custom installation directories
-- Client appearance and behavior
-- Auto-update and background download settings
-- In-game overlay and screenshot settings
-
-## Security and Access
-
-### KeePassXC Settings
-
-`backup-keepassxc.ps1`
-
-- Application settings and preferences
-- Custom themes and appearance
-- Window layouts and interface customization
-- Database locations and recent files
-- Security settings and encryption preferences
-- Custom icons and database styling
-- Auto-type configurations and shortcuts
-- Browser integration settings
-- Backup and export preferences
-- Plugin and extension configurations
-
-### SSH Settings
-
-`backup-ssh.ps1`
-
-- SSH keys (public and private)
-- Known hosts file
-- SSH config files and connection settings
-- Custom SSH settings and preferences
-- Key permissions and security settings
-- SSH agent configurations
-- Port forwarding and tunnel settings
-- Authentication methods and preferences
-
-### WSL SSH Settings
-
-`backup-wsl-ssh.ps1`
-
-- WSL-specific SSH configurations
-- SSH keys and known hosts within WSL environment
-- Permissions and access controls for WSL SSH
-- Cross-platform SSH key sharing settings
-- WSL-specific SSH agent configurations
-- Integration settings between Windows and WSL SSH
-
-## Windows Subsystem for Linux (WSL)
-
-### WSL Environment Backup
-
-`backup-wsl.ps1`
-
-- **Distribution Information**:
-  - WSL version (WSL 1 or WSL 2)
-  - Installed distributions list
-  - Default distribution settings
-  - Distribution-specific configurations
-
-- **Package Management**:
-  - APT package lists (installed, manually installed, held packages)
-  - NPM global packages and configurations
-  - PIP packages (user and system-wide)
-  - Snap packages and configurations
-  - Flatpak packages and repositories
-  - Package manager configurations and sources
-
-- **System Configuration Files**:
-  - `/etc/wsl.conf` - WSL distribution configuration
-  - `/etc/fstab` - File system mount configurations
-  - `/etc/hosts` - Host name resolution
-  - `/etc/environment` - System-wide environment variables
-  - Network and DNS configurations
-  - Systemd and service configurations
-
-- **User Environment**:
-  - Shell configurations (`.bashrc`, `.profile`, `.zshrc`, `.bash_profile`)
-  - Custom aliases and functions
-  - Environment variables and PATH modifications
-  - Shell history and preferences
-  - Terminal multiplexer configurations (`.tmux.conf`)
-  - Editor configurations (`.vimrc`, `.nanorc`)
-
-- **Development Tools**:
-  - Git configuration (`.gitconfig`, `.gitignore_global`)
-  - SSH keys and configurations (WSL-specific)
-  - Development tool configurations
-  - Programming language version managers (nvm, pyenv, rbenv)
-  - Docker and container configurations
-  - Database client configurations
-
-- **Home Directory Selective Backup**:
-  - Important dotfiles and configurations
-  - Custom scripts and utilities
-  - Development project metadata (excluding large repositories)
-  - Personal configurations and preferences
-  - Application-specific settings
-
-### WSL Restore Features
-
-`restore-wsl.ps1`
-
-- Automated package installation across all package managers
-- Configuration file restoration with proper Linux permissions
-- Shell environment restoration and customization
-- Development tool reconfiguration and setup
-- Home directory restoration with selective file recovery
-- Git repository validation and setup assistance
-- SSH key restoration with proper permissions
-- Service and daemon reconfiguration
-
-## Dotfile Management (chezmoi)
-
-### chezmoi Configuration Backup
-
-`backup-chezmoi.ps1`
-
-- **chezmoi Source Directory**:
-  - Complete chezmoi source directory structure
-  - Managed dotfiles and configurations
-  - Template files and data
-  - Encrypted secrets and sensitive configurations
-  - Custom scripts and hooks
-  - chezmoi configuration files
-
-- **Git Repository Integration**:
-  - Git repository information and remote URLs
-  - Commit history and branch information
-  - Git configuration specific to chezmoi
-  - Repository access credentials (if configured)
-  - Merge and conflict resolution settings
-
-- **chezmoi Configuration**:
-  - `~/.config/chezmoi/chezmoi.toml` - Main configuration
-  - Template data and variables
-  - Encryption settings and key management
-  - Source and destination path configurations
-  - Hook and script configurations
-  - Platform-specific settings and conditions
-
-### chezmoi Restore Features
-
-`restore-chezmoi.ps1`
-
-- chezmoi installation and setup
-- Git repository cloning and configuration
-- Dotfile application and synchronization
-- Template processing and variable substitution
-- Encrypted secret restoration
-- Cross-machine configuration synchronization
-- Conflict resolution and merge handling
-- Custom script execution and hooks
-
-## Windows Features
-
-### Explorer Settings
-
-`backup-explorer.ps1`
-
-- File Explorer preferences and view settings
-- View settings and display options
-- Folder options and behavior
-- Navigation pane settings and shortcuts
-- Quick access locations and pinned folders
-- Search settings and indexing preferences
-- File operations preferences and confirmations
-- Privacy settings and recent files tracking
-- Thumbnail cache settings and preview options
 - Context menu customizations
+- Taskbar and system tray settings
 
-### Keyboard Settings
-
-`backup-keyboard.ps1`
-
-- Keyboard layouts and input methods
-- Input methods and language settings
-- Keyboard repeat delay and rate settings
-- Special key assignments and shortcuts
-- System-wide keyboard shortcuts
-- Input language settings and switching
-- Touch keyboard preferences and layouts
-- Hardware keyboard settings and drivers
-- Accessibility keyboard features
-- Custom key mappings and macros
-
-### Start Menu Settings
-
-`backup-startmenu.ps1`
+### Start Menu Settings Template
+**Template**: `startmenu.yaml`
 
 - Start menu layout and organization
 - Pinned applications and tiles
-- Folder options and grouping
-- Live tile configurations and updates
-- Start menu size and behavior settings
-- Recently added apps list and tracking
-- Most used apps list and frequency
+- Start menu size and behavior
+- Taskbar settings and grouping
+- System tray icon preferences
 - Jump lists and recent items
-- Start menu search settings
-- Taskbar integration and behavior
+- Search settings and results
+- Notification and action center settings
 
-### Remote Desktop Settings
+### Default Apps Settings Template
+**Template**: `defaultapps.yaml`
 
-`backup-rdp.ps1`
+- Default application associations by file type
+- Protocol handler assignments
+- Default web browser and email client
+- Media player defaults
+- Image and document viewer defaults
+- System-wide application preferences
+- File extension associations
 
-- RDP connection profiles and saved connections
-- Display configurations and resolution settings
-- Local resource settings and redirection
-- Network settings and connection options
-- Authentication settings and security
-- Remote audio settings and redirection
-- Printer redirection and local printing
-- Clipboard sharing options and security
-- Drive redirection and file sharing
-- Performance and bandwidth optimization
+## Development and Tools Templates
 
-### Terminal Settings
+### PowerShell Settings Template
+**Template**: `powershell.yaml`
 
-`backup-terminal.ps1`
-
-- Windows Terminal profiles and configurations
-- Color schemes and themes
-- Key bindings and shortcuts
-- Font settings and typography
-- Custom actions and commands
-- Split pane configurations and layouts
-- Tab settings and behavior
-- Shell integration and startup
-- Startup configurations and default profiles
-- Command line arguments and parameters
-- Background images and transparency
-- Scrollback and history settings
-
-### PowerShell Settings
-
-`backup-powershell.ps1`
-
-- PowerShell profiles (AllUsers, CurrentUser, ISE)
-- Module configurations and settings
-- PSReadLine settings and key bindings
+- PowerShell execution policies
+- Module installation and configuration
+- PowerShell profiles for different hosts
 - Custom functions and aliases
-- Console preferences and appearance
-- Execution policy settings
-- Module installation paths and repositories
-- Custom prompt configurations
-- History settings and persistence
-- Tab completion and IntelliSense settings
+- PowerShell provider settings
+- Remoting and security settings
+- Package provider configurations
+- Development environment settings
 
-### WSL Global Settings
+### WSL Settings Template
+**Template**: `wsl.yaml`
 
-`backup-wsl-config.ps1`
+- WSL distribution information and status
+- Package manager inventories (apt, yum, pacman, etc.)
+- Configuration file discovery (/etc/wsl.conf, ~/.bashrc, ~/.gitconfig)
+- chezmoi dotfile management status
+- WSL system and user registry settings
+- Linux environment configurations
+- Cross-platform development setup
 
-- Global WSL configuration (`.wslconfig`)
-- WSL 2 kernel and memory settings
-- Network and DNS configurations
-- File system and mount options
-- Interoperability settings
-- Default distribution settings
-- Resource allocation and limits
-- Security and isolation settings
+## Application Templates
 
-## Cloud Storage Integration
+### Applications Template
+**Template**: `applications.yaml`
 
-### Multi-Cloud Backup Support
+- Installed application inventory (winget, chocolatey, scoop)
+- Package manager configurations and sources
+- Application installation paths and versions
+- System-wide application settings
+- Windows Store app configurations
+- Application startup and service settings
 
-`backup-cloud-config.ps1`
+### Browser Settings Template
+**Template**: `browsers.yaml`
 
-- **OneDrive Integration**:
-  - OneDrive Personal path detection and configuration
-  - OneDrive for Business path detection and configuration
-  - Sync status and health monitoring
-  - Backup retention and cleanup policies
-  - Selective sync and folder exclusions
+- Browser profiles for Chrome, Edge, Firefox, Brave, Opera, Vivaldi
+- Bookmarks and favorites organization
+- Browser preferences and customizations
+- Extension and add-on configurations
+- Custom search engines and shortcuts
+- Privacy and security settings
+- Sync and account settings
 
-- **Google Drive Integration**:
-  - Google Drive path configuration
-  - Sync folder monitoring and validation
-  - Backup organization and folder structure
-  - File versioning and conflict resolution
+### Game Managers Template
+**Template**: `gamemanagers.yaml`
 
-- **Dropbox Integration**:
-  - Dropbox path configuration and validation
-  - Sync status monitoring
-  - Backup folder organization
-  - File sharing and collaboration settings
+- Steam client configuration and library
+- Epic Games Launcher settings and library
+- GOG Galaxy configuration and games
+- EA App/Origin settings and library
+- Battle.net configuration
+- Game installation paths and metadata
+- Gaming platform integrations and social features
 
-- **Custom Cloud Storage**:
-  - Generic cloud storage folder support
-  - Custom path configuration and validation
-  - Sync monitoring and health checks
-  - Backup retention and management
+## Productivity Software Templates
 
-## Additional Settings
+### OneNote Settings Template
+**Template**: `onenote.yaml`
 
-### Display Settings
+- OneNote application preferences and settings
+- Notebook organization and locations
+- Custom templates and page layouts
+- Synchronization and backup settings
+- User interface customizations
+- Search and indexing preferences
+- Integration settings with Office suite
 
-`backup-display.ps1`
+### Outlook Settings Template
+**Template**: `outlook.yaml`
 
-- Monitor configurations and arrangements
-- Display scaling and DPI settings
-- Color profiles and calibration
-- Night light settings and scheduling
-- HDR settings and capabilities
-- Multiple monitor configurations
-- Display orientation and rotation
-- Refresh rate and resolution settings
+- Email account configurations (excluding credentials)
+- Outlook profiles and data files
+- Email signatures and templates
+- Rules and automatic processing
+- Calendar and task settings
+- Contact management preferences
+- Security and privacy settings
 
-### Network Settings
+### Word Settings Template
+**Template**: `word.yaml`
 
-`backup-network.ps1`
+- Document templates and building blocks
+- AutoCorrect and AutoText entries
+- Custom styles and formatting
+- Ribbon and toolbar customizations
+- User preferences and view settings
+- File locations and recent documents
+- Proofing and language settings
 
-- Network adapter configurations and settings
-- Wi-Fi profiles and saved networks
-- VPN connections and configurations
-- Proxy settings and authentication
-- Network drive mappings and credentials
-- Network discovery and sharing settings
-- Firewall rules and exceptions
-- Network location profiles
+### Excel Settings Template
+**Template**: `excel.yaml`
 
-### Power Settings
+- Workbook templates and custom formats
+- Add-ins and macro configurations
+- Custom functions and formulas
+- Chart and pivot table defaults
+- Data connection settings
+- Calculation and performance options
+- Custom ribbon and toolbar layouts
 
-`backup-power.ps1`
+### Visio Settings Template
+**Template**: `visio.yaml`
 
-- Power plans and schemes
-- Sleep settings and timers
-- Battery configurations and thresholds
-- Advanced power options and policies
-- Display and sleep timers
-- USB selective suspend settings
-- Processor power management
-- Hard disk power settings
+- Drawing templates and stencils
+- Shape and connector preferences
+- Page setup and print settings
+- Custom themes and color schemes
+- Add-ins and macro configurations
+- File format and export settings
+- User interface customizations
 
-### Sound Settings
+## Security Templates
 
-`backup-sound.ps1`
+### KeePassXC Settings Template
+**Template**: `keepassxc.yaml`
 
-- Audio device configurations and preferences
-- Default playback and recording devices
-- Sound schemes and system sounds
-- Application volume and device preferences
-- Communication settings and ducking
-- Spatial audio and enhancements
-- Microphone settings and levels
-- Audio driver configurations
+- KeePassXC application configuration
+- Database connection settings
+- Security and encryption preferences
+- User interface and workflow settings
+- Browser integration configuration
+- Auto-type and hotkey settings
+- Backup and synchronization settings
 
-### Touchpad Settings
+## Template Configuration
 
-`backup-touchpad.ps1`
+All templates are configured through the `Config/scripts-config.json` file which defines:
 
-- Touchpad sensitivity and responsiveness
-- Gesture configurations and customizations
-- Multi-finger gestures and actions
-- Scrolling preferences and behavior
-- Tap settings and click behavior
-- Palm rejection settings and sensitivity
-- Edge swipe settings and actions
-- Button configurations and assignments
-- Driver-specific settings and features
-- Custom gesture mappings and shortcuts
+- **Enabled Templates**: Which templates are active for backup/restore operations
+- **Categories**: Logical grouping of related templates
+- **Descriptions**: User-friendly descriptions of what each template captures
+- **Requirements**: Whether a template is required or optional for system recovery
 
-### Touchscreen Settings
+Templates can be executed individually or as part of bulk operations through the Windows Melody Recovery PowerShell module.
 
-`backup-touchscreen.ps1`
+## Template Structure
 
-- Touch sensitivity and calibration
-- Palm rejection settings and algorithms
-- Multi-touch gestures and recognition
-- Pen settings and pressure sensitivity
-- Touch keyboard preferences and layouts
-- Screen orientation settings and rotation
-- Touch feedback options and haptics
-- Edge swipe configurations and actions
-- Driver-specific settings and calibration
-- Custom gesture assignments and shortcuts
+Each template includes:
 
-### VPN Settings
+- **Metadata**: Name, description, version, and categorization
+- **Prerequisites**: Conditions that must be met before execution
+- **Registry Components**: Windows registry keys and values to backup/restore
+- **File Components**: Files and directories to capture
+- **Application Components**: Software discovery and configuration management
 
-`backup-vpn.ps1`
-
-- VPN profiles and connection settings
-- Connection settings and protocols
-- Authentication configurations and methods
-- Split tunneling settings and rules
-- Custom routes and network configurations
-- Network protocols and encryption
-- Security settings and certificates
-- Auto-connect rules and triggers
-- Credential storage and management
-- Traffic routing rules and policies
-
-## Windows Features Settings
-
-`backup-windows-features.ps1`
-
-- Installed Windows features and components
-- Optional components and capabilities
-- Windows capabilities and language packs
-- Feature dependencies and requirements
-- Installation states and configurations
-- Windows subsystems (WSL, Hyper-V, etc.)
-- Legacy components and compatibility
-- Development features and tools
-- Enterprise features and policies
-- Feature update settings and preferences
-
-## Package Managers
-
-### Chocolatey Settings
-
-`backup-chocolatey.ps1`
-
-- Installed packages and versions
-- Package sources and repositories
-- Configuration settings and preferences
-- Custom installation directories
-- Package upgrade and update policies
-- Security settings and verification
-- Proxy and network configurations
-- Feature settings and behaviors
-
-### Scoop Settings
-
-`backup-scoop.ps1`
-
-- Installed packages and manifests
-- Bucket configurations and sources
-- Global and user-specific installations
-- Custom installation directories
-- Package update and cleanup policies
-- Scoop configuration and preferences
-- Custom buckets and repositories
-- Shim and alias configurations
-
-### Winget Settings
-
-`backup-winget.ps1`
-
-- Installed packages and sources
-- Package source configurations
-- Installation preferences and settings
-- Upgrade and update policies
-- Custom installation directories
-- Package manifest and metadata
-- Source priority and authentication
-- Configuration file settings
-
-## Notes
-
-- **Exclusions**: All backup scripts exclude temporary files, cache data, and large binary files
-- **Personal Data**: Personal data files (documents, downloads, media) are not included in backups
-- **Application Dependencies**: Some settings may require applications to be installed before restoration
-- **Version Compatibility**: Certain settings may be version-specific (e.g., Office 365 vs Office 2019)
-- **Installation vs Configuration**: Application backups store installation information and settings, not the applications themselves
-- **Permissions**: Some operations may require elevated permissions or specific user contexts
-- **WSL Requirements**: WSL-related backups require WSL to be installed and configured
-- **Cloud Storage**: Cloud storage integration requires respective cloud clients to be installed and configured
-- **Gaming Platforms**: Game files and installations are managed by respective platforms, only settings are backed up
-- **chezmoi Integration**: Requires Git and chezmoi to be installed for full functionality
-- **Cross-Platform**: WSL backups are designed to work across different Linux distributions within WSL
-
----
-
-*This document reflects the backup capabilities of Windows Melody Recovery v1.0.0 as of June 2025.*
+For detailed information about template structure and development, see the `TEMPLATE_SCHEMA.md` documentation. 

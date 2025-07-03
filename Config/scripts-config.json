@@ -3,8 +3,7 @@
     "enabled": [
       {
         "name": "Terminal Settings",
-        "function": "Backup-TerminalSettings",
-        "script": "backup-terminal.ps1",
+        "template": "terminal.yaml",
         "category": "System",
         "description": "Windows Terminal and console settings",
         "enabled": true,
@@ -12,8 +11,7 @@
       },
       {
         "name": "Explorer Settings",
-        "function": "Backup-ExplorerSettings",
-        "script": "backup-explorer.ps1",
+        "template": "explorer.yaml",
         "category": "System",
         "description": "File Explorer settings and preferences",
         "enabled": true,
@@ -21,8 +19,7 @@
       },
       {
         "name": "Touchpad Settings",
-        "function": "Backup-TouchpadSettings",
-        "script": "backup-touchpad.ps1",
+        "template": "touchpad.yaml",
         "category": "Hardware",
         "description": "Touchpad configuration and gestures",
         "enabled": true,
@@ -30,8 +27,7 @@
       },
       {
         "name": "Touchscreen Settings",
-        "function": "Backup-TouchscreenSettings",
-        "script": "backup-touchscreen.ps1",
+        "template": "touchscreen.yaml",
         "category": "Hardware",
         "description": "Touchscreen settings and calibration",
         "enabled": true,
@@ -39,8 +35,7 @@
       },
       {
         "name": "Power Settings",
-        "function": "Backup-PowerSettings",
-        "script": "backup-power.ps1",
+        "template": "power.yaml",
         "category": "System",
         "description": "Power plans and energy settings",
         "enabled": true,
@@ -48,8 +43,7 @@
       },
       {
         "name": "Display Settings",
-        "function": "Backup-DisplaySettings",
-        "script": "backup-display.ps1",
+        "template": "display.yaml",
         "category": "Hardware",
         "description": "Monitor configuration and display settings",
         "enabled": true,
@@ -57,8 +51,7 @@
       },
       {
         "name": "Sound Settings",
-        "function": "Backup-SoundSettings",
-        "script": "backup-sound.ps1",
+        "template": "sound.yaml",
         "category": "Hardware",
         "description": "Audio devices and sound configuration",
         "enabled": true,
@@ -66,17 +59,31 @@
       },
       {
         "name": "Keyboard Settings",
-        "function": "Backup-KeyboardSettings",
-        "script": "backup-keyboard.ps1",
+        "template": "keyboard.yaml",
         "category": "Hardware",
         "description": "Keyboard layout and input settings",
         "enabled": true,
         "required": false
       },
       {
+        "name": "Mouse Settings",
+        "template": "mouse.yaml",
+        "category": "Hardware",
+        "description": "Mouse configuration and pointer settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Printer Settings",
+        "template": "printer.yaml",
+        "category": "Hardware",
+        "description": "Printer configuration and settings",
+        "enabled": true,
+        "required": false
+      },
+      {
         "name": "Start Menu Settings",
-        "function": "Backup-StartMenuSettings",
-        "script": "backup-startmenu.ps1",
+        "template": "startmenu.yaml",
         "category": "UI",
         "description": "Start menu layout and taskbar settings",
         "enabled": true,
@@ -84,8 +91,7 @@
       },
       {
         "name": "Default Apps Settings",
-        "function": "Backup-DefaultAppsSettings",
-        "script": "backup-defaultapps.ps1",
+        "template": "defaultapps.yaml",
         "category": "System",
         "description": "Default application associations",
         "enabled": true,
@@ -93,8 +99,7 @@
       },
       {
         "name": "Network Settings",
-        "function": "Backup-NetworkSettings",
-        "script": "backup-network.ps1",
+        "template": "network.yaml",
         "category": "Network",
         "description": "Network profiles and WiFi settings",
         "enabled": true,
@@ -102,8 +107,7 @@
       },
       {
         "name": "Remote Desktop Settings",
-        "function": "Backup-RDPSettings",
-        "script": "backup-rdp.ps1",
+        "template": "rdp.yaml",
         "category": "Network",
         "description": "Remote Desktop configuration",
         "enabled": true,
@@ -111,8 +115,7 @@
       },
       {
         "name": "VPN Settings",
-        "function": "Backup-VPNSettings",
-        "script": "backup-vpn.ps1",
+        "template": "vpn.yaml",
         "category": "Network",
         "description": "VPN connections and settings",
         "enabled": true,
@@ -120,8 +123,7 @@
       },
       {
         "name": "SSH Settings",
-        "function": "Backup-SSHSettings",
-        "script": "backup-ssh.ps1",
+        "template": "ssh.yaml",
         "category": "Security",
         "description": "SSH keys and configuration",
         "enabled": true,
@@ -129,8 +131,7 @@
       },
       {
         "name": "PowerShell Settings",
-        "function": "Backup-PowerShellSettings",
-        "script": "backup-powershell.ps1",
+        "template": "powershell.yaml",
         "category": "Development",
         "description": "PowerShell profiles and modules",
         "enabled": true,
@@ -138,8 +139,7 @@
       },
       {
         "name": "Windows Features",
-        "function": "Backup-WindowsFeatures",
-        "script": "backup-windows-features.ps1",
+        "template": "windows-features.yaml",
         "category": "System",
         "description": "Enabled Windows optional features",
         "enabled": true,
@@ -147,8 +147,7 @@
       },
       {
         "name": "Applications",
-        "function": "Backup-Applications",
-        "script": "backup-applications.ps1",
+        "template": "applications.yaml",
         "category": "Applications",
         "description": "Installed applications and package managers",
         "enabled": true,
@@ -156,8 +155,7 @@
       },
       {
         "name": "Game Managers",
-        "function": "Backup-GameManagers",
-        "script": "backup-gamemanagers.ps1",
+        "template": "gamemanagers.yaml",
         "category": "Gaming",
         "description": "Steam, Epic, etc. game platform settings",
         "enabled": true,
@@ -165,8 +163,7 @@
       },
       {
         "name": "System Settings",
-        "function": "Backup-SystemSettings",
-        "script": "backup-system-settings.ps1",
+        "template": "system-settings.yaml",
         "category": "System",
         "description": "General system configuration",
         "enabled": true,
@@ -174,8 +171,7 @@
       },
       {
         "name": "Browser Settings",
-        "function": "Backup-BrowserSettings",
-        "script": "backup-browsers.ps1",
+        "template": "browsers.yaml",
         "category": "Applications",
         "description": "Web browser bookmarks and settings",
         "enabled": true,
@@ -183,8 +179,7 @@
       },
       {
         "name": "KeePassXC Settings",
-        "function": "Backup-KeePassXCSettings",
-        "script": "backup-keepassxc.ps1",
+        "template": "keepassxc.yaml",
         "category": "Security",
         "description": "Password manager configuration",
         "enabled": true,
@@ -192,8 +187,7 @@
       },
       {
         "name": "OneNote Settings",
-        "function": "Backup-OneNoteSettings",
-        "script": "backup-onenote.ps1",
+        "template": "onenote.yaml",
         "category": "Productivity",
         "description": "Microsoft OneNote configuration",
         "enabled": true,
@@ -201,8 +195,7 @@
       },
       {
         "name": "Outlook Settings",
-        "function": "Backup-OutlookSettings",
-        "script": "backup-outlook.ps1",
+        "template": "outlook.yaml",
         "category": "Productivity",
         "description": "Microsoft Outlook email settings",
         "enabled": true,
@@ -210,8 +203,7 @@
       },
       {
         "name": "Word Settings",
-        "function": "Backup-WordSettings",
-        "script": "backup-word.ps1",
+        "template": "word.yaml",
         "category": "Productivity",
         "description": "Microsoft Word configuration",
         "enabled": true,
@@ -219,8 +211,7 @@
       },
       {
         "name": "Excel Settings",
-        "function": "Backup-ExcelSettings",
-        "script": "backup-excel.ps1",
+        "template": "excel.yaml",
         "category": "Productivity",
         "description": "Microsoft Excel configuration",
         "enabled": true,
@@ -228,8 +219,7 @@
       },
       {
         "name": "Visio Settings",
-        "function": "Backup-VisioSettings",
-        "script": "backup-visio.ps1",
+        "template": "visio.yaml",
         "category": "Productivity",
         "description": "Microsoft Visio configuration",
         "enabled": true,
@@ -237,8 +227,7 @@
       },
       {
         "name": "WSL Settings",
-        "function": "Backup-WSLSettings",
-        "script": "backup-wsl.ps1",
+        "template": "wsl.yaml",
         "category": "Development",
         "description": "WSL packages, configuration, and home directory",
         "enabled": true,
@@ -250,8 +239,7 @@
     "enabled": [
       {
         "name": "Terminal Settings",
-        "function": "Restore-TerminalSettings",
-        "script": "restore-terminal.ps1",
+        "template": "terminal.yaml",
         "category": "System",
         "description": "Windows Terminal and console settings",
         "enabled": true,
@@ -259,8 +247,7 @@
       },
       {
         "name": "Explorer Settings",
-        "function": "Restore-ExplorerSettings",
-        "script": "restore-explorer.ps1",
+        "template": "explorer.yaml",
         "category": "System",
         "description": "File Explorer settings and preferences",
         "enabled": true,
@@ -268,8 +255,7 @@
       },
       {
         "name": "Touchpad Settings",
-        "function": "Restore-TouchpadSettings",
-        "script": "restore-touchpad.ps1",
+        "template": "touchpad.yaml",
         "category": "Hardware",
         "description": "Touchpad configuration and gestures",
         "enabled": true,
@@ -277,8 +263,7 @@
       },
       {
         "name": "Touchscreen Settings",
-        "function": "Restore-TouchscreenSettings",
-        "script": "restore-touchscreen.ps1",
+        "template": "touchscreen.yaml",
         "category": "Hardware",
         "description": "Touchscreen settings and calibration",
         "enabled": true,
@@ -286,8 +271,7 @@
       },
       {
         "name": "Power Settings",
-        "function": "Restore-PowerSettings",
-        "script": "restore-power.ps1",
+        "template": "power.yaml",
         "category": "System",
         "description": "Power plans and energy settings",
         "enabled": true,
@@ -295,8 +279,7 @@
       },
       {
         "name": "Display Settings",
-        "function": "Restore-DisplaySettings",
-        "script": "restore-display.ps1",
+        "template": "display.yaml",
         "category": "Hardware",
         "description": "Monitor configuration and display settings",
         "enabled": true,
@@ -304,8 +287,7 @@
       },
       {
         "name": "Sound Settings",
-        "function": "Restore-SoundSettings",
-        "script": "restore-sound.ps1",
+        "template": "sound.yaml",
         "category": "Hardware",
         "description": "Audio devices and sound configuration",
         "enabled": true,
@@ -313,17 +295,31 @@
       },
       {
         "name": "Keyboard Settings",
-        "function": "Restore-KeyboardSettings",
-        "script": "restore-keyboard.ps1",
+        "template": "keyboard.yaml",
         "category": "Hardware",
         "description": "Keyboard layout and input settings",
         "enabled": true,
         "required": false
       },
       {
+        "name": "Mouse Settings",
+        "template": "mouse.yaml",
+        "category": "Hardware",
+        "description": "Mouse configuration and pointer settings",
+        "enabled": true,
+        "required": false
+      },
+      {
+        "name": "Printer Settings",
+        "template": "printer.yaml",
+        "category": "Hardware",
+        "description": "Printer configuration and settings",
+        "enabled": true,
+        "required": false
+      },
+      {
         "name": "Start Menu Settings",
-        "function": "Restore-StartMenuSettings",
-        "script": "restore-startmenu.ps1",
+        "template": "startmenu.yaml",
         "category": "UI",
         "description": "Start menu layout and taskbar settings",
         "enabled": true,
@@ -331,8 +327,7 @@
       },
       {
         "name": "Default Apps Settings",
-        "function": "Restore-DefaultAppsSettings",
-        "script": "restore-defaultapps.ps1",
+        "template": "defaultapps.yaml",
         "category": "System",
         "description": "Default application associations",
         "enabled": true,
@@ -340,8 +335,7 @@
       },
       {
         "name": "Network Settings",
-        "function": "Restore-NetworkSettings",
-        "script": "restore-network.ps1",
+        "template": "network.yaml",
         "category": "Network",
         "description": "Network profiles and WiFi settings",
         "enabled": true,
@@ -349,8 +343,7 @@
       },
       {
         "name": "Remote Desktop Settings",
-        "function": "Restore-RDPSettings",
-        "script": "restore-rdp.ps1",
+        "template": "rdp.yaml",
         "category": "Network",
         "description": "Remote Desktop configuration",
         "enabled": true,
@@ -358,8 +351,7 @@
       },
       {
         "name": "VPN Settings",
-        "function": "Restore-VPNSettings",
-        "script": "restore-vpn.ps1",
+        "template": "vpn.yaml",
         "category": "Network",
         "description": "VPN connections and settings",
         "enabled": true,
@@ -367,8 +359,7 @@
       },
       {
         "name": "SSH Settings",
-        "function": "Restore-SSHSettings",
-        "script": "restore-ssh.ps1",
+        "template": "ssh.yaml",
         "category": "Security",
         "description": "SSH keys and configuration",
         "enabled": true,
@@ -376,8 +367,7 @@
       },
       {
         "name": "PowerShell Settings",
-        "function": "Restore-PowerShellSettings",
-        "script": "restore-powershell.ps1",
+        "template": "powershell.yaml",
         "category": "Development",
         "description": "PowerShell profiles and modules",
         "enabled": true,
@@ -385,8 +375,7 @@
       },
       {
         "name": "Windows Features",
-        "function": "Restore-WindowsFeatures",
-        "script": "restore-windows-features.ps1",
+        "template": "windows-features.yaml",
         "category": "System",
         "description": "Windows optional features",
         "enabled": true,
@@ -394,8 +383,7 @@
       },
       {
         "name": "Applications",
-        "function": "Restore-Applications",
-        "script": "restore-applications.ps1",
+        "template": "applications.yaml",
         "category": "Applications",
         "description": "Installed applications and package managers",
         "enabled": true,
@@ -403,8 +391,7 @@
       },
       {
         "name": "System Settings",
-        "function": "Restore-SystemSettings",
-        "script": "restore-system-settings.ps1",
+        "template": "system-settings.yaml",
         "category": "System",
         "description": "General system configuration",
         "enabled": true,
@@ -412,8 +399,7 @@
       },
       {
         "name": "Browser Settings",
-        "function": "Restore-BrowserSettings",
-        "script": "restore-browsers.ps1",
+        "template": "browsers.yaml",
         "category": "Applications",
         "description": "Web browser bookmarks and settings",
         "enabled": true,
@@ -421,8 +407,7 @@
       },
       {
         "name": "KeePassXC Settings",
-        "function": "Restore-KeePassXCSettings",
-        "script": "restore-keepassxc.ps1",
+        "template": "keepassxc.yaml",
         "category": "Security",
         "description": "Password manager configuration",
         "enabled": true,
@@ -430,8 +415,7 @@
       },
       {
         "name": "OneNote Settings",
-        "function": "Restore-OneNoteSettings",
-        "script": "restore-onenote.ps1",
+        "template": "onenote.yaml",
         "category": "Productivity",
         "description": "Microsoft OneNote configuration",
         "enabled": true,
@@ -439,8 +423,7 @@
       },
       {
         "name": "Outlook Settings",
-        "function": "Restore-OutlookSettings",
-        "script": "restore-outlook.ps1",
+        "template": "outlook.yaml",
         "category": "Productivity",
         "description": "Microsoft Outlook email settings",
         "enabled": true,
@@ -448,8 +431,7 @@
       },
       {
         "name": "Word Settings",
-        "function": "Restore-WordSettings",
-        "script": "restore-word.ps1",
+        "template": "word.yaml",
         "category": "Productivity",
         "description": "Microsoft Word configuration",
         "enabled": true,
@@ -457,8 +439,7 @@
       },
       {
         "name": "Excel Settings",
-        "function": "Restore-ExcelSettings",
-        "script": "restore-excel.ps1",
+        "template": "excel.yaml",
         "category": "Productivity",
         "description": "Microsoft Excel configuration",
         "enabled": true,
@@ -466,8 +447,7 @@
       },
       {
         "name": "Visio Settings",
-        "function": "Restore-VisioSettings",
-        "script": "restore-visio.ps1",
+        "template": "visio.yaml",
         "category": "Productivity",
         "description": "Microsoft Visio configuration",
         "enabled": true,
@@ -475,8 +455,7 @@
       },
       {
         "name": "WSL Settings",
-        "function": "Restore-WSLSettings",
-        "script": "restore-wsl.ps1",
+        "template": "wsl.yaml",
         "category": "Development",
         "description": "WSL packages, configuration, and home directory",
         "enabled": true,
