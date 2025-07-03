@@ -1,10 +1,14 @@
 # TODO
 
+📋 **See [Comprehensive Testing Plan](docs/TESTING_PLAN.md) for structured approach to all testing issues**
+
 ❌ Broken Test Suites:
 Installation - ❌ Infinite loop (hangs indefinitely)
 WSL - ❌ Fails tests and shows repetitive script loading messages (0% success rate)
 Restore - ❌ Completes but fails tests (0% success rate)
 All - ❌ Infinite loop (because it includes Installation)
+
+🎯 **Current Focus**: Phase 1 - Emergency Stabilization (Critical test fixes)
 
 ## Features
 
