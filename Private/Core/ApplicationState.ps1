@@ -87,13 +87,25 @@ function Get-WmrApplicationState {
             throw "Invalid JSON output from parse_script: $($_.Exception.Message)"
         }
 
-        # TODO: Implement encryption of the JSON string if needed for application lists
-        # if ($AppConfig.encrypt) {
-        #    $encryptedAppsJson = Protect-WmrData -Data $installedAppsJson
-        #    $installedAppsJson = $encryptedAppsJson
-        # }
-
-        Set-Content -Path $stateFilePath -Value $installedAppsJson -Encoding Utf8
+        # Implement encryption of the JSON string if needed for application lists
+        if ($AppConfig.encrypt) {
+            Write-Host "    Encrypting application data with AES-256"
+            $appsBytes = [System.Text.Encoding]::UTF8.GetBytes($installedAppsJson)
+            $encryptedAppsJson = Protect-WmrData -DataBytes $appsBytes
+            Set-Content -Path $stateFilePath -Value $encryptedAppsJson -Encoding UTF8
+            
+            # Save metadata about encryption
+            $metadata = @{ Encrypted = $true; OriginalSize = $appsBytes.Length }
+            $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
+        } else {
+            Set-Content -Path $stateFilePath -Value $installedAppsJson -Encoding Utf8
+            
+            # Save metadata about non-encryption
+            $metadata = @{ Encrypted = $false; OriginalSize = $installedAppsJson.Length }
+            $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
+        }
         Write-Host "  Application list for $($AppConfig.name) captured and saved to $stateFilePath."
 
     } catch {
@@ -123,10 +135,30 @@ function Set-WmrApplicationState {
     if ($WhatIfPreference) {
         Write-Host "    WhatIf: Would restore applications from $stateFilePath" -ForegroundColor Yellow
         try {
+            # Check if the content was encrypted during backup
+            $wasEncrypted = $false
+            try {
+                $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+                if (Test-Path $stateMetadataPath) {
+                    $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
+                    $wasEncrypted = $metadata.Encrypted -eq $true
+                }
+            } catch {
+                $wasEncrypted = $AppConfig.encrypt -eq $true
+            }
+            
+            if ($wasEncrypted) {
+                Write-Host "    WhatIf: Would decrypt application data with AES-256" -ForegroundColor Yellow
+            }
+            
             $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
-            $parsedApps = $installedAppsJson | ConvertFrom-Json
-            $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
-            Write-Host "    WhatIf: Would run install script for $appCount applications" -ForegroundColor Yellow
+            if (-not $wasEncrypted) {
+                $parsedApps = $installedAppsJson | ConvertFrom-Json
+                $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
+                Write-Host "    WhatIf: Would run install script for $appCount applications" -ForegroundColor Yellow
+            } else {
+                Write-Host "    WhatIf: Would run install script for encrypted application data" -ForegroundColor Yellow
+            }
             Write-Host "    WhatIf: Install script: $($AppConfig.install_script)" -ForegroundColor Yellow
         } catch {
             Write-Host "    WhatIf: Would attempt to restore applications (state file parse failed)" -ForegroundColor Yellow
@@ -135,13 +167,28 @@ function Set-WmrApplicationState {
     }
 
     try {
+        # Check if the content was encrypted during backup
+        $wasEncrypted = $false
+        try {
+            # Try to read state metadata to check if content was encrypted
+            $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            if (Test-Path $stateMetadataPath) {
+                $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
+                $wasEncrypted = $metadata.Encrypted -eq $true
+            }
+        } catch {
+            # Fallback: assume encryption based on file config
+            $wasEncrypted = $AppConfig.encrypt -eq $true
+        }
+
         $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
 
-        # TODO: Implement decryption if the JSON string was encrypted during backup
-        # if ($AppConfig.encrypt) {
-        #    $decryptedAppsJson = Unprotect-WmrData -Data $installedAppsJson
-        #    $installedAppsJson = $decryptedAppsJson
-        # }
+        # Implement decryption if the JSON string was encrypted during backup
+        if ($wasEncrypted) {
+            Write-Host "    Decrypting application data with AES-256"
+            $decryptedBytes = Unprotect-WmrData -EncodedData $installedAppsJson
+            $installedAppsJson = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
+        }
 
         Write-Host "    Running installation script: $($AppConfig.install_script)"
         # Pass the JSON list to the install_script (inline or file)
@@ -188,10 +235,30 @@ function Uninstall-WmrApplicationState {
     if ($WhatIfPreference) {
         Write-Host "    WhatIf: Would uninstall applications from $stateFilePath" -ForegroundColor Yellow
         try {
+            # Check if the content was encrypted during backup
+            $wasEncrypted = $false
+            try {
+                $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+                if (Test-Path $stateMetadataPath) {
+                    $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
+                    $wasEncrypted = $metadata.Encrypted -eq $true
+                }
+            } catch {
+                $wasEncrypted = $AppConfig.encrypt -eq $true
+            }
+            
+            if ($wasEncrypted) {
+                Write-Host "    WhatIf: Would decrypt application data with AES-256" -ForegroundColor Yellow
+            }
+            
             $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
-            $parsedApps = $installedAppsJson | ConvertFrom-Json
-            $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
-            Write-Host "    WhatIf: Would run uninstall script for $appCount applications" -ForegroundColor Yellow
+            if (-not $wasEncrypted) {
+                $parsedApps = $installedAppsJson | ConvertFrom-Json
+                $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
+                Write-Host "    WhatIf: Would run uninstall script for $appCount applications" -ForegroundColor Yellow
+            } else {
+                Write-Host "    WhatIf: Would run uninstall script for encrypted application data" -ForegroundColor Yellow
+            }
             Write-Host "    WhatIf: Uninstall script: $($AppConfig.uninstall_script)" -ForegroundColor Yellow
         } catch {
             Write-Host "    WhatIf: Would attempt to uninstall applications (state file parse failed)" -ForegroundColor Yellow
@@ -200,7 +267,28 @@ function Uninstall-WmrApplicationState {
     }
 
     try {
+        # Check if the content was encrypted during backup
+        $wasEncrypted = $false
+        try {
+            # Try to read state metadata to check if content was encrypted
+            $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+            if (Test-Path $stateMetadataPath) {
+                $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
+                $wasEncrypted = $metadata.Encrypted -eq $true
+            }
+        } catch {
+            # Fallback: assume encryption based on file config
+            $wasEncrypted = $AppConfig.encrypt -eq $true
+        }
+
         $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
+
+        # Implement decryption if the JSON string was encrypted during backup
+        if ($wasEncrypted) {
+            Write-Host "    Decrypting application data with AES-256"
+            $decryptedBytes = Unprotect-WmrData -EncodedData $installedAppsJson
+            $installedAppsJson = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
+        }
 
         Write-Host "    Running uninstallation script: $($AppConfig.uninstall_script)"
         # Pass the JSON list to the uninstall_script (inline or file)

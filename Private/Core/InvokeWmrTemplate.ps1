@@ -53,7 +53,18 @@ function Invoke-WmrTemplate {
         throw "Template validation failed: $($_.Exception.Message)"
     }
 
-    # 3. Check prerequisites
+    # 3. Create template-scoped state directory
+    # Extract template name from path and create scoped directory
+    $templateName = [System.IO.Path]::GetFileNameWithoutExtension($TemplatePath)
+    $templateStateDirectory = Join-Path $StateFilesDirectory $templateName
+    
+    # Ensure the template's scoped state directory exists
+    if (-not (Test-Path $templateStateDirectory -PathType Container)) {
+        New-Item -ItemType Directory -Path $templateStateDirectory -Force | Out-Null
+        Write-Host "Created template state directory: $templateStateDirectory"
+    }
+
+    # 4. Check prerequisites
     try {
         if (-not (Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation $Operation)) {
             throw "Prerequisites not met for $Operation operation. Aborting."
@@ -62,13 +73,7 @@ function Invoke-WmrTemplate {
         throw "Prerequisite check failed: $($_.Exception.Message)"
     }
 
-    # Ensure the base state files directory exists
-    if (-not (Test-Path $StateFilesDirectory -PathType Container)) {
-        New-Item -ItemType Directory -Path $StateFilesDirectory -Force | Out-Null
-        Write-Host "Created state files directory: $StateFilesDirectory"
-    }
-
-    # 4. Execute pre-update stages (if applicable)
+    # 5. Execute pre-update stages (if applicable)
     if ($templateConfig.stages.prereqs -and ($Operation -eq "Restore" -or $Operation -eq "Sync")) {
         Write-Host "Running pre-update stages..."
         foreach ($stageItem in $templateConfig.stages.prereqs) {
@@ -76,26 +81,26 @@ function Invoke-WmrTemplate {
         }
     }
 
-    # 5. Process files, registry, and applications based on operation
+    # 6. Process files, registry, and applications based on operation
     if ($Operation -eq "Backup" -or $Operation -eq "Sync") {
         Write-Host "Performing backup/sync operations..."
         if ($templateConfig.files) {
             foreach ($file in $templateConfig.files) {
                 if ($file.action -eq "backup" -or $file.action -eq "sync") {
-                    Get-WmrFileState -FileConfig $file -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                    Get-WmrFileState -FileConfig $file -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.registry) {
             foreach ($reg in $templateConfig.registry) {
                 if ($reg.action -eq "backup" -or $reg.action -eq "sync") {
-                    Get-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                    Get-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
-                Get-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                Get-WmrApplicationState -AppConfig $app -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
             }
         }
     }
@@ -105,20 +110,20 @@ function Invoke-WmrTemplate {
         if ($templateConfig.files) {
             foreach ($file in $templateConfig.files) {
                 if ($file.action -eq "restore" -or $file.action -eq "sync") {
-                    Set-WmrFileState -FileConfig $file -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                    Set-WmrFileState -FileConfig $file -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.registry) {
             foreach ($reg in $templateConfig.registry) {
                 if ($reg.action -eq "restore" -or $reg.action -eq "sync") {
-                    Set-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                    Set-WmrRegistryState -RegistryConfig $reg -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
                 }
             }
         }
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
-                Set-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                Set-WmrApplicationState -AppConfig $app -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
             }
         }
     }
@@ -127,12 +132,12 @@ function Invoke-WmrTemplate {
         Write-Host "Performing uninstall operations..."
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
-                Uninstall-WmrApplicationState -AppConfig $app -StateFilesDirectory $StateFilesDirectory -WhatIf:$WhatIfPreference
+                Uninstall-WmrApplicationState -AppConfig $app -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
             }
         }
     }
 
-    # 6. Execute post-update stages (if applicable)
+    # 7. Execute post-update stages (if applicable)
     if ($templateConfig.stages.post_update -and ($Operation -eq "Restore" -or $Operation -eq "Sync")) {
         Write-Host "Running post-update stages..."
         foreach ($stageItem in $templateConfig.stages.post_update) {
@@ -140,7 +145,7 @@ function Invoke-WmrTemplate {
         }
     }
 
-    # 7. Execute cleanup stages (if applicable)
+    # 8. Execute cleanup stages (if applicable)
     if ($templateConfig.stages.cleanup) {
         Write-Host "Running cleanup stages..."
         foreach ($stageItem in $templateConfig.stages.cleanup) {

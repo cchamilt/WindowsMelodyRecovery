@@ -23,39 +23,39 @@ registry:
     path: "HKCU:\\Control Panel\\Mouse"
     type: key
     action: sync
-    dynamic_state_path: "mouse/registry/mouse_control_panel.json"
+    dynamic_state_path: "registry/mouse_control_panel.json"
 
   - name: "Cursor Schemes and Settings"
     path: "HKCU:\\Control Panel\\Cursors"
     type: key
     action: sync
-    dynamic_state_path: "mouse/registry/cursor_settings.json"
+    dynamic_state_path: "registry/cursor_settings.json"
 
   # Mouse Accessibility Options
   - name: "Mouse Keys Accessibility"
     path: "HKCU:\\Control Panel\\Accessibility\\MouseKeys"
     type: key
     action: sync
-    dynamic_state_path: "mouse/registry/mouse_keys_accessibility.json"
+    dynamic_state_path: "registry/mouse_keys_accessibility.json"
 
   # Mouse Hardware and Driver Settings
   - name: "Mouse Class Driver Parameters"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters"
     type: key
     action: sync
-    dynamic_state_path: "mouse/registry/mouse_class_parameters.json"
+    dynamic_state_path: "registry/mouse_class_parameters.json"
 
   - name: "Mouse HID Driver Parameters"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouhid\\Parameters"
     type: key
     action: sync
-    dynamic_state_path: "mouse/registry/mouse_hid_parameters.json"
+    dynamic_state_path: "registry/mouse_hid_parameters.json"
 
   - name: "PS/2 Port Driver Parameters"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\i8042prt\\Parameters"
     type: key
     action: sync
-    dynamic_state_path: "mouse/registry/ps2_port_parameters.json"
+    dynamic_state_path: "registry/ps2_port_parameters.json"
 
 applications:
   # Mouse Device Information
@@ -72,7 +72,7 @@ applications:
           Write-Warning "Failed to parse mouse devices: $_"
           return "[]"
       }
-    dynamic_state_path: "mouse/applications/mouse_devices.json"
+    dynamic_state_path: "applications/mouse_devices.json"
 
   # Mouse Control Panel Settings
   - name: "Mouse Control Panel Configuration"
@@ -114,7 +114,7 @@ applications:
           Write-Warning "Failed to parse mouse settings: $_"
           return "{}"
       }
-    dynamic_state_path: "mouse/applications/mouse_settings.json"
+    dynamic_state_path: "applications/mouse_settings.json"
 
   # Cursor Scheme Information
   - name: "Cursor Scheme Configuration"
@@ -148,7 +148,7 @@ applications:
           Write-Warning "Failed to parse cursor settings: $_"
           return "{}"
       }
-    dynamic_state_path: "mouse/applications/cursor_scheme.json"
+    dynamic_state_path: "applications/cursor_scheme.json"
 
   # Mouse Pointer Speed and Acceleration
   - name: "Mouse Pointer Configuration"
@@ -178,7 +178,7 @@ applications:
           Write-Warning "Failed to parse pointer configuration: $_"
           return "{}"
       }
-    dynamic_state_path: "mouse/applications/pointer_config.json"
+    dynamic_state_path: "applications/pointer_config.json"
 
   # Mouse Wheel Settings
   - name: "Mouse Wheel Configuration"
@@ -217,7 +217,7 @@ applications:
           Write-Warning "Failed to parse wheel settings: $_"
           return "{}"
       }
-    dynamic_state_path: "mouse/applications/wheel_settings.json"
+    dynamic_state_path: "applications/wheel_settings.json"
 
 cleanup:
   - name: "Verify Mouse Input Available"

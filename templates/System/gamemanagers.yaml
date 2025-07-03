@@ -1,9 +1,8 @@
 metadata:
-  name: gamemanagers
-  displayName: Game Managers
-  description: Template for backing up gaming platform configurations and game libraries.
-  version: "1.0"
-  author: Windows Melody Recovery
+  name: "Game Managers"
+  description: "Backup and restore gaming platform configurations, game libraries, and settings for Steam, Epic Games, GOG Galaxy, EA Desktop, and other game managers"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
 
 prerequisites:
   - type: script
@@ -19,192 +18,501 @@ prerequisites:
     on_missing: warn
 
 registry:
-  keys:
-    # Steam registry settings
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam'
-      description: Steam installation and configuration registry
-    - path: 'HKCU:\Software\Valve\Steam'
-      description: Steam user preferences and settings
+  # Steam registry settings
+  - name: "Steam System Configuration"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/steam_system.yaml"
+
+  - name: "Steam User Preferences"
+    path: 'HKCU:\Software\Valve\Steam'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/steam_user.yaml"
     
-    # Epic Games Launcher
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\Epic Games\EpicGamesLauncher'
-      description: Epic Games Launcher system configuration
-    - path: 'HKCU:\Software\Epic Games\EpicGamesLauncher'
-      description: Epic Games Launcher user settings
+  # Epic Games Launcher
+  - name: "Epic Games System Configuration"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Epic Games\EpicGamesLauncher'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/epic_system.yaml"
+
+  - name: "Epic Games User Settings"
+    path: 'HKCU:\Software\Epic Games\EpicGamesLauncher'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/epic_user.yaml"
     
-    # GOG Galaxy
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient'
-      description: GOG Galaxy installation registry
-    - path: 'HKCU:\Software\GOG.com\Galaxy'
-      description: GOG Galaxy user configuration
+  # GOG Galaxy
+  - name: "GOG Galaxy System Configuration"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\GalaxyClient'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/gog_system.yaml"
+
+  - name: "GOG Galaxy User Configuration"
+    path: 'HKCU:\Software\GOG.com\Galaxy'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/gog_user.yaml"
     
-    # EA Desktop (Origin)
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\Electronic Arts\EA Desktop'
-      description: EA Desktop system configuration
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\Origin'
-      description: Origin legacy configuration
-    - path: 'HKCU:\Software\Electronic Arts\EA Desktop'
-      description: EA Desktop user settings
+  # EA Desktop (Origin)
+  - name: "EA Desktop System Configuration"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Electronic Arts\EA Desktop'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/ea_desktop_system.yaml"
+
+  - name: "Origin Legacy Configuration"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Origin'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/origin_system.yaml"
+
+  - name: "EA Desktop User Settings"
+    path: 'HKCU:\Software\Electronic Arts\EA Desktop'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/ea_desktop_user.yaml"
     
-    # Ubisoft Connect
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher'
-      description: Ubisoft Connect system settings
-    - path: 'HKCU:\Software\Ubisoft\Launcher'
-      description: Ubisoft Connect user configuration
+  # Ubisoft Connect
+  - name: "Ubisoft Connect System Settings"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/ubisoft_system.yaml"
+
+  - name: "Ubisoft Connect User Configuration"
+    path: 'HKCU:\Software\Ubisoft\Launcher'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/ubisoft_user.yaml"
     
-    # Xbox app and Game Bar
-    - path: 'HKCU:\Software\Microsoft\GameBar'
-      description: Xbox Game Bar settings
-    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR'
-      description: Game DVR and recording settings
+  # Xbox app and Game Bar
+  - name: "Xbox Game Bar Settings"
+    path: 'HKCU:\Software\Microsoft\GameBar'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/xbox_gamebar.yaml"
+
+  - name: "Game DVR Settings"
+    path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/game_dvr.yaml"
     
-    # Battle.net
-    - path: 'HKLM:\SOFTWARE\WOW6432Node\Blizzard Entertainment\Battle.net'
-      description: Battle.net system configuration
-    - path: 'HKCU:\Software\Blizzard Entertainment\Battle.net'
-      description: Battle.net user settings
+  # Battle.net
+  - name: "Battle.net System Configuration"
+    path: 'HKLM:\SOFTWARE\WOW6432Node\Blizzard Entertainment\Battle.net'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/battlenet_system.yaml"
+
+  - name: "Battle.net User Settings"
+    path: 'HKCU:\Software\Blizzard Entertainment\Battle.net'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/battlenet_user.yaml"
 
 files:
-  directories:
-    # Steam configuration and libraries
-    - path: 'C:\Program Files (x86)\Steam'
-      description: Steam installation directory
-      include:
-        - 'config\*'
-        - 'userdata\*'
-        - 'steamapps\libraryfolders.vdf'
-        - 'steamapps\appmanifest_*.acf'
+  # Steam configuration and libraries
+  - name: "Steam Configuration Files"
+    path: "C:/Program Files (x86)/Steam/config"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/steam_config.yaml"
+
+  - name: "Steam User Data"
+    path: "C:/Program Files (x86)/Steam/userdata"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/steam_userdata.yaml"
+
+  - name: "Steam Library Folders"
+    path: "C:/Program Files (x86)/Steam/steamapps/libraryfolders.vdf"
+    type: file
+    action: sync
+    dynamic_state_path: "files/steam_libraryfolders.yaml"
     
-    # Epic Games Launcher
-    - path: '%LOCALAPPDATA%\EpicGamesLauncher'
-      description: Epic Games Launcher configuration
-      recursive: true
-      include:
-        - 'Saved\Config\*'
-        - 'Saved\Data\*'
-    - path: '%PROGRAMDATA%\Epic\EpicGamesLauncher'
-      description: Epic Games Launcher system data
-      recursive: true
+  # Epic Games Launcher
+  - name: "Epic Games Launcher Configuration"
+    path: "$env:LOCALAPPDATA/EpicGamesLauncher/Saved"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/epic_config.yaml"
+
+  - name: "Epic Games Launcher System Data"
+    path: "$env:PROGRAMDATA/Epic/EpicGamesLauncher"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/epic_system_data.yaml"
     
-    # GOG Galaxy
-    - path: '%PROGRAMDATA%\GOG.com\Galaxy'
-      description: GOG Galaxy system configuration
-      recursive: true
-      include:
-        - 'Configuration\*'
-        - 'Storage\*'
-    - path: '%LOCALAPPDATA%\GOG.com\Galaxy'
-      description: GOG Galaxy user data
-      recursive: true
+  # GOG Galaxy
+  - name: "GOG Galaxy System Configuration"
+    path: "$env:PROGRAMDATA/GOG.com/Galaxy"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/gog_system_config.yaml"
+
+  - name: "GOG Galaxy User Data"
+    path: "$env:LOCALAPPDATA/GOG.com/Galaxy"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/gog_user_data.yaml"
     
-    # EA Desktop/Origin
-    - path: '%PROGRAMDATA%\Electronic Arts\EA Desktop'
-      description: EA Desktop system configuration
-      recursive: true
-    - path: '%LOCALAPPDATA%\Electronic Arts\EA Desktop'
-      description: EA Desktop user configuration
-      recursive: true
-    - path: '%PROGRAMDATA%\Origin'
-      description: Origin legacy configuration
-      recursive: true
+  # EA Desktop/Origin
+  - name: "EA Desktop System Configuration"
+    path: "$env:PROGRAMDATA/Electronic Arts/EA Desktop"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/ea_desktop_system.yaml"
+
+  - name: "EA Desktop User Configuration"
+    path: "$env:LOCALAPPDATA/Electronic Arts/EA Desktop"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/ea_desktop_user.yaml"
+
+  - name: "Origin Legacy Configuration"
+    path: "$env:PROGRAMDATA/Origin"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/origin_config.yaml"
     
-    # Ubisoft Connect
-    - path: '%LOCALAPPDATA%\Ubisoft Game Launcher'
-      description: Ubisoft Connect configuration
-      recursive: true
-      include:
-        - 'settings.yml'
-        - 'cache\*'
+  # Ubisoft Connect
+  - name: "Ubisoft Connect Configuration"
+    path: "$env:LOCALAPPDATA/Ubisoft Game Launcher"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/ubisoft_config.yaml"
     
-    # Battle.net
-    - path: '%PROGRAMDATA%\Battle.net'
-      description: Battle.net system configuration
-      recursive: true
-    - path: '%APPDATA%\Battle.net'
-      description: Battle.net user settings
-      recursive: true
-    
-    # Xbox app data
-    - path: '%LOCALAPPDATA%\Packages\Microsoft.GamingApp_*'
-      description: Xbox app configuration and data
-      recursive: true
-      include:
-        - 'LocalState\*'
-        - 'Settings\*'
+  # Battle.net
+  - name: "Battle.net System Configuration"
+    path: "$env:PROGRAMDATA/Battle.net"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/battlenet_system.yaml"
+
+  - name: "Battle.net User Settings"
+    path: "$env:APPDATA/Battle.net"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/battlenet_user.yaml"
 
 applications:
-  discovery:
-    # Steam games discovery
-    - name: SteamGames
-      command: 'if (Test-Path "C:\Program Files (x86)\Steam\steamapps") { Get-ChildItem "C:\Program Files (x86)\Steam\steamapps\appmanifest_*.acf" | ForEach-Object { $content = Get-Content $_.FullName; $appId = ($content | Select-String "appid").ToString().Split("`t")[1].Trim(); $name = ($content | Select-String "name").ToString().Split("`t")[1].Trim(); @{ AppId = $appId; Name = $name; ManifestFile = $_.Name } } }'
-      description: Installed Steam games with App IDs
+  # Steam games discovery
+  - name: "Steam Games"
+    type: custom
+    dynamic_state_path: "steam_games.yaml"
+    discovery_command: |
+      try {
+          $steamGames = @()
+          $steamPath = "C:\Program Files (x86)\Steam\steamapps"
+          if (Test-Path $steamPath) {
+              $manifests = Get-ChildItem "$steamPath\appmanifest_*.acf" -ErrorAction SilentlyContinue
+              foreach ($manifest in $manifests) {
+                  $content = Get-Content $manifest.FullName -ErrorAction SilentlyContinue
+                  if ($content) {
+                      $appIdLine = $content | Where-Object { $_ -match '"appid"' } | Select-Object -First 1
+                      $nameLine = $content | Where-Object { $_ -match '"name"' } | Select-Object -First 1
+                      if ($appIdLine -and $nameLine) {
+                          $appId = ($appIdLine -split '"')[3]
+                          $name = ($nameLine -split '"')[3]
+                          $steamGames += @{
+                              AppId = $appId
+                              Name = $name
+                              ManifestFile = $manifest.Name
+                          }
+                      }
+                  }
+              }
+          }
+          $steamGames | ConvertTo-Json -Depth 3
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $games = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          foreach ($game in $games) {
+              $applications += @{
+                  Name = "Steam-$($game.Name)"
+                  Version = $game.AppId
+                  Status = "Installed"
+                  Platform = "Steam"
+                  ManifestFile = $game.ManifestFile
+              }
+          }
+          Write-Host "Found $($applications.Count) Steam games"
+          if ($applications.Count -eq 0) { "[]" } else { $applications | ConvertTo-Json -Depth 3 -AsArray }
+      } catch {
+          Write-Warning "Failed to parse Steam games: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      try {
+          $games = $StateJson | ConvertFrom-Json
+          if ($games.Count -gt 0) {
+              Write-Host "Steam games information restored: $($games.Count) games" -ForegroundColor Green
+              foreach ($game in $games | Select-Object -First 10) {
+                  Write-Host "  - $($game.Name) (ID: $($game.Version))" -ForegroundColor Cyan
+              }
+              if ($games.Count -gt 10) {
+                  Write-Host "  ... and $($games.Count - 10) more games" -ForegroundColor Gray
+              }
+          } else {
+              Write-Host "No Steam games were found in the backup" -ForegroundColor Yellow
+          }
+      } catch {
+          Write-Warning "Failed to display Steam games information: $_"
+      }
     
-    # Epic Games discovery
-    - name: EpicGames
-      command: 'if (Test-Path "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests") { Get-ChildItem "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests\*.item" | ForEach-Object { $json = Get-Content $_.FullName | ConvertFrom-Json; @{ DisplayName = $json.DisplayName; InstallLocation = $json.InstallLocation; AppName = $json.AppName } } }'
-      description: Installed Epic Games Store games
+  # Epic Games discovery
+  - name: "Epic Games"
+    type: custom
+    dynamic_state_path: "epic_games.yaml"
+    discovery_command: |
+      try {
+          $epicGames = @()
+          $manifestPath = "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests"
+          if (Test-Path $manifestPath) {
+              $manifests = Get-ChildItem "$manifestPath\*.item" -ErrorAction SilentlyContinue
+              foreach ($manifest in $manifests) {
+                  $json = Get-Content $manifest.FullName -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+                  if ($json) {
+                      $epicGames += @{
+                          DisplayName = $json.DisplayName
+                          InstallLocation = $json.InstallLocation
+                          AppName = $json.AppName
+                          ManifestFile = $manifest.Name
+                      }
+                  }
+              }
+          }
+          $epicGames | ConvertTo-Json -Depth 3
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $games = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          foreach ($game in $games) {
+              $applications += @{
+                  Name = "Epic-$($game.DisplayName)"
+                  Version = $game.AppName
+                  Status = "Installed"
+                  Platform = "Epic Games Store"
+                  InstallLocation = $game.InstallLocation
+              }
+          }
+          Write-Host "Found $($applications.Count) Epic Games"
+          if ($applications.Count -eq 0) { "[]" } else { $applications | ConvertTo-Json -Depth 3 -AsArray }
+      } catch {
+          Write-Warning "Failed to parse Epic Games: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      try {
+          $games = $StateJson | ConvertFrom-Json
+          if ($games.Count -gt 0) {
+              Write-Host "Epic Games information restored: $($games.Count) games" -ForegroundColor Green
+              foreach ($game in $games | Select-Object -First 10) {
+                  Write-Host "  - $($game.Name)" -ForegroundColor Cyan
+              }
+              if ($games.Count -gt 10) {
+                  Write-Host "  ... and $($games.Count - 10) more games" -ForegroundColor Gray
+              }
+          } else {
+              Write-Host "No Epic Games were found in the backup" -ForegroundColor Yellow
+          }
+      } catch {
+          Write-Warning "Failed to display Epic Games information: $_"
+      }
     
-    # GOG games discovery
-    - name: GOGGames
-      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games\*" -ErrorAction SilentlyContinue | Select-Object PSChildName, gameName, path, ver'
-      description: Installed GOG games from registry
-    
-    # EA games discovery
-    - name: EAGames
-      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Electronic Arts\EA Play\*" -ErrorAction SilentlyContinue | Select-Object PSChildName, DisplayName, Install*'
-      description: Installed EA games and applications
-    
-    # Ubisoft games discovery
-    - name: UbisoftGames
-      command: 'Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs\*" -ErrorAction SilentlyContinue | Select-Object PSChildName, InstallDir'
-      description: Installed Ubisoft Connect games
-    
-    # Xbox/Microsoft Store games
-    - name: XboxGames
-      command: 'Get-AppxPackage | Where-Object { $_.Publisher -match "Microsoft Corporation" -and $_.Name -match "Game" } | Select-Object Name, Version, InstallLocation'
-      description: Xbox and Microsoft Store games
-    
-    # Game launcher processes
-    - name: GameLaunchers
-      command: 'Get-Process | Where-Object { $_.ProcessName -match "(Steam|EpicGamesLauncher|GalaxyClient|Origin|EADesktop|upc|Battle)" } | Select-Object ProcessName, Path, StartTime'
-      description: Currently running game launchers
+  # GOG games discovery
+  - name: "GOG Games"
+    type: custom
+    dynamic_state_path: "gog_games.yaml"
+    discovery_command: |
+      try {
+          $gogGames = @()
+          $gogRegistryPath = "HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games"
+          if (Test-Path $gogRegistryPath) {
+              $games = Get-ChildItem $gogRegistryPath -ErrorAction SilentlyContinue
+              foreach ($game in $games) {
+                  $properties = Get-ItemProperty $game.PSPath -ErrorAction SilentlyContinue
+                  if ($properties) {
+                      $gogGames += @{
+                          GameId = $game.PSChildName
+                          GameName = $properties.gameName
+                          Path = $properties.path
+                          Version = $properties.ver
+                      }
+                  }
+              }
+          }
+          $gogGames | ConvertTo-Json -Depth 3
+      } catch {
+          Write-Output "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $games = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          foreach ($game in $games) {
+              $applications += @{
+                  Name = "GOG-$($game.GameName)"
+                  Version = $game.Version
+                  Status = "Installed"
+                  Platform = "GOG Galaxy"
+                  GameId = $game.GameId
+                  InstallPath = $game.Path
+              }
+          }
+          Write-Host "Found $($applications.Count) GOG games"
+          if ($applications.Count -eq 0) { "[]" } else { $applications | ConvertTo-Json -Depth 3 -AsArray }
+      } catch {
+          Write-Warning "Failed to parse GOG games: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      try {
+          $games = $StateJson | ConvertFrom-Json
+          if ($games.Count -gt 0) {
+              Write-Host "GOG games information restored: $($games.Count) games" -ForegroundColor Green
+              foreach ($game in $games | Select-Object -First 10) {
+                  Write-Host "  - $($game.Name)" -ForegroundColor Cyan
+              }
+              if ($games.Count -gt 10) {
+                  Write-Host "  ... and $($games.Count - 10) more games" -ForegroundColor Gray
+              }
+          } else {
+              Write-Host "No GOG games were found in the backup" -ForegroundColor Yellow
+          }
+      } catch {
+          Write-Warning "Failed to display GOG games information: $_"
+      }
 
-post_update:
-  stages:
-    - name: SteamLibraryExport
-      description: Export Steam library configuration and game manifests
-      commands:
-        - 'if (Test-Path "C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf") { Copy-Item "C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf" "$BackupPath\" -Force }'
-        - 'if (Test-Path "C:\Program Files (x86)\Steam\config\config.vdf") { Copy-Item "C:\Program Files (x86)\Steam\config\config.vdf" "$BackupPath\" -Force }'
-        - 'if (Test-Path "C:\Program Files (x86)\Steam\userdata") { $steamUserData = Get-ChildItem "C:\Program Files (x86)\Steam\userdata" | Select-Object Name, LastWriteTime; $steamUserData | ConvertTo-Json | Out-File "$BackupPath\steam_userdata.json" -Force }'
-    
-    - name: EpicGamesManifests
-      description: Export Epic Games manifests and configuration
-      commands:
-        - 'if (Test-Path "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests") { $epicManifests = Get-ChildItem "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests\*.item" | ForEach-Object { $json = Get-Content $_.FullName | ConvertFrom-Json; @{ File = $_.Name; Game = $json.DisplayName; Location = $json.InstallLocation } }; $epicManifests | ConvertTo-Json | Out-File "$BackupPath\epic_games_manifests.json" -Force }'
-    
-    - name: GameLibrarySummary
-      description: Create comprehensive game library summary
-      commands:
-        - '$gameLibrary = @{}'
-        - 'if (Test-Path "C:\Program Files (x86)\Steam") { $gameLibrary.Steam = "Found - Steam installation detected" }'
-        - 'if (Test-Path "$env:LOCALAPPDATA\EpicGamesLauncher") { $gameLibrary.Epic = "Found - Epic Games Launcher detected" }'
-        - 'if (Test-Path "$env:PROGRAMDATA\GOG.com\Galaxy") { $gameLibrary.GOG = "Found - GOG Galaxy detected" }'
-        - 'if (Test-Path "$env:PROGRAMDATA\Electronic Arts") { $gameLibrary.EA = "Found - EA Desktop/Origin detected" }'
-        - 'if (Test-Path "$env:LOCALAPPDATA\Ubisoft Game Launcher") { $gameLibrary.Ubisoft = "Found - Ubisoft Connect detected" }'
-        - '$gameLibrary | ConvertTo-Json | Out-File "$BackupPath\game_platforms_summary.json" -Force'
-    
-    - name: GamepadSettings
-      description: Export gamepad and controller settings
-      commands:
-        - '$gamepadSettings = Get-ItemProperty "HKCU:\System\GameConfigStore" -ErrorAction SilentlyContinue'
-        - 'if ($gamepadSettings) { $gamepadSettings | ConvertTo-Json | Out-File "$BackupPath\gamepad_settings.json" -Force }'
-    
-    - name: UserGuidance
-      description: Provide user guidance for game managers restore
-      commands:
-        - 'Write-Host "Game platform configurations backed up successfully." -ForegroundColor Green'
-        - 'Write-Host "Game library manifests and installation records are preserved." -ForegroundColor Cyan'
-        - 'Write-Host "Note: Games themselves are not backed up, only configuration and library data." -ForegroundColor Yellow'
-        - 'Write-Host "After restore, game launchers should recognize installed games automatically." -ForegroundColor Cyan'
-        - 'Write-Host "Some games may require verification or re-authentication after restore." -ForegroundColor Yellow' 
+  # Gaming Platform Summary
+  - name: "Gaming Platform Summary"
+    type: custom
+    dynamic_state_path: "gaming_platforms.yaml"
+    discovery_command: |
+      try {
+          $platforms = @{}
+          
+          # Check Steam
+          if (Test-Path "C:\Program Files (x86)\Steam") {
+              $platforms.Steam = @{
+                  Status = "Installed"
+                  Path = "C:\Program Files (x86)\Steam"
+                  ConfigExists = (Test-Path "C:\Program Files (x86)\Steam\config")
+              }
+          }
+          
+          # Check Epic Games
+          if (Test-Path "$env:LOCALAPPDATA\EpicGamesLauncher") {
+              $platforms.Epic = @{
+                  Status = "Installed"
+                  Path = "$env:LOCALAPPDATA\EpicGamesLauncher"
+                  ManifestsExist = (Test-Path "$env:PROGRAMDATA\Epic\EpicGamesLauncher\Data\Manifests")
+              }
+          }
+          
+          # Check GOG Galaxy
+          if (Test-Path "$env:PROGRAMDATA\GOG.com\Galaxy") {
+              $platforms.GOG = @{
+                  Status = "Installed"
+                  Path = "$env:PROGRAMDATA\GOG.com\Galaxy"
+                  UserDataExists = (Test-Path "$env:LOCALAPPDATA\GOG.com\Galaxy")
+              }
+          }
+          
+          # Check EA Desktop/Origin
+          if ((Test-Path "$env:PROGRAMDATA\Electronic Arts") -or (Test-Path "$env:PROGRAMDATA\Origin")) {
+              $platforms.EA = @{
+                  Status = "Installed"
+                  EADesktop = (Test-Path "$env:PROGRAMDATA\Electronic Arts")
+                  Origin = (Test-Path "$env:PROGRAMDATA\Origin")
+              }
+          }
+          
+          # Check Ubisoft Connect
+          if (Test-Path "$env:LOCALAPPDATA\Ubisoft Game Launcher") {
+              $platforms.Ubisoft = @{
+                  Status = "Installed"
+                  Path = "$env:LOCALAPPDATA\Ubisoft Game Launcher"
+              }
+          }
+          
+          # Check Battle.net
+          if (Test-Path "$env:PROGRAMDATA\Battle.net") {
+              $platforms.Battlenet = @{
+                  Status = "Installed"
+                  Path = "$env:PROGRAMDATA\Battle.net"
+                  UserConfigExists = (Test-Path "$env:APPDATA\Battle.net")
+              }
+          }
+          
+          $platforms | ConvertTo-Json -Depth 3
+      } catch {
+          Write-Output "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $platforms = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          foreach ($platform in $platforms.PSObject.Properties) {
+              $applications += @{
+                  Name = "Platform-$($platform.Name)"
+                  Version = "Detected"
+                  Status = $platform.Value.Status
+                  Platform = $platform.Name
+                  Details = $platform.Value
+              }
+          }
+          Write-Host "Found $($applications.Count) gaming platforms"
+          if ($applications.Count -eq 0) { "[]" } else { $applications | ConvertTo-Json -Depth 3 -AsArray }
+      } catch {
+          Write-Warning "Failed to parse gaming platforms: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      try {
+          $platforms = $StateJson | ConvertFrom-Json
+          if ($platforms.Count -gt 0) {
+              Write-Host "Gaming platforms information restored:" -ForegroundColor Green
+              foreach ($platform in $platforms) {
+                  Write-Host "  - $($platform.Platform): $($platform.Status)" -ForegroundColor Cyan
+              }
+              Write-Host "Note: Game platforms themselves are not restored, only configuration data." -ForegroundColor Yellow
+              Write-Host "Install the game clients and they should recognize existing games automatically." -ForegroundColor Yellow
+          } else {
+              Write-Host "No gaming platforms were found in the backup" -ForegroundColor Yellow
+          }
+      } catch {
+          Write-Warning "Failed to display gaming platforms information: $_"
+      }
+
+stages:
+  post_update:
+    - name: Gaming Platform Backup Complete
+      type: script
+      inline_script: |
+        Write-Host "Gaming platform configurations backed up successfully." -ForegroundColor Green
+        Write-Host "Game library manifests and installation records are preserved." -ForegroundColor Cyan
+        Write-Host "Note: Games themselves are not backed up, only configuration and library data." -ForegroundColor Yellow
+        Write-Host "After restore, game launchers should recognize installed games automatically." -ForegroundColor Cyan
+        Write-Host "Some games may require verification or re-authentication after restore." -ForegroundColor Yellow
+      parameters: {}

@@ -1,9 +1,8 @@
 metadata:
-  name: network
-  displayName: Network Settings
-  description: Template for backing up network configuration, adapters, and wireless profiles.
-  version: "1.0"
-  author: Windows Melody Recovery
+  name: "Network Settings"
+  description: "Backup and restore network configuration including adapters, wireless profiles, firewall settings, and DNS configuration"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
 
 prerequisites:
   - type: script
@@ -19,141 +18,365 @@ prerequisites:
     on_missing: warn
 
 registry:
-  keys:
-    # TCP/IP configuration
-    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
-      description: TCP/IP stack parameters and configuration
-    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces'
-      description: Network interface TCP/IP settings
-    
-    # DHCP configuration
-    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Dhcp\Parameters'
-      description: DHCP client configuration
-    
-    # DNS configuration
-    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters'
-      description: DNS client cache configuration
-    
-    # Network cards registry
-    - path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkCards'
-      description: Network adapter registration information
-    
-    # Network control and profiles
-    - path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Network'
-      description: Network connection control settings
-    - path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList'
-      description: Network location awareness and profiles
-    
-    # Internet settings
-    - path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
-      description: User internet and proxy settings
-    
-    # Wireless network profiles
-    - path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles'
-      description: Wireless network profile information
-    
-    # Windows Firewall settings
-    - path: 'HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy'
-      description: Windows Firewall policy configuration
-    
-    # Network sharing and discovery
-    - path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NetworkSharing'
-      description: Network sharing and discovery settings
+  # TCP/IP Configuration
+  - name: "TCP/IP Parameters"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/tcpip_parameters.json"
+
+  - name: "TCP/IP Interfaces"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/tcpip_interfaces.json"
+
+  # DHCP Configuration
+  - name: "DHCP Client Parameters"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dhcp\\Parameters"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/dhcp_parameters.json"
+
+  # DNS Configuration
+  - name: "DNS Cache Parameters"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/dns_parameters.json"
+
+  # Network Cards
+  - name: "Network Cards Registry"
+    path: "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkCards"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/network_cards.json"
+
+  # Network Control
+  - name: "Network Control Settings"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Network"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/network_control.json"
+
+  - name: "Network List Profiles"
+    path: "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/network_list.json"
+
+  # Internet Settings
+  - name: "User Internet Settings"
+    path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
+    type: key
+    action: sync
+    encrypt: true
+    dynamic_state_path: "registry/internet_settings.json"
+
+  # Firewall Settings
+  - name: "Windows Firewall Policy"
+    path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy"
+    type: key
+    action: sync
+    dynamic_state_path: "registry/firewall_policy.json"
 
 files:
-  directories:
-    # Network configuration files
-    - path: '%SystemRoot%\System32\drivers\etc'
-      description: System network configuration files
-      include:
-        - 'hosts'
-        - 'lmhosts'
-        - 'networks'
-        - 'protocol'
-        - 'services'
-    
-    # Wireless network profiles (Windows 10/11)
-    - path: '%ProgramData%\Microsoft\Wlansvc\Profiles\Interfaces'
-      description: Wireless LAN service profiles
-      recursive: true
-    
-    # Network location awareness
-    - path: '%ProgramData%\Microsoft\Network\Connections\Pbk'
-      description: Network connection phonebook files
-      recursive: true
+  # Network Configuration Files
+  - name: "Network Config Files"
+    path: "$env:SystemRoot/System32/drivers/etc"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/network_config.yaml"
+
+  # Wireless Profiles
+  - name: "Wireless LAN Profiles"
+    path: "$env:ProgramData/Microsoft/Wlansvc/Profiles/Interfaces"
+    type: directory
+    action: sync
+    encrypt: true
+    dynamic_state_path: "files/wireless_profiles.yaml"
+
+  # Network Connection Phonebook
+  - name: "Network Connection Phonebook"
+    path: "$env:ProgramData/Microsoft/Network/Connections/Pbk"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/connection_phonebook.yaml"
 
 applications:
-  discovery:
-    # Network adapter information
-    - name: NetworkAdapters
-      command: 'Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed, InterfaceIndex'
-      description: Physical and virtual network adapters
-    
-    # IP configuration
-    - name: IPConfiguration
-      command: 'Get-NetIPConfiguration | Select-Object InterfaceAlias, InterfaceIndex, IPv4Address, IPv6Address, DNSServer'
-      description: Current IP configuration for all interfaces
-    
-    # Routing table
-    - name: RoutingTable
-      command: 'Get-NetRoute | Select-Object InterfaceAlias, DestinationPrefix, NextHop, RouteMetric, Protocol'
-      description: Network routing table entries
-    
-    # DNS configuration
-    - name: DNSConfiguration
-      command: 'Get-DnsClientServerAddress | Select-Object InterfaceAlias, ServerAddresses'
-      description: DNS server configuration per interface
-    
-    # Firewall profiles
-    - name: FirewallProfiles
-      command: 'Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction'
-      description: Windows Firewall profile settings
-    
-    # Wireless profiles
-    - name: WirelessProfiles
-      command: 'netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }'
-      description: Saved wireless network profiles
-    
-    # Network shares
-    - name: NetworkShares
-      command: 'Get-SmbShare | Select-Object Name, Path, Description, ShareType'
-      description: SMB network shares configuration
-    
-    # Network connections
-    - name: NetworkConnections
-      command: 'Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, NetworkCategory, IPv4Connectivity, IPv6Connectivity'
-      description: Current network connection profiles
+  # Network Adapter Information
+  - name: "Network Adapters"
+    type: custom
+    dynamic_state_path: "network_adapters.yaml"
+    discovery_command: |
+      try {
+          Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed, InterfaceIndex | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve network adapters: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $adapters = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($adapter in $adapters) {
+              $applications += @{
+                  Name = "NetworkAdapter-$($adapter.Name)"
+                  Version = "Hardware"
+                  Status = $adapter.Status
+                  InterfaceDescription = $adapter.InterfaceDescription
+                  MacAddress = $adapter.MacAddress
+                  LinkSpeed = $adapter.LinkSpeed
+                  InterfaceIndex = $adapter.InterfaceIndex
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse network adapters: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      $adapters = $StateJson | ConvertFrom-Json
+      if ($adapters.Count -gt 0) {
+          Write-Host "Network adapter information restored:" -ForegroundColor Green
+          foreach ($adapter in $adapters) {
+              Write-Host "  - $($adapter.Name): $($adapter.Status) ($($adapter.InterfaceDescription))" -ForegroundColor Cyan
+              if ($adapter.MacAddress) {
+                  Write-Host "    MAC: $($adapter.MacAddress)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No network adapter information found in backup" -ForegroundColor Yellow
+      }
 
-post_update:
-  stages:
-    - name: WirelessProfileExport
-      description: Export wireless network profiles with security settings
-      commands:
-        - '$profiles = netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }'
-        - '$exportedProfiles = @()'
-        - 'foreach ($profile in $profiles) { try { $profileInfo = netsh wlan show profile name="$profile" key=clear; $exportedProfiles += @{ Name = $profile; Info = $profileInfo } } catch { Write-Warning "Could not export wireless profile: $profile" } }'
-        - '$exportedProfiles | ConvertTo-Json -Depth 10 | Out-File "$BackupPath\wireless_profiles.json" -Force'
-    
-    - name: FirewallRulesExport
-      description: Export Windows Firewall rules
-      commands:
-        - 'Get-NetFirewallRule | Where-Object { $_.Enabled -eq "True" } | Select-Object DisplayName, Direction, Action, Protocol, LocalPort, RemotePort | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\firewall_rules.json" -Force'
-    
-    - name: NetworkInterfaceDetails
-      description: Export detailed network interface information
-      commands:
-        - '$interfaceDetails = Get-NetAdapter | ForEach-Object { $adapter = $_; $ipConfig = Get-NetIPConfiguration -InterfaceIndex $adapter.InterfaceIndex -ErrorAction SilentlyContinue; @{ Adapter = $adapter; IPConfig = $ipConfig } }'
-        - '$interfaceDetails | ConvertTo-Json -Depth 10 | Out-File "$BackupPath\network_interfaces_detailed.json" -Force'
-    
-    - name: ProxySettings
-      description: Export proxy and internet settings
-      commands:
-        - '$proxySettings = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -ErrorAction SilentlyContinue'
-        - 'if ($proxySettings) { $proxySettings | Select-Object ProxyEnable, ProxyServer, ProxyOverride, AutoConfigURL | ConvertTo-Json | Out-File "$BackupPath\proxy_settings.json" -Force }'
-    
-    - name: UserGuidance
-      description: Provide user guidance for network restore
-      commands:
-        - 'Write-Host "Network settings backed up successfully. Wireless passwords are included where possible." -ForegroundColor Green'
-        - 'Write-Host "Note: Some enterprise wireless profiles may require manual re-authentication after restore." -ForegroundColor Yellow'
-        - 'Write-Host "Firewall rules and network adapter configurations are fully preserved." -ForegroundColor Cyan' 
+  # IP Configuration
+  - name: "IP Configuration"
+    type: custom
+    dynamic_state_path: "ip_configuration.yaml"
+    discovery_command: |
+      try {
+          Get-NetIPConfiguration | Select-Object InterfaceAlias, InterfaceIndex, IPv4Address, IPv6Address, DNSServer | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve IP configuration: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $ipConfigs = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($config in $ipConfigs) {
+              $applications += @{
+                  Name = "IPConfig-$($config.InterfaceAlias)"
+                  Version = "Configuration"
+                  Status = "Active"
+                  InterfaceAlias = $config.InterfaceAlias
+                  InterfaceIndex = $config.InterfaceIndex
+                  IPv4Address = $config.IPv4Address
+                  IPv6Address = $config.IPv6Address
+                  DNSServer = $config.DNSServer
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse IP configuration: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      $ipConfigs = $StateJson | ConvertFrom-Json
+      if ($ipConfigs.Count -gt 0) {
+          Write-Host "IP configuration information restored:" -ForegroundColor Green
+          foreach ($config in $ipConfigs) {
+              Write-Host "  - $($config.InterfaceAlias): $($config.Status)" -ForegroundColor Cyan
+              if ($config.IPv4Address) {
+                  Write-Host "    IPv4: $($config.IPv4Address)" -ForegroundColor Gray
+              }
+              if ($config.DNSServer) {
+                  Write-Host "    DNS: $($config.DNSServer)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No IP configuration information found in backup" -ForegroundColor Yellow
+      }
+
+  # Wireless Profiles
+  - name: "Wireless Profiles"
+    type: custom
+    encrypt: true
+    dynamic_state_path: "wireless_profiles.yaml"
+    discovery_command: |
+      try {
+          $profiles = netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
+          $profileData = @()
+          
+          foreach ($profile in $profiles) {
+              try {
+                  $profileInfo = netsh wlan show profile name="$profile" key=clear
+                  $profileData += @{
+                      Name = $profile
+                      Info = $profileInfo -join "`n"
+                  }
+              } catch {
+                  Write-Warning "Could not get details for wireless profile: $profile"
+              }
+          }
+          
+          $profileData | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve wireless profiles: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $profiles = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($profile in $profiles) {
+              $applications += @{
+                  Name = "WirelessProfile-$($profile.Name)"
+                  Version = "Profile"
+                  Status = "Configured"
+                  ProfileName = $profile.Name
+                  ProfileInfo = $profile.Info
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse wireless profiles: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      $profiles = $StateJson | ConvertFrom-Json
+      if ($profiles.Count -gt 0) {
+          Write-Host "Wireless profile information restored:" -ForegroundColor Green
+          foreach ($profile in $profiles) {
+              Write-Host "  - $($profile.ProfileName): $($profile.Status)" -ForegroundColor Cyan
+          }
+      } else {
+          Write-Host "No wireless profile information found in backup" -ForegroundColor Yellow
+      }
+
+  # Firewall Profiles
+  - name: "Firewall Profiles"
+    type: custom
+    dynamic_state_path: "firewall_profiles.yaml"
+    discovery_command: |
+      try {
+          Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve firewall profiles: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $firewallProfiles = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($profile in $firewallProfiles) {
+              $applications += @{
+                  Name = "FirewallProfile-$($profile.Name)"
+                  Version = "Windows Firewall"
+                  Status = if ($profile.Enabled) { "Enabled" } else { "Disabled" }
+                  ProfileName = $profile.Name
+                  DefaultInboundAction = $profile.DefaultInboundAction
+                  DefaultOutboundAction = $profile.DefaultOutboundAction
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse firewall profiles: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      $profiles = $StateJson | ConvertFrom-Json
+      if ($profiles.Count -gt 0) {
+          Write-Host "Firewall profile information restored:" -ForegroundColor Green
+          foreach ($profile in $profiles) {
+              Write-Host "  - $($profile.ProfileName): $($profile.Status)" -ForegroundColor Cyan
+              Write-Host "    Inbound: $($profile.DefaultInboundAction), Outbound: $($profile.DefaultOutboundAction)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No firewall profile information found in backup" -ForegroundColor Yellow
+      }
+
+  # Network Shares
+  - name: "Network Shares"
+    type: custom
+    dynamic_state_path: "network_shares.yaml"
+    discovery_command: |
+      try {
+          Get-SmbShare | Select-Object Name, Path, Description, ShareType | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve network shares: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $shares = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($share in $shares) {
+              $applications += @{
+                  Name = "NetworkShare-$($share.Name)"
+                  Version = "SMB Share"
+                  Status = "Active"
+                  ShareName = $share.Name
+                  SharePath = $share.Path
+                  Description = $share.Description
+                  ShareType = $share.ShareType
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse network shares: $_"
+          "[]"
+      }
+    install_script: |
+      param([string]$StateJson)
+      $shares = $StateJson | ConvertFrom-Json
+      if ($shares.Count -gt 0) {
+          Write-Host "Network share information restored:" -ForegroundColor Green
+          foreach ($share in $shares) {
+              Write-Host "  - $($share.ShareName): $($share.SharePath)" -ForegroundColor Cyan
+              if ($share.Description) {
+                  Write-Host "    Description: $($share.Description)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No network share information found in backup" -ForegroundColor Yellow
+      } 

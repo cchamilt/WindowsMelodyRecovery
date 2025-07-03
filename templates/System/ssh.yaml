@@ -24,59 +24,59 @@ registry:
     path: "HKLM:/SOFTWARE/OpenSSH"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/openssh_system.json"
+    dynamic_state_path: "registry/openssh_system.json"
 
   - name: OpenSSH User Settings
     path: "HKCU:/Software/OpenSSH"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/openssh_user.json"
+    dynamic_state_path: "registry/openssh_user.json"
 
   # PuTTY settings
   - name: PuTTY Base Configuration
     path: "HKCU:/Software/SimonTatham/PuTTY"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/putty_base.json"
+    dynamic_state_path: "registry/putty_base.json"
 
   - name: PuTTY Sessions
     path: "HKCU:/Software/SimonTatham/PuTTY/Sessions"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/putty_sessions.json"
+    dynamic_state_path: "registry/putty_sessions.json"
 
   - name: PuTTY SSH Host Keys
     path: "HKCU:/Software/SimonTatham/PuTTY/SshHostKeys"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/putty_hostkeys.json"
+    dynamic_state_path: "registry/putty_hostkeys.json"
 
   # WinSCP settings
   - name: WinSCP Configuration
     path: "HKCU:/Software/Martin Prikryl/WinSCP 2"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/winscp_config.json"
+    dynamic_state_path: "registry/winscp_config.json"
 
   - name: WinSCP Sessions
     path: "HKCU:/Software/Martin Prikryl/WinSCP 2/Sessions"
     type: key
     action: sync
     encrypt: true
-    dynamic_state_path: "ssh/registry/winscp_sessions.json"
+    dynamic_state_path: "registry/winscp_sessions.json"
 
   # SSH services
   - name: OpenSSH Daemon Service
     path: "HKLM:/SYSTEM/CurrentControlSet/Services/OpenSSHd"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/opensshd_service.json"
+    dynamic_state_path: "registry/opensshd_service.json"
 
   - name: SSH Agent Service
     path: "HKLM:/SYSTEM/CurrentControlSet/Services/ssh-agent"
     type: key
     action: sync
-    dynamic_state_path: "ssh/registry/ssh_agent_service.json"
+    dynamic_state_path: "registry/ssh_agent_service.json"
 
 files:
   # User SSH configuration (excluding private keys)
@@ -84,46 +84,46 @@ files:
     path: "$env:USERPROFILE/.ssh/config"
     type: file
     action: sync
-    dynamic_state_path: "ssh/files/user_config"
+    dynamic_state_path: "files/user_config"
 
   - name: SSH User Authorized Keys
     path: "$env:USERPROFILE/.ssh/authorized_keys"
     type: file
     action: sync
-    dynamic_state_path: "ssh/files/authorized_keys"
+    dynamic_state_path: "files/authorized_keys"
 
   - name: SSH User Known Hosts
     path: "$env:USERPROFILE/.ssh/known_hosts"
     type: file
     action: sync
-    dynamic_state_path: "ssh/files/known_hosts_user"
+    dynamic_state_path: "files/known_hosts_user"
 
   # SSH public keys (safe to backup without encryption)
   - name: SSH Public Keys Directory
     path: "$env:USERPROFILE/.ssh"
     type: directory
     action: backup
-    dynamic_state_path: "ssh/files/public_keys"
+    dynamic_state_path: "files/public_keys"
 
   # System SSH configuration
   - name: SSH System Config
     path: "$env:ProgramData/ssh/sshd_config"
     type: file
     action: sync
-    dynamic_state_path: "ssh/files/system_config"
+    dynamic_state_path: "files/system_config"
 
   - name: SSH System Known Hosts
     path: "$env:ProgramData/ssh/known_hosts"
     type: file
     action: sync
-    dynamic_state_path: "ssh/files/known_hosts_system"
+    dynamic_state_path: "files/known_hosts_system"
 
   # PuTTY configuration files
   - name: PuTTY User Configuration
     path: "$env:APPDATA/PuTTY"
     type: directory
     action: sync
-    dynamic_state_path: "ssh/files/putty_config"
+    dynamic_state_path: "files/putty_config"
 
   # WinSCP configuration files
   - name: WinSCP User Configuration
@@ -131,12 +131,12 @@ files:
     type: directory
     action: sync
     encrypt: true
-    dynamic_state_path: "ssh/files/winscp_config"
+    dynamic_state_path: "files/winscp_config"
 
 applications:
   - name: SSH Private Keys
     type: custom
-    dynamic_state_path: "ssh/applications/private_keys.json"
+    dynamic_state_path: "applications/private_keys.json"
     discovery_command: |
       $sshDir = "$env:USERPROFILE\.ssh"
       if (Test-Path $sshDir) {

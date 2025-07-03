@@ -56,120 +56,120 @@ registry:
     path: 'HKCU:\Software\Microsoft\Office\16.0\Word'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/word_16_user.yaml"
+    dynamic_state_path: "registry/word_16_user.json"
 
   - name: "Word 2016/365 System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Word'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/word_16_system.yaml"
+    dynamic_state_path: "registry/word_16_system.json"
 
   # Word 2013 Settings
   - name: "Word 2013 User Settings"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Word'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/word_15_user.yaml"
+    dynamic_state_path: "registry/word_15_user.json"
 
   - name: "Word 2013 System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Word'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/word_15_system.yaml"
+    dynamic_state_path: "registry/word_15_system.json"
 
   # Word 2010 Settings
   - name: "Word 2010 User Settings"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Word'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/word_14_user.yaml"
+    dynamic_state_path: "registry/word_14_user.json"
 
   - name: "Word 2010 System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\14.0\Word'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/word_14_system.yaml"
+    dynamic_state_path: "registry/word_14_system.json"
 
   # Common Office Settings that affect Word
   - name: "Office 16.0 Common User Settings"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Common'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/office_16_common_user.yaml"
+    dynamic_state_path: "registry/office_16_common_user.json"
 
   - name: "Office 15.0 Common User Settings"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Common'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/office_15_common_user.yaml"
+    dynamic_state_path: "registry/office_15_common_user.json"
 
   - name: "Office 14.0 Common User Settings"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Common'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/office_14_common_user.yaml"
+    dynamic_state_path: "registry/office_14_common_user.json"
 
   # File Associations - User
   - name: "Word Document File Association (.doc) - User"
     path: 'HKCU:\Software\Classes\.doc'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_doc_user.yaml"
+    dynamic_state_path: "registry/file_assoc_doc_user.json"
 
   - name: "Word Document File Association (.docx) - User"
     path: 'HKCU:\Software\Classes\.docx'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_docx_user.yaml"
+    dynamic_state_path: "registry/file_assoc_docx_user.json"
 
   - name: "Word Macro Document File Association (.docm) - User"
     path: 'HKCU:\Software\Classes\.docm'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_docm_user.yaml"
+    dynamic_state_path: "registry/file_assoc_docm_user.json"
 
   - name: "Word Template File Association (.dotx) - User"
     path: 'HKCU:\Software\Classes\.dotx'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_dotx_user.yaml"
+    dynamic_state_path: "registry/file_assoc_dotx_user.json"
 
   - name: "Word Macro Template File Association (.dotm) - User"
     path: 'HKCU:\Software\Classes\.dotm'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_dotm_user.yaml"
+    dynamic_state_path: "registry/file_assoc_dotm_user.json"
 
   # File Associations - System
   - name: "Word Document File Association (.doc) - System"
     path: 'HKLM:\SOFTWARE\Classes\.doc'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_doc_system.yaml"
+    dynamic_state_path: "registry/file_assoc_doc_system.json"
 
   - name: "Word Document File Association (.docx) - System"
     path: 'HKLM:\SOFTWARE\Classes\.docx'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_docx_system.yaml"
+    dynamic_state_path: "registry/file_assoc_docx_system.json"
 
   - name: "Word Macro Document File Association (.docm) - System"
     path: 'HKLM:\SOFTWARE\Classes\.docm'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_docm_system.yaml"
+    dynamic_state_path: "registry/file_assoc_docm_system.json"
 
   - name: "Word Template File Association (.dotx) - System"
     path: 'HKLM:\SOFTWARE\Classes\.dotx'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_dotx_system.yaml"
+    dynamic_state_path: "registry/file_assoc_dotx_system.json"
 
   - name: "Word Macro Template File Association (.dotm) - System"
     path: 'HKLM:\SOFTWARE\Classes\.dotm'
     type: key
     action: sync
-    dynamic_state_path: "word/registry/file_assoc_dotm_system.yaml"
+    dynamic_state_path: "registry/file_assoc_dotm_system.json"
 
 files:
   # Main Word Settings
@@ -177,7 +177,7 @@ files:
     path: "$env:APPDATA/Microsoft/Word"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/settings.yaml"
+    dynamic_state_path: "files/settings.json"
     exclude_patterns: ["*.tmp", "~*.*", "*.asd"]
 
   # Custom Templates
@@ -185,7 +185,7 @@ files:
     path: "$env:APPDATA/Microsoft/Templates"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/templates.yaml"
+    dynamic_state_path: "files/templates.json"
     exclude_patterns: ["*.tmp", "~*.*"]
 
   # Quick Access and Recent Items
@@ -193,21 +193,21 @@ files:
     path: "$env:APPDATA/Microsoft/Office/Recent"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/recent_files.yaml"
+    dynamic_state_path: "files/recent_files.json"
 
   # Custom Dictionaries
   - name: "Custom Dictionary"
     path: "$env:APPDATA/Microsoft/UProof"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/custom_dictionary.yaml"
+    dynamic_state_path: "files/custom_dictionary.json"
 
   # AutoCorrect Entries
   - name: "AutoCorrect Settings"
     path: "$env:APPDATA/Microsoft/Office"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/autocorrect.yaml"
+    dynamic_state_path: "files/autocorrect.json"
     exclude_patterns: ["*.tmp", "~*.*"]
 
   # Building Blocks
@@ -215,41 +215,40 @@ files:
     path: "$env:APPDATA/Microsoft/Document Building Blocks"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/building_blocks.yaml"
+    dynamic_state_path: "files/building_blocks.json"
 
   # Custom Styles
   - name: "QuickStyles"
     path: "$env:APPDATA/Microsoft/QuickStyles"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/quick_styles.yaml"
+    dynamic_state_path: "files/quick_styles.json"
 
   # Custom Toolbars and Ribbons
   - name: "Word Ribbons Customization"
     path: "$env:APPDATA/Microsoft/Office/16.0/Word/Ribbons"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/ribbons.yaml"
+    dynamic_state_path: "files/ribbons.json"
 
   # Startup Items
   - name: "Word Startup"
     path: "$env:APPDATA/Microsoft/Word/STARTUP"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/startup.yaml"
+    dynamic_state_path: "files/startup.json"
 
   # QuickParts
   - name: "Word QuickParts"
     path: "$env:APPDATA/Microsoft/Word/QuickParts"
     type: directory
     action: sync
-    dynamic_state_path: "word/files/quickparts.yaml"
+    dynamic_state_path: "files/quickparts.json"
 
 applications:
   # Word Installation Information
   - name: "Word Installation Information"
-    type: custom
-    dynamic_state_path: "word/installation.yaml"
+    dynamic_state_path: "installation.json"
     discovery_command: |
       try {
           $wordInfo = @{}
@@ -275,20 +274,19 @@ applications:
           
           if ($wordVersions.Count -gt 0) {
               $wordInfo.InstalledVersions = $wordVersions
-              $wordInfo | ConvertTo-Json -Depth 10
+              return $wordInfo
           } else {
-              Write-Output "{}"
+              return @{}
           }
       } catch {
-          Write-Output "{}"
+          return @{}
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $wordInfo = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      if ($wordInfo -and $wordInfo.InstalledVersions) {
-          foreach ($version in $wordInfo.InstalledVersions) {
+      if ($DiscoveryOutput -and $DiscoveryOutput.InstalledVersions) {
+          foreach ($version in $DiscoveryOutput.InstalledVersions) {
               $versionName = switch ($version.Version) {
                   "16.0" { "Word 2016/365" }
                   "15.0" { "Word 2013" }
@@ -306,17 +304,12 @@ applications:
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $installations = $StateJson | ConvertFrom-Json
-      if ($installations.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "Word installation information restored:" -ForegroundColor Green
-          foreach ($install in $installations) {
+          foreach ($install in $StateObject) {
               Write-Host "  - $($install.Version)" -ForegroundColor Cyan
               Write-Host "    Install Path: $($install.InstallPath)" -ForegroundColor Gray
               Write-Host "    Office Version: $($install.OfficeVersion)" -ForegroundColor Gray
@@ -327,8 +320,7 @@ applications:
 
   # Word Add-ins Information
   - name: "Word Add-ins Information"
-    type: custom
-    dynamic_state_path: "word/addins.yaml"
+    dynamic_state_path: "addins.json"
     discovery_command: |
       try {
           $addInsInfo = @()
@@ -356,19 +348,18 @@ applications:
           }
           
           if ($addInsInfo.Count -gt 0) {
-              $addInsInfo | ConvertTo-Json -Depth 10
+              return $addInsInfo
           } else {
-              Write-Output "[]"
+              return @()
           }
       } catch {
-          Write-Output "[]"
+          return @()
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $addInsInfo = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($addIn in $addInsInfo) {
+      foreach ($addIn in $DiscoveryOutput) {
           $versionName = switch ($addIn.Version) {
               "16.0" { "Word 2016/365" }
               "15.0" { "Word 2013" }
@@ -386,17 +377,12 @@ applications:
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $addins = $StateJson | ConvertFrom-Json
-      if ($addins.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "Word add-ins information restored:" -ForegroundColor Green
-          foreach ($addin in $addins) {
+          foreach ($addin in $StateObject) {
               Write-Host "  - $($addin.AddInName) ($($addin.Version))" -ForegroundColor Cyan
               Write-Host "    Office Version: $($addin.OfficeVersion)" -ForegroundColor Gray
           }
@@ -406,8 +392,7 @@ applications:
 
   # Word Templates Information
   - name: "Word Templates Information"
-    type: custom
-    dynamic_state_path: "word/templates.yaml"
+    dynamic_state_path: "templates.json"
     discovery_command: |
       try {
           $templatesInfo = @()
@@ -440,19 +425,18 @@ applications:
           }
           
           if ($templatesInfo.Count -gt 0) {
-              $templatesInfo | ConvertTo-Json -Depth 10
+              return $templatesInfo
           } else {
-              Write-Output "[]"
+              return @()
           }
       } catch {
-          Write-Output "[]"
+          return @()
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $templatesInfo = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($template in $templatesInfo) {
+      foreach ($template in $DiscoveryOutput) {
           $templateType = switch ($template.Extension) {
               ".dotx" { "Word Template" }
               ".dotm" { "Word Macro-Enabled Template" }
@@ -473,17 +457,12 @@ applications:
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $templates = $StateJson | ConvertFrom-Json
-      if ($templates.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "Word templates information restored:" -ForegroundColor Green
-          foreach ($template in $templates) {
+          foreach ($template in $StateObject) {
               Write-Host "  - $($template.TemplateName)" -ForegroundColor Cyan
               Write-Host "    Type: $($template.Version), Size: $($template.FileSize) bytes" -ForegroundColor Gray
               Write-Host "    Location: $($template.TemplateDirectory)" -ForegroundColor Gray
@@ -495,8 +474,7 @@ applications:
 
   # Word Building Blocks Information
   - name: "Word Building Blocks Information"
-    type: custom
-    dynamic_state_path: "word/building_blocks.yaml"
+    dynamic_state_path: "building_blocks.json"
     discovery_command: |
       try {
           $buildingBlocksInfo = @()
@@ -527,19 +505,18 @@ applications:
           }
           
           if ($buildingBlocksInfo.Count -gt 0) {
-              $buildingBlocksInfo | ConvertTo-Json -Depth 10
+              return $buildingBlocksInfo
           } else {
-              Write-Output "[]"
+              return @()
           }
       } catch {
-          Write-Output "[]"
+          return @()
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $buildingBlocksInfo = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($bb in $buildingBlocksInfo) {
+      foreach ($bb in $DiscoveryOutput) {
           $applications += @{
               Name = "BuildingBlock-$($bb.Name -replace '[^a-zA-Z0-9]', '')"
               Version = "Building Blocks Template"
@@ -553,17 +530,12 @@ applications:
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $buildingBlocks = $StateJson | ConvertFrom-Json
-      if ($buildingBlocks.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "Word building blocks information restored:" -ForegroundColor Green
-          foreach ($bb in $buildingBlocks) {
+          foreach ($bb in $StateObject) {
               Write-Host "  - $($bb.BuildingBlockName)" -ForegroundColor Cyan
               Write-Host "    Language: $($bb.Language), Size: $($bb.FileSize) bytes" -ForegroundColor Gray
               Write-Host "    Location: $($bb.BuildingBlockDirectory)" -ForegroundColor Gray

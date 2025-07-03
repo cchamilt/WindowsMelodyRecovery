@@ -47,75 +47,75 @@ registry:
     path: 'HKCU:\Software\Microsoft\Terminal Server Client'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/client_main.yaml"
+    dynamic_state_path: "registry/client_main.yaml"
 
   - name: "RDP Client Servers"
     path: 'HKCU:\Software\Microsoft\Terminal Server Client\Servers'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/client_servers.yaml"
+    dynamic_state_path: "registry/client_servers.yaml"
 
   - name: "RDP Client Defaults"
     path: 'HKCU:\Software\Microsoft\Terminal Server Client\Default'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/client_defaults.yaml"
+    dynamic_state_path: "registry/client_defaults.yaml"
 
   # RDP Server Settings
   - name: "RDP Server Terminal Service"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/server_terminal.yaml"
+    dynamic_state_path: "registry/server_terminal.yaml"
 
   - name: "RDP Server WinStations"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/server_winstations.yaml"
+    dynamic_state_path: "registry/server_winstations.yaml"
 
   - name: "RDP Server Default User Config"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultUserConfiguration'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/server_defaultuser.yaml"
+    dynamic_state_path: "registry/server_defaultuser.yaml"
 
   - name: "RDP Terminal Services Policies"
     path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/policies_terminal.yaml"
+    dynamic_state_path: "registry/policies_terminal.yaml"
 
   - name: "RDP Remote Assistance"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/remote_assistance.yaml"
+    dynamic_state_path: "registry/remote_assistance.yaml"
 
   - name: "RDP Authentication LogonUI"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/auth_logonui.yaml"
+    dynamic_state_path: "registry/auth_logonui.yaml"
 
   - name: "RDP TermService Parameters"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TermService\Parameters'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/termservice_params.yaml"
+    dynamic_state_path: "registry/termservice_params.yaml"
 
   - name: "RDP UmRdpService Parameters"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\UmRdpService\Parameters'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/umrdpservice_params.yaml"
+    dynamic_state_path: "registry/umrdpservice_params.yaml"
 
   # System-wide RDP Client Settings
   - name: "System RDP Client Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Terminal Server Client'
     type: key
     action: sync
-    dynamic_state_path: "rdp/registry/system_client.yaml"
+    dynamic_state_path: "registry/system_client.yaml"
 
 files:
   # RDP Connection Files
@@ -123,34 +123,34 @@ files:
     path: "$env:USERPROFILE/Documents"
     type: directory
     action: sync
-    dynamic_state_path: "rdp/files/documents.yaml"
+    dynamic_state_path: "files/documents.yaml"
     filter: "*.rdp"
 
   - name: "RDP Desktop Connections"
     path: "$env:USERPROFILE/Desktop"
     type: directory
     action: sync
-    dynamic_state_path: "rdp/files/desktop.yaml"
+    dynamic_state_path: "files/desktop.yaml"
     filter: "*.rdp"
 
   - name: "RDP Recent Connections"
     path: "$env:APPDATA/Microsoft/Windows/Recent/AutomaticDestinations"
     type: directory
     action: sync
-    dynamic_state_path: "rdp/files/recent.yaml"
+    dynamic_state_path: "files/recent.yaml"
     filter: "*.rdp"
 
   - name: "RDP Connection Manager"
     path: "$env:USERPROFILE/Documents/Remote Desktop Connection Manager"
     type: directory
     action: sync
-    dynamic_state_path: "rdp/files/rdcman.yaml"
+    dynamic_state_path: "files/rdcman.yaml"
 
 applications:
   # RDP Configuration Information
   - name: "RDP Configuration"
     type: custom
-    dynamic_state_path: "rdp/configuration.yaml"
+    dynamic_state_path: "configuration.yaml"
     discovery_command: |
       try {
           $rdpConfig = @{
@@ -209,52 +209,66 @@ applications:
       }
     parse_script: |
       param([string]$DiscoveryOutput)
-      $rdpConfig = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      $applications += @{
-          Name = "RDP-Configuration"
-          Version = "Windows RDP"
-          Status = if ($rdpConfig.Enabled) { "Enabled" } else { "Disabled" }
-          Port = $rdpConfig.PortNumber
-          UserAuthentication = $rdpConfig.UserAuthentication
-          SecurityLayer = $rdpConfig.SecurityLayer
-          EncryptionLevel = $rdpConfig.MinEncryptionLevel
-      }
-      
-      if ($applications.Count -eq 0) {
+      try {
+          $configData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($configData) {
+              $applications += @{
+                  Name = "RDP-Configuration"
+                  Version = "Settings"
+                  Status = if ($configData.Enabled) { "Enabled" } else { "Disabled" }
+                  Enabled = $configData.Enabled
+                  UserAuthentication = $configData.UserAuthentication
+                  SecurityLayer = $configData.SecurityLayer
+                  PortNumber = $configData.PortNumber
+                  MinEncryptionLevel = $configData.MinEncryptionLevel
+                  Summary = "RDP $(if ($configData.Enabled) { 'Enabled' } else { 'Disabled' }) on port $($configData.PortNumber)"
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse RDP configuration: $_"
           "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
       }
     install_script: |
       param([string]$StateJson)
-      $rdpConfigs = $StateJson | ConvertFrom-Json
-      if ($rdpConfigs.Count -gt 0) {
+      $rdpConfig = $StateJson | ConvertFrom-Json
+      if ($rdpConfig.Count -gt 0) {
+          $config = $rdpConfig[0]
           Write-Host "RDP configuration information restored:" -ForegroundColor Green
-          foreach ($config in $rdpConfigs) {
-              Write-Host "  - RDP Status: $($config.Status)" -ForegroundColor Cyan
-              if ($config.Port) {
-                  Write-Host "    Port: $($config.Port)" -ForegroundColor Gray
-              }
-              if ($config.UserAuthentication -ne $null) {
-                  Write-Host "    User Authentication: $($config.UserAuthentication)" -ForegroundColor Gray
-              }
-              if ($config.SecurityLayer -ne $null) {
-                  Write-Host "    Security Layer: $($config.SecurityLayer)" -ForegroundColor Gray
-              }
-              if ($config.EncryptionLevel -ne $null) {
-                  Write-Host "    Encryption Level: $($config.EncryptionLevel)" -ForegroundColor Gray
-              }
+          
+          $statusColor = if ($config.Status -eq "Enabled") { "Green" } else { "Yellow" }
+          Write-Host "  Status: $($config.Status)" -ForegroundColor $statusColor
+          
+          if ($config.PortNumber) {
+              Write-Host "  Port: $($config.PortNumber)" -ForegroundColor Cyan
           }
+          if ($config.SecurityLayer -ne $null) {
+              Write-Host "  Security Layer: $($config.SecurityLayer)" -ForegroundColor Cyan
+          }
+          if ($config.UserAuthentication -ne $null) {
+              Write-Host "  User Authentication: $($config.UserAuthentication)" -ForegroundColor Cyan
+          }
+          if ($config.MinEncryptionLevel -ne $null) {
+              Write-Host "  Min Encryption Level: $($config.MinEncryptionLevel)" -ForegroundColor Cyan
+          }
+          
+          Write-Host ""
+          Write-Host "NOTE: RDP settings may require administrative privileges and system restart to take effect." -ForegroundColor Yellow
       } else {
-          Write-Host "No RDP configuration information found in backup" -ForegroundColor Yellow
+          Write-Host "No RDP configuration found in backup" -ForegroundColor Yellow
       }
 
   # RDP Services Information
   - name: "RDP Services"
     type: custom
-    dynamic_state_path: "rdp/services.yaml"
+    dynamic_state_path: "services.yaml"
     discovery_command: |
       try {
           $rdpServices = @("TermService", "UmRdpService", "SessionEnv")
@@ -282,34 +296,53 @@ applications:
       }
     parse_script: |
       param([string]$DiscoveryOutput)
-      $serviceConfig = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($service in $serviceConfig) {
-          $applications += @{
-              Name = "Service-$($service.Name)"
-              Version = "Windows Service"
-              Status = $service.Status
-              StartType = $service.StartType
-              DisplayName = $service.DisplayName
-              ServiceName = $service.Name
+      try {
+          $servicesData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($servicesData -and $servicesData.Count -gt 0) {
+              foreach ($service in $servicesData) {
+                  $applications += @{
+                      Name = "RDP-Service-$($service.Name)"
+                      Version = $service.StartType
+                      Status = $service.Status
+                      ServiceName = $service.Name
+                      DisplayName = $service.DisplayName
+                      StartType = $service.StartType
+                  }
+              }
           }
-      }
-      
-      if ($applications.Count -eq 0) {
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse RDP services: $_"
           "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
       }
     install_script: |
       param([string]$StateJson)
-      $services = $StateJson | ConvertFrom-Json
-      if ($services.Count -gt 0) {
+      $rdpServices = $StateJson | ConvertFrom-Json
+      if ($rdpServices.Count -gt 0) {
           Write-Host "RDP services information restored:" -ForegroundColor Green
-          foreach ($service in $services) {
-              Write-Host "  - $($service.DisplayName) ($($service.ServiceName))" -ForegroundColor Cyan
-              Write-Host "    Status: $($service.Status), Start Type: $($service.StartType)" -ForegroundColor Gray
+          
+          foreach ($service in $rdpServices) {
+              $statusColor = switch ($service.Status) {
+                  "Running" { "Green" }
+                  "Stopped" { "Yellow" }
+                  default { "Gray" }
+              }
+              
+              Write-Host "  $($service.ServiceName):" -ForegroundColor Cyan
+              Write-Host "    Display Name: $($service.DisplayName)" -ForegroundColor Gray
+              Write-Host "    Status: $($service.Status)" -ForegroundColor $statusColor
+              Write-Host "    Start Type: $($service.StartType)" -ForegroundColor Gray
           }
+          
+          Write-Host ""
+          Write-Host "NOTE: Service configurations may require administrative privileges to modify." -ForegroundColor Yellow
       } else {
           Write-Host "No RDP services information found in backup" -ForegroundColor Yellow
       }
@@ -317,7 +350,7 @@ applications:
   # RDP Firewall Rules
   - name: "RDP Firewall Rules"
     type: custom
-    dynamic_state_path: "rdp/firewall.yaml"
+    dynamic_state_path: "firewall.yaml"
     discovery_command: |
       try {
           $rdpFirewallRules = Get-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
@@ -340,51 +373,78 @@ applications:
       }
     parse_script: |
       param([string]$DiscoveryOutput)
-      $firewallConfig = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($rule in $firewallConfig) {
-          $applications += @{
-              Name = "Firewall-$($rule.DisplayName -replace '[^a-zA-Z0-9]', '')"
-              Version = "Windows Firewall Rule"
-              Status = if ($rule.Enabled) { "Enabled" } else { "Disabled" }
-              DisplayName = $rule.DisplayName
-              Direction = $rule.Direction
-              Action = $rule.Action
-              Profile = $rule.Profile
-              Group = $rule.Group
+      try {
+          $firewallData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($firewallData -and $firewallData.Count -gt 0) {
+              foreach ($rule in $firewallData) {
+                  $applications += @{
+                      Name = "RDP-Firewall-$($rule.DisplayName -replace '[^a-zA-Z0-9]', '')"
+                      Version = $rule.Profile
+                      Status = if ($rule.Enabled) { "Enabled" } else { "Disabled" }
+                      DisplayName = $rule.DisplayName
+                      Direction = $rule.Direction
+                      Action = $rule.Action
+                      Profile = $rule.Profile
+                      Group = $rule.Group
+                      Enabled = $rule.Enabled
+                  }
+              }
           }
-      }
-      
-      if ($applications.Count -eq 0) {
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse RDP firewall rules: $_"
           "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
       }
     install_script: |
       param([string]$StateJson)
       $firewallRules = $StateJson | ConvertFrom-Json
       if ($firewallRules.Count -gt 0) {
           Write-Host "RDP firewall rules information restored:" -ForegroundColor Green
-          foreach ($rule in $firewallRules) {
-              Write-Host "  - $($rule.DisplayName)" -ForegroundColor Cyan
-              Write-Host "    Status: $($rule.Status), Direction: $($rule.Direction), Action: $($rule.Action)" -ForegroundColor Gray
-              Write-Host "    Profile: $($rule.Profile)" -ForegroundColor Gray
+          
+          $enabledRules = $firewallRules | Where-Object { $_.Enabled }
+          $disabledRules = $firewallRules | Where-Object { -not $_.Enabled }
+          
+          if ($enabledRules.Count -gt 0) {
+              Write-Host "  Enabled Rules ($($enabledRules.Count)):" -ForegroundColor Green
+              foreach ($rule in $enabledRules) {
+                  Write-Host "    - $($rule.DisplayName)" -ForegroundColor Gray
+                  Write-Host "      Direction: $($rule.Direction), Action: $($rule.Action), Profile: $($rule.Profile)" -ForegroundColor DarkGray
+              }
           }
+          
+          if ($disabledRules.Count -gt 0) {
+              Write-Host "  Disabled Rules ($($disabledRules.Count)):" -ForegroundColor Yellow
+              foreach ($rule in $disabledRules | Select-Object -First 3) {
+                  Write-Host "    - $($rule.DisplayName)" -ForegroundColor Gray
+              }
+              if ($disabledRules.Count -gt 3) {
+                  Write-Host "    ... and $($disabledRules.Count - 3) more" -ForegroundColor Gray
+              }
+          }
+          
+          Write-Host ""
+          Write-Host "NOTE: Firewall rule configurations require administrative privileges to modify." -ForegroundColor Yellow
       } else {
-          Write-Host "No RDP firewall rules information found in backup" -ForegroundColor Yellow
+          Write-Host "No RDP firewall rules found in backup" -ForegroundColor Yellow
       }
 
   # RDP Connection Files Discovery
   - name: "RDP Connection Files"
     type: custom
-    dynamic_state_path: "rdp/connections.yaml"
+    dynamic_state_path: "connections.yaml"
     discovery_command: |
       try {
           $rdpConnections = @()
           $rdpPaths = @(
               "$env:USERPROFILE\Documents",
-              "$env:USERPROFILE\Desktop",
+              "$env:USERPROFILE\Desktop", 
               "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations",
               "$env:USERPROFILE\Documents\Remote Desktop Connection Manager"
           )
@@ -392,6 +452,7 @@ applications:
           foreach ($rdpPath in $rdpPaths) {
               if (Test-Path $rdpPath) {
                   $rdpFiles = Get-ChildItem -Path $rdpPath -Filter "*.rdp" -ErrorAction SilentlyContinue
+                  
                   foreach ($file in $rdpFiles) {
                       $rdpConnections += @{
                           Name = $file.Name
@@ -410,48 +471,69 @@ applications:
       }
     parse_script: |
       param([string]$DiscoveryOutput)
-      $rdpConnections = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($connection in $rdpConnections) {
-          $applications += @{
-              Name = "Connection-$($connection.Name)"
-              Version = "RDP Connection File"
-              Status = "Available"
-              ConnectionPath = $connection.FullPath
-              Size = $connection.Size
-              LastModified = $connection.LastModified
-              Location = $connection.Location
+      try {
+          $connectionsData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($connectionsData -and $connectionsData.Count -gt 0) {
+              foreach ($connection in $connectionsData) {
+                  $applications += @{
+                      Name = "RDP-Connection-$($connection.Name -replace '\.rdp$', '' -replace '[^a-zA-Z0-9]', '')"
+                      Version = $connection.LastModified
+                      Status = "File"
+                      FileName = $connection.Name
+                      FullPath = $connection.FullPath
+                      Size = $connection.Size
+                      LastModified = $connection.LastModified
+                      Location = $connection.Location
+                  }
+              }
           }
-      }
-      
-      if ($applications.Count -eq 0) {
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse RDP connections: $_"
           "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
       }
     install_script: |
       param([string]$StateJson)
       $connections = $StateJson | ConvertFrom-Json
       if ($connections.Count -gt 0) {
           Write-Host "RDP connection files information restored:" -ForegroundColor Green
-          foreach ($connection in $connections) {
-              Write-Host "  - $($connection.Name) (Size: $($connection.Size) bytes)" -ForegroundColor Cyan
-              Write-Host "    Path: $($connection.ConnectionPath)" -ForegroundColor Gray
-              Write-Host "    Location: $($connection.Location), Last Modified: $($connection.LastModified)" -ForegroundColor Gray
+          
+          $locations = $connections | Group-Object Location | Sort-Object Count -Descending
+          
+          foreach ($location in $locations) {
+              Write-Host "  $($location.Name) ($($location.Count) files):" -ForegroundColor Cyan
+              foreach ($conn in $location.Group | Sort-Object LastModified -Descending | Select-Object -First 5) {
+                  $sizeKB = [math]::Round($conn.Size / 1KB, 1)
+                  Write-Host "    - $($conn.FileName) (${sizeKB} KB)" -ForegroundColor Gray
+                  Write-Host "      Modified: $($conn.LastModified)" -ForegroundColor DarkGray
+              }
+              if ($location.Group.Count -gt 5) {
+                  Write-Host "    ... and $($location.Group.Count - 5) more" -ForegroundColor Gray
+              }
           }
+          
+          Write-Host ""
+          Write-Host "NOTE: RDP connection files contain server information but may need updated credentials." -ForegroundColor Yellow
       } else {
           Write-Host "No RDP connection files found in backup" -ForegroundColor Yellow
       }
 
-  # RDP Certificates Information
+  # RDP Certificates Discovery
   - name: "RDP Certificates"
     type: custom
-    dynamic_state_path: "rdp/certificates.yaml"
+    dynamic_state_path: "certificates.yaml"
     discovery_command: |
       try {
           $rdpCertificates = @()
           $rdpCerts = Get-ChildItem -Path "Cert:\LocalMachine\Remote Desktop" -ErrorAction SilentlyContinue
+          
           
           foreach ($cert in $rdpCerts) {
               $rdpCertificates += @{
@@ -470,39 +552,54 @@ applications:
       }
     parse_script: |
       param([string]$DiscoveryOutput)
-      $rdpCertificates = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($cert in $rdpCertificates) {
-          $applications += @{
-              Name = "Certificate-$($cert.Thumbprint.Substring(0,8))"
-              Version = "RDP Certificate"
-              Status = "Available"
-              Thumbprint = $cert.Thumbprint
-              Subject = $cert.Subject
-              Issuer = $cert.Issuer
-              NotBefore = $cert.NotBefore
-              NotAfter = $cert.NotAfter
-              HasPrivateKey = $cert.HasPrivateKey
+      try {
+          $certificatesData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($certificatesData -and $certificatesData.Count -gt 0) {
+              foreach ($cert in $certificatesData) {
+                  $applications += @{
+                      Name = "RDP-Certificate-$($cert.Thumbprint.Substring(0, 8))"
+                      Version = $cert.NotAfter
+                      Status = if ((Get-Date) -lt (Get-Date $cert.NotAfter)) { "Valid" } else { "Expired" }
+                      Thumbprint = $cert.Thumbprint
+                      Subject = $cert.Subject
+                      Issuer = $cert.Issuer
+                      NotBefore = $cert.NotBefore
+                      NotAfter = $cert.NotAfter
+                      HasPrivateKey = $cert.HasPrivateKey
+                  }
+              }
           }
-      }
-      
-      if ($applications.Count -eq 0) {
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse RDP certificates: $_"
           "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
       }
     install_script: |
       param([string]$StateJson)
       $certificates = $StateJson | ConvertFrom-Json
       if ($certificates.Count -gt 0) {
           Write-Host "RDP certificates information restored:" -ForegroundColor Green
+          
           foreach ($cert in $certificates) {
-              Write-Host "  - Certificate: $($cert.Thumbprint)" -ForegroundColor Cyan
+              $statusColor = if ($cert.Status -eq "Valid") { "Green" } else { "Red" }
+              
+              Write-Host "  Certificate: $($cert.Thumbprint.Substring(0, 16))..." -ForegroundColor Cyan
               Write-Host "    Subject: $($cert.Subject)" -ForegroundColor Gray
+              Write-Host "    Issuer: $($cert.Issuer)" -ForegroundColor Gray
+              Write-Host "    Status: $($cert.Status)" -ForegroundColor $statusColor
               Write-Host "    Valid: $($cert.NotBefore) to $($cert.NotAfter)" -ForegroundColor Gray
               Write-Host "    Has Private Key: $($cert.HasPrivateKey)" -ForegroundColor Gray
           }
+          
+          Write-Host ""
+          Write-Host "NOTE: Certificate private keys cannot be backed up and may need to be re-imported." -ForegroundColor Yellow
       } else {
           Write-Host "No RDP certificates found in backup" -ForegroundColor Yellow
       }

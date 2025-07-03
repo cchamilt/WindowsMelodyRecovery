@@ -3,6 +3,8 @@ metadata:
   description: "Backup and restore Windows Subsystem for Linux environment including packages, configuration files, dotfiles, and chezmoi setup"
   author: "Windows Melody Recovery"
   version: "1.0.0"
+  category: "System Configuration"
+  tags: ["wsl", "linux", "subsystem", "packages", "dotfiles", "chezmoi", "configuration"]
 
 prerequisites:
   - type: script
@@ -31,19 +33,19 @@ registry:
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss'
     type: key
     action: sync
-    dynamic_state_path: "wsl/registry/lxss_system.yaml"
+    dynamic_state_path: "registry/lxss_system.json"
 
   - name: "WSL Service Settings"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\LxssManager'
     type: key
     action: sync
-    dynamic_state_path: "wsl/registry/lxss_manager.yaml"
+    dynamic_state_path: "registry/lxss_manager.json"
 
   - name: "WSL User Settings"
     path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss'
     type: key
     action: sync
-    dynamic_state_path: "wsl/registry/lxss_user.yaml"
+    dynamic_state_path: "registry/lxss_user.json"
 
 files:
   # Windows-side WSL configuration files
@@ -51,42 +53,163 @@ files:
     path: "C:/Users/$env:USERNAME/.wslconfig"
     type: file
     action: sync
-    dynamic_state_path: "wsl/files/wslconfig"
+    dynamic_state_path: "files/wslconfig.json"
 
   - name: "WSL Global Configuration"
     path: "C:/ProgramData/Microsoft/WSL/wsl.conf"
     type: file
     action: sync
-    dynamic_state_path: "wsl/files/wsl_global_conf"
+    dynamic_state_path: "files/wsl_global_conf.json"
 
 applications:
   # WSL Distribution Information
   - name: "WSL Distribution Info"
-    type: custom
-    dynamic_state_path: "wsl/wsl_distributions.yaml"
-    discovery_command: "Private/backup/wsl-discovery-distributions.ps1"
-    parse_script: "Private/backup/wsl-parse-distributions.ps1"
-    install_script: |
-      param([string]$StateJson)
-      Write-Host "WSL Distribution information restored from backup" -ForegroundColor Green
-
-  # WSL Package Management - All Packages
-  - name: "WSL Packages"
-    type: custom
-    dynamic_state_path: "wsl/packages/all_packages.yaml"
-    discovery_command: "Private/backup/wsl-discovery-packages.ps1 -PackageManager all"
-    parse_script: "Private/backup/wsl-parse-packages.ps1"
-    install_script: "Private/backup/wsl-install-packages.ps1"
-
-  # WSL Configuration Files Status  
-  - name: "WSL Configuration Files"
-    type: custom
-    dynamic_state_path: "wsl/config_files.yaml"
+    dynamic_state_path: "wsl_distributions.json"
     discovery_command: |
       try {
           if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-              Write-Output "[]"
-              return
+              return @()
+          }
+          
+          $distributions = @()
+          $wslList = wsl --list --verbose 2>$null
+          
+          if ($wslList) {
+              foreach ($line in $wslList) {
+                  if ($line -match '^\s*(\*?)\s*(.+?)\s+(Running|Stopped)\s+(\d+)') {
+                      $isDefault = $matches[1] -eq '*'
+                      $name = $matches[2].Trim()
+                      $state = $matches[3]
+                      $version = $matches[4]
+                      
+                      if ($name -ne "NAME" -and $name -ne "Windows Subsystem for Linux Distributions:") {
+                          $distributions += @{
+                              Name = $name
+                              State = $state
+                              Version = "WSL$version"
+                              IsDefault = $isDefault
+                          }
+                      }
+                  }
+              }
+          }
+          
+          return $distributions
+      } catch {
+          return @()
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      foreach ($distro in $DiscoveryOutput) {
+          $applications += @{
+              Name = "WSL-$($distro.Name)"
+              Version = $distro.Version
+              Status = $distro.State
+              IsDefault = $distro.IsDefault
+              DistributionName = $distro.Name
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "WSL Distribution information restored:" -ForegroundColor Green
+          foreach ($distro in $StateObject) {
+              $defaultText = if ($distro.IsDefault) { " (Default)" } else { "" }
+              Write-Host "  - $($distro.DistributionName): $($distro.Status)$defaultText" -ForegroundColor Cyan
+              Write-Host "    Version: $($distro.Version)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No WSL distributions found in backup" -ForegroundColor Yellow
+      }
+
+  # WSL Package Management - All Packages
+  - name: "WSL Packages"
+    dynamic_state_path: "packages/all_packages.json"
+    discovery_command: |
+      try {
+          if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
+              return @()
+          }
+          
+          $packages = @()
+          $packageManagers = @{
+              "apt" = "dpkg --get-selections | grep -v deinstall | awk '{print \$1}'"
+              "yum" = "yum list installed | awk 'NR>1 {print \$1}'"
+              "dnf" = "dnf list installed | awk 'NR>1 {print \$1}'"
+              "pacman" = "pacman -Q | awk '{print \$1}'"
+              "zypper" = "zypper search --installed-only | awk 'NR>4 {print \$3}'"
+              "apk" = "apk list --installed | cut -d' ' -f1"
+          }
+          
+          foreach ($pm in $packageManagers.Keys) {
+              $checkCmd = "which $pm >/dev/null 2>&1 && echo 'available' || echo 'unavailable'"
+              $available = wsl --exec bash -c $checkCmd 2>$null
+              
+              if ($available -eq "available") {
+                  $packageList = wsl --exec bash -c $packageManagers[$pm] 2>$null
+                  if ($packageList) {
+                      foreach ($package in $packageList) {
+                          if ($package -and $package.Trim() -ne "") {
+                              $packages += @{
+                                  Name = $package.Trim()
+                                  Manager = $pm
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          
+          return $packages
+      } catch {
+          return @()
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      $managerCounts = @{}
+      
+      foreach ($package in $DiscoveryOutput) {
+          if (-not $managerCounts.ContainsKey($package.Manager)) {
+              $managerCounts[$package.Manager] = 0
+          }
+          $managerCounts[$package.Manager]++
+      }
+      
+      foreach ($manager in $managerCounts.Keys) {
+          $applications += @{
+              Name = "PackageManager-$manager"
+              Version = "System Package Manager"
+              Status = "Active"
+              PackageManager = $manager
+              PackageCount = $managerCounts[$manager]
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "WSL Package information restored:" -ForegroundColor Green
+          foreach ($pm in $StateObject) {
+              Write-Host "  - $($pm.PackageManager): $($pm.PackageCount) packages" -ForegroundColor Cyan
+          }
+          Write-Host "Note: Actual package installation requires manual setup" -ForegroundColor Yellow
+      } else {
+          Write-Host "No WSL packages found in backup" -ForegroundColor Yellow
+      }
+
+  # WSL Configuration Files Status  
+  - name: "WSL Configuration Files"
+    dynamic_state_path: "config_files.json"
+    discovery_command: |
+      try {
+          if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
+              return @()
           }
           
           $configPaths = @(
@@ -108,15 +231,14 @@ applications:
               }
           }
           
-          $configs | ConvertTo-Json -Depth 5
+          return $configs
       } catch {
-          Write-Output "[]"
+          return @()
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $configs = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
-      foreach ($config in $configs) {
+      foreach ($config in $DiscoveryOutput) {
           $applications += @{
               Name = "Config-$(Split-Path $config.Path -Leaf)"
               Version = "1.0"
@@ -124,26 +246,31 @@ applications:
               Path = $config.Path
           }
       }
-      $applications | ConvertTo-Json -Depth 5
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      Write-Host "WSL configuration file information restored from backup" -ForegroundColor Green
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "WSL configuration file information restored:" -ForegroundColor Green
+          foreach ($config in $StateObject) {
+              Write-Host "  - $($config.Path): $($config.Status)" -ForegroundColor Cyan
+          }
+      } else {
+          Write-Host "No WSL configuration files found in backup" -ForegroundColor Yellow
+      }
 
   # chezmoi Status
   - name: "chezmoi Configuration"
-    type: custom
-    dynamic_state_path: "wsl/chezmoi_status.yaml"
+    dynamic_state_path: "chezmoi_status.json"
     discovery_command: |
       try {
           if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-              Write-Output (@{
+              return @{
                   chezmoiAvailable = $false
                   chezmoiInitialized = $false
                   managedFiles = @()
                   sourceDirectory = ""
                   version = ""
-              } | ConvertTo-Json -Depth 5)
-              return
+              }
           }
           
           $chezmoiAvailable = wsl --exec bash -c "if command -v chezmoi >/dev/null 2>&1; then echo 'true'; else echo 'false'; fi" 2>$null
@@ -168,48 +295,42 @@ applications:
                   $chezmoiData.managedFileCount = [int]$managedCount
               }
               
-              $chezmoiData | ConvertTo-Json -Depth 5
+              return $chezmoiData
           } else {
-              (@{
+              return @{
                   chezmoiAvailable = $false
                   chezmoiInitialized = $false
                   managedFiles = @()
                   sourceDirectory = ""
                   version = ""
-              } | ConvertTo-Json -Depth 5)
+              }
           }
       } catch {
-          (@{
+          return @{
               chezmoiAvailable = $false
               chezmoiInitialized = $false
               managedFiles = @()
               sourceDirectory = ""
               version = ""
-          } | ConvertTo-Json -Depth 5)
+          }
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $chezmoiData = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       $applications += @{
           Name = "chezmoi"
-          Version = $chezmoiData.version
-          Status = if ($chezmoiData.chezmoiAvailable) { 
-              if ($chezmoiData.chezmoiInitialized) { "Initialized" } else { "Available" }
+          Version = $DiscoveryOutput.version
+          Status = if ($DiscoveryOutput.chezmoiAvailable) { 
+              if ($DiscoveryOutput.chezmoiInitialized) { "Initialized" } else { "Available" }
           } else { "Not Available" }
-          ManagedFileCount = if ($chezmoiData.managedFileCount) { $chezmoiData.managedFileCount } else { 0 }
-          SourceDirectory = $chezmoiData.sourceDirectory
+          ManagedFileCount = if ($DiscoveryOutput.managedFileCount) { $DiscoveryOutput.managedFileCount } else { 0 }
+          SourceDirectory = $DiscoveryOutput.sourceDirectory
       }
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $chezmoiData = $StateJson | ConvertFrom-Json
-      if ($chezmoiData.Count -gt 0) {
-          $chezmoi = $chezmoiData[0]
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          $chezmoi = $StateObject[0]
           if ($chezmoi.Status -eq "Initialized") {
               Write-Host "chezmoi was previously configured with $($chezmoi.ManagedFileCount) managed files" -ForegroundColor Green
               if ($chezmoi.SourceDirectory) {
@@ -218,4 +339,6 @@ applications:
           } else {
               Write-Host "chezmoi was not configured in the backed up environment" -ForegroundColor Yellow
           }
+      } else {
+          Write-Host "No chezmoi configuration found in backup" -ForegroundColor Yellow
       }

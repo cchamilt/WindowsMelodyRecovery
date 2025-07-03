@@ -47,49 +47,49 @@ registry:
     path: 'HKCU:\Software\KeePassXC'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_main.yaml"
+    dynamic_state_path: "registry/keepassxc_main.yaml"
 
   - name: "KeePassXC Application Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_app.yaml"
+    dynamic_state_path: "registry/keepassxc_app.yaml"
 
   - name: "KeePassXC Auto-Type Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC\Auto-Type'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_autotype.yaml"
+    dynamic_state_path: "registry/keepassxc_autotype.yaml"
 
   - name: "KeePassXC Browser Integration Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC\Browser Integration'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_browser.yaml"
+    dynamic_state_path: "registry/keepassxc_browser.yaml"
 
   - name: "KeePassXC General Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC\General'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_general.yaml"
+    dynamic_state_path: "registry/keepassxc_general.yaml"
 
   - name: "KeePassXC GUI Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC\GUI'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_gui.yaml"
+    dynamic_state_path: "registry/keepassxc_gui.yaml"
 
   - name: "KeePassXC Security Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC\Security'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_security.yaml"
+    dynamic_state_path: "registry/keepassxc_security.yaml"
 
   - name: "KeePassXC SSH Agent Settings"
     path: 'HKCU:\Software\KeePassXC\KeePassXC\SSHAgent'
     type: key
     action: sync
-    dynamic_state_path: "keepassxc/registry/keepassxc_sshagent.yaml"
+    dynamic_state_path: "registry/keepassxc_sshagent.yaml"
 
 files:
   # KeePassXC Configuration Files
@@ -97,44 +97,44 @@ files:
     path: "$env:APPDATA/KeePassXC"
     type: directory
     action: sync
-    dynamic_state_path: "keepassxc/files/config.yaml"
+    dynamic_state_path: "files/config.yaml"
 
   - name: "KeePassXC Plugins"
     path: "$env:APPDATA/KeePassXC/plugins"
     type: directory
     action: sync
-    dynamic_state_path: "keepassxc/files/plugins.yaml"
+    dynamic_state_path: "files/plugins.yaml"
 
   - name: "KeePassXC Key Files"
     path: "$env:APPDATA/KeePassXC/keyfiles"
     type: directory
     action: sync
-    dynamic_state_path: "keepassxc/files/keyfiles.yaml"
+    dynamic_state_path: "files/keyfiles.yaml"
 
   - name: "KeePassXC Auto-Type Files"
     path: "$env:APPDATA/KeePassXC/autotype"
     type: directory
     action: sync
-    dynamic_state_path: "keepassxc/files/autotype.yaml"
+    dynamic_state_path: "files/autotype.yaml"
 
   # Browser Integration Files
   - name: "Chrome KeePassXC Extension"
     path: "$env:LOCALAPPDATA/Google/Chrome/User Data/Default/Local Extension Settings/oboonakemofpalcgghocfoadofidjkkk"
     type: directory
     action: sync
-    dynamic_state_path: "keepassxc/files/chrome_extension.yaml"
+    dynamic_state_path: "files/chrome_extension.yaml"
 
   - name: "Edge KeePassXC Extension"
     path: "$env:LOCALAPPDATA/Microsoft/Edge/User Data/Default/Local Extension Settings/pdffhmdngciaglkoonimfcmckehcpafo"
     type: directory
     action: sync
-    dynamic_state_path: "keepassxc/files/edge_extension.yaml"
+    dynamic_state_path: "files/edge_extension.yaml"
 
 applications:
   # Firefox Browser Integration (requires wildcard handling)
   - name: "Firefox KeePassXC Integration"
     type: custom
-    dynamic_state_path: "keepassxc/firefox_integration.yaml"
+    dynamic_state_path: "firefox_integration.yaml"
     discovery_command: |
       try {
           $firefoxData = @()
@@ -197,7 +197,7 @@ applications:
   # KeePassXC Installation Information
   - name: "KeePassXC Installation Info"
     type: custom
-    dynamic_state_path: "keepassxc/installation_info.yaml"
+    dynamic_state_path: "installation_info.yaml"
     discovery_command: |
       try {
           $keepassInfo = @{
@@ -320,7 +320,7 @@ applications:
   # KeePassXC Database Information (Recent Databases)
   - name: "KeePassXC Database Info"
     type: custom
-    dynamic_state_path: "keepassxc/database_info.yaml"
+    dynamic_state_path: "database_info.yaml"
     discovery_command: |
       try {
           $databaseInfo = @()

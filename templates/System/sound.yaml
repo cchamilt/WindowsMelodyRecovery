@@ -23,95 +23,95 @@ registry:
     path: "HKCU:\\Software\\Microsoft\\Multimedia\\Audio"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/windows_audio.json"
+    dynamic_state_path: "registry/windows_audio.json"
 
   - name: "Audio Device Control Panel"
     path: "HKCU:\\Software\\Microsoft\\Multimedia\\Audio\\DeviceCpl"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/audio_device_cpl.json"
+    dynamic_state_path: "registry/audio_device_cpl.json"
 
   - name: "MMDevices Audio Configuration"
     path: "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\MMDevices\\Audio"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/mmdevices_audio.json"
+    dynamic_state_path: "registry/mmdevices_audio.json"
 
   - name: "Audio Drivers Registry"
     path: "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Drivers32"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/audio_drivers.json"
+    dynamic_state_path: "registry/audio_drivers.json"
 
   # Sound Schemes and Events
   - name: "Sound Event Schemes"
     path: "HKCU:\\AppEvents\\Schemes"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/sound_schemes.json"
+    dynamic_state_path: "registry/sound_schemes.json"
 
   - name: "Sound Event Labels"
     path: "HKCU:\\AppEvents\\EventLabels"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/event_labels.json"
+    dynamic_state_path: "registry/event_labels.json"
 
   - name: "Application Sound Events"
     path: "HKCU:\\AppEvents\\Schemes\\Apps"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/app_sound_events.json"
+    dynamic_state_path: "registry/app_sound_events.json"
 
   - name: "Sound Scheme Names"
     path: "HKCU:\\AppEvents\\Schemes\\Names"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/scheme_names.json"
+    dynamic_state_path: "registry/scheme_names.json"
 
   # Spatial Audio and Enhancements
   - name: "System Audio Configuration"
     path: "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/system_audio_config.json"
+    dynamic_state_path: "registry/system_audio_config.json"
 
   - name: "User Audio Configuration"
     path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Audio"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/user_audio_config.json"
+    dynamic_state_path: "registry/user_audio_config.json"
 
   - name: "Spatial Sound Settings"
     path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Audio\\SpatialSound"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/spatial_sound.json"
+    dynamic_state_path: "registry/spatial_sound.json"
 
   # Volume and Application Settings
   - name: "Multimedia Audio Settings"
     path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Multimedia\\Audio"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/multimedia_audio.json"
+    dynamic_state_path: "registry/multimedia_audio.json"
 
   - name: "Audio Enhancements"
     path: "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio\\AudioEnhancements"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/audio_enhancements.json"
+    dynamic_state_path: "registry/audio_enhancements.json"
 
   # Audio Services
   - name: "Audio Endpoint Builder Service"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\AudioEndpointBuilder"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/audio_endpoint_builder.json"
+    dynamic_state_path: "registry/audio_endpoint_builder.json"
 
   - name: "Audio Service Configuration"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Audiosrv"
     type: key
     action: sync
-    dynamic_state_path: "sound/registry/audio_service.json"
+    dynamic_state_path: "registry/audio_service.json"
 
 applications:
   # Audio Device Information
@@ -128,7 +128,7 @@ applications:
           Write-Warning "Failed to parse audio devices: $_"
           return "[]"
       }
-    dynamic_state_path: "sound/applications/audio_devices.json"
+    dynamic_state_path: "applications/audio_devices.json"
 
   # Default Audio Endpoints
   - name: "Default Audio Endpoints"
@@ -161,7 +161,7 @@ applications:
           Write-Warning "Failed to parse audio endpoints: $_"
           return "[]"
       }
-    dynamic_state_path: "sound/applications/default_endpoints.json"
+    dynamic_state_path: "applications/default_endpoints.json"
 
   # Audio Volume Information
   - name: "Audio Volume Settings"
@@ -191,7 +191,7 @@ applications:
           Write-Warning "Failed to parse volume data: $_"
           return "[]"
       }
-    dynamic_state_path: "sound/applications/volume_settings.json"
+    dynamic_state_path: "applications/volume_settings.json"
 
 cleanup:
   - name: "Verify Audio Service Running"

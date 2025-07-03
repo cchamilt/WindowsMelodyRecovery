@@ -17,70 +17,50 @@ prerequisites:
     expected_output: "Power management available"
     on_missing: warn
 
-files:
-  # Power Scheme Exports (will be created during backup)
-  - name: "Power Schemes List"
-    path: "${BackupPath}\\power\\files\\power_schemes.txt"
-    type: file
-    action: sync
-    dynamic_state_path: "power/files/power_schemes.txt"
-
-  - name: "Active Power Scheme"
-    path: "${BackupPath}\\power\\files\\active_scheme.txt"
-    type: file
-    action: sync
-    dynamic_state_path: "power/files/active_scheme.txt"
-
-  - name: "Power Capabilities"
-    path: "${BackupPath}\\power\\files\\power_capabilities.txt"
-    type: file
-    action: sync
-    dynamic_state_path: "power/files/power_capabilities.txt"
-
 registry:
   # Power Control Registry Settings
   - name: "System Power Control"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/system_power_control.json"
+    dynamic_state_path: "registry/system_power_control.json"
 
   - name: "Power Options Policies"
     path: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Power\\PowerSettings"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/power_policies.json"
+    dynamic_state_path: "registry/power_policies.json"
 
   - name: "User Power Settings"
     path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\PowerOptions"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/user_power_options.json"
+    dynamic_state_path: "registry/user_power_options.json"
 
   - name: "Session Manager Power"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/session_manager_power.json"
+    dynamic_state_path: "registry/session_manager_power.json"
 
   # Advanced Power Management
   - name: "Processor Power Management"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\\54533251-82be-4824-96c1-47b60b740d00"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/processor_power.json"
+    dynamic_state_path: "registry/processor_power.json"
 
   - name: "Sleep Power Settings"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\\238C9FA8-0AAD-41ED-83F4-97BE242C8F20"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/sleep_settings.json"
+    dynamic_state_path: "registry/sleep_settings.json"
 
   - name: "Display Power Settings"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSettings\\7516b95f-f776-4464-8c53-06167f40cc99"
     type: key
     action: sync
-    dynamic_state_path: "power/registry/display_power.json"
+    dynamic_state_path: "registry/display_power.json"
 
 applications:
   # Power Schemes Information
@@ -88,10 +68,11 @@ applications:
     type: custom
     discovery_command: "powercfg /list"
     parse_script: |
-      param([string]$PowerOutput)
+      param([string]$DiscoveryOutput)
       try {
           $schemes = @()
-          $lines = $PowerOutput -split "`n"
+          $applications = @()
+          $lines = $DiscoveryOutput -split "`n"
           foreach ($line in $lines) {
               if ($line -match "Power Scheme GUID:\s*([a-fA-F0-9\-]+)\s*\((.+)\)(\s*\*)?") {
                   $schemes += @{
@@ -101,53 +82,132 @@ applications:
                   }
               }
           }
-          $schemes | ConvertTo-Json -Compress
+          
+          foreach ($scheme in $schemes) {
+              $applications += @{
+                  Name = "PowerScheme-$($scheme.Name -replace '[^a-zA-Z0-9]', '')"
+                  Version = "Scheme"
+                  Status = if ($scheme.IsActive) { "Active" } else { "Available" }
+                  SchemeName = $scheme.Name
+                  SchemeGUID = $scheme.GUID
+                  IsActive = $scheme.IsActive
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
       } catch {
           Write-Warning "Failed to parse power schemes: $_"
-          return "[]"
+          "[]"
       }
-    dynamic_state_path: "power/applications/power_schemes.json"
+    dynamic_state_path: "power_schemes.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $schemes = $StateJson | ConvertFrom-Json
+      if ($schemes.Count -gt 0) {
+          Write-Host "Power scheme information restored:" -ForegroundColor Green
+          foreach ($scheme in $schemes) {
+              Write-Host "  - $($scheme.SchemeName): $($scheme.Status)" -ForegroundColor Cyan
+              Write-Host "    GUID: $($scheme.SchemeGUID)" -ForegroundColor Gray
+              if ($scheme.IsActive) {
+                  Write-Host "    Currently Active" -ForegroundColor Green
+              }
+          }
+      } else {
+          Write-Host "No power scheme information found in backup" -ForegroundColor Yellow
+      }
 
   # Active Power Scheme Details
   - name: "Active Power Scheme Details"
     type: custom
     discovery_command: "powercfg /getactivescheme"
     parse_script: |
-      param([string]$ActiveScheme)
+      param([string]$DiscoveryOutput)
       try {
-          if ($ActiveScheme -match "Power Scheme GUID:\s*([a-fA-F0-9\-]+)\s*\((.+)\)") {
-              $schemeInfo = @{
-                  GUID = $matches[1].Trim()
-                  Name = $matches[2].Trim()
+          $applications = @()
+          if ($DiscoveryOutput -match "Power Scheme GUID:\s*([a-fA-F0-9\-]+)\s*\((.+)\)") {
+              $applications += @{
+                  Name = "ActivePowerScheme"
+                  Version = "Current"
+                  Status = "Active"
+                  SchemeName = $matches[2].Trim()
+                  SchemeGUID = $matches[1].Trim()
                   IsActive = $true
               }
-              $schemeInfo | ConvertTo-Json -Compress
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
           } else {
-              return "{}"
+              $applications | ConvertTo-Json -Depth 5 -Compress
           }
       } catch {
           Write-Warning "Failed to parse active scheme: $_"
-          return "{}"
+          "[]"
       }
-    dynamic_state_path: "power/applications/active_scheme.json"
+    dynamic_state_path: "active_scheme.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $activeScheme = $StateJson | ConvertFrom-Json
+      if ($activeScheme.Count -gt 0) {
+          Write-Host "Active power scheme information restored:" -ForegroundColor Green
+          foreach ($scheme in $activeScheme) {
+              Write-Host "  - $($scheme.SchemeName)" -ForegroundColor Cyan
+              Write-Host "    GUID: $($scheme.SchemeGUID)" -ForegroundColor Gray
+              Write-Host "    Status: $($scheme.Status)" -ForegroundColor Green
+          }
+      } else {
+          Write-Host "No active power scheme information found in backup" -ForegroundColor Yellow
+      }
 
   # Power Capabilities
   - name: "System Power Capabilities"
     type: custom
     discovery_command: "powercfg /availablesleepstates"
     parse_script: |
-      param([string]$SleepStates)
+      param([string]$DiscoveryOutput)
       try {
-          $capabilities = @{
-              AvailableSleepStates = $SleepStates -split "`n" | Where-Object { $_.Trim() -ne "" }
-              Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+          $applications = @()
+          $sleepStates = $DiscoveryOutput -split "`n" | Where-Object { $_.Trim() -ne "" }
+          
+          if ($sleepStates.Count -gt 0) {
+              $applications += @{
+                  Name = "PowerCapabilities"
+                  Version = "System"
+                  Status = "Available"
+                  AvailableSleepStates = $sleepStates
+                  StateCount = $sleepStates.Count
+                  Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              }
           }
-          $capabilities | ConvertTo-Json -Compress
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
       } catch {
           Write-Warning "Failed to parse sleep states: $_"
-          return "{}"
+          "[]"
       }
-    dynamic_state_path: "power/applications/power_capabilities.json"
+    dynamic_state_path: "power_capabilities.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $capabilities = $StateJson | ConvertFrom-Json
+      if ($capabilities.Count -gt 0) {
+          Write-Host "System power capabilities restored:" -ForegroundColor Green
+          foreach ($cap in $capabilities) {
+              Write-Host "  - Available Sleep States: $($cap.StateCount)" -ForegroundColor Cyan
+              foreach ($state in $cap.AvailableSleepStates) {
+                  Write-Host "    $state" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No power capabilities information found in backup" -ForegroundColor Yellow
+      }
 
   # Battery Information (if available)
   - name: "Battery Information"
@@ -156,29 +216,59 @@ applications:
       try {
           $batteries = Get-WmiObject -Class Win32_Battery -ErrorAction SilentlyContinue
           if ($batteries) {
-              $batteries | Select-Object Name, DeviceID, EstimatedChargeRemaining, EstimatedRunTime, Status
+              $batteries | Select-Object Name, DeviceID, EstimatedChargeRemaining, EstimatedRunTime, Status | ConvertTo-Json -Depth 5
           } else {
-              @()
+              "[]"
           }
       } catch {
           Write-Warning "Could not retrieve battery information: $_"
-          @()
+          "[]"
       }
     parse_script: |
-      param([object]$BatteryInfo)
+      param([string]$DiscoveryOutput)
       try {
-          if ($BatteryInfo) {
-              $batteries = $BatteryInfo | Select-Object -Property *
-              $result = $batteries | ConvertTo-Json -Depth 5
-              return $result
+          $batteryData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($batteryData -and $batteryData.Count -gt 0) {
+              foreach ($battery in $batteryData) {
+                  $applications += @{
+                      Name = "Battery-$($battery.DeviceID -replace '[^a-zA-Z0-9]', '')"
+                      Version = "Hardware"
+                      Status = $battery.Status
+                      BatteryName = $battery.Name
+                      DeviceID = $battery.DeviceID
+                      ChargeRemaining = $battery.EstimatedChargeRemaining
+                      EstimatedRunTime = $battery.EstimatedRunTime
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
           } else {
-              return "[]"
+              $applications | ConvertTo-Json -Depth 5 -Compress
           }
       } catch {
           Write-Warning "Failed to parse battery information: $_"
-          return "[]"
+          "[]"
       }
-    dynamic_state_path: "power/applications/battery_info.json"
+    dynamic_state_path: "battery_info.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $batteries = $StateJson | ConvertFrom-Json
+      if ($batteries.Count -gt 0) {
+          Write-Host "Battery information restored:" -ForegroundColor Green
+          foreach ($battery in $batteries) {
+              Write-Host "  - $($battery.BatteryName): $($battery.Status)" -ForegroundColor Cyan
+              Write-Host "    Device ID: $($battery.DeviceID)" -ForegroundColor Gray
+              if ($battery.ChargeRemaining) {
+                  Write-Host "    Charge Remaining: $($battery.ChargeRemaining)%" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No battery information found in backup (desktop system or no batteries detected)" -ForegroundColor Yellow
+      }
 
   # Detailed Power Settings for Current Scheme
   - name: "Current Scheme Detailed Settings"
@@ -197,19 +287,47 @@ applications:
           "Error retrieving power settings"
       }
     parse_script: |
-      param([string]$DetailedSettings)
+      param([string]$DiscoveryOutput)
       try {
-          # Store as raw text since powercfg output is complex
-          $settings = @{
-              RawOutput = $DetailedSettings
-              Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+          $applications = @()
+          
+          if ($DiscoveryOutput -and $DiscoveryOutput -ne "No active scheme found" -and $DiscoveryOutput -ne "Error retrieving power settings") {
+              # Count the number of settings lines for reference
+              $settingsLines = ($DiscoveryOutput -split "`n").Count
+              
+              $applications += @{
+                  Name = "DetailedPowerSettings"
+                  Version = "Current"
+                  Status = "Captured"
+                  SettingsCount = $settingsLines
+                  RawOutput = $DiscoveryOutput
+                  Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              }
           }
-          $settings | ConvertTo-Json -Compress
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
       } catch {
           Write-Warning "Failed to parse detailed settings: $_"
-          return "{}"
+          "[]"
       }
-    dynamic_state_path: "power/applications/detailed_settings.json"
+    dynamic_state_path: "detailed_settings.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $settings = $StateJson | ConvertFrom-Json
+      if ($settings.Count -gt 0) {
+          Write-Host "Detailed power settings information restored:" -ForegroundColor Green
+          foreach ($setting in $settings) {
+              Write-Host "  - Settings captured: $($setting.SettingsCount) lines" -ForegroundColor Cyan
+              Write-Host "    Timestamp: $($setting.Timestamp)" -ForegroundColor Gray
+              Write-Host "    Status: $($setting.Status)" -ForegroundColor Green
+          }
+      } else {
+          Write-Host "No detailed power settings found in backup" -ForegroundColor Yellow
+      }
 
   # Power Device Information
   - name: "Power Management Devices"
@@ -218,29 +336,53 @@ applications:
       try {
           $powerDevices = Get-WmiObject -Query "SELECT * FROM Win32_PowerManagementEvent" -ErrorAction SilentlyContinue
           if ($powerDevices) {
-              $powerDevices | Select-Object EventType, OEMEventCode, Time
+              $powerDevices | Select-Object EventType, OEMEventCode, Time | ConvertTo-Json -Depth 5
           } else {
-              @()
+              "[]"
           }
       } catch {
           Write-Warning "Could not retrieve power management events: $_"
-          @()
+          "[]"
       }
     parse_script: |
-      param([object]$PowerDevices)
+      param([string]$DiscoveryOutput)
       try {
-          if ($PowerDevices) {
-              $devices = $PowerDevices | Select-Object -Property *
-              $result = $devices | ConvertTo-Json -Depth 5
-              return $result
+          $deviceData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($deviceData -and $deviceData.Count -gt 0) {
+              $applications += @{
+                  Name = "PowerManagementEvents"
+                  Version = "Events"
+                  Status = "Available"
+                  EventCount = $deviceData.Count
+                  Events = $deviceData
+                  Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
           } else {
-              return "[]"
+              $applications | ConvertTo-Json -Depth 5 -Compress
           }
       } catch {
           Write-Warning "Failed to parse power devices: $_"
-          return "[]"
+          "[]"
       }
-    dynamic_state_path: "power/applications/power_devices.json"
+    dynamic_state_path: "power_devices.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $devices = $StateJson | ConvertFrom-Json
+      if ($devices.Count -gt 0) {
+          Write-Host "Power management device information restored:" -ForegroundColor Green
+          foreach ($device in $devices) {
+              Write-Host "  - Power Events: $($device.EventCount) events captured" -ForegroundColor Cyan
+              Write-Host "    Timestamp: $($device.Timestamp)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No power management device information found in backup" -ForegroundColor Yellow
+      }
 
 cleanup:
   - name: "Verify Power Service Running"

@@ -24,77 +24,77 @@ registry:
     path: 'HKCU:\Control Panel\Desktop'
     type: key
     action: sync
-    dynamic_state_path: "system_settings/control_panel_desktop.json"
+    dynamic_state_path: "registry/control_panel_desktop.json"
 
   - name: Graphics Drivers Configuration
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers'
     type: key
     action: sync
-    dynamic_state_path: "system_settings/graphics_drivers.json"
+    dynamic_state_path: "registry/graphics_drivers.json"
 
   - name: Video Configuration
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Video'
     type: key
     action: sync
-    dynamic_state_path: "system_settings/video_config.json"
+    dynamic_state_path: "registry/video_config.json"
 
   - name: Hardware Profile Video Settings
     path: 'HKLM:\SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Control\Video'
     type: key
     action: sync
-    dynamic_state_path: "system_settings/hardware_profile_video.json"
+    dynamic_state_path: "registry/hardware_profile_video.json"
 
   # Visual Effects and DWM
   - name: Visual Effects Settings
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
     type: key
     action: sync
-    dynamic_state_path: "user_configs/visual_effects.json"
+    dynamic_state_path: "registry/visual_effects.json"
 
   - name: Desktop Window Manager Settings
     path: 'HKCU:\Software\Microsoft\Windows\DWM'
     type: key
     action: sync
-    dynamic_state_path: "user_configs/dwm_settings.json"
+    dynamic_state_path: "registry/dwm_settings.json"
 
   # Color calibration
   - name: ICM Color Management (HKLM)
     path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ICM'
     type: key
     action: sync
-    dynamic_state_path: "system_settings/icm_system.json"
+    dynamic_state_path: "registry/icm_system.json"
 
   - name: ICM Color Management (HKCU)
     path: 'HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ICM'
     type: key
     action: sync
-    dynamic_state_path: "user_configs/icm_user.json"
+    dynamic_state_path: "registry/icm_user.json"
 
   # DPI settings
   - name: Window Metrics
     path: 'HKCU:\Control Panel\Desktop\WindowMetrics'
     type: key
     action: sync
-    dynamic_state_path: "user_configs/window_metrics.json"
+    dynamic_state_path: "registry/window_metrics.json"
 
   - name: Theme Manager Settings
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ThemeManager'
     type: key
     action: sync
-    dynamic_state_path: "user_configs/theme_manager.json"
+    dynamic_state_path: "registry/theme_manager.json"
 
   # HDR and advanced color
   - name: Video Settings
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\VideoSettings'
     type: key
     action: sync
-    dynamic_state_path: "user_configs/video_settings.json"
+    dynamic_state_path: "registry/video_settings.json"
 
   - name: HDR Configuration
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\HDR'
     type: key
     action: sync
-    dynamic_state_path: "system_settings/hdr_config.json"
+    dynamic_state_path: "registry/hdr_config.json"
 
 files:
   - name: Color Profiles Directory
@@ -107,55 +107,152 @@ files:
 applications:
   - name: Video Controllers Information
     type: custom
-    dynamic_state_path: "system_info/video_controllers.json"
-    discovery_command: 'Get-CimInstance -Namespace root\cimv2 -ClassName Win32_VideoController'
+    dynamic_state_path: "video_controllers.json"
+    discovery_command: "Get-CimInstance -Namespace root/cimv2 -ClassName Win32_VideoController | Select-Object Name, VideoProcessor, AdapterRAM, DriverVersion, VideoModeDescription, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate | ConvertTo-Json -Compress"
     parse_script: |
-      param([object]$VideoControllers)
+      param($VideoOutput)
       try {
-          $controllers = $VideoControllers | Select-Object -Property *
-          $result = $controllers | ConvertTo-Json -Depth 10
-          return $result
+          if ([string]::IsNullOrWhiteSpace($VideoOutput) -or $VideoOutput -eq "null") {
+              Write-Host "Found 0 video controllers"
+              return "[]"
+          }
+          
+          # The discovery command already outputs JSON, so just validate and return it
+          $controllers = $VideoOutput | ConvertFrom-Json
+          if (-not $controllers) {
+              $controllers = @()
+          }
+          
+          # Ensure it's an array
+          if ($controllers -isnot [array]) {
+              $controllers = @($controllers)
+          }
+          
+          Write-Host "Found $($controllers.Count) video controllers"
+          return $controllers | ConvertTo-Json -Compress
       } catch {
           Write-Warning "Failed to parse video controllers: $_"
           return "[]"
       }
     install_script: |
-      param([string]$ControllersJson)
-      # Video controller information is read-only, no installation needed
-      Write-Host "Video controller information restored (informational only)"
+      param($ControllersJson)
+      try {
+          Write-Host "Video controller information (read-only reference):" -ForegroundColor Cyan
+          
+          $controllers = $ControllersJson | ConvertFrom-Json
+          foreach ($controller in $controllers) {
+              Write-Host "  - $($controller.Name)" -ForegroundColor Gray
+              if ($controller.VideoProcessor) { Write-Host "    Processor: $($controller.VideoProcessor)" -ForegroundColor DarkGray }
+              if ($controller.AdapterRAM) { Write-Host "    RAM: $([math]::Round($controller.AdapterRAM / 1GB, 2)) GB" -ForegroundColor DarkGray }
+              if ($controller.CurrentHorizontalResolution -and $controller.CurrentVerticalResolution) {
+                  Write-Host "    Resolution: $($controller.CurrentHorizontalResolution)x$($controller.CurrentVerticalResolution)" -ForegroundColor DarkGray
+              }
+          }
+      } catch {
+          Write-Warning "Failed to display video controller information: $_"
+      }
 
   - name: Display Monitor Information  
     type: custom
-    dynamic_state_path: "system_info/displays.json"
-    discovery_command: 'Get-WmiObject -Namespace root\wmi -Class WmiMonitorID'
+    dynamic_state_path: "displays.json"
+    discovery_command: "Get-WmiObject -Namespace root/wmi -Class WmiMonitorID | ForEach-Object { @{ ManufacturerName = if ($_.ManufacturerName) { [System.Text.Encoding]::ASCII.GetString($_.ManufacturerName).Trim([char]0) } else { 'Unknown' }; ProductCodeID = if ($_.ProductCodeID) { [System.Text.Encoding]::ASCII.GetString($_.ProductCodeID).Trim([char]0) } else { 'Unknown' }; SerialNumberID = if ($_.SerialNumberID) { [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID).Trim([char]0) } else { 'Unknown' }; UserFriendlyName = if ($_.UserFriendlyName) { [System.Text.Encoding]::ASCII.GetString($_.UserFriendlyName).Trim([char]0) } else { 'Unknown' }; InstanceName = $_.InstanceName } } | ConvertTo-Json -Compress"
     parse_script: |
-      param([object]$MonitorData)
+      param($MonitorOutput)
       try {
-          $displays = $MonitorData | ForEach-Object {
-              @{
-                  ManufacturerName = if ($_.ManufacturerName) { [System.Text.Encoding]::ASCII.GetString($_.ManufacturerName).Trim([char]0) } else { "" }
-                  ProductCodeID = if ($_.ProductCodeID) { [System.Text.Encoding]::ASCII.GetString($_.ProductCodeID).Trim([char]0) } else { "" }
-                  SerialNumberID = if ($_.SerialNumberID) { [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID).Trim([char]0) } else { "" }
-                  UserFriendlyName = if ($_.UserFriendlyName) { [System.Text.Encoding]::ASCII.GetString($_.UserFriendlyName).Trim([char]0) } else { "" }
-                  InstanceName = $_.InstanceName
-              }
+          if ([string]::IsNullOrWhiteSpace($MonitorOutput) -or $MonitorOutput -eq "null") {
+              Write-Host "Found 0 monitors"
+              return "[]"
           }
-          $result = $displays | ConvertTo-Json -Depth 10
-          return $result
+          
+          # The discovery command already outputs JSON, so just validate and return it
+          $monitors = $MonitorOutput | ConvertFrom-Json
+          if (-not $monitors) {
+              $monitors = @()
+          }
+          
+          # Ensure it's an array
+          if ($monitors -isnot [array]) {
+              $monitors = @($monitors)
+          }
+          
+          Write-Host "Found $($monitors.Count) monitors"
+          return $monitors | ConvertTo-Json -Compress
       } catch {
-          Write-Warning "Failed to parse display information: $_"
+          Write-Warning "Failed to parse monitor information: $_"
           return "[]"
       }
     install_script: |
-      param([string]$DisplaysJson)
-      # Display monitor information is read-only, no installation needed
-      Write-Host "Display monitor information restored (informational only)"
+      param($MonitorsJson)
+      try {
+          Write-Host "Display monitor information (read-only reference):" -ForegroundColor Cyan
+          
+          $monitors = $MonitorsJson | ConvertFrom-Json
+          foreach ($monitor in $monitors) {
+              $displayName = if ($monitor.UserFriendlyName -and $monitor.UserFriendlyName -ne "Unknown") {
+                  $monitor.UserFriendlyName
+              } elseif ($monitor.ManufacturerName -and $monitor.ProductCodeID) {
+                  "$($monitor.ManufacturerName) $($monitor.ProductCodeID)"
+              } else {
+                  "Unknown Monitor"
+              }
+              Write-Host "  - $displayName" -ForegroundColor Gray
+              if ($monitor.SerialNumberID -and $monitor.SerialNumberID -ne "Unknown") {
+                  Write-Host "    Serial: $($monitor.SerialNumberID)" -ForegroundColor DarkGray
+              }
+          }
+      } catch {
+          Write-Warning "Failed to display monitor information: $_"
+      }
+
+  - name: Display Resolution Settings
+    type: custom
+    dynamic_state_path: "display_settings.json"
+    discovery_command: "Get-CimInstance -ClassName Win32_VideoController | Where-Object { $_.CurrentHorizontalResolution -and $_.CurrentVerticalResolution } | Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel | ConvertTo-Json -Compress"
+    parse_script: |
+      param($DisplayOutput)
+      try {
+          if ([string]::IsNullOrWhiteSpace($DisplayOutput) -or $DisplayOutput -eq "null") {
+              Write-Host "Found 0 display configurations"
+              return "[]"
+          }
+          
+          $displays = $DisplayOutput | ConvertFrom-Json
+          if (-not $displays) {
+              $displays = @()
+          }
+          
+          if ($displays -isnot [array]) {
+              $displays = @($displays)
+          }
+          
+          Write-Host "Found $($displays.Count) display configurations"
+          return $displays | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse display settings: $_"
+          return "[]"
+      }
+    install_script: |
+      param($DisplaysJson)
+      try {
+          Write-Host "Display resolution settings (read-only reference):" -ForegroundColor Cyan
+          
+          $displays = $DisplaysJson | ConvertFrom-Json
+          foreach ($display in $displays) {
+              Write-Host "  - $($display.Name)" -ForegroundColor Gray
+              Write-Host "    Resolution: $($display.CurrentHorizontalResolution)x$($display.CurrentVerticalResolution)" -ForegroundColor DarkGray
+              if ($display.CurrentRefreshRate) { Write-Host "    Refresh Rate: $($display.CurrentRefreshRate) Hz" -ForegroundColor DarkGray }
+              if ($display.CurrentBitsPerPixel) { Write-Host "    Color Depth: $($display.CurrentBitsPerPixel) bits" -ForegroundColor DarkGray }
+          }
+      } catch {
+          Write-Warning "Failed to display resolution settings: $_"
+      }
 
 stages:
   post_update:
-    - name: Apply Display Settings (Notification)
+    - name: Display Settings Restoration Complete
       type: script
       inline_script: |
-        Write-Host "Display settings have been restored. Some changes may require a restart or re-login to take effect." -ForegroundColor Yellow
-        Write-Host "To apply color profiles immediately, you may need to manually re-assign them in Display Settings." -ForegroundColor Yellow
+        Write-Host "Display settings backup completed." -ForegroundColor Green
+        Write-Host "Registry settings, color profiles, and system information captured." -ForegroundColor Yellow
+        Write-Host "Note: Display resolution and monitor settings may require manual reconfiguration." -ForegroundColor Yellow
       parameters: {} 

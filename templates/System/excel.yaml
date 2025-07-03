@@ -34,149 +34,149 @@ registry:
     path: 'HKCU:\Software\Microsoft\Office\16.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_16_main.yaml"
+    dynamic_state_path: "registry/excel_16_main.yaml"
 
   - name: "Excel 2016 Common Settings"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Common\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_16_common.yaml"
+    dynamic_state_path: "registry/excel_16_common.yaml"
 
   - name: "Excel 2016 Options"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Excel\Options'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_16_options.yaml"
+    dynamic_state_path: "registry/excel_16_options.yaml"
 
   - name: "Excel 2016 Security"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Excel\Security'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_16_security.yaml"
+    dynamic_state_path: "registry/excel_16_security.yaml"
 
   - name: "Excel 2016 Recent Files"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Excel\Recent Files'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_16_recent.yaml"
+    dynamic_state_path: "registry/excel_16_recent.yaml"
 
   # Excel 2019 Settings  
   - name: "Excel 2019 Main Settings"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_19_main.yaml"
+    dynamic_state_path: "registry/excel_19_main.yaml"
 
   - name: "Excel 2019 Common Settings"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Common\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_19_common.yaml"
+    dynamic_state_path: "registry/excel_19_common.yaml"
 
   - name: "Excel 2019 Options"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Excel\Options'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_19_options.yaml"
+    dynamic_state_path: "registry/excel_19_options.yaml"
 
   - name: "Excel 2019 Security"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Excel\Security'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_19_security.yaml"
+    dynamic_state_path: "registry/excel_19_security.yaml"
 
   - name: "Excel 2019 Recent Files"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Excel\Recent Files'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_19_recent.yaml"
+    dynamic_state_path: "registry/excel_19_recent.yaml"
 
   # Excel 2013 Settings
   - name: "Excel 2013 Main Settings"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_15_main.yaml"
+    dynamic_state_path: "registry/excel_15_main.yaml"
 
   - name: "Excel 2013 Common Settings"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Common\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_15_common.yaml"
+    dynamic_state_path: "registry/excel_15_common.yaml"
 
   - name: "Excel 2013 Options"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Excel\Options'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_15_options.yaml"
+    dynamic_state_path: "registry/excel_15_options.yaml"
 
   - name: "Excel 2013 Security"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Excel\Security'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_15_security.yaml"
+    dynamic_state_path: "registry/excel_15_security.yaml"
 
   - name: "Excel 2013 Recent Files"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Excel\Recent Files'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_15_recent.yaml"
+    dynamic_state_path: "registry/excel_15_recent.yaml"
 
   # Excel 2010 Settings
   - name: "Excel 2010 Main Settings"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_14_main.yaml"
+    dynamic_state_path: "registry/excel_14_main.yaml"
 
   - name: "Excel 2010 Common Settings"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Common\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_14_common.yaml"
+    dynamic_state_path: "registry/excel_14_common.yaml"
 
   - name: "Excel 2010 Options"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Excel\Options'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_14_options.yaml"
+    dynamic_state_path: "registry/excel_14_options.yaml"
 
   - name: "Excel 2010 Security"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Excel\Security'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_14_security.yaml"
+    dynamic_state_path: "registry/excel_14_security.yaml"
 
   - name: "Excel 2010 Recent Files"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Excel\Recent Files'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/excel_14_recent.yaml"
+    dynamic_state_path: "registry/excel_14_recent.yaml"
 
   # System-wide Excel Settings
   - name: "System Excel 2016 Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/system_excel_16.yaml"
+    dynamic_state_path: "registry/system_excel_16.yaml"
 
   - name: "System Excel 2019 Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\19.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/system_excel_19.yaml"
+    dynamic_state_path: "registry/system_excel_19.yaml"
 
   - name: "System Excel 2015 Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/system_excel_15.yaml"
+    dynamic_state_path: "registry/system_excel_15.yaml"
 
   - name: "System Excel 2014 Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\14.0\Excel'
     type: key
     action: sync
-    dynamic_state_path: "excel/registry/system_excel_14.yaml"
+    dynamic_state_path: "registry/system_excel_14.yaml"
 
 files:
   # Excel Configuration Files
@@ -184,37 +184,37 @@ files:
     path: "$env:APPDATA/Microsoft/Excel"
     type: directory
     action: sync
-    dynamic_state_path: "excel/files/appdata.yaml"
+    dynamic_state_path: "files/appdata.yaml"
 
   - name: "Excel Templates"
     path: "$env:APPDATA/Microsoft/Templates"
     type: directory
     action: sync
-    dynamic_state_path: "excel/files/templates.yaml"
+    dynamic_state_path: "files/templates.yaml"
 
   - name: "Excel XLSTART Folder"
     path: "$env:APPDATA/Microsoft/Excel/XLSTART"
     type: directory
     action: sync
-    dynamic_state_path: "excel/files/xlstart.yaml"
+    dynamic_state_path: "files/xlstart.yaml"
 
   - name: "Excel Add-Ins"
     path: "$env:APPDATA/Microsoft/AddIns"
     type: directory
     action: sync
-    dynamic_state_path: "excel/files/addins.yaml"
+    dynamic_state_path: "files/addins.yaml"
 
   - name: "Excel Quick Access"
     path: "$env:APPDATA/Microsoft/Windows/Recent/Excel.lnk"
     type: file
     action: sync
-    dynamic_state_path: "excel/files/quickaccess.yaml"
+    dynamic_state_path: "files/quickaccess.yaml"
 
 applications:
   # Excel Recent Files Information
   - name: "Excel Recent Files"
     type: custom
-    dynamic_state_path: "excel/recent_files.yaml"
+    dynamic_state_path: "recent_files.yaml"
     discovery_command: |
       try {
           $recentFiles = @()
@@ -270,7 +270,7 @@ applications:
   # Excel Installation Information
   - name: "Excel Installation Info"
     type: custom
-    dynamic_state_path: "excel/installation_info.yaml"
+    dynamic_state_path: "installation_info.yaml"
     discovery_command: |
       try {
           $excelInfo = @{

@@ -23,89 +23,89 @@ registry:
     path: "HKCU:\\Keyboard Layout"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/user_keyboard_layout.json"
+    dynamic_state_path: "registry/user_keyboard_layout.json"
 
   - name: "CTF Input Framework"
     path: "HKCU:\\Software\\Microsoft\\CTF"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/ctf_framework.json"
+    dynamic_state_path: "registry/ctf_framework.json"
 
   - name: "Input Method Settings"
     path: "HKCU:\\Software\\Microsoft\\Input"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/input_method.json"
+    dynamic_state_path: "registry/input_method.json"
 
   - name: "System Keyboard Layout"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/system_keyboard_layout.json"
+    dynamic_state_path: "registry/system_keyboard_layout.json"
 
   - name: "System Keyboard Layouts"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/system_keyboard_layouts.json"
+    dynamic_state_path: "registry/system_keyboard_layouts.json"
 
   # Input Method Preferences
   - name: "Input Method Preferences"
     path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\InputMethod"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/input_method_prefs.json"
+    dynamic_state_path: "registry/input_method_prefs.json"
 
   - name: "IME Settings"
     path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\IME"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/ime_settings.json"
+    dynamic_state_path: "registry/ime_settings.json"
 
   # Keyboard Hardware Settings
   - name: "PS/2 Port Driver Settings"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\i8042prt"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/ps2_port_driver.json"
+    dynamic_state_path: "registry/ps2_port_driver.json"
 
   - name: "Keyboard Class Driver"
     path: "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/keyboard_class_driver.json"
+    dynamic_state_path: "registry/keyboard_class_driver.json"
 
   # AutoHotkey Settings
   - name: "AutoHotkey Configuration"
     path: "HKCU:\\Software\\AutoHotkey"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/autohotkey.json"
+    dynamic_state_path: "registry/autohotkey.json"
 
   # Keyboard Accessibility Options
   - name: "Keyboard Response Accessibility"
     path: "HKCU:\\Control Panel\\Accessibility\\Keyboard Response"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/keyboard_response.json"
+    dynamic_state_path: "registry/keyboard_response.json"
 
   - name: "Sticky Keys Settings"
     path: "HKCU:\\Control Panel\\Accessibility\\StickyKeys"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/sticky_keys.json"
+    dynamic_state_path: "registry/sticky_keys.json"
 
   - name: "Toggle Keys Settings"
     path: "HKCU:\\Control Panel\\Accessibility\\ToggleKeys"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/toggle_keys.json"
+    dynamic_state_path: "registry/toggle_keys.json"
 
   - name: "Filter Keys Settings"
     path: "HKCU:\\Control Panel\\Accessibility\\FilterKeys"
     type: key
     action: sync
-    dynamic_state_path: "keyboard/registry/filter_keys.json"
+    dynamic_state_path: "registry/filter_keys.json"
 
 applications:
   # Keyboard Device Information
@@ -122,7 +122,7 @@ applications:
           Write-Warning "Failed to parse keyboard devices: $_"
           return "[]"
       }
-    dynamic_state_path: "keyboard/applications/keyboard_devices.json"
+    dynamic_state_path: "applications/keyboard_devices.json"
 
   # Input Language Settings
   - name: "Input Language Configuration"
@@ -149,7 +149,7 @@ applications:
           Write-Warning "Failed to parse input settings: $_"
           return "{}"
       }
-    dynamic_state_path: "keyboard/applications/input_settings.json"
+    dynamic_state_path: "applications/input_settings.json"
 
   # Scan Code Mappings
   - name: "Scan Code Mappings"
@@ -182,7 +182,7 @@ applications:
           Write-Warning "Failed to parse scancode mappings: $_"
           return "{}"
       }
-    dynamic_state_path: "keyboard/applications/scancode_mappings.json"
+    dynamic_state_path: "applications/scancode_mappings.json"
 
   # Keyboard Layout Information
   - name: "Active Keyboard Layouts"
@@ -213,7 +213,7 @@ applications:
           Write-Warning "Failed to parse keyboard layouts: $_"
           return "[]"
       }
-    dynamic_state_path: "keyboard/applications/keyboard_layouts.json"
+    dynamic_state_path: "applications/keyboard_layouts.json"
 
 cleanup:
   - name: "Verify Keyboard Input Available"

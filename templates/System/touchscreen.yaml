@@ -68,641 +68,248 @@ prerequisites:
       }
     expected_output: "Touchscreen system available"
     on_missing: warn
+
 registry:
   # Touch Prediction Settings
   - name: "Touch Prediction User Settings"
     path: 'HKCU:\Software\Microsoft\TouchPrediction'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_prediction_user.yaml"
+    dynamic_state_path: "registry/touch_prediction_user.json"
 
   - name: "Touch Prediction System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\TouchPrediction'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_prediction_system.yaml"
+    dynamic_state_path: "registry/touch_prediction_system.json"
 
   # Touchscreen Calibration Settings
   - name: "Touchscreen User Settings"
     path: 'HKCU:\Software\Microsoft\Touchscreen'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touchscreen_user.yaml"
+    dynamic_state_path: "registry/touchscreen_user.json"
 
   - name: "Touchscreen System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Touchscreen'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touchscreen_system.yaml"
+    dynamic_state_path: "registry/touchscreen_system.json"
 
   # Tablet PC Settings
   - name: "Tablet Tip User Settings"
     path: 'HKCU:\Software\Microsoft\TabletTip'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/tablet_tip_user.yaml"
+    dynamic_state_path: "registry/tablet_tip_user.json"
 
   - name: "Tablet Tip System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\TabletTip'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/tablet_tip_system.yaml"
+    dynamic_state_path: "registry/tablet_tip_system.json"
 
   # Windows Ink Settings
   - name: "Pen Workspace User Settings"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PenWorkspace'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/pen_workspace_user.yaml"
+    dynamic_state_path: "registry/pen_workspace_user.json"
 
   - name: "Pen Workspace System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PenWorkspace'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/pen_workspace_system.yaml"
+    dynamic_state_path: "registry/pen_workspace_system.json"
 
   # Touch Input Settings
   - name: "Touch Input User Settings"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\TouchInput'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_input_user.yaml"
+    dynamic_state_path: "registry/touch_input_user.json"
 
   - name: "Touch Input System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\TouchInput'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_input_system.yaml"
+    dynamic_state_path: "registry/touch_input_system.json"
 
   # Touch Feedback Settings
   - name: "Touch Feedback User Settings"
     path: 'HKCU:\Control Panel\TouchFeedback'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_feedback_user.yaml"
+    dynamic_state_path: "registry/touch_feedback_user.json"
 
   - name: "Touch Feedback System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\TouchFeedback'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_feedback_system.yaml"
+    dynamic_state_path: "registry/touch_feedback_system.json"
 
   # Touch Gestures
   - name: "Touch Gestures User Settings"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\TouchGestures'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_gestures_user.yaml"
+    dynamic_state_path: "registry/touch_gestures_user.json"
 
   - name: "Touch Gestures System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\TouchGestures'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/touch_gestures_system.yaml"
+    dynamic_state_path: "registry/touch_gestures_system.json"
 
   # Pen Settings
   - name: "Pen User Settings"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Pen'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/pen_user.yaml"
+    dynamic_state_path: "registry/pen_user.json"
 
   - name: "Pen System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Pen'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/pen_system.yaml"
+    dynamic_state_path: "registry/pen_system.json"
 
   # Handwriting Recognition
   - name: "Handwriting User Settings"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Handwriting'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/handwriting_user.yaml"
+    dynamic_state_path: "registry/handwriting_user.json"
 
   - name: "Handwriting System Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Handwriting'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/handwriting_system.yaml"
+    dynamic_state_path: "registry/handwriting_system.json"
 
   # Touch Services Registry
   - name: "TouchScreen Service Settings"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TouchScreen'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/service_touchscreen.yaml"
+    dynamic_state_path: "registry/service_touchscreen.json"
 
   - name: "HidIr Service Settings"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\HidIr'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/service_hidir.yaml"
+    dynamic_state_path: "registry/service_hidir.json"
 
+  # Additional Touch Services
   - name: "TabletInputService Settings"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TabletInputService'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/service_tabletinput.yaml"
+    dynamic_state_path: "registry/service_tablet_input.json"
 
-  - name: "WacomPenService Settings"
-    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\WacomPenService'
+  - name: "Touch Keyboard Service Settings"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TouchKeyboardAndHandwritingPanelService'
     type: key
     action: sync
-    dynamic_state_path: "touchscreen/registry/service_wacompen.yaml"
-
-  # HID Touch Device Settings
-  - name: "HID TouchScreen Settings"
-    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\HID\TouchScreen'
-    type: key
-    action: sync
-    dynamic_state_path: "touchscreen/registry/hid_touchscreen.yaml"
-
-  - name: "HID Digitizer Settings"
-    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\HID\Digitizer'
-    type: key
-    action: sync
-    dynamic_state_path: "touchscreen/registry/hid_digitizer.yaml"
-
-  # Input Settings
-  - name: "Input User Settings"
-    path: 'HKCU:\Software\Microsoft\Input'
-    type: key
-    action: sync
-    dynamic_state_path: "touchscreen/registry/input_user.yaml"
-
-  - name: "Input System Settings"
-    path: 'HKLM:\SOFTWARE\Microsoft\Input'
-    type: key
-    action: sync
-    dynamic_state_path: "touchscreen/registry/input_system.yaml"
+    dynamic_state_path: "registry/service_touch_keyboard.json"
 
 files:
-  # Touch Calibration Files
+  # Touch Calibration Data
   - name: "Touch Calibration Data"
-    path: "$env:SystemRoot/System32/calibration.dat"
+    path: "%WINDIR%\\System32\\drivers\\UMDF\\touch.cal"
     type: file
     action: sync
-    dynamic_state_path: "touchscreen/files/calibration.yaml"
+    dynamic_state_path: "files/touch_calibration.json"
 
-  - name: "Touch Calibration Settings"
-    path: "$env:SystemRoot/System32/TouchCalibration.dat"
-    type: file
+  # Pen and Ink Settings
+  - name: "Pen Settings Data"
+    path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Pen"
+    type: directory
     action: sync
-    dynamic_state_path: "touchscreen/files/touch_calibration.yaml"
+    dynamic_state_path: "files/pen_settings"
+
+  # Touch Input Panel Data
+  - name: "Touch Input Panel Data"
+    path: "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\InputPersonalization"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/input_personalization"
 
 applications:
   # Touchscreen Device Information
   - name: "Touchscreen Devices"
-    type: custom
-    dynamic_state_path: "touchscreen/devices.yaml"
     discovery_command: |
       try {
           $touchscreenDevices = Get-PnpDevice | Where-Object { 
               ($_.Class -eq "Touchscreen" -or $_.Class -eq "HIDClass" -or $_.Class -eq "Mouse") -and 
               ($_.FriendlyName -match "touch|screen|digitizer|pen|stylus" -or
                $_.Manufacturer -match "wacom|synaptics|elan|hid|microsoft|n-trig|atmel")
-          } | Select-Object -Property @(
-              'InstanceId',
-              'FriendlyName',
-              'Manufacturer',
-              'Status',
-              'Class',
-              'DeviceID',
-              'HardwareID',
-              @{Name='IsEnabled'; Expression={$_.Status -eq 'OK'}}
-          )
-          
-          if ($touchscreenDevices) {
-              $touchscreenDevices | ConvertTo-Json -Depth 10
-          } else {
-              Write-Output "[]"
-          }
+          } | Select-Object InstanceId, FriendlyName, Manufacturer, Status, Class, DeviceID | ConvertTo-Json -Depth 10
+          if (-not $touchscreenDevices) { $touchscreenDevices = "[]" }
+          $touchscreenDevices
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $touchscreenDevices = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($device in $touchscreenDevices) {
-          $applications += @{
-              Name = "Device-$($device.FriendlyName -replace '[^a-zA-Z0-9]', '')"
-              Version = "Hardware Device"
-              Status = if ($device.IsEnabled) { "Enabled" } else { "Disabled" }
-              FriendlyName = $device.FriendlyName
-              Manufacturer = $device.Manufacturer
-              Class = $device.Class
-              DeviceID = $device.DeviceID
-              InstanceId = $device.InstanceId
-              HardwareID = $device.HardwareID
-          }
+      $devices = $State | ConvertFrom-Json
+      return @{
+          TouchscreenDeviceCount = $devices.Count
+          EnabledDevices = ($devices | Where-Object { $_.Status -eq "OK" }).Count
+          Manufacturers = $devices | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count)" }
+          DeviceTypes = $devices | Group-Object Class | ForEach-Object { "$($_.Name): $($_.Count)" }
       }
-      
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
-    install_script: |
-      param([string]$StateJson)
-      $devices = $StateJson | ConvertFrom-Json
-      if ($devices.Count -gt 0) {
-          Write-Host "Touchscreen devices information restored:" -ForegroundColor Green
-          foreach ($device in $devices) {
-              Write-Host "  - $($device.FriendlyName)" -ForegroundColor Cyan
-              Write-Host "    Manufacturer: $($device.Manufacturer), Status: $($device.Status)" -ForegroundColor Gray
-              Write-Host "    Class: $($device.Class), Device ID: $($device.DeviceID)" -ForegroundColor Gray
-          }
-      } else {
-          Write-Host "No touchscreen devices found in backup" -ForegroundColor Yellow
-      }
+    dynamic_state_path: "applications/devices.json"
 
-  # Touchscreen Driver Information
-  - name: "Touchscreen Drivers"
-    type: custom
-    dynamic_state_path: "touchscreen/drivers.yaml"
-    discovery_command: |
-      try {
-          $touchscreenDrivers = Get-WmiObject Win32_SystemDriver | Where-Object {
-              $_.Name -match "Touch|HID|Digitizer|Pen|Wacom" -or
-              $_.DisplayName -match "Touch|Screen|Digitizer|Pen|Stylus|Wacom|HID"
-          } | Select-Object Name, DisplayName, State, Status, StartMode, PathName
-          
-          if ($touchscreenDrivers) {
-              $touchscreenDrivers | ConvertTo-Json -Depth 10
-          } else {
-              Write-Output "[]"
-          }
-      } catch {
-          Write-Output "[]"
-      }
-    parse_script: |
-      param([string]$DiscoveryOutput)
-      $touchscreenDrivers = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($driver in $touchscreenDrivers) {
-          $applications += @{
-              Name = "Driver-$($driver.Name)"
-              Version = "System Driver"
-              Status = $driver.State
-              DriverName = $driver.Name
-              DisplayName = $driver.DisplayName
-              StartMode = $driver.StartMode
-              PathName = $driver.PathName
-              DriverStatus = $driver.Status
-          }
-      }
-      
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
-    install_script: |
-      param([string]$StateJson)
-      $drivers = $StateJson | ConvertFrom-Json
-      if ($drivers.Count -gt 0) {
-          Write-Host "Touchscreen drivers information restored:" -ForegroundColor Green
-          foreach ($driver in $drivers) {
-              Write-Host "  - $($driver.DisplayName) ($($driver.DriverName))" -ForegroundColor Cyan
-              Write-Host "    Status: $($driver.Status), Start Mode: $($driver.StartMode)" -ForegroundColor Gray
-              Write-Host "    Path: $($driver.PathName)" -ForegroundColor Gray
-          }
-      } else {
-          Write-Host "No touchscreen drivers found in backup" -ForegroundColor Yellow
-      }
-
-  # Touchscreen Services Information
+  # Touchscreen Services
   - name: "Touchscreen Services"
-    type: custom
-    dynamic_state_path: "touchscreen/services.yaml"
     discovery_command: |
       try {
-          $touchscreenServices = Get-Service | Where-Object {
+          $services = Get-Service | Where-Object {
               $_.Name -match "Touch|TabletInput|Pen|Wacom|HID" -or
               $_.DisplayName -match "Touch|Screen|Tablet|Pen|Stylus|Wacom|Handwriting|Ink"
-          } | Select-Object Name, DisplayName, Status, StartType, ServiceType
-          
-          if ($touchscreenServices) {
-              $touchscreenServices | ConvertTo-Json -Depth 10
-          } else {
-              Write-Output "[]"
-          }
+          } | Select-Object Name, DisplayName, Status, StartType | ConvertTo-Json -Depth 10
+          if (-not $services) { $services = "[]" }
+          $services
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $touchscreenServices = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      foreach ($service in $touchscreenServices) {
-          $applications += @{
-              Name = "Service-$($service.Name)"
-              Version = "Windows Service"
-              Status = $service.Status.ToString()
-              ServiceName = $service.Name
-              DisplayName = $service.DisplayName
-              StartType = $service.StartType.ToString()
-              ServiceType = $service.ServiceType.ToString()
-          }
+      $services = $State | ConvertFrom-Json
+      return @{
+          TouchscreenServiceCount = $services.Count
+          RunningServices = ($services | Where-Object { $_.Status -eq "Running" }).Count
+          AutomaticServices = ($services | Where-Object { $_.StartType -eq "Automatic" }).Count
+          ServiceNames = $services | ForEach-Object { $_.Name }
       }
-      
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
-    install_script: |
-      param([string]$StateJson)
-      $services = $StateJson | ConvertFrom-Json
-      if ($services.Count -gt 0) {
-          Write-Host "Touchscreen services information restored:" -ForegroundColor Green
-          foreach ($service in $services) {
-              Write-Host "  - $($service.DisplayName) ($($service.ServiceName))" -ForegroundColor Cyan
-              Write-Host "    Status: $($service.Status), Start Type: $($service.StartType)" -ForegroundColor Gray
-              Write-Host "    Service Type: $($service.ServiceType)" -ForegroundColor Gray
-          }
-      } else {
-          Write-Host "No touchscreen services found in backup" -ForegroundColor Yellow
-      }
+    dynamic_state_path: "applications/services.json"
 
-  # Touch Calibration Settings
-  - name: "Touch Calibration Settings"
-    type: custom
-    dynamic_state_path: "touchscreen/calibration.yaml"
+  # Touch Drivers Information
+  - name: "Touch Drivers"
     discovery_command: |
       try {
-          $calibrationSettings = @{}
-          
-          # Check for touch calibration registry settings
-          $calibrationKey = "HKCU:\Software\Microsoft\Touchscreen"
-          if (Test-Path $calibrationKey) {
-              $calibrationProperties = @(
-                  "CalibrationData", "TouchCalibration", "TouchThreshold",
-                  "TouchSensitivity", "PalmRejection", "EdgeRejection"
-              )
-              
-              foreach ($prop in $calibrationProperties) {
-                  try {
-                      $value = Get-ItemProperty -Path $calibrationKey -Name $prop -ErrorAction SilentlyContinue
-                      if ($value) {
-                          $calibrationSettings[$prop] = $value.$prop
-                      }
-                  } catch {
-                      Write-Verbose "Could not read calibration property $prop"
-                  }
-              }
-          }
-          
-          if ($calibrationSettings.Count -gt 0) {
-              $calibrationSettings | ConvertTo-Json -Depth 10
-          } else {
-              Write-Output "{}"
-          }
+          $drivers = Get-WmiObject Win32_SystemDriver | Where-Object {
+              $_.Name -match "Touch|HID|Digitizer|Pen|Wacom" -or
+              $_.DisplayName -match "Touch|Screen|Digitizer|Pen|Stylus|Wacom|HID"
+          } | Select-Object Name, DisplayName, State, Status, StartMode | ConvertTo-Json -Depth 10
+          if (-not $drivers) { $drivers = "[]" }
+          $drivers
       } catch {
-          Write-Output "{}"
+          Write-Output "[]"
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $calibrationSettings = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      if ($calibrationSettings -and $calibrationSettings.PSObject.Properties.Count -gt 0) {
-          $applications += @{
-              Name = "TouchCalibration"
-              Version = "Touch Calibration Settings"
-              Status = "Configured"
-              CalibrationData = $calibrationSettings.CalibrationData
-              TouchCalibration = $calibrationSettings.TouchCalibration
-              TouchThreshold = $calibrationSettings.TouchThreshold
-              TouchSensitivity = $calibrationSettings.TouchSensitivity
-              PalmRejection = $calibrationSettings.PalmRejection
-              EdgeRejection = $calibrationSettings.EdgeRejection
-          }
+      $drivers = $State | ConvertFrom-Json
+      return @{
+          TouchDriverCount = $drivers.Count
+          RunningDrivers = ($drivers | Where-Object { $_.State -eq "Running" }).Count
+          SystemDrivers = ($drivers | Where-Object { $_.StartMode -eq "System" }).Count
+          DriverNames = $drivers | ForEach-Object { $_.Name }
       }
-      
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
-    install_script: |
-      param([string]$StateJson)
-      $calibrationSettings = $StateJson | ConvertFrom-Json
-      if ($calibrationSettings.Count -gt 0) {
-          Write-Host "Touch calibration settings restored:" -ForegroundColor Green
-          foreach ($setting in $calibrationSettings) {
-              Write-Host "  - Touch Calibration Configuration" -ForegroundColor Cyan
-              if ($setting.TouchSensitivity) {
-                  Write-Host "    Touch Sensitivity: $($setting.TouchSensitivity)" -ForegroundColor Gray
-              }
-              if ($setting.TouchThreshold) {
-                  Write-Host "    Touch Threshold: $($setting.TouchThreshold)" -ForegroundColor Gray
-              }
-              if ($setting.PalmRejection) {
-                  Write-Host "    Palm Rejection: $($setting.PalmRejection)" -ForegroundColor Gray
-              }
-              if ($setting.EdgeRejection) {
-                  Write-Host "    Edge Rejection: $($setting.EdgeRejection)" -ForegroundColor Gray
-              }
-          }
-      } else {
-          Write-Host "No touch calibration settings found in backup" -ForegroundColor Yellow
-      }
+    dynamic_state_path: "applications/drivers.json"
 
-  # Pen and Ink Settings
-  - name: "Pen and Ink Settings"
-    type: custom
-    dynamic_state_path: "touchscreen/pen_ink.yaml"
-    discovery_command: |
-      try {
-          $penSettings = @{}
-          
-          # Check for pen workspace settings
-          $penWorkspaceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\PenWorkspace"
-          if (Test-Path $penWorkspaceKey) {
-              $penProperties = @(
-                  "PenWorkspaceAppSuggestionsEnabled", "PenWorkspaceButtonDesktopAppSuggestionEnabled",
-                  "PenWorkspaceButtonStoreAppSuggestionEnabled", "IsInputAppPreloadEnabled"
-              )
-              
-              foreach ($prop in $penProperties) {
-                  try {
-                      $value = Get-ItemProperty -Path $penWorkspaceKey -Name $prop -ErrorAction SilentlyContinue
-                      if ($value) {
-                          $penSettings[$prop] = $value.$prop
-                      }
-                  } catch {
-                      Write-Verbose "Could not read pen property $prop"
-                  }
-              }
-          }
-          
-          # Check for handwriting settings
-          $handwritingKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Handwriting"
-          if (Test-Path $handwritingKey) {
-              $handwritingProperties = @(
-                  "HandwritingPanelDockedModeEnabled", "HandwritingPanelEnabled",
-                  "TextPredictionEnabled", "AutoComplete"
-              )
-              
-              foreach ($prop in $handwritingProperties) {
-                  try {
-                      $value = Get-ItemProperty -Path $handwritingKey -Name $prop -ErrorAction SilentlyContinue
-                      if ($value) {
-                          $penSettings[$prop] = $value.$prop
-                      }
-                  } catch {
-                      Write-Verbose "Could not read handwriting property $prop"
-                  }
-              }
-          }
-          
-          if ($penSettings.Count -gt 0) {
-              $penSettings | ConvertTo-Json -Depth 10
-          } else {
-              Write-Output "{}"
-          }
-      } catch {
-          Write-Output "{}"
-      }
-    parse_script: |
-      param([string]$DiscoveryOutput)
-      $penSettings = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      if ($penSettings -and $penSettings.PSObject.Properties.Count -gt 0) {
-          $applications += @{
-              Name = "PenAndInkSettings"
-              Version = "Windows Pen and Ink"
-              Status = "Configured"
-              PenWorkspaceAppSuggestionsEnabled = $penSettings.PenWorkspaceAppSuggestionsEnabled
-              PenWorkspaceButtonDesktopAppSuggestionEnabled = $penSettings.PenWorkspaceButtonDesktopAppSuggestionEnabled
-              PenWorkspaceButtonStoreAppSuggestionEnabled = $penSettings.PenWorkspaceButtonStoreAppSuggestionEnabled
-              IsInputAppPreloadEnabled = $penSettings.IsInputAppPreloadEnabled
-              HandwritingPanelDockedModeEnabled = $penSettings.HandwritingPanelDockedModeEnabled
-              HandwritingPanelEnabled = $penSettings.HandwritingPanelEnabled
-              TextPredictionEnabled = $penSettings.TextPredictionEnabled
-              AutoComplete = $penSettings.AutoComplete
-          }
-      }
-      
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
-    install_script: |
-      param([string]$StateJson)
-      $penSettings = $StateJson | ConvertFrom-Json
-      if ($penSettings.Count -gt 0) {
-          Write-Host "Pen and ink settings restored:" -ForegroundColor Green
-          foreach ($setting in $penSettings) {
-              Write-Host "  - Windows Pen and Ink Configuration" -ForegroundColor Cyan
-              if ($setting.PenWorkspaceAppSuggestionsEnabled -ne $null) {
-                  Write-Host "    Pen Workspace App Suggestions: $($setting.PenWorkspaceAppSuggestionsEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.HandwritingPanelEnabled -ne $null) {
-                  Write-Host "    Handwriting Panel: $($setting.HandwritingPanelEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.TextPredictionEnabled -ne $null) {
-                  Write-Host "    Text Prediction: $($setting.TextPredictionEnabled)" -ForegroundColor Gray
-              }
-          }
-      } else {
-          Write-Host "No pen and ink settings found in backup" -ForegroundColor Yellow
-      }
-
-  # Touch Gesture Settings
-  - name: "Touch Gesture Settings"
-    type: custom
-    dynamic_state_path: "touchscreen/gestures.yaml"
-    discovery_command: |
-      try {
-          $gestureSettings = @{}
-          
-          # Check for touch gesture settings
-          $gestureKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\TouchGestures"
-          if (Test-Path $gestureKey) {
-              $gestureProperties = @(
-                  "EdgeSwipeEnabled", "TouchFeedbackEnabled", "PressAndHoldEnabled",
-                  "TapAndDragEnabled", "RightTapEnabled", "FlickEnabled"
-              )
-              
-              foreach ($prop in $gestureProperties) {
-                  try {
-                      $value = Get-ItemProperty -Path $gestureKey -Name $prop -ErrorAction SilentlyContinue
-                      if ($value) {
-                          $gestureSettings[$prop] = $value.$prop
-                      }
-                  } catch {
-                      Write-Verbose "Could not read gesture property $prop"
-                  }
-              }
-          }
-          
-          if ($gestureSettings.Count -gt 0) {
-              $gestureSettings | ConvertTo-Json -Depth 10
-          } else {
-              Write-Output "{}"
-          }
-      } catch {
-          Write-Output "{}"
-      }
-    parse_script: |
-      param([string]$DiscoveryOutput)
-      $gestureSettings = $DiscoveryOutput | ConvertFrom-Json
-      $applications = @()
-      
-      if ($gestureSettings -and $gestureSettings.PSObject.Properties.Count -gt 0) {
-          $applications += @{
-              Name = "TouchGestureSettings"
-              Version = "Windows Touch Gestures"
-              Status = "Configured"
-              EdgeSwipeEnabled = $gestureSettings.EdgeSwipeEnabled
-              TouchFeedbackEnabled = $gestureSettings.TouchFeedbackEnabled
-              PressAndHoldEnabled = $gestureSettings.PressAndHoldEnabled
-              TapAndDragEnabled = $gestureSettings.TapAndDragEnabled
-              RightTapEnabled = $gestureSettings.RightTapEnabled
-              FlickEnabled = $gestureSettings.FlickEnabled
-          }
-      }
-      
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
-    install_script: |
-      param([string]$StateJson)
-      $gestureSettings = $StateJson | ConvertFrom-Json
-      if ($gestureSettings.Count -gt 0) {
-          Write-Host "Touch gesture settings restored:" -ForegroundColor Green
-          foreach ($setting in $gestureSettings) {
-              Write-Host "  - Windows Touch Gestures Configuration" -ForegroundColor Cyan
-              if ($setting.EdgeSwipeEnabled -ne $null) {
-                  Write-Host "    Edge Swipe: $($setting.EdgeSwipeEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.TouchFeedbackEnabled -ne $null) {
-                  Write-Host "    Touch Feedback: $($setting.TouchFeedbackEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.PressAndHoldEnabled -ne $null) {
-                  Write-Host "    Press and Hold: $($setting.PressAndHoldEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.TapAndDragEnabled -ne $null) {
-                  Write-Host "    Tap and Drag: $($setting.TapAndDragEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.RightTapEnabled -ne $null) {
-                  Write-Host "    Right Tap: $($setting.RightTapEnabled)" -ForegroundColor Gray
-              }
-              if ($setting.FlickEnabled -ne $null) {
-                  Write-Host "    Flick Gestures: $($setting.FlickEnabled)" -ForegroundColor Gray
-              }
-          }
-      } else {
-          Write-Host "No touch gesture settings found in backup" -ForegroundColor Yellow
-      }
+cleanup:
+  - name: "Touchscreen Settings Notification"
+    type: script
+    inline_script: |
+      Write-Host "Touchscreen settings have been restored." -ForegroundColor Green
+      Write-Host "Some touch calibration changes may require a restart to take effect." -ForegroundColor Yellow
+      Write-Host "Touch and pen input will be active immediately." -ForegroundColor Green

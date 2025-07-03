@@ -66,85 +66,85 @@ registry:
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\RasMan'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/rasman_service.yaml"
+    dynamic_state_path: "registry/rasman_service.json"
 
   - name: "RAS Manager Parameters"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\RasMan\Parameters'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/rasman_parameters.yaml"
+    dynamic_state_path: "registry/rasman_parameters.json"
 
   - name: "RAS TAPI Service Settings"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Services\RASTAPI'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/rastapi_service.yaml"
+    dynamic_state_path: "registry/rastapi_service.json"
 
   # VPN Credentials
   - name: "System RAS Credentials"
     path: 'HKLM:\SOFTWARE\Microsoft\RasCredentials'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/ras_credentials_system.yaml"
+    dynamic_state_path: "registry/ras_credentials_system.json"
 
   - name: "User RAS Credentials"
     path: 'HKCU:\Software\Microsoft\RasCredentials'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/ras_credentials_user.yaml"
+    dynamic_state_path: "registry/ras_credentials_user.json"
 
   # Internet Settings Connections
   - name: "System Internet Settings Connections"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Connections'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/internet_connections_system.yaml"
+    dynamic_state_path: "registry/internet_connections_system.json"
 
   - name: "User Internet Settings Connections"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/internet_connections_user.yaml"
+    dynamic_state_path: "registry/internet_connections_user.json"
 
   # Network Connections Policies
   - name: "Network Connections Policies"
     path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\NetworkConnections'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/network_connections_policies.yaml"
+    dynamic_state_path: "registry/network_connections_policies.json"
 
   # OpenVPN Settings
   - name: "System OpenVPN Settings"
     path: 'HKLM:\SOFTWARE\OpenVPN'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/openvpn_system.yaml"
+    dynamic_state_path: "registry/openvpn_system.json"
 
   - name: "User OpenVPN Settings"
     path: 'HKCU:\Software\OpenVPN'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/openvpn_user.yaml"
+    dynamic_state_path: "registry/openvpn_user.json"
 
   # Cisco VPN Settings
   - name: "System Cisco VPN Settings"
     path: 'HKLM:\SOFTWARE\Cisco'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/cisco_system.yaml"
+    dynamic_state_path: "registry/cisco_system.json"
 
   - name: "User Cisco VPN Settings"
     path: 'HKCU:\Software\Cisco'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/cisco_user.yaml"
+    dynamic_state_path: "registry/cisco_user.json"
 
   # Azure VPN Settings
   - name: "User Azure VPN Settings"
     path: 'HKCU:\Software\Microsoft\Azure VPN'
     type: key
     action: sync
-    dynamic_state_path: "vpn/registry/azure_vpn_user.yaml"
+    dynamic_state_path: "registry/azure_vpn_user.json"
 
 files:
   # User Phonebook Files
@@ -152,27 +152,26 @@ files:
     path: "$env:APPDATA/Microsoft/Network/Connections/Pbk/rasphone.pbk"
     type: file
     action: sync
-    dynamic_state_path: "vpn/files/user_rasphone.yaml"
+    dynamic_state_path: "files/user_rasphone.json"
 
   # System Phonebook Files
   - name: "System RAS Phonebook"
     path: "$env:ProgramData/Microsoft/Network/Connections/Pbk/rasphone.pbk"
     type: file
     action: sync
-    dynamic_state_path: "vpn/files/system_rasphone.yaml"
+    dynamic_state_path: "files/system_rasphone.json"
 
   # OpenVPN Configuration Files
   - name: "OpenVPN Configurations"
     path: "$env:ProgramFiles/OpenVPN/config"
     type: directory
     action: sync
-    dynamic_state_path: "vpn/files/openvpn_configs.yaml"
+    dynamic_state_path: "files/openvpn_configs.json"
 
 applications:
   # VPN Connections Information
   - name: "VPN Connections"
-    type: custom
-    dynamic_state_path: "vpn/connections.yaml"
+    dynamic_state_path: "connections.json"
     discovery_command: |
       try {
           $vpnConnections = @()
@@ -202,19 +201,18 @@ applications:
           }
           
           if ($vpnConnections.Count -gt 0) {
-              $vpnConnections | ConvertTo-Json -Depth 10
+              return $vpnConnections
           } else {
-              Write-Output "[]"
+              return @()
           }
       } catch {
-          Write-Output "[]"
+          return @()
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $vpnConnections = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($conn in $vpnConnections) {
+      foreach ($conn in $DiscoveryOutput) {
           $applications += @{
               Name = "VPNConnection-$($conn.Name -replace '[^a-zA-Z0-9]', '')"
               Version = "VPN Connection"
@@ -232,17 +230,12 @@ applications:
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $connections = $StateJson | ConvertFrom-Json
-      if ($connections.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "VPN connections information restored:" -ForegroundColor Green
-          foreach ($conn in $connections) {
+          foreach ($conn in $StateObject) {
               Write-Host "  - $($conn.ConnectionName)" -ForegroundColor Cyan
               Write-Host "    Server: $($conn.ServerAddress), Type: $($conn.TunnelType)" -ForegroundColor Gray
               Write-Host "    Status: $($conn.Status), Encryption: $($conn.EncryptionLevel)" -ForegroundColor Gray
@@ -257,8 +250,7 @@ applications:
 
   # VPN Certificates Information
   - name: "VPN Certificates"
-    type: custom
-    dynamic_state_path: "vpn/certificates.yaml"
+    dynamic_state_path: "certificates.json"
     discovery_command: |
       try {
           $vpnCertificates = @()
@@ -293,49 +285,43 @@ applications:
           }
           
           if ($vpnCertificates.Count -gt 0) {
-              $vpnCertificates | ConvertTo-Json -Depth 10
+              return $vpnCertificates
           } else {
-              Write-Output "[]"
+              return @()
           }
       } catch {
-          Write-Output "[]"
+          return @()
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $vpnCertificates = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($cert in $vpnCertificates) {
-                             $applications += @{
-                       Name = "VPNCert-$($cert.Thumbprint.Substring(0, 8))"
-                       Version = "VPN Certificate"
-                       Status = if ((Get-Date) -gt [DateTime]$cert.NotAfter) { "Expired" } elseif ((Get-Date) -lt [DateTime]$cert.NotBefore) { "Not Yet Valid" } else { "Valid" }
-                       Subject = $cert.Subject
-                       Issuer = $cert.Issuer
-                       Thumbprint = $cert.Thumbprint
-                       FriendlyName = $cert.FriendlyName
-                       NotBefore = $cert.NotBefore
-                       NotAfter = $cert.NotAfter
-                       HasPrivateKey = $cert.HasPrivateKey
-                       KeyAlgorithm = $cert.KeyAlgorithm
-                       KeyLength = $cert.KeyLength
-                       EnhancedKeyUsage = $cert.EnhancedKeyUsage
-                       SerialNumber = $cert.SerialNumber
-                       CertVersion = $cert.Version
-                   }
+      foreach ($cert in $DiscoveryOutput) {
+          $applications += @{
+              Name = "VPNCert-$($cert.Thumbprint.Substring(0, 8))"
+              Version = "VPN Certificate"
+              Status = if ((Get-Date) -gt [DateTime]$cert.NotAfter) { "Expired" } elseif ((Get-Date) -lt [DateTime]$cert.NotBefore) { "Not Yet Valid" } else { "Valid" }
+              Subject = $cert.Subject
+              Issuer = $cert.Issuer
+              Thumbprint = $cert.Thumbprint
+              FriendlyName = $cert.FriendlyName
+              NotBefore = $cert.NotBefore
+              NotAfter = $cert.NotAfter
+              HasPrivateKey = $cert.HasPrivateKey
+              KeyAlgorithm = $cert.KeyAlgorithm
+              KeyLength = $cert.KeyLength
+              EnhancedKeyUsage = $cert.EnhancedKeyUsage
+              SerialNumber = $cert.SerialNumber
+              CertVersion = $cert.Version
+          }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $certificates = $StateJson | ConvertFrom-Json
-      if ($certificates.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "VPN certificates information restored:" -ForegroundColor Green
-          foreach ($cert in $certificates) {
+          foreach ($cert in $StateObject) {
               Write-Host "  - $($cert.Subject)" -ForegroundColor Cyan
               Write-Host "    Thumbprint: $($cert.Thumbprint)" -ForegroundColor Gray
               Write-Host "    Status: $($cert.Status), Valid: $($cert.NotBefore) to $($cert.NotAfter)" -ForegroundColor Gray
@@ -348,8 +334,7 @@ applications:
 
   # Azure VPN Configuration
   - name: "Azure VPN Configuration"
-    type: custom
-    dynamic_state_path: "vpn/azure_vpn.yaml"
+    dynamic_state_path: "azure_vpn.json"
     discovery_command: |
       try {
           $azureVpnConfig = @{}
@@ -380,41 +365,35 @@ applications:
           }
           
           if ($azureVpnConfig.Count -gt 0) {
-              $azureVpnConfig | ConvertTo-Json -Depth 10
+              return $azureVpnConfig
           } else {
-              Write-Output "{}"
+              return @{}
           }
       } catch {
-          Write-Output "{}"
+          return @{}
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $azureVpnConfig = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      if ($azureVpnConfig -and $azureVpnConfig.ClientInstalled) {
+      if ($DiscoveryOutput -and $DiscoveryOutput.ClientInstalled) {
           $applications += @{
               Name = "AzureVPN"
-              Version = $azureVpnConfig.Version
+              Version = $DiscoveryOutput.Version
               Status = "Installed"
-              ClientPath = $azureVpnConfig.ClientPath
-              ConfigPath = $azureVpnConfig.ConfigPath
-              ConfigFileCount = if ($azureVpnConfig.ConfigFiles) { $azureVpnConfig.ConfigFiles.Count } else { 0 }
-              ConfigFiles = $azureVpnConfig.ConfigFiles
+              ClientPath = $DiscoveryOutput.ClientPath
+              ConfigPath = $DiscoveryOutput.ConfigPath
+              ConfigFileCount = if ($DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles.Count } else { 0 }
+              ConfigFiles = $DiscoveryOutput.ConfigFiles
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $azureVpn = $StateJson | ConvertFrom-Json
-      if ($azureVpn.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "Azure VPN configuration restored:" -ForegroundColor Green
-          foreach ($config in $azureVpn) {
+          foreach ($config in $StateObject) {
               Write-Host "  - Azure VPN Client $($config.Version)" -ForegroundColor Cyan
               Write-Host "    Client Path: $($config.ClientPath)" -ForegroundColor Gray
               Write-Host "    Config Path: $($config.ConfigPath)" -ForegroundColor Gray
@@ -426,8 +405,7 @@ applications:
 
   # OpenVPN Configuration
   - name: "OpenVPN Configuration"
-    type: custom
-    dynamic_state_path: "vpn/openvpn.yaml"
+    dynamic_state_path: "openvpn.json"
     discovery_command: |
       try {
           $openVpnConfig = @{}
@@ -478,40 +456,34 @@ applications:
           }
           
           if ($openVpnConfig.Count -gt 0) {
-              $openVpnConfig | ConvertTo-Json -Depth 10
+              return $openVpnConfig
           } else {
-              Write-Output "{}"
+              return @{}
           }
       } catch {
-          Write-Output "{}"
+          return @{}
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      $openVpnConfig = $DiscoveryOutput | ConvertFrom-Json
+      param($DiscoveryOutput)
       $applications = @()
       
-      if ($openVpnConfig -and ($openVpnConfig.ClientInstalled -or $openVpnConfig.ConfigFiles)) {
+      if ($DiscoveryOutput -and ($DiscoveryOutput.ClientInstalled -or $DiscoveryOutput.ConfigFiles)) {
           $applications += @{
               Name = "OpenVPN"
-              Version = if ($openVpnConfig.Version) { $openVpnConfig.Version } else { "Config Only" }
-              Status = if ($openVpnConfig.ClientInstalled) { "Installed" } else { "Config Only" }
-              ClientPath = $openVpnConfig.ClientPath
-              ConfigFileCount = if ($openVpnConfig.ConfigFiles) { $openVpnConfig.ConfigFiles.Count } else { 0 }
-              ConfigFiles = $openVpnConfig.ConfigFiles
+              Version = if ($DiscoveryOutput.Version) { $DiscoveryOutput.Version } else { "Config Only" }
+              Status = if ($DiscoveryOutput.ClientInstalled) { "Installed" } else { "Config Only" }
+              ClientPath = $DiscoveryOutput.ClientPath
+              ConfigFileCount = if ($DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles.Count } else { 0 }
+              ConfigFiles = $DiscoveryOutput.ConfigFiles
           }
       }
       
-      if ($applications.Count -eq 0) {
-          "[]"
-      } else {
-          $applications | ConvertTo-Json -Depth 5 -AsArray
-      }
+      return $applications
     install_script: |
-      param([string]$StateJson)
-      $openVpn = $StateJson | ConvertFrom-Json
-      if ($openVpn.Count -gt 0) {
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
           Write-Host "OpenVPN configuration restored:" -ForegroundColor Green
-          foreach ($config in $openVpn) {
+          foreach ($config in $StateObject) {
               Write-Host "  - OpenVPN $($config.Version)" -ForegroundColor Cyan
               Write-Host "    Status: $($config.Status)" -ForegroundColor Gray
               if ($config.ClientPath) {

@@ -23,136 +23,473 @@ registry:
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Printers'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/printers.yaml"
+    dynamic_state_path: "registry/printers.yaml"
 
   - name: "Print Monitors"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Monitors'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/monitors.yaml"
+    dynamic_state_path: "registry/monitors.yaml"
 
   - name: "Print Providers"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Providers'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/providers.yaml"
+    dynamic_state_path: "registry/providers.yaml"
 
   - name: "Print Environments"
     path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Environments'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/environments.yaml"
+    dynamic_state_path: "registry/environments.yaml"
 
   - name: "NT Print Configuration"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Printers'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/nt_printers.yaml"
+    dynamic_state_path: "registry/nt_printers.yaml"
 
   - name: "NT Print Providers"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Print\Providers'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/nt_providers.yaml"
+    dynamic_state_path: "registry/nt_providers.yaml"
 
   - name: "Printer Cache Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Printer Cache'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/cache.yaml"
+    dynamic_state_path: "registry/cache.yaml"
 
   # User Printer Settings
   - name: "User Printer Settings"
     path: 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/user_settings.yaml"
+    dynamic_state_path: "registry/user_settings.yaml"
 
   - name: "User Printers"
     path: 'HKCU:\Printers'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/user_printers.yaml"
+    dynamic_state_path: "registry/user_printers.yaml"
 
   - name: "Printer Ports"
     path: 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\PrinterPorts'
     type: key
     action: sync
-    dynamic_state_path: "printer/registry/printer_ports.yaml"
+    dynamic_state_path: "registry/printer_ports.yaml"
 
-application_state:
-  # Printer Information Discovery
+applications:
+  # Installed Printers Discovery
   - name: "Installed Printers"
     type: custom
     discovery_command: |
       try {
-          Get-Printer | Select-Object Name, DriverName, PortName, Shared, ShareName, Published, DeviceType, Status, Location, Comment | ConvertTo-Json -Depth 10
+          # Use timeout to prevent hanging on printer enumeration
+          $timeout = 10  # 10 second timeout
+          $job = Start-Job -ScriptBlock {
+              Get-Printer -ErrorAction SilentlyContinue | Select-Object Name, DriverName, PortName, Shared, ShareName, Published, DeviceType, Status, Location, Comment, IsDefault
+          }
+          
+          if (Wait-Job $job -Timeout $timeout) {
+              $result = Receive-Job $job
+              Remove-Job $job
+              $result | ConvertTo-Json -Depth 5
+          } else {
+              Stop-Job $job
+              Remove-Job $job
+              Write-Warning "Printer discovery timed out after $timeout seconds"
+              "[]"
+          }
       } catch {
-          Write-Output "[]"
+          Write-Warning "Could not retrieve printers: $_"
+          "[]"
       }
     parse_script: |
-      $printers = $State | ConvertFrom-Json
-      return @{
-          PrinterCount = $printers.Count
-          InstalledPrinters = $printers | ForEach-Object { $_.Name }
-          DefaultPrinter = (Get-Printer | Where-Object IsDefault).Name
+      param([string]$DiscoveryOutput)
+      try {
+          # Try with -AsHashtable first to handle case sensitivity issues
+          $printersData = $null
+          try {
+              $printersData = $DiscoveryOutput | ConvertFrom-Json -AsHashtable -ErrorAction Stop
+          } catch {
+              # Fallback to regular ConvertFrom-Json if -AsHashtable fails
+              $printersData = $DiscoveryOutput | ConvertFrom-Json
+          }
+          
+          $applications = @()
+          
+          if ($printersData -and $printersData.Count -gt 0) {
+              foreach ($printer in $printersData) {
+                  # Handle both hashtable and PSCustomObject formats
+                  $printerName = if ($printer -is [hashtable]) { $printer['Name'] } else { $printer.Name }
+                  $driverName = if ($printer -is [hashtable]) { $printer['DriverName'] } else { $printer.DriverName }
+                  $portName = if ($printer -is [hashtable]) { $printer['PortName'] } else { $printer.PortName }
+                  $shared = if ($printer -is [hashtable]) { $printer['Shared'] } else { $printer.Shared }
+                  $shareName = if ($printer -is [hashtable]) { $printer['ShareName'] } else { $printer.ShareName }
+                  $published = if ($printer -is [hashtable]) { $printer['Published'] } else { $printer.Published }
+                  $deviceType = if ($printer -is [hashtable]) { $printer['DeviceType'] } else { $printer.DeviceType }
+                  $status = if ($printer -is [hashtable]) { $printer['Status'] } else { $printer.Status }
+                  $location = if ($printer -is [hashtable]) { $printer['Location'] } else { $printer.Location }
+                  $comment = if ($printer -is [hashtable]) { $printer['Comment'] } else { $printer.Comment }
+                  $isDefault = if ($printer -is [hashtable]) { $printer['IsDefault'] } else { $printer.IsDefault }
+                  
+                  $applications += @{
+                      Name = "Printer-$printerName"
+                      Version = if ($driverName) { $driverName } else { "Unknown Driver" }
+                      Status = $status
+                      PrinterName = $printerName
+                      DriverName = $driverName
+                      PortName = $portName
+                      DeviceType = $deviceType
+                      Location = $location
+                      Comment = $comment
+                      IsShared = $shared
+                      ShareName = $shareName
+                      IsPublished = $published
+                      IsDefault = $isDefault
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 10 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse printer information: $_"
+          "[]"
       }
-    dynamic_state_path: "printer/printers.yaml"
+    dynamic_state_path: "printers.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $printers = $StateJson | ConvertFrom-Json
+      if ($printers.Count -gt 0) {
+          Write-Host "Printer information restored:" -ForegroundColor Green
+          $defaultPrinter = $printers | Where-Object { $_.IsDefault }
+          if ($defaultPrinter) {
+              Write-Host "  Default Printer: $($defaultPrinter.PrinterName)" -ForegroundColor Cyan
+          }
+          
+          Write-Host "  Installed Printers ($($printers.Count)):" -ForegroundColor Cyan
+          foreach ($printer in $printers | Select-Object -First 10) {
+              $statusColor = if ($printer.Status -eq "Normal") { "Green" } else { "Yellow" }
+              Write-Host "    - $($printer.PrinterName)" -ForegroundColor Gray
+              Write-Host "      Driver: $($printer.DriverName)" -ForegroundColor DarkGray
+              Write-Host "      Port: $($printer.PortName)" -ForegroundColor DarkGray
+              Write-Host "      Status: $($printer.Status)" -ForegroundColor $statusColor
+              if ($printer.IsShared) {
+                  Write-Host "      Shared as: $($printer.ShareName)" -ForegroundColor DarkGray
+              }
+          }
+          if ($printers.Count -gt 10) {
+              Write-Host "    ... and $($printers.Count - 10) more" -ForegroundColor Gray
+          }
+          
+          Write-Host ""
+          Write-Host "NOTE: Printer drivers and network connections may need to be manually restored." -ForegroundColor Yellow
+      } else {
+          Write-Host "No printer information found in backup" -ForegroundColor Yellow
+      }
 
+  # Printer Ports Discovery
   - name: "Printer Ports"
     type: custom
     discovery_command: |
       try {
-          Get-PrinterPort | Select-Object Name, HostAddress, PortNumber, Protocol, Description, SNMPEnabled, SNMPCommunity | ConvertTo-Json -Depth 10
+          # Use timeout and limit to prevent hanging on network discovery
+          $timeout = 10  # 10 second timeout
+          $job = Start-Job -ScriptBlock {
+              Get-PrinterPort -ErrorAction SilentlyContinue | Select-Object Name, HostAddress, PortNumber, Protocol, Description, SNMPEnabled, SNMPCommunity, PortMonitor
+          }
+          
+          if (Wait-Job $job -Timeout $timeout) {
+              $result = Receive-Job $job
+              Remove-Job $job
+              $result | ConvertTo-Json -Depth 5
+          } else {
+              Stop-Job $job
+              Remove-Job $job
+              Write-Warning "Printer port discovery timed out after $timeout seconds"
+              "[]"
+          }
       } catch {
-          Write-Output "[]"
+          Write-Warning "Could not retrieve printer ports: $_"
+          "[]"
       }
     parse_script: |
-      $ports = $State | ConvertFrom-Json
-      return @{
-          PortCount = $ports.Count
-          PortTypes = $ports | Group-Object Protocol | ForEach-Object { "$($_.Name): $($_.Count)" }
+      param([string]$DiscoveryOutput)
+      try {
+          $portsData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($portsData -and $portsData.Count -gt 0) {
+              foreach ($port in $portsData) {
+                  $applications += @{
+                      Name = "PrinterPort-$($port.Name)"
+                      Version = "Port"
+                      Status = "Available"
+                      PortName = $port.Name
+                      HostAddress = $port.HostAddress
+                      PortNumber = $port.PortNumber
+                      Protocol = $port.Protocol
+                      Description = $port.Description
+                      SNMPEnabled = $port.SNMPEnabled
+                      SNMPCommunity = $port.SNMPCommunity
+                      PortMonitor = $port.PortMonitor
+                  }
+              }
+          }
+          
+          # Return the applications array directly (not as JSON string)
+          return $applications
+      } catch {
+          Write-Warning "Failed to parse printer ports: $_"
+          return @()
       }
-    dynamic_state_path: "printer/ports.yaml"
+    dynamic_state_path: "ports.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $ports = $StateJson | ConvertFrom-Json
+      if ($ports.Count -gt 0) {
+          Write-Host "Printer ports information restored:" -ForegroundColor Green
+          
+          $networkPorts = $ports | Where-Object { $_.Protocol -eq "TCP/IP" }
+          $localPorts = $ports | Where-Object { $_.Protocol -ne "TCP/IP" }
+          
+          if ($networkPorts.Count -gt 0) {
+              Write-Host "  Network Ports ($($networkPorts.Count)):" -ForegroundColor Cyan
+              foreach ($port in $networkPorts | Select-Object -First 5) {
+                  Write-Host "    - $($port.PortName): $($port.HostAddress):$($port.PortNumber)" -ForegroundColor Gray
+                  if ($port.Description) {
+                      Write-Host "      Description: $($port.Description)" -ForegroundColor DarkGray
+                  }
+              }
+              if ($networkPorts.Count -gt 5) {
+                  Write-Host "    ... and $($networkPorts.Count - 5) more" -ForegroundColor Gray
+              }
+          }
+          
+          if ($localPorts.Count -gt 0) {
+              Write-Host "  Local Ports ($($localPorts.Count)):" -ForegroundColor Cyan
+              foreach ($port in $localPorts | Select-Object -First 5) {
+                  Write-Host "    - $($port.PortName): $($port.Protocol)" -ForegroundColor Gray
+              }
+              if ($localPorts.Count -gt 5) {
+                  Write-Host "    ... and $($localPorts.Count - 5) more" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No printer ports information found in backup" -ForegroundColor Yellow
+      }
 
+  # Printer Drivers Discovery
   - name: "Printer Drivers"
     type: custom
     discovery_command: |
       try {
-          Get-PrinterDriver | Select-Object Name, Manufacturer, DriverVersion, Environment, PrinterEnvironment, InfPath, ConfigFile, DataFile, DriverPath, HelpFile | ConvertTo-Json -Depth 10
+          # Use timeout to prevent hanging on driver enumeration
+          $timeout = 15  # 15 second timeout for drivers
+          $job = Start-Job -ScriptBlock {
+              Get-PrinterDriver -ErrorAction SilentlyContinue | Select-Object Name, Manufacturer, DriverVersion, Environment, PrinterEnvironment, InfPath, ConfigFile, DataFile, DriverPath, HelpFile
+          }
+          
+          if (Wait-Job $job -Timeout $timeout) {
+              $result = Receive-Job $job
+              Remove-Job $job
+              $result | ConvertTo-Json -Depth 5
+          } else {
+              Stop-Job $job
+              Remove-Job $job
+              Write-Warning "Printer driver discovery timed out after $timeout seconds"
+              "[]"
+          }
       } catch {
-          Write-Output "[]"
+          Write-Warning "Could not retrieve printer drivers: $_"
+          "[]"
       }
     parse_script: |
-      $drivers = $State | ConvertFrom-Json
-      return @{
-          DriverCount = $drivers.Count
-          Manufacturers = $drivers | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count) drivers" }
-          Environments = $drivers | Group-Object Environment | ForEach-Object { $_.Name }
+      param([string]$DiscoveryOutput)
+      try {
+          $driversData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($driversData -and $driversData.Count -gt 0) {
+              foreach ($driver in $driversData) {
+                  $applications += @{
+                      Name = "PrinterDriver-$($driver.Name)"
+                      Version = if ($driver.DriverVersion) { $driver.DriverVersion } else { "Unknown" }
+                      Status = "Installed"
+                      DriverName = $driver.Name
+                      Manufacturer = $driver.Manufacturer
+                      Environment = $driver.Environment
+                      PrinterEnvironment = $driver.PrinterEnvironment
+                      InfPath = $driver.InfPath
+                      ConfigFile = $driver.ConfigFile
+                      DataFile = $driver.DataFile
+                      DriverPath = $driver.DriverPath
+                      HelpFile = $driver.HelpFile
+                  }
+              }
+          }
+          
+          # Return the applications array directly (not as JSON string)
+          return $applications
+      } catch {
+          Write-Warning "Failed to parse printer drivers: $_"
+          return @()
       }
-    dynamic_state_path: "printer/drivers.yaml"
+    dynamic_state_path: "drivers.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $drivers = $StateJson | ConvertFrom-Json
+      if ($drivers.Count -gt 0) {
+          Write-Host "Printer drivers information restored:" -ForegroundColor Green
+          
+          $manufacturers = $drivers | Group-Object Manufacturer | Sort-Object Count -Descending
+          Write-Host "  Drivers by Manufacturer:" -ForegroundColor Cyan
+          foreach ($mfg in $manufacturers | Select-Object -First 5) {
+              Write-Host "    - $($mfg.Name): $($mfg.Count) drivers" -ForegroundColor Gray
+          }
+          if ($manufacturers.Count -gt 5) {
+              Write-Host "    ... and $($manufacturers.Count - 5) more manufacturers" -ForegroundColor Gray
+          }
+          
+          Write-Host "  Total Drivers: $($drivers.Count)" -ForegroundColor Cyan
+          
+          $environments = $drivers | Group-Object Environment | Sort-Object Count -Descending
+          if ($environments.Count -gt 1) {
+              Write-Host "  Environments: $($environments.Name -join ', ')" -ForegroundColor Cyan
+          }
+          
+          Write-Host ""
+          Write-Host "NOTE: Printer drivers may need to be reinstalled from manufacturer sources." -ForegroundColor Yellow
+      } else {
+          Write-Host "No printer drivers information found in backup" -ForegroundColor Yellow
+      }
 
+  # Printer Preferences Discovery
   - name: "Printer Preferences"
     type: custom
     discovery_command: |
       try {
-          $defaultPrinter = Get-Printer | Where-Object IsDefault
-          $deviceSetting = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows" -Name "Device" -ErrorAction SilentlyContinue
-          $printerPorts = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\PrinterPorts" -ErrorAction SilentlyContinue
+          # Use timeout and registry-based approach for faster, more reliable discovery
+          $timeout = 8  # 8 second timeout
+          $job = Start-Job -ScriptBlock {
+              try {
+                  $printers = Get-Printer -ErrorAction SilentlyContinue
+                  $defaultPrinter = $printers | Where-Object IsDefault
+                  
+                  @{
+                      DefaultPrinter = if ($defaultPrinter) { $defaultPrinter.Name } else { $null }
+                      PrinterCount = if ($printers) { $printers.Count } else { 0 }
+                      NetworkPrinterCount = if ($printers) { ($printers | Where-Object { $_.Type -eq "Connection" }).Count } else { 0 }
+                      LocalPrinterCount = if ($printers) { ($printers | Where-Object { $_.Type -eq "Local" }).Count } else { 0 }
+                  }
+              } catch {
+                  @{
+                      DefaultPrinter = $null
+                      PrinterCount = 0
+                      NetworkPrinterCount = 0
+                      LocalPrinterCount = 0
+                  }
+              }
+          }
           
-          @{
-              DefaultPrinter = if ($defaultPrinter) { $defaultPrinter.Name } else { $null }
-              DeviceSetting = if ($deviceSetting) { $deviceSetting.Device } else { $null }
-              PrinterPorts = $printerPorts
-          } | ConvertTo-Json -Depth 10
+          if (Wait-Job $job -Timeout $timeout) {
+              $result = Receive-Job $job
+              Remove-Job $job
+              
+              # Add registry-based settings (these are fast and reliable)
+              $deviceSetting = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows" -Name "Device" -ErrorAction SilentlyContinue
+              $printerPorts = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\PrinterPorts" -ErrorAction SilentlyContinue
+              
+              $result.DeviceSetting = if ($deviceSetting) { $deviceSetting.Device } else { $null }
+              $result.PrinterPorts = $printerPorts
+              
+              $result | ConvertTo-Json -Depth 5
+          } else {
+              Stop-Job $job
+              Remove-Job $job
+              Write-Warning "Printer preferences discovery timed out after $timeout seconds"
+              
+              # Fallback to just registry settings
+              $deviceSetting = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows" -Name "Device" -ErrorAction SilentlyContinue
+              $printerPorts = Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\PrinterPorts" -ErrorAction SilentlyContinue
+              
+              @{
+                  DefaultPrinter = $null
+                  DeviceSetting = if ($deviceSetting) { $deviceSetting.Device } else { $null }
+                  PrinterPorts = $printerPorts
+                  PrinterCount = 0
+                  NetworkPrinterCount = 0
+                  LocalPrinterCount = 0
+              } | ConvertTo-Json -Depth 5
+          }
       } catch {
-          Write-Output "{}"
+          Write-Warning "Could not retrieve printer preferences: $_"
+          "{}"
       }
     parse_script: |
-      $prefs = $State | ConvertFrom-Json
-      return @{
-          HasDefaultPrinter = [bool]$prefs.DefaultPrinter
-          DefaultPrinterName = $prefs.DefaultPrinter
-          PortCount = if ($prefs.PrinterPorts) { ($prefs.PrinterPorts | Get-Member -MemberType NoteProperty).Count } else { 0 }
+      param([string]$DiscoveryOutput)
+      try {
+          $prefsData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($prefsData) {
+              $applications += @{
+                  Name = "PrinterPreferences"
+                  Version = "Settings"
+                  Status = "Configured"
+                  DefaultPrinter = $prefsData.DefaultPrinter
+                  DeviceSetting = $prefsData.DeviceSetting
+                  PrinterCount = $prefsData.PrinterCount
+                  NetworkPrinterCount = $prefsData.NetworkPrinterCount
+                  LocalPrinterCount = $prefsData.LocalPrinterCount
+                  HasDefaultPrinter = [bool]$prefsData.DefaultPrinter
+                  PortCount = if ($prefsData.PrinterPorts) { 
+                      ($prefsData.PrinterPorts | Get-Member -MemberType NoteProperty | Where-Object { $_.Name -ne "PSPath" -and $_.Name -ne "PSParentPath" -and $_.Name -ne "PSChildName" -and $_.Name -ne "PSDrive" -and $_.Name -ne "PSProvider" }).Count 
+                  } else { 0 }
+              }
+          }
+          
+          # Return the applications array directly (not as JSON string)
+          return $applications
+      } catch {
+          Write-Warning "Failed to parse printer preferences: $_"
+          return @()
       }
-    dynamic_state_path: "printer/preferences.yaml" 
+    dynamic_state_path: "preferences.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $prefs = $StateJson | ConvertFrom-Json
+      if ($prefs.Count -gt 0) {
+          $pref = $prefs[0]  # Should only be one preferences object
+          Write-Host "Printer preferences information restored:" -ForegroundColor Green
+          
+          if ($pref.HasDefaultPrinter) {
+              Write-Host "  Default Printer: $($pref.DefaultPrinter)" -ForegroundColor Cyan
+          } else {
+              Write-Host "  No default printer was set" -ForegroundColor Yellow
+          }
+          
+          Write-Host "  Printer Summary:" -ForegroundColor Cyan
+          Write-Host "    - Total Printers: $($pref.PrinterCount)" -ForegroundColor Gray
+          if ($pref.LocalPrinterCount -gt 0) {
+              Write-Host "    - Local Printers: $($pref.LocalPrinterCount)" -ForegroundColor Gray
+          }
+          if ($pref.NetworkPrinterCount -gt 0) {
+              Write-Host "    - Network Printers: $($pref.NetworkPrinterCount)" -ForegroundColor Gray
+          }
+          if ($pref.PortCount -gt 0) {
+              Write-Host "    - Configured Ports: $($pref.PortCount)" -ForegroundColor Gray
+          }
+          
+          if ($pref.DeviceSetting) {
+              Write-Host "  Device Setting: $($pref.DeviceSetting)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No printer preferences information found in backup" -ForegroundColor Yellow
+      } 

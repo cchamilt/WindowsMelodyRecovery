@@ -34,138 +34,138 @@ registry:
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_main.yaml"
+    dynamic_state_path: "registry/outlook_16_main.yaml"
 
   - name: "Outlook 2016 Preferences"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_preferences.yaml"
+    dynamic_state_path: "registry/outlook_16_preferences.yaml"
 
   - name: "Outlook 2016 Profiles"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Profiles'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_profiles.yaml"
+    dynamic_state_path: "registry/outlook_16_profiles.yaml"
 
   - name: "Outlook 2016 Security"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Security'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_security.yaml"
+    dynamic_state_path: "registry/outlook_16_security.yaml"
 
   - name: "Outlook 2016 Options"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Options'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_options.yaml"
+    dynamic_state_path: "registry/outlook_16_options.yaml"
 
   - name: "Outlook 2016 AutoNameCheck"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\AutoNameCheck'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_autonamecheck.yaml"
+    dynamic_state_path: "registry/outlook_16_autonamecheck.yaml"
 
   - name: "Outlook 2016 Today"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Today'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_today.yaml"
+    dynamic_state_path: "registry/outlook_16_today.yaml"
 
   - name: "Outlook 2016 Calendar"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Calendar'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_calendar.yaml"
+    dynamic_state_path: "registry/outlook_16_calendar.yaml"
 
   - name: "Outlook 2016 Mail"
     path: 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Mail'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_16_mail.yaml"
+    dynamic_state_path: "registry/outlook_16_mail.yaml"
 
   # Outlook 2019 Settings
   - name: "Outlook 2019 Main Settings"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_19_main.yaml"
+    dynamic_state_path: "registry/outlook_19_main.yaml"
 
   - name: "Outlook 2019 Preferences"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook\Preferences'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_19_preferences.yaml"
+    dynamic_state_path: "registry/outlook_19_preferences.yaml"
 
   - name: "Outlook 2019 Profiles"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook\Profiles'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_19_profiles.yaml"
+    dynamic_state_path: "registry/outlook_19_profiles.yaml"
 
   - name: "Outlook 2019 Security"
     path: 'HKCU:\Software\Microsoft\Office\19.0\Outlook\Security'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_19_security.yaml"
+    dynamic_state_path: "registry/outlook_19_security.yaml"
 
   # Outlook 2013 Settings
   - name: "Outlook 2013 Main Settings"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Outlook'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_15_main.yaml"
+    dynamic_state_path: "registry/outlook_15_main.yaml"
 
   - name: "Outlook 2013 Preferences"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Outlook\Preferences'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_15_preferences.yaml"
+    dynamic_state_path: "registry/outlook_15_preferences.yaml"
 
   - name: "Outlook 2013 Profiles"
     path: 'HKCU:\Software\Microsoft\Office\15.0\Outlook\Profiles'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_15_profiles.yaml"
+    dynamic_state_path: "registry/outlook_15_profiles.yaml"
 
   # Outlook 2010 Settings
   - name: "Outlook 2010 Main Settings"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Outlook'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_14_main.yaml"
+    dynamic_state_path: "registry/outlook_14_main.yaml"
 
   - name: "Outlook 2010 Preferences"
     path: 'HKCU:\Software\Microsoft\Office\14.0\Outlook\Preferences'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/outlook_14_preferences.yaml"
+    dynamic_state_path: "registry/outlook_14_preferences.yaml"
 
   # System-wide Outlook Settings
   - name: "System Outlook 2016 Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Outlook'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/system_outlook_16.yaml"
+    dynamic_state_path: "registry/system_outlook_16.yaml"
 
   - name: "System Outlook 2019 Settings"
     path: 'HKLM:\SOFTWARE\Microsoft\Office\19.0\Outlook'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/system_outlook_19.yaml"
+    dynamic_state_path: "registry/system_outlook_19.yaml"
 
   # Common Office Settings
   - name: "Mail Settings"
     path: 'HKCU:\Software\Microsoft\Office\Common\MailSettings'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/mail_settings.yaml"
+    dynamic_state_path: "registry/mail_settings.yaml"
 
   - name: "User Info"
     path: 'HKCU:\Software\Microsoft\Office\Common\UserInfo'
     type: key
     action: sync
-    dynamic_state_path: "outlook/registry/user_info.yaml"
+    dynamic_state_path: "registry/user_info.yaml"
 
 files:
   # Outlook Configuration Files
@@ -173,51 +173,51 @@ files:
     path: "$env:APPDATA/Microsoft/Signatures"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/signatures.yaml"
+    dynamic_state_path: "files/signatures.yaml"
 
   - name: "Outlook Templates"
     path: "$env:APPDATA/Microsoft/Templates"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/templates.yaml"
+    dynamic_state_path: "files/templates.yaml"
 
   - name: "Outlook Rules"
     path: "$env:APPDATA/Microsoft/Outlook"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/outlook_data.yaml"
+    dynamic_state_path: "files/outlook_data.yaml"
 
   - name: "Office Forms"
     path: "$env:APPDATA/Microsoft/Forms"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/forms.yaml"
+    dynamic_state_path: "files/forms.yaml"
 
   - name: "Stationery"
     path: "$env:APPDATA/Microsoft/Stationery"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/stationery.yaml"
+    dynamic_state_path: "files/stationery.yaml"
 
   - name: "Quick Parts"
     path: "$env:APPDATA/Microsoft/Document Building Blocks"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/quickparts.yaml"
+    dynamic_state_path: "files/quickparts.yaml"
 
   - name: "Custom Ribbon UI"
     path: "$env:APPDATA/Microsoft/Office/16.0/User Content/Ribbon"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/custom_ui.yaml"
+    dynamic_state_path: "files/custom_ui.yaml"
 
   - name: "Office Add-ins"
     path: "$env:APPDATA/Microsoft/AddIns"
     type: directory
     action: sync
-    dynamic_state_path: "outlook/files/addins.yaml"
+    dynamic_state_path: "files/addins.yaml"
 
-application_state:
+applications:
   # Outlook Installation Discovery
   - name: "Outlook Installations"
     type: custom
@@ -249,14 +249,47 @@ application_state:
           Write-Output "[]"
       }
     parse_script: |
-      $installs = $State | ConvertFrom-Json
-      return @{
-          OutlookVersionCount = $installs.Count
-          InstalledVersions = $installs | ForEach-Object { $_.Name }
-          ConfiguredVersions = ($installs | Where-Object { $_.HasSettings }).Count
-          LatestVersion = if ($installs) { ($installs | Sort-Object Version -Descending)[0].Name } else { "None" }
+      param([string]$DiscoveryOutput)
+      try {
+          $installs = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($install in $installs) {
+              $applications += @{
+                  Name = "Outlook-$($install.Version.Replace('.', ''))"
+                  Version = $install.Version
+                  Status = if ($install.HasSettings) { "Configured" } else { "Installed" }
+                  OfficeSuite = $install.Name
+                  HasSettings = $install.HasSettings
+                  InstallRoot = $install.InstallRoot
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse Outlook installations: $_"
+          "[]"
       }
-    dynamic_state_path: "outlook/installations.yaml"
+    dynamic_state_path: "installations.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $installations = $StateJson | ConvertFrom-Json
+      if ($installations.Count -gt 0) {
+          Write-Host "Outlook installation information restored:" -ForegroundColor Green
+          foreach ($install in $installations) {
+              Write-Host "  - $($install.OfficeSuite): $($install.Status)" -ForegroundColor Cyan
+              Write-Host "    Version: $($install.Version)" -ForegroundColor Gray
+              if ($install.InstallRoot) {
+                  Write-Host "    Install Root: $($install.InstallRoot)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No Outlook installation information found in backup" -ForegroundColor Yellow
+      }
 
   - name: "Outlook Profiles"
     type: custom
@@ -285,13 +318,44 @@ application_state:
           Write-Output "[]"
       }
     parse_script: |
-      $profiles = $State | ConvertFrom-Json
-      return @{
-          TotalProfiles = $profiles.Count
-          ProfilesByVersion = $profiles | Group-Object Version | ForEach-Object { "$($_.Name): $($_.Count) profiles" }
-          ProfileNames = $profiles | ForEach-Object { $_.ProfileName } | Sort-Object -Unique
+      param([string]$DiscoveryOutput)
+      try {
+          $profiles = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($profile in $profiles) {
+              $applications += @{
+                  Name = "OutlookProfile-$($profile.ProfileName -replace '[^a-zA-Z0-9]', '')"
+                  Version = $profile.Version
+                  Status = "Configured"
+                  ProfileName = $profile.ProfileName
+                  OfficeVersion = $profile.Version
+                  RegistryPath = $profile.RegistryPath
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse Outlook profiles: $_"
+          "[]"
       }
-    dynamic_state_path: "outlook/profiles.yaml"
+    dynamic_state_path: "profiles.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $profiles = $StateJson | ConvertFrom-Json
+      if ($profiles.Count -gt 0) {
+          Write-Host "Outlook profile information restored:" -ForegroundColor Green
+          foreach ($profile in $profiles) {
+              Write-Host "  - $($profile.ProfileName): Office $($profile.OfficeVersion)" -ForegroundColor Cyan
+              Write-Host "    Status: $($profile.Status)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Outlook profile information found in backup" -ForegroundColor Yellow
+      }
 
   - name: "Outlook Configuration Files Status"
     type: custom
@@ -329,11 +393,43 @@ application_state:
           Write-Output "[]"
       }
     parse_script: |
-      $status = $State | ConvertFrom-Json
-      return @{
-          ConfigurationCount = $status.Count
-          ExistingConfigs = ($status | Where-Object { $_.Exists }).Count
-          TotalItems = ($status | Measure-Object ItemCount -Sum).Sum
-          ConfigTypes = $status | Where-Object { $_.Exists } | ForEach-Object { "$($_.ConfigType): $($_.ItemCount) items" }
+      param([string]$DiscoveryOutput)
+      try {
+          $status = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          foreach ($configType in $status) {
+              if ($configType.Exists -and $configType.ItemCount -gt 0) {
+                  $applications += @{
+                      Name = "OutlookConfig-$($configType.ConfigType)"
+                      Version = "Configuration"
+                      Status = "Available"
+                      ConfigType = $configType.ConfigType
+                      Path = $configType.Path
+                      ItemCount = $configType.ItemCount
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse Outlook configuration files: $_"
+          "[]"
       }
-    dynamic_state_path: "outlook/config_files.yaml" 
+    dynamic_state_path: "config_files.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $configs = $StateJson | ConvertFrom-Json
+      if ($configs.Count -gt 0) {
+          Write-Host "Outlook configuration files restored:" -ForegroundColor Green
+          foreach ($config in $configs) {
+              Write-Host "  - $($config.ConfigType): $($config.ItemCount) items" -ForegroundColor Cyan
+              Write-Host "    Path: $($config.Path)" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No Outlook configuration files found in backup" -ForegroundColor Yellow
+      } 

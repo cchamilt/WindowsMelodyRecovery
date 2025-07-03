@@ -1,9 +1,8 @@
 metadata:
-  name: powershell
-  displayName: PowerShell Settings
-  description: Template for backing up PowerShell configuration, profiles, and modules.
-  version: "1.0"
-  author: Windows Melody Recovery
+  name: "PowerShell Settings"
+  description: "Backup and restore PowerShell configuration including profiles, modules, execution policies, and settings for both Windows PowerShell 5.1 and PowerShell 7+"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
 
 prerequisites:
   - type: script
@@ -19,162 +18,416 @@ prerequisites:
     on_missing: warn
 
 registry:
-  keys:
-    # PowerShell execution policies
-    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
-      description: PowerShell 1.0 execution policy (legacy)
-    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShell\3\ShellIds\Microsoft.PowerShell'
-      description: PowerShell 3.0+ execution policy
-    - path: 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
-      description: PowerShell 32-bit execution policy on 64-bit systems
-    
-    # PowerShell logging policies
-    - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging'
-      description: PowerShell module logging configuration
-    - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging'
-      description: PowerShell script block logging settings
-    - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription'
-      description: PowerShell transcription logging settings
-    
-    # Console and PSReadLine settings
-    - path: 'HKCU:\Console'
-      description: Console window and buffer settings
-    - path: 'HKCU:\Software\Microsoft\PowerShell'
-      description: User-specific PowerShell settings
-    
-    # PowerShell Core and additional settings
-    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShell'
-      description: System-wide PowerShell configuration
-    - path: 'HKLM:\SOFTWARE\Microsoft\PowerShellCore'
-      description: PowerShell Core system configuration
-    - path: 'HKCU:\Software\Microsoft\PowerShellCore'
-      description: PowerShell Core user configuration
-    
-    # PowerShell ISE settings
-    - path: 'HKCU:\Software\Microsoft\PowerShell\3\ISE'
-      description: PowerShell ISE user preferences
+  # PowerShell execution policies
+  - name: "PowerShell 1.0 Execution Policy"
+    path: 'HKLM:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/powershell_1_execution.json"
+
+  - name: "PowerShell 3.0+ Execution Policy"
+    path: 'HKLM:\SOFTWARE\Microsoft\PowerShell\3\ShellIds\Microsoft.PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/powershell_3_execution.json"
+
+  - name: "PowerShell 32-bit Execution Policy"
+    path: 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/powershell_32bit_execution.json"
+  
+  # PowerShell logging policies
+  - name: "PowerShell Module Logging"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/module_logging.json"
+
+  - name: "PowerShell Script Block Logging"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/script_block_logging.json"
+
+  - name: "PowerShell Transcription Logging"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/transcription_logging.json"
+  
+  # Console and user settings
+  - name: "Console Settings"
+    path: 'HKCU:\Console'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/console_settings.json"
+
+  - name: "User PowerShell Settings"
+    path: 'HKCU:\Software\Microsoft\PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/user_powershell.json"
+  
+  # System PowerShell configuration
+  - name: "System PowerShell Configuration"
+    path: 'HKLM:\SOFTWARE\Microsoft\PowerShell'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_powershell.json"
+
+  - name: "PowerShell Core System Configuration"
+    path: 'HKLM:\SOFTWARE\Microsoft\PowerShellCore'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/powershell_core_system.json"
+
+  - name: "PowerShell Core User Configuration"
+    path: 'HKCU:\Software\Microsoft\PowerShellCore'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/powershell_core_user.json"
+  
+  # PowerShell ISE settings
+  - name: "PowerShell ISE Settings"
+    path: 'HKCU:\Software\Microsoft\PowerShell\3\ISE'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/powershell_ise.json"
 
 files:
-  directories:
-    # Windows PowerShell user profile directory
-    - path: '%USERPROFILE%\Documents\WindowsPowerShell'
-      description: Windows PowerShell 5.1 user profiles and modules
-      recursive: true
-      include:
-        - 'Microsoft.PowerShell_profile.ps1'
-        - 'profile.ps1'
-        - 'Modules\*'
-        - 'Scripts\*'
-    
-    # PowerShell 7+ user profile directory
-    - path: '%USERPROFILE%\Documents\PowerShell'
-      description: PowerShell 7+ user profiles and modules
-      recursive: true
-      include:
-        - 'Microsoft.PowerShell_profile.ps1'
-        - 'profile.ps1'
-        - 'Modules\*'
-        - 'Scripts\*'
-    
-    # System PowerShell configuration
-    - path: '%ProgramFiles%\PowerShell'
-      description: PowerShell Core system installation
-      recursive: true
-      include:
-        - 'profile.ps1'
-        - '7\profile.ps1'
-        - 'Modules\*'
-    
-    # PSReadLine settings and history
-    - path: '%APPDATA%\Microsoft\Windows\PowerShell\PSReadLine'
-      description: PSReadLine configuration and command history
-      include:
-        - 'ConsoleHost_history.txt'
-        - 'Settings.json'
-    
-    # PowerShell help files
-    - path: '%USERPROFILE%\Documents\WindowsPowerShell\Help'
-      description: Downloaded PowerShell help files
-      recursive: true
-    - path: '%USERPROFILE%\Documents\PowerShell\Help'
-      description: PowerShell 7+ help files
-      recursive: true
-    
-    # Module installation paths
-    - path: '%ProgramFiles%\WindowsPowerShell\Modules'
-      description: System-wide PowerShell 5.1 modules
-      recursive: true
-    - path: '%ProgramFiles%\PowerShell\Modules'
-      description: System-wide PowerShell 7+ modules
-      recursive: true
+  # Windows PowerShell user profile directory
+  - name: "Windows PowerShell User Profiles"
+    path: "%USERPROFILE%\\Documents\\WindowsPowerShell"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/windows_powershell_user"
+
+  # PowerShell 7+ user profile directory
+  - name: "PowerShell 7+ User Profiles"
+    path: "%USERPROFILE%\\Documents\\PowerShell"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/powershell_7_user"
+
+  # PSReadLine settings and history
+  - name: "PSReadLine Configuration"
+    path: "%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/psreadline"
+
+  # PowerShell help files (Windows PowerShell)
+  - name: "Windows PowerShell Help Files"
+    path: "%USERPROFILE%\\Documents\\WindowsPowerShell\\Help"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/windows_powershell_help"
+
+  # PowerShell 7+ help files
+  - name: "PowerShell 7+ Help Files"
+    path: "%USERPROFILE%\\Documents\\PowerShell\\Help"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/powershell_7_help"
 
 applications:
-  discovery:
-    # PowerShell version information
-    - name: PowerShellVersions
-      command: '$PSVersionTable | ConvertTo-Json'
-      description: Current PowerShell version and build information
-    
-    # Installed PowerShell modules
-    - name: InstalledModules
-      command: 'Get-Module -ListAvailable | Select-Object Name, Version, Path, ModuleType | ConvertTo-Json'
-      description: All available PowerShell modules
-    
-    # PowerShell execution policy
-    - name: ExecutionPolicies
-      command: 'Get-ExecutionPolicy -List | ConvertTo-Json'
-      description: Current execution policy settings for all scopes
-    
-    # PowerShell providers
-    - name: PSProviders
-      command: 'Get-PSProvider | Select-Object Name, Drives, Description | ConvertTo-Json'
-      description: Available PowerShell providers
-    
-    # PowerShell snap-ins (legacy)
-    - name: PSSnapins
-      command: 'Get-PSSnapin -Registered -ErrorAction SilentlyContinue | Select-Object Name, Version, Description | ConvertTo-Json'
-      description: Registered PowerShell snap-ins
-    
-    # PowerShell drives
-    - name: PSDrives
-      command: 'Get-PSDrive | Select-Object Name, Provider, Root, Description | ConvertTo-Json'
-      description: Current PowerShell drives
-    
-    # Module paths
-    - name: ModulePaths
-      command: '$env:PSModulePath -split ";" | ConvertTo-Json'
-      description: PowerShell module search paths
+  # PowerShell version information
+  - name: "PowerShell Version Information"
+    type: custom
+    discovery_command: |
+      try {
+          $PSVersionTable | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve PowerShell version information: $_"
+          "{}"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $versionData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($versionData) {
+              $applications += @{
+                  Name = "PowerShellVersion"
+                  Version = if ($versionData.PSVersion) { $versionData.PSVersion.ToString() } else { "Unknown" }
+                  Status = "Installed"
+                  PSVersion = $versionData.PSVersion
+                  PSEdition = $versionData.PSEdition
+                  GitCommitId = $versionData.GitCommitId
+                  OS = $versionData.OS
+                  Platform = $versionData.Platform
+                  WSManStackVersion = $versionData.WSManStackVersion
+                  SerializationVersion = $versionData.SerializationVersion
+                  CLRVersion = $versionData.CLRVersion
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse PowerShell version information: $_"
+          "[]"
+      }
+    dynamic_state_path: "powershell_version.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $versions = $StateJson | ConvertFrom-Json
+      if ($versions.Count -gt 0) {
+          Write-Host "PowerShell version information restored:" -ForegroundColor Green
+          foreach ($version in $versions) {
+              Write-Host "  - PowerShell $($version.PSEdition) $($version.Version)" -ForegroundColor Cyan
+              Write-Host "    Platform: $($version.Platform)" -ForegroundColor Gray
+              if ($version.GitCommitId) {
+                  Write-Host "    Git Commit: $($version.GitCommitId)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No PowerShell version information found in backup" -ForegroundColor Yellow
+      }
 
-post_update:
-  stages:
-    - name: ProfileValidation
-      description: Validate PowerShell profile backup integrity
-      commands:
-        - 'if (Test-Path "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1") { Write-Host "Windows PowerShell profile found and backed up" -ForegroundColor Green }'
-        - 'if (Test-Path "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1") { Write-Host "PowerShell 7+ profile found and backed up" -ForegroundColor Green }'
-    
-    - name: ModuleExport
-      description: Export detailed module information
-      commands:
-        - 'Get-Module -ListAvailable | Where-Object { $_.ModuleBase -like "*Documents*" } | Select-Object Name, Version, Path, Description | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\user_modules.json" -Force'
-        - 'Get-Module -ListAvailable | Where-Object { $_.ModuleBase -like "*Program Files*" } | Select-Object Name, Version, Path, Description | ConvertTo-Json -Depth 5 | Out-File "$BackupPath\system_modules.json" -Force'
-    
-    - name: PSReadLineHistory
-      description: Backup PSReadLine command history and settings
-      commands:
-        - 'if (Test-Path "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt") { Copy-Item "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" "$BackupPath\" -Force }'
-        - 'if (Get-Module PSReadLine -ListAvailable) { Get-PSReadLineOption | ConvertTo-Json | Out-File "$BackupPath\PSReadLine_settings.json" -Force }'
-    
-    - name: PowerShellAliases
-      description: Export PowerShell aliases and functions
-      commands:
-        - 'Get-Alias | Where-Object { $_.Source -eq "" } | ConvertTo-Json | Out-File "$BackupPath\custom_aliases.json" -Force'
-        - 'Get-Command -CommandType Function | Where-Object { $_.Source -eq "" } | Select-Object Name, Definition | ConvertTo-Json | Out-File "$BackupPath\custom_functions.json" -Force'
-    
-    - name: UserGuidance
-      description: Provide user guidance for PowerShell restore
-      commands:
-        - 'Write-Host "PowerShell configuration backed up successfully." -ForegroundColor Green'
-        - 'Write-Host "Profiles, modules, and execution policies are preserved." -ForegroundColor Cyan'
-        - 'Write-Host "Note: Some modules may need to be reinstalled if they were installed from PowerShell Gallery." -ForegroundColor Yellow'
-        - 'Write-Host "Command history and PSReadLine settings are included in the backup." -ForegroundColor Cyan' 
+  # Installed PowerShell modules
+  - name: "Installed PowerShell Modules"
+    type: custom
+    discovery_command: |
+      try {
+          Get-Module -ListAvailable | Select-Object Name, Version, Path, ModuleType, Description | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve PowerShell modules: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $moduleData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($moduleData -and $moduleData.Count -gt 0) {
+              foreach ($module in $moduleData) {
+                  $applications += @{
+                      Name = "PSModule-$($module.Name)"
+                      Version = $module.Version.ToString()
+                      Status = "Available"
+                      ModuleName = $module.Name
+                      ModuleType = $module.ModuleType
+                      ModulePath = $module.Path
+                      Description = $module.Description
+                      IsUserModule = $module.Path -like "*Documents*"
+                      IsSystemModule = $module.Path -like "*Program Files*"
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse PowerShell modules: $_"
+          "[]"
+      }
+    dynamic_state_path: "powershell_modules.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $modules = $StateJson | ConvertFrom-Json
+      if ($modules.Count -gt 0) {
+          Write-Host "PowerShell modules information restored:" -ForegroundColor Green
+          $userModules = $modules | Where-Object { $_.IsUserModule }
+          $systemModules = $modules | Where-Object { $_.IsSystemModule }
+          
+          if ($userModules.Count -gt 0) {
+              Write-Host "  User Modules ($($userModules.Count)):" -ForegroundColor Cyan
+              foreach ($module in $userModules | Select-Object -First 10) {
+                  Write-Host "    - $($module.ModuleName) $($module.Version)" -ForegroundColor Gray
+              }
+              if ($userModules.Count -gt 10) {
+                  Write-Host "    ... and $($userModules.Count - 10) more" -ForegroundColor Gray
+              }
+          }
+          
+          if ($systemModules.Count -gt 0) {
+              Write-Host "  System Modules ($($systemModules.Count)):" -ForegroundColor Cyan
+              foreach ($module in $systemModules | Select-Object -First 5) {
+                  Write-Host "    - $($module.ModuleName) $($module.Version)" -ForegroundColor Gray
+              }
+              if ($systemModules.Count -gt 5) {
+                  Write-Host "    ... and $($systemModules.Count - 5) more" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No PowerShell modules information found in backup" -ForegroundColor Yellow
+      }
+
+  # PowerShell execution policy
+  - name: "PowerShell Execution Policies"
+    type: custom
+    discovery_command: |
+      try {
+          Get-ExecutionPolicy -List | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve execution policies: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $policyData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($policyData -and $policyData.Count -gt 0) {
+              foreach ($policy in $policyData) {
+                  $applications += @{
+                      Name = "ExecutionPolicy-$($policy.Scope)"
+                      Version = "Policy"
+                      Status = $policy.ExecutionPolicy
+                      Scope = $policy.Scope
+                      ExecutionPolicy = $policy.ExecutionPolicy
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse execution policies: $_"
+          "[]"
+      }
+    dynamic_state_path: "execution_policies.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $policies = $StateJson | ConvertFrom-Json
+      if ($policies.Count -gt 0) {
+          Write-Host "PowerShell execution policies restored:" -ForegroundColor Green
+          foreach ($policy in $policies) {
+              Write-Host "  - $($policy.Scope): $($policy.ExecutionPolicy)" -ForegroundColor Cyan
+          }
+          Write-Host ""
+          Write-Host "NOTE: Execution policies may need to be manually restored using:" -ForegroundColor Yellow
+          Write-Host "Set-ExecutionPolicy -ExecutionPolicy <Policy> -Scope <Scope>" -ForegroundColor Gray
+      } else {
+          Write-Host "No execution policy information found in backup" -ForegroundColor Yellow
+      }
+
+  # PowerShell providers
+  - name: "PowerShell Providers"
+    type: custom
+    discovery_command: |
+      try {
+          Get-PSProvider | Select-Object Name, Drives, Description, Capabilities | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve PowerShell providers: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $providerData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($providerData -and $providerData.Count -gt 0) {
+              foreach ($provider in $providerData) {
+                  $applications += @{
+                      Name = "PSProvider-$($provider.Name)"
+                      Version = "Provider"
+                      Status = "Available"
+                      ProviderName = $provider.Name
+                      Drives = $provider.Drives
+                      Description = $provider.Description
+                      Capabilities = $provider.Capabilities
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse PowerShell providers: $_"
+          "[]"
+      }
+    dynamic_state_path: "powershell_providers.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $providers = $StateJson | ConvertFrom-Json
+      if ($providers.Count -gt 0) {
+          Write-Host "PowerShell providers information restored:" -ForegroundColor Green
+          foreach ($provider in $providers) {
+              Write-Host "  - $($provider.ProviderName): $($provider.Description)" -ForegroundColor Cyan
+              if ($provider.Drives -and $provider.Drives.Count -gt 0) {
+                  Write-Host "    Drives: $($provider.Drives -join ', ')" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No PowerShell providers information found in backup" -ForegroundColor Yellow
+      }
+
+  # PowerShell drives
+  - name: "PowerShell Drives"
+    type: custom
+    discovery_command: |
+      try {
+          Get-PSDrive | Select-Object Name, Provider, Root, Description, Used, Free | ConvertTo-Json -Depth 5
+      } catch {
+          Write-Warning "Could not retrieve PowerShell drives: $_"
+          "[]"
+      }
+    parse_script: |
+      param([string]$DiscoveryOutput)
+      try {
+          $driveData = $DiscoveryOutput | ConvertFrom-Json
+          $applications = @()
+          
+          if ($driveData -and $driveData.Count -gt 0) {
+              # Only include non-standard drives (not basic file system drives)
+              $customDrives = $driveData | Where-Object { $_.Provider -ne "Microsoft.PowerShell.Core\FileSystem" -or $_.Name.Length -gt 1 }
+              
+              foreach ($drive in $customDrives) {
+                  $applications += @{
+                      Name = "PSDrive-$($drive.Name)"
+                      Version = "Drive"
+                      Status = "Mapped"
+                      DriveName = $drive.Name
+                      Provider = $drive.Provider
+                      Root = $drive.Root
+                      Description = $drive.Description
+                      Used = $drive.Used
+                      Free = $drive.Free
+                  }
+              }
+          }
+          
+          if ($applications.Count -eq 0) {
+              "[]"
+          } else {
+              $applications | ConvertTo-Json -Depth 5 -Compress
+          }
+      } catch {
+          Write-Warning "Failed to parse PowerShell drives: $_"
+          "[]"
+      }
+    dynamic_state_path: "powershell_drives.yaml"
+    install_script: |
+      param([string]$StateJson)
+      $drives = $StateJson | ConvertFrom-Json
+      if ($drives.Count -gt 0) {
+          Write-Host "PowerShell drives information restored:" -ForegroundColor Green
+          foreach ($drive in $drives) {
+              Write-Host "  - $($drive.DriveName): $($drive.Root)" -ForegroundColor Cyan
+              Write-Host "    Provider: $($drive.Provider)" -ForegroundColor Gray
+              if ($drive.Description) {
+                  Write-Host "    Description: $($drive.Description)" -ForegroundColor Gray
+              }
+          }
+      } else {
+          Write-Host "No custom PowerShell drives found in backup" -ForegroundColor Yellow
+      } 

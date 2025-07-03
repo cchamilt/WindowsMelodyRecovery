@@ -20,23 +20,48 @@ applications:
   # Winget applications
   - name: Winget Installed Applications
     type: custom
-    dynamic_state_path: "applications/winget_apps.json"
+    dynamic_state_path: "winget_apps.json"
     discovery_command: "winget list --accept-source-agreements"
     parse_script: |
       param($WingetOutput)
       try {
           $apps = @()
           $lines = $WingetOutput -split "`n"
+          $inDataSection = $false
+          
           foreach ($line in $lines) {
-              if ($line -match "^\s*(.+?)\s+(.+?)\s+(.+?)\s*$" -and $line -notmatch "^Name\s+Id\s+Version") {
-                  $apps += @{
-                      Name = $matches[1].Trim()
-                      Id = $matches[2].Trim() 
-                      Version = $matches[3].Trim()
+              # Skip empty lines and progress indicators
+              if ([string]::IsNullOrWhiteSpace($line) -or $line -match "^\s*[-\\|/]\s*$") {
+                  continue
+              }
+              
+              # Look for the header line to start parsing
+              if ($line -match "^Name\s+Id\s+Version") {
+                  $inDataSection = $true
+                  continue
+              }
+              
+              # Skip separator lines
+              if ($line -match "^-+\s*$") {
+                  continue
+              }
+              
+              # Parse data lines after we've found the header
+              if ($inDataSection -and $line -match "\S") {
+                  # Split by multiple spaces to handle the column format
+                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
+                  if ($parts.Count -ge 3) {
+                      $apps += @{
+                          Name = $parts[0].Trim()
+                          Id = $parts[1].Trim()
+                          Version = $parts[2].Trim()
+                      }
                   }
               }
           }
-          $apps | ConvertTo-Json -Compress
+          
+          Write-Host "Found $($apps.Count) winget applications"
+          return $apps | ConvertTo-Json -Compress
       } catch {
           Write-Warning "Failed to parse winget output: $_"
           return "[]"
@@ -45,9 +70,10 @@ applications:
       param($AppsJson)
       try {
           $apps = $AppsJson | ConvertFrom-Json
+          Write-Host "Restoring $($apps.Count) winget applications..."
           foreach ($app in $apps) {
               Write-Host "Installing: $($app.Name) ($($app.Id))"
-              winget install --id $app.Id --accept-source-agreements --accept-package-agreements
+              winget install --id $app.Id --accept-source-agreements --accept-package-agreements --silent
           }
       } catch {
           Write-Warning "Failed to install winget applications: $_"
@@ -56,22 +82,40 @@ applications:
   # Chocolatey applications
   - name: Chocolatey Installed Applications
     type: custom
-    dynamic_state_path: "applications/chocolatey_apps.json"
-    discovery_command: "choco list --local-only"
+    dynamic_state_path: "chocolatey_apps.json"
+    discovery_command: "choco list"
     parse_script: |
       param($ChocoOutput)
       try {
           $apps = @()
           $lines = $ChocoOutput -split "`n"
+          
           foreach ($line in $lines) {
-              if ($line -match "^(.+?)\s+(.+?)$" -and $line -notmatch "packages installed") {
-                  $apps += @{
-                      Name = $matches[1].Trim()
-                      Version = $matches[2].Trim()
+              # Skip empty lines, header, and summary lines
+              if ([string]::IsNullOrWhiteSpace($line) -or 
+                  $line -match "^Chocolatey v" -or 
+                  $line -match "packages installed" -or
+                  $line -match "^\s*$") {
+                  continue
+              }
+              
+              # Parse package lines (format: "packagename version")
+              if ($line -match "^(.+?)\s+(.+?)$") {
+                  $name = $matches[1].Trim()
+                  $version = $matches[2].Trim()
+                  
+                  # Skip chocolatey itself in the list
+                  if ($name -ne "chocolatey") {
+                      $apps += @{
+                          Name = $name
+                          Version = $version
+                      }
                   }
               }
           }
-          $apps | ConvertTo-Json -Compress
+          
+          Write-Host "Found $($apps.Count) chocolatey applications"
+          return $apps | ConvertTo-Json -Compress
       } catch {
           Write-Warning "Failed to parse chocolatey output: $_"
           return "[]"
@@ -80,9 +124,10 @@ applications:
       param($AppsJson)
       try {
           $apps = $AppsJson | ConvertFrom-Json
+          Write-Host "Restoring $($apps.Count) chocolatey applications..."
           foreach ($app in $apps) {
               Write-Host "Installing: $($app.Name)"
-              choco install $app.Name -y
+              choco install $app.Name -y --force
           }
       } catch {
           Write-Warning "Failed to install chocolatey applications: $_"
@@ -91,22 +136,43 @@ applications:
   # Scoop applications
   - name: Scoop Installed Applications
     type: custom
-    dynamic_state_path: "applications/scoop_apps.json"
+    dynamic_state_path: "scoop_apps.json"
     discovery_command: "scoop list"
     parse_script: |
       param($ScoopOutput)
       try {
           $apps = @()
           $lines = $ScoopOutput -split "`n"
+          $headerPassed = $false
+          
           foreach ($line in $lines) {
-              if ($line -match "^\s*(.+?)\s+(.+?)\s*$" -and $line -notmatch "^Name\s+Version") {
+              # Skip empty lines
+              if ([string]::IsNullOrWhiteSpace($line)) {
+                  continue
+              }
+              
+              # Skip header
+              if ($line -match "^Name\s+Version") {
+                  $headerPassed = $true
+                  continue
+              }
+              
+              # Skip separator lines
+              if ($line -match "^-+\s*$") {
+                  continue
+              }
+              
+              # Parse data lines after header
+              if ($headerPassed -and $line -match "^\s*(.+?)\s+(.+?)\s*$") {
                   $apps += @{
                       Name = $matches[1].Trim()
                       Version = $matches[2].Trim()
                   }
               }
           }
-          $apps | ConvertTo-Json -Compress
+          
+          Write-Host "Found $($apps.Count) scoop applications"
+          return $apps | ConvertTo-Json -Compress
       } catch {
           Write-Warning "Failed to parse scoop output: $_"
           return "[]"
@@ -115,12 +181,132 @@ applications:
       param($AppsJson)
       try {
           $apps = $AppsJson | ConvertFrom-Json
+          Write-Host "Restoring $($apps.Count) scoop applications..."
           foreach ($app in $apps) {
               Write-Host "Installing: $($app.Name)"
               scoop install $app.Name
           }
       } catch {
           Write-Warning "Failed to install scoop applications: $_"
+      }
+
+  # Windows Store Apps (AppX packages)
+  - name: Windows Store Applications
+    type: custom
+    dynamic_state_path: "store_apps.json"
+    discovery_command: "Get-AppxPackage | Where-Object { $_.PackageFullName -notmatch '^Microsoft.Windows' -and $_.SignatureKind -eq 'Store' } | Select-Object Name, PackageFullName, Version, Publisher | ConvertTo-Json -Compress"
+    parse_script: |
+      param($StoreOutput)
+      try {
+          # The discovery command already outputs JSON, so just validate and return it
+          if ([string]::IsNullOrWhiteSpace($StoreOutput) -or $StoreOutput -eq "null") {
+              Write-Host "Found 0 Store applications"
+              return "[]"
+          }
+          
+          # Test if it's valid JSON
+          $apps = $StoreOutput | ConvertFrom-Json
+          if (-not $apps) {
+              $apps = @()
+          }
+          
+          # Ensure it's an array
+          if ($apps -isnot [array]) {
+              $apps = @($apps)
+          }
+          
+          Write-Host "Found $($apps.Count) Store applications"
+          return $apps | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse Store apps output: $_"
+          return "[]"
+      }
+    install_script: |
+      param($AppsJson)
+      try {
+          Write-Host "Store applications cannot be automatically reinstalled" -ForegroundColor Yellow
+          Write-Host "User will need to reinstall from Microsoft Store manually" -ForegroundColor Yellow
+          
+          $apps = $AppsJson | ConvertFrom-Json
+          if ($apps.Count -gt 0) {
+              Write-Host "Applications that were installed from Store:" -ForegroundColor Cyan
+              foreach ($app in $apps) {
+                  Write-Host "  - $($app.Name) ($($app.Version))" -ForegroundColor Gray
+              }
+          } else {
+              Write-Host "No Store applications found in backup" -ForegroundColor Yellow
+          }
+      } catch {
+          Write-Warning "Failed to display Store applications: $_"
+      }
+
+  # MSI Installed Applications (from Add/Remove Programs)
+  - name: MSI Installed Applications
+    type: custom
+    dynamic_state_path: "msi_apps.json"
+    discovery_command: "Get-CimInstance -ClassName Win32_Product | Select-Object Name, Version, Vendor, InstallDate | Sort-Object Name"
+    parse_script: |
+      param($MSIOutput)
+      try {
+          # The discovery command should output objects that we can parse
+          $apps = @()
+          $lines = $MSIOutput -split "`n"
+          $headerPassed = $false
+          
+          foreach ($line in $lines) {
+              # Skip empty lines
+              if ([string]::IsNullOrWhiteSpace($line)) {
+                  continue
+              }
+              
+              # Skip header lines
+              if ($line -match "^Name\s+Version\s+Vendor" -or $line -match "^-+\s*$") {
+                  $headerPassed = $true
+                  continue
+              }
+              
+              # Parse data lines after header (flexible parsing for varying column widths)
+              if ($headerPassed -and $line -match "\S") {
+                  # Try to split by multiple spaces, but handle cases where data might have spaces
+                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
+                  if ($parts.Count -ge 1) {
+                      $app = @{
+                          Name = $parts[0].Trim()
+                      }
+                      if ($parts.Count -ge 2) { $app.Version = $parts[1].Trim() }
+                      if ($parts.Count -ge 3) { $app.Vendor = $parts[2].Trim() }
+                      if ($parts.Count -ge 4) { $app.InstallDate = $parts[3].Trim() }
+                      
+                      $apps += $app
+                  }
+              }
+          }
+          
+          Write-Host "Found $($apps.Count) MSI-installed applications"
+          return $apps | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse MSI applications output: $_"
+          return "[]"
+      }
+    install_script: |
+      param($AppsJson)
+      try {
+          Write-Host "MSI applications cannot be automatically reinstalled" -ForegroundColor Yellow
+          Write-Host "User will need to reinstall these applications manually" -ForegroundColor Yellow
+          
+          $apps = $AppsJson | ConvertFrom-Json
+          if ($apps.Count -gt 0) {
+              Write-Host "Applications that were installed via MSI:" -ForegroundColor Cyan
+              foreach ($app in $apps) {
+                  Write-Host "  - $($app.Name)" -ForegroundColor Gray
+                  if ($app.Version) { Write-Host "    Version: $($app.Version)" -ForegroundColor DarkGray }
+                  if ($app.Vendor) { Write-Host "    Vendor: $($app.Vendor)" -ForegroundColor DarkGray }
+              }
+          } else {
+              Write-Host "No MSI applications found in backup" -ForegroundColor Yellow
+          }
+      } catch {
+          Write-Warning "Failed to display MSI applications: $_"
       }
 
 files:

@@ -23,163 +23,228 @@ registry:
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/fileexts.yaml"
+    dynamic_state_path: "registry/fileexts.json"
 
   - name: "System File Classes"
     path: 'HKLM:\SOFTWARE\Classes'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/system_classes.yaml"
+    dynamic_state_path: "registry/system_classes.json"
 
   - name: "User File Classes"
     path: 'HKCU:\Software\Classes'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/user_classes.yaml"
+    dynamic_state_path: "registry/user_classes.json"
 
   # Application Associations
   - name: "User Shell Associations"
     path: 'HKCU:\Software\Microsoft\Windows\Shell\Associations'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/shell_associations.yaml"
+    dynamic_state_path: "registry/shell_associations.json"
 
   - name: "File Association Mappings"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileAssociation'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/file_associations.yaml"
+    dynamic_state_path: "registry/file_associations.json"
 
   - name: "Application Association Toasts"
     path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/app_toasts.yaml"
+    dynamic_state_path: "registry/app_toasts.json"
 
   - name: "Registered Applications"
     path: 'HKLM:\SOFTWARE\RegisteredApplications'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/registered_apps.yaml"
+    dynamic_state_path: "registry/registered_apps.json"
 
   # URL Protocol Handlers
   - name: "User URL Associations"
     path: 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/user_url_associations.yaml"
+    dynamic_state_path: "registry/user_url_associations.json"
 
   - name: "System URL Associations"
     path: 'HKLM:\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations'
     type: key
     action: sync
-    dynamic_state_path: "defaultapps/registry/system_url_associations.yaml"
+    dynamic_state_path: "registry/system_url_associations.json"
 
-files:
-  # Default Apps Configuration Export
-  - name: "Default Apps XML Export"
-    path: "$BackupPath/defaultapps/defaultapps.xml"
-    type: file
-    action: sync
-    dynamic_state_path: "defaultapps/files/defaultapps_xml.yaml"
-
-application_state:
-  # Default Apps Discovery
+applications:
+  # Default Apps Export using DISM
   - name: "Default Apps Export"
     type: custom
-    discovery_command: |
-      try {
-          $tempFile = [System.IO.Path]::GetTempFileName()
-          $xmlFile = $tempFile + ".xml"
-          Dism.exe /Online /Export-DefaultAppAssociations:$xmlFile | Out-Null
-          if (Test-Path $xmlFile) {
-              $content = Get-Content $xmlFile -Raw
-              Remove-Item $xmlFile -Force
-              $content
-          } else {
-              "<DefaultAssociations></DefaultAssociations>"
-          }
-      } catch {
-          Write-Output "<DefaultAssociations></DefaultAssociations>"
-      }
+    dynamic_state_path: "default_apps_export.json"
+    discovery_command: "try { $tempFile = [System.IO.Path]::GetTempFileName() + '.xml'; Dism.exe /Online /Export-DefaultAppAssociations:$tempFile | Out-Null; if (Test-Path $tempFile) { $content = Get-Content $tempFile -Raw; Remove-Item $tempFile -Force; $content } else { '<DefaultAssociations></DefaultAssociations>' } } catch { '<DefaultAssociations></DefaultAssociations>' }"
     parse_script: |
+      param($DismOutput)
       try {
-          [xml]$xmlContent = $State
-          $associations = $xmlContent.DefaultAssociations.Association
-          return @{
-              AssociationCount = if ($associations) { $associations.Count } else { 0 }
-              FileExtensions = if ($associations) { $associations | Where-Object { $_.Identifier -like "*.*" } | ForEach-Object { $_.Identifier } } else { @() }
-              UrlProtocols = if ($associations) { $associations | Where-Object { $_.Identifier -notlike "*.*" } | ForEach-Object { $_.Identifier } } else { @() }
-          }
-      } catch {
-          return @{
-              AssociationCount = 0
-              FileExtensions = @()
-              UrlProtocols = @()
-          }
-      }
-    dynamic_state_path: "defaultapps/default_associations.yaml"
-
-  - name: "User Choice Settings"
-    type: custom
-    discovery_command: |
-      try {
-          $commonExtensions = @('.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp3', '.mp4', '.avi', '.mkv', '.wav', '.zip', '.rar', '.7z', '.html', '.htm', '.xml', '.exe', '.msi')
-          $userChoices = @()
+          [xml]$xmlContent = $DismOutput
+          $associations = @()
           
-          foreach ($ext in $commonExtensions) {
-              $path = "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts/$ext/UserChoice"
-              if (Test-Path $path) {
-                  $choice = Get-ItemProperty $path -ErrorAction SilentlyContinue
-                  if ($choice) {
-                      $userChoices += @{
-                          Extension = $ext
-                          ProgId = $choice.ProgId
-                          Hash = $choice.Hash
-                      }
+          if ($xmlContent.DefaultAssociations.Association) {
+              foreach ($assoc in $xmlContent.DefaultAssociations.Association) {
+                  $associations += @{
+                      Identifier = $assoc.Identifier
+                      ProgId = $assoc.ProgId
+                      ApplicationName = $assoc.ApplicationName
+                      Type = if ($assoc.Identifier -like "*.*") { "FileExtension" } else { "UrlProtocol" }
                   }
               }
           }
           
-          $userChoices | ConvertTo-Json -Depth 10
+          Write-Host "Found $($associations.Count) default app associations"
+          return $associations | ConvertTo-Json -Compress
       } catch {
-          Write-Output "[]"
+          Write-Warning "Failed to parse default apps export: $_"
+          return "[]"
       }
-    parse_script: |
-      $choices = $State | ConvertFrom-Json
-      return @{
-          UserChoiceCount = $choices.Count
-          ConfiguredExtensions = $choices | ForEach-Object { $_.Extension }
-          UniqueProgIds = $choices | Group-Object ProgId | ForEach-Object { "$($_.Name): $($_.Count) extensions" }
+    install_script: |
+      param($AssociationsJson)
+      try {
+          Write-Host "Default app associations cannot be automatically restored" -ForegroundColor Yellow
+          Write-Host "User will need to reconfigure default applications manually" -ForegroundColor Yellow
+          Write-Host "Or use 'Dism /Online /Import-DefaultAppAssociations:backup.xml'" -ForegroundColor Cyan
+          
+          $associations = $AssociationsJson | ConvertFrom-Json
+          if ($associations.Count -gt 0) {
+              Write-Host "Default app associations found in backup:" -ForegroundColor Cyan
+              $fileExts = $associations | Where-Object { $_.Type -eq "FileExtension" }
+              $urlProtos = $associations | Where-Object { $_.Type -eq "UrlProtocol" }
+              
+              Write-Host "  File Extensions: $($fileExts.Count)" -ForegroundColor Gray
+              Write-Host "  URL Protocols: $($urlProtos.Count)" -ForegroundColor Gray
+              
+              if ($fileExts.Count -gt 0) {
+                  Write-Host "  Sample file extensions:" -ForegroundColor DarkGray
+                  $fileExts | Select-Object -First 5 | ForEach-Object {
+                      Write-Host "    $($_.Identifier) → $($_.ApplicationName)" -ForegroundColor DarkGray
+                  }
+              }
+          }
+      } catch {
+          Write-Warning "Failed to display default app associations: $_"
       }
-    dynamic_state_path: "defaultapps/user_choices.yaml"
 
+  # User Choice Settings for Common Extensions
+  - name: "User Choice Settings"
+    type: custom
+    dynamic_state_path: "user_choices.json"
+    discovery_command: "try { $commonExtensions = @('.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.mp3', '.mp4', '.avi', '.mkv', '.wav', '.zip', '.rar', '.7z', '.html', '.htm', '.xml', '.exe', '.msi'); $userChoices = @(); foreach ($ext in $commonExtensions) { $path = \"HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts/$ext/UserChoice\"; if (Test-Path $path) { $choice = Get-ItemProperty $path -ErrorAction SilentlyContinue; if ($choice) { $userChoices += @{ Extension = $ext; ProgId = $choice.ProgId; Hash = $choice.Hash } } } }; $userChoices | ConvertTo-Json -Compress } catch { '[]' }"
+    parse_script: |
+      param($UserChoiceOutput)
+      try {
+          $choices = $UserChoiceOutput | ConvertFrom-Json
+          if (-not $choices) { $choices = @() }
+          
+          Write-Host "Found $($choices.Count) user choice settings"
+          return $choices | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse user choice settings: $_"
+          return "[]"
+      }
+    install_script: |
+      param($ChoicesJson)
+      try {
+          Write-Host "User choice settings cannot be automatically restored" -ForegroundColor Yellow
+          Write-Host "Windows protects these with cryptographic hashes" -ForegroundColor Yellow
+          
+          $choices = $ChoicesJson | ConvertFrom-Json
+          if ($choices.Count -gt 0) {
+              Write-Host "User choice settings found in backup:" -ForegroundColor Cyan
+              $progIds = $choices | Group-Object ProgId
+              foreach ($group in $progIds) {
+                  Write-Host "  $($group.Name): $($group.Count) extensions" -ForegroundColor Gray
+              }
+          }
+      } catch {
+          Write-Warning "Failed to display user choice settings: $_"
+      }
+
+  # Default Programs Status
   - name: "Default Programs Status"
     type: custom
-    discovery_command: |
-      try {
-          $defaultBrowser = Get-ItemProperty -Path "HKCU:/Software/Microsoft/Windows/Shell/Associations/UrlAssociations/http/UserChoice" -Name "ProgId" -ErrorAction SilentlyContinue
-          $defaultMailClient = Get-ItemProperty -Path "HKCU:/Software/Microsoft/Windows/Shell/Associations/UrlAssociations/mailto/UserChoice" -Name "ProgId" -ErrorAction SilentlyContinue
-          $defaultMediaPlayer = Get-ItemProperty -Path "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts/.mp4/UserChoice" -Name "ProgId" -ErrorAction SilentlyContinue
-          $defaultPdfReader = Get-ItemProperty -Path "HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts/.pdf/UserChoice" -Name "ProgId" -ErrorAction SilentlyContinue
-          
-          @{
-              DefaultBrowser = if ($defaultBrowser) { $defaultBrowser.ProgId } else { $null }
-              DefaultMailClient = if ($defaultMailClient) { $defaultMailClient.ProgId } else { $null }
-              DefaultMediaPlayer = if ($defaultMediaPlayer) { $defaultMediaPlayer.ProgId } else { $null }
-              DefaultPdfReader = if ($defaultPdfReader) { $defaultPdfReader.ProgId } else { $null }
-          } | ConvertTo-Json -Depth 10
-      } catch {
-          Write-Output "{}"
-      }
+    dynamic_state_path: "default_programs.json"
+    discovery_command: "try { $result = @{}; $paths = @{ 'DefaultBrowser' = 'HKCU:/Software/Microsoft/Windows/Shell/Associations/UrlAssociations/http/UserChoice'; 'DefaultMailClient' = 'HKCU:/Software/Microsoft/Windows/Shell/Associations/UrlAssociations/mailto/UserChoice'; 'DefaultMediaPlayer' = 'HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts/.mp4/UserChoice'; 'DefaultPdfReader' = 'HKCU:/Software/Microsoft/Windows/CurrentVersion/Explorer/FileExts/.pdf/UserChoice' }; foreach ($key in $paths.Keys) { try { $prop = Get-ItemProperty -Path $paths[$key] -Name 'ProgId' -ErrorAction SilentlyContinue; $result[$key] = if ($prop) { $prop.ProgId } else { $null } } catch { $result[$key] = $null } }; $result | ConvertTo-Json -Compress } catch { '{}' }"
     parse_script: |
-      $defaults = $State | ConvertFrom-Json
-      return @{
-          HasDefaultBrowser = [bool]$defaults.DefaultBrowser
-          HasDefaultMailClient = [bool]$defaults.DefaultMailClient
-          HasDefaultMediaPlayer = [bool]$defaults.DefaultMediaPlayer
-          HasDefaultPdfReader = [bool]$defaults.DefaultPdfReader
-          BrowserProgId = $defaults.DefaultBrowser
-          MailProgId = $defaults.DefaultMailClient
+      param($DefaultsOutput)
+      try {
+          $defaults = $DefaultsOutput | ConvertFrom-Json
+          if (-not $defaults) { $defaults = @{} }
+          
+          $configured = 0
+          if ($defaults.DefaultBrowser) { $configured++ }
+          if ($defaults.DefaultMailClient) { $configured++ }
+          if ($defaults.DefaultMediaPlayer) { $configured++ }
+          if ($defaults.DefaultPdfReader) { $configured++ }
+          
+          Write-Host "Found $configured configured default programs"
+          return $defaults | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse default programs: $_"
+          return "{}"
       }
-    dynamic_state_path: "defaultapps/default_programs.yaml" 
+    install_script: |
+      param($DefaultsJson)
+      try {
+          Write-Host "Default program settings reference for manual configuration:" -ForegroundColor Cyan
+          
+          $defaults = $DefaultsJson | ConvertFrom-Json
+          if ($defaults.DefaultBrowser) {
+              Write-Host "  Default Browser: $($defaults.DefaultBrowser)" -ForegroundColor Gray
+          }
+          if ($defaults.DefaultMailClient) {
+              Write-Host "  Default Mail Client: $($defaults.DefaultMailClient)" -ForegroundColor Gray
+          }
+          if ($defaults.DefaultMediaPlayer) {
+              Write-Host "  Default Media Player: $($defaults.DefaultMediaPlayer)" -ForegroundColor Gray
+          }
+          if ($defaults.DefaultPdfReader) {
+              Write-Host "  Default PDF Reader: $($defaults.DefaultPdfReader)" -ForegroundColor Gray
+          }
+      } catch {
+          Write-Warning "Failed to display default programs: $_"
+      }
+
+files:
+  # Export default apps to XML for manual import
+  - name: "Default Apps XML Backup"
+    path: '%TEMP%\DefaultAppsAssociations.xml'
+    type: file
+    action: sync
+    dynamic_state_path: "files/default_apps.xml"
+    encrypt: false
+
+stages:
+  pre_update:
+    - name: "Export Default Apps XML"
+      type: script
+      inline_script: |
+        try {
+            $xmlPath = "$env:TEMP\DefaultAppsAssociations.xml"
+            Write-Host "Exporting default app associations to $xmlPath"
+            $result = Dism.exe /Online /Export-DefaultAppAssociations:$xmlPath
+            if (Test-Path $xmlPath) {
+                Write-Host "Default apps exported successfully"
+            } else {
+                Write-Warning "Failed to export default apps"
+            }
+        } catch {
+            Write-Warning "Error exporting default apps: $_"
+        }
+      parameters: {}
+
+  post_update:
+    - name: "Default Apps Restoration Complete"
+      type: script
+      inline_script: |
+        Write-Host "Default apps backup completed." -ForegroundColor Green
+        Write-Host "Registry associations and user choices have been backed up." -ForegroundColor Yellow
+        Write-Host "To restore: Use Windows Settings > Apps > Default apps" -ForegroundColor Cyan
+        Write-Host "Or use: Dism /Online /Import-DefaultAppAssociations:backup.xml" -ForegroundColor Cyan
+      parameters: {} 
