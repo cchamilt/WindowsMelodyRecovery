@@ -157,10 +157,24 @@ function Import-PrivateScripts {
         [string]$Category
     )
     
-    # Always return early if we're in Docker/container environment to prevent infinite loops
-    # This is a safety measure for the test environment
-    if (Test-Path "/workspace" -ErrorAction SilentlyContinue) {
-        Write-Verbose "Docker/Container environment detected - Import-PrivateScripts disabled for testing"
+    # Prevent infinite loops by checking if Import-PrivateScripts is being called recursively
+    $callStack = Get-PSCallStack
+    $importCallCount = ($callStack | Where-Object { $_.Command -eq "Import-PrivateScripts" }).Count
+    
+    if ($importCallCount -gt 1) {
+        Write-Verbose "Recursive Import-PrivateScripts call detected (depth: $importCallCount) - preventing infinite loop"
+        return
+    }
+    
+    # Additional safety check for module loading context
+    $moduleLoadingContext = ($callStack | Where-Object { 
+        $_.ScriptName -like "*WindowsMelodyRecovery.psm1" -or 
+        $_.Command -eq "Import-Module" -or
+        $_.Command -eq "."
+    }).Count
+    
+    if ($moduleLoadingContext -gt 3) {
+        Write-Verbose "Module loading context detected (depth: $moduleLoadingContext) - deferring private script loading"
         return
     }
     
@@ -291,27 +305,40 @@ if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyCont
     }
 }
 
-# Ensure Public functions are loaded in module scope (but don't load private scripts)
+# Always ensure public functions are loaded properly
 $PublicPath = Join-Path $PSScriptRoot "Public"
+$script:LoadedPublicFunctions = @()
+
 if (Test-Path $PublicPath) {
     $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
+    
     foreach ($script in $PublicScripts) {
         $functionName = $script.BaseName
-        Write-Verbose "Loading public function in module scope: $functionName from $($script.FullName)"
         
-        try {
-            . $script.FullName
+        # Only load if not already loaded
+        if (-not (Get-Command $functionName -ErrorAction SilentlyContinue)) {
+            Write-Verbose "Loading public function: $functionName from $($script.FullName)"
             
-            # Verify the function was actually loaded
-            if (Get-Command $functionName -ErrorAction SilentlyContinue) {
-                Write-Verbose "Successfully loaded public function in module scope: $functionName"
-            } else {
-                Write-Warning "Function $functionName not found after loading in module scope: $($script.FullName)"
+            try {
+                . $script.FullName
+                
+                # Verify the function was actually loaded
+                if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+                    $script:LoadedPublicFunctions += $functionName
+                    Write-Verbose "Successfully loaded public function: $functionName"
+                } else {
+                    Write-Warning "Function $functionName not found after loading: $($script.FullName)"
+                }
+            } catch {
+                Write-Warning "Failed to import public function $($script.FullName): $($_.Exception.Message)"
             }
-        } catch {
-            Write-Warning "Failed to import public function in module scope $($script.FullName): $($_.Exception.Message)"
+        } else {
+            $script:LoadedPublicFunctions += $functionName
+            Write-Verbose "Public function already loaded: $functionName"
         }
     }
+} else {
+    Write-Warning "Public functions directory not found: $PublicPath"
 }
 
 # Export all functions - only public functions, not private ones

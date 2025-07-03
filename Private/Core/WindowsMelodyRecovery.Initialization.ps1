@@ -458,8 +458,14 @@ function Load-PublicFunctions {
     
     try {
         # Fix: Get the module root directory (two levels up from Private/Core)
-        $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        # $PSScriptRoot here is Private/Core, so we need to go up twice
+        $privateDir = Split-Path $PSScriptRoot -Parent  # This gets us to Private
+        $moduleRoot = Split-Path $privateDir -Parent    # This gets us to the module root
         $publicPath = Join-Path $moduleRoot "Public"
+        
+        Write-Verbose "PSScriptRoot: $PSScriptRoot"
+        Write-Verbose "Module root calculated as: $moduleRoot"
+        Write-Verbose "Public path: $publicPath"
         
         if (-not (Test-Path $publicPath)) {
             return @{

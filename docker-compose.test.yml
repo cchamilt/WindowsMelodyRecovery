@@ -77,7 +77,8 @@ services:
       dockerfile: tests/docker/Dockerfile.test-runner
     container_name: wmr-test-runner
     volumes:
-      - ./:/workspace
+      # Mount project root for live updates
+      - .:/workspace
       - mock-cloud-storage:/mock-cloud
       - ./test-results:/test-results
       - ./tests/mock-data/registry:/mock-registry

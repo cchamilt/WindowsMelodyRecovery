@@ -8,8 +8,15 @@
 #>
 
 BeforeAll {
-    # Import the module
-    Import-Module "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1" -Force
+    # Import the module - handle both local and container paths
+    $ModulePath = if (Test-Path "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1") {
+        "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1"
+    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
+        "/workspace/WindowsMelodyRecovery.psm1"
+    } else {
+        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    }
+    Import-Module $ModulePath -Force
     
     # Setup test environment
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }

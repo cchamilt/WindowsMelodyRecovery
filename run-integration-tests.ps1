@@ -25,6 +25,9 @@
 .PARAMETER ForceRebuild
     Force rebuild of Docker images
 
+.PARAMETER NoBuild
+    Skip building Docker images (assumes they already exist)
+
 .PARAMETER NoCleanup
     Skip cleanup of test artifacts and containers
 
@@ -36,6 +39,9 @@
 
 .EXAMPLE
     ./run-integration-tests.ps1 -ForceRebuild -TestSuite All
+
+.EXAMPLE
+    ./run-integration-tests.ps1 -NoBuild -TestSuite Installation -KeepContainers
 #>
 
 param(
@@ -51,6 +57,8 @@ param(
     [switch]$Parallel,
     
     [switch]$ForceRebuild,
+    
+    [switch]$NoBuild,
     
     [string]$LogLevel = "Info",
     
@@ -120,64 +128,70 @@ function Start-TestEnvironment {
             return
         }
         
-        # Build containers individually to continue even if some fail
-        Write-Host "Building Docker images individually..." -ForegroundColor Cyan
-        
-        $services = @("windows-mock", "wsl-mock", "mock-cloud-server", "test-runner", "gaming-mock", "package-mock")
-        $buildResults = @{}
-        $failedBuilds = @()
-        
-        foreach ($service in $services) {
-            # Check if image already exists and we're not forcing rebuild
-            $imageName = "WindowsMelodyRecovery-$service"
-            $imageExists = docker images -q $imageName 2>$null
+        # Handle build options
+        if ($NoBuild) {
+            Write-Host "⏭ Skipping build due to -NoBuild flag" -ForegroundColor Yellow
+        } else {
+            # Use Docker Compose parallel building (faster and more reliable)
+            Write-Host "Building Docker images with compose (parallel)..." -ForegroundColor Cyan
             
-            if ($imageExists -and -not $ForceRebuild) {
-                Write-Host "✓ $service image already exists, skipping build" -ForegroundColor Green
-                $buildResults[$service] = 0
-                continue
-            }
-            
-            Write-Host "Building $service..." -ForegroundColor Cyan
             $buildArgs = @("-f", "docker-compose.test.yml", "build")
             if ($ForceRebuild) {
                 $buildArgs += "--no-cache"
             }
-            $buildArgs += $service
+            if ($Parallel) {
+                $buildArgs += "--parallel"
+            }
             
-            docker compose $buildArgs 2>&1 | Tee-Object -FilePath "build-$service.log"
-            $buildResults[$service] = $LASTEXITCODE
+            # Run the build command
+            docker compose $buildArgs
             
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ $service built successfully" -ForegroundColor Green
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "✗ Docker compose build failed, trying individual builds..." -ForegroundColor Yellow
+                
+                # Fallback to individual builds
+                $services = @("windows-mock", "wsl-mock", "mock-cloud-server", "test-runner", "gaming-mock", "package-mock")
+                $buildResults = @{}
+                $failedBuilds = @()
+                
+                foreach ($service in $services) {
+                    Write-Host "Building $service..." -ForegroundColor Cyan
+                    $serviceArgs = @("-f", "docker-compose.test.yml", "build")
+                    if ($ForceRebuild) {
+                        $serviceArgs += "--no-cache"
+                    }
+                    $serviceArgs += $service
+                    
+                    docker compose $serviceArgs 2>&1 | Tee-Object -FilePath "build-$service.log"
+                    $buildResults[$service] = $LASTEXITCODE
+                    
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "✓ $service built successfully" -ForegroundColor Green
+                    } else {
+                        Write-Host "✗ $service build failed" -ForegroundColor Red
+                        $failedBuilds += $service
+                    }
+                }
+                
+                # Report build results
+                if ($failedBuilds.Count -gt 0) {
+                    Write-Host "`n📋 Build Summary:" -ForegroundColor Yellow
+                    Write-Host "Failed builds: $($failedBuilds -join ', ')" -ForegroundColor Red
+                    
+                    # Show build logs for failed services
+                    Write-Host "`n📝 Build logs for failed services:" -ForegroundColor Yellow
+                    foreach ($failedService in $failedBuilds) {
+                        if (Test-Path "build-$failedService.log") {
+                            Write-Host "`n--- $failedService build log ---" -ForegroundColor Cyan
+                            Get-Content "build-$failedService.log" | Select-Object -Last 20
+                        }
+                    }
+                    
+                    throw "Some Docker images failed to build: $($failedBuilds -join ', ')"
+                }
             } else {
-                Write-Host "✗ $service build failed" -ForegroundColor Red
-                $failedBuilds += $service
-                # Clean up failed image if it exists
-                $failedImageId = docker images -q $imageName 2>$null
-                if ($failedImageId) {
-                    Write-Host "🧹 Removing failed image for $service ($failedImageId)" -ForegroundColor Yellow
-                    docker rmi -f $failedImageId | Out-Null
-                }
+                Write-Host "✓ All Docker images built successfully" -ForegroundColor Green
             }
-        }
-        
-        # Report build results
-        if ($failedBuilds.Count -gt 0) {
-            Write-Host "`n📋 Build Summary:" -ForegroundColor Yellow
-            Write-Host "Failed builds: $($failedBuilds -join ', ')" -ForegroundColor Red
-            Write-Host "Successful builds: $($services | Where-Object { $buildResults[$_] -eq 0 } | ForEach-Object { $_ } | Join-String -Separator ', ')" -ForegroundColor Green
-            
-            # Show build logs for failed services
-            Write-Host "`n📝 Build logs for failed services:" -ForegroundColor Yellow
-            foreach ($failedService in $failedBuilds) {
-                if (Test-Path "build-$failedService.log") {
-                    Write-Host "`n--- $failedService build log ---" -ForegroundColor Cyan
-                    Get-Content "build-$failedService.log" | Select-Object -Last 20
-                }
-            }
-            
-            throw "Some Docker images failed to build: $($failedBuilds -join ', ')"
         }
         
         # Start the containers
@@ -230,6 +244,7 @@ function Invoke-IntegrationTests {
     Write-Host "🧪 Running integration tests..." -ForegroundColor Yellow
     
     try {
+        # Prepare test arguments
         $testArgs = @(
             "-TestSuite", $TestSuite,
             "-Environment", "Docker"
@@ -243,12 +258,37 @@ function Invoke-IntegrationTests {
             $testArgs += "-Parallel"
         }
         
-        # Run tests in the test-runner container
+        # Initialize test directories in container
+        Write-Host "Initializing test environment..." -ForegroundColor Cyan
+        docker exec wmr-test-runner pwsh -Command "
+            New-Item -Path '/test-results/logs' -ItemType Directory -Force | Out-Null
+            New-Item -Path '/test-results/reports' -ItemType Directory -Force | Out-Null
+            New-Item -Path '/test-results/coverage' -ItemType Directory -Force | Out-Null
+            New-Item -Path '/test-results/junit' -ItemType Directory -Force | Out-Null
+            Write-Host '✓ Test directories created'
+        "
+        
+        # Run tests in the test-runner container with proper Pester configuration
         Write-Host "Executing test suite: $TestSuite" -ForegroundColor Cyan
         
-        # Use the refactored orchestrator for all test suites
-        docker exec wmr-test-runner pwsh /tests/test-orchestrator.ps1 -TestSuite $TestSuite | Out-Null
+        # Use dedicated Pester test script for reliable execution
+        Write-Host "Running dedicated Pester test script..." -ForegroundColor Cyan
+        
+        # Build arguments for the Pester script
+        $pesterArgs = "-TestSuite $TestSuite"
+        if ($GenerateReport) {
+            $pesterArgs += " -GenerateReport"
+        }
+        
+        # Execute the dedicated Pester script in container
+        docker exec wmr-test-runner pwsh -Command "/workspace/run-pester-tests.ps1 $pesterArgs"
         $testExitCode = $LASTEXITCODE
+        
+        # Generate additional reports if requested
+        if ($GenerateReport) {
+            Write-Host "📋 Generating additional reports..." -ForegroundColor Cyan
+            docker exec wmr-test-runner pwsh /tests/generate-reports.ps1
+        }
         
         if ($testExitCode -eq 0) {
             Write-Host "✓ All tests passed!" -ForegroundColor Green

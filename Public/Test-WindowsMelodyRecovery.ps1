@@ -9,10 +9,17 @@ function Test-WindowsMelodyRecovery {
         [switch]$NoPrompt
     )
 
-    # Verify admin privileges
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
-        return $false
+    # Verify admin privileges (Windows only)
+    if ($IsWindows) {
+        if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
+            return $false
+        }
+    } else {
+        # On Linux/macOS, check if running as root
+        if ($env:USER -ne "root" -and (id -u) -ne 0) {
+            Write-Warning "This function may require elevation. Consider running with sudo if tests fail."
+        }
     }
 
     $results = @{

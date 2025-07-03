@@ -314,7 +314,15 @@ fi
 Describe "WSL Backup and Restore Tests" {
     BeforeAll {
         # Import the module
-        Import-Module ./WindowsMelodyRecovery.psm1 -Force -ErrorAction SilentlyContinue
+        # Import the module - handle both local and container paths
+$ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
+    "./WindowsMelodyRecovery.psm1"
+} elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
+    "/workspace/WindowsMelodyRecovery.psm1"
+} else {
+    throw "Cannot find WindowsMelodyRecovery.psm1 module"
+}
+Import-Module $ModulePath -Force -ErrorAction SilentlyContinue
         
         # Set up test environment
         $script:TestBackupRoot = "/workspace/test-backups"

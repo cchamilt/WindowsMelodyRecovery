@@ -419,9 +419,9 @@ tests/mock-data/
 │       ├── Local/test-app.json
 │       └── Roaming/Microsoft/Windows/
 ├── cloud/
-│   ├── Dropbox/WindowsMissingRecovery/
-│   ├── GoogleDrive/WindowsMissingRecovery/
-│   └── OneDrive/WindowsMissingRecovery/
+│   ├── Dropbox/WindowsMelodyRecovery/
+│   ├── GoogleDrive/WindowsMelodyRecovery/
+│   └── OneDrive/WindowsMelodyRecovery/
 ├── programfiles/
 │   ├── Microsoft/Office/config.json
 │   └── Steam/config.vdf

@@ -33,7 +33,7 @@ RUN pwsh -Command " \
     Install-Module -Name ImportExcel -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     "
 
-# Verify installations and create a simple test
+# Verify installations
 RUN pwsh -Command " \
     Write-Host 'Verifying PowerShell modules installation...'; \
     \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel; \
@@ -56,7 +56,7 @@ RUN mkdir -p /test-results/unit && \
     mkdir -p /test-results/coverage && \
     mkdir -p /test-results/reports
 
-# Set up PowerShell profile for testing
+# Set up PowerShell profile for testing - copy only the profile script
 RUN mkdir -p /root/.config/powershell
 COPY tests/mock-scripts/TestRunner.PowerShell_profile.ps1 /root/.config/powershell/Microsoft.PowerShell_profile.ps1
 
@@ -67,69 +67,20 @@ RUN chmod +x /usr/local/bin/mock-windows/* && \
     ln -sf /usr/local/bin/mock-windows/winget.sh /usr/local/bin/winget && \
     ln -sf /usr/local/bin/mock-windows/reg.sh /usr/local/bin/reg
 
-# Copy test scripts and utilities
-COPY tests/integration/ /tests/integration/
-COPY tests/unit/ /tests/unit/
-COPY tests/utilities/ /tests/utilities/
-COPY tests/scripts/ /tests/scripts/
-
-# Copy main module files to workspace for installation
-COPY WindowsMelodyRecovery.psm1 /workspace/
-COPY WindowsMelodyRecovery.psd1 /workspace/
-COPY Private/ /workspace/Private/
-COPY Public/ /workspace/Public/
-COPY Config/ /workspace/Config/
-COPY Templates/ /workspace/Templates/
-COPY docs/ /workspace/docs/
-COPY Install-Module.ps1 /workspace/
-
-# Install the module using the proper installation script (now with Linux support)
-RUN cd /workspace && pwsh -Command " \
-    Write-Host 'Installing WindowsMelodyRecovery module using Install-Module.ps1...'; \
-    ./Install-Module.ps1 -Force; \
-    Write-Host 'Verifying module installation...'; \
-    Import-Module WindowsMelodyRecovery -Force; \
-    Get-Module WindowsMelodyRecovery; \
-    Write-Host 'Module installation completed successfully'; \
-    "
-
-# Verify module installation
-RUN pwsh -Command " \
-    Write-Host 'Final verification of WindowsMelodyRecovery module...'; \
-    Write-Host 'Available module paths:'; \
-    \$env:PSModulePath -split ':' | ForEach-Object { Write-Host \"  - \$_\" }; \
-    Write-Host 'Looking for WindowsMelodyRecovery module...'; \
-    \$module = Get-Module -ListAvailable -Name WindowsMelodyRecovery; \
-    if (\$module) { \
-        Write-Host 'WindowsMelodyRecovery module found successfully'; \
-        Write-Host \"Module path: \$(\$module.ModuleBase)\"; \
-        Write-Host \"Module version: \$(\$module.Version)\"; \
-        Import-Module WindowsMelodyRecovery -Force; \
-        Write-Host 'Module imported successfully for testing'; \
-        Get-Module WindowsMelodyRecovery | Select-Object Name, Version, ModuleBase; \
-    } else { \
-        Write-Host 'ERROR: WindowsMelodyRecovery module not found'; \
-        Write-Host 'Available modules:'; \
-        Get-Module -ListAvailable | Select-Object Name, ModuleBase | Format-Table; \
-        exit 1; \
-    } \
-    "
-
-# Create test runner script
+# Copy only the core test scripts needed for orchestration
 COPY tests/scripts/run-tests.ps1 /tests/
 COPY tests/scripts/test-orchestrator.ps1 /tests/
 COPY tests/scripts/generate-reports.ps1 /tests/
-COPY tests/scripts/simulate-installation.ps1 /tests/
+COPY tests/scripts/health-check.ps1 /usr/local/bin/
 
 # Set permissions
-RUN chmod +x /tests/*.ps1
+RUN chmod +x /tests/*.ps1 && chmod +x /usr/local/bin/health-check.ps1
 
-# Set working directory
+# Set working directory to where the project will be mounted
 WORKDIR /workspace
 
-# Health check script
-COPY tests/scripts/health-check.ps1 /usr/local/bin/
-RUN chmod +x /usr/local/bin/health-check.ps1
+# Note: The project files are now mounted read-only at runtime via docker-compose
+# This means code changes are immediately available without rebuilding containers!
 
-# Default command
-CMD ["pwsh", "/tests/test-orchestrator.ps1"] 
+# Default command - just keep container running for test execution
+CMD ["tail", "-f", "/dev/null"] 
