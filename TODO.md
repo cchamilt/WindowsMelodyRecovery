@@ -15,16 +15,19 @@ All - ❌ Infinite loop (because it includes Installation)
 - Identify and prune some of the excessive backup states that are transient, obvious, or too hardware configuration specific
 - Discovering unmanaged packages, document them so that a user can manually store their installation files
 - Determine to uninstall/keep apps not on restore list
+- Refactor setup scripts and test for them in docker
+- Add setup for bitlocker and windows backup to make sure they are up and working
 - Create export/import or edit calls for a simplified user editable app/game lists
 - Manage version pinning
 - Implement restore procedure for the complex templates
-- Add all packaging and module updates
+- Add all packaging and module updates as tasks
 - Clean up verb practices and naming for gallery release
 - test password prompts for encryption passkey
 - workflow for installing backup tasks with encryption
 - optional filtered/limited user directory rsync in windows and wsl to zip or at least a cloud home backup directory
 - Fix printer, touchpad, touchscreen, and visio application discovery json parsing
 - windows-features need admin privs
+- store windows key information - account attached and ideally actual key.
 
 ## Testing
 
