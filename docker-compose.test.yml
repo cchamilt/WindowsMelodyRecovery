@@ -7,7 +7,7 @@ services:
     container_name: wmr-windows-mock
     volumes:
       - ./:/workspace
-      - mock-cloud-storage:/mock-cloud
+      - mock-cloud:/mock-cloud
       - ./tests/mock-data/registry:/mock-registry
       - ./tests/mock-data/appdata:/mock-appdata
       - ./tests/mock-data/programfiles:/mock-programfiles
@@ -23,7 +23,6 @@ services:
     networks:
       - wmr-test-network
     depends_on:
-      - mock-cloud-server
       - wsl-mock
 
   # Mock WSL Environment (Ubuntu)
@@ -51,16 +50,15 @@ services:
     command: /bin/bash -c "tail -f /dev/null"
 
   # Mock Cloud Storage Server (simulates OneDrive/Google Drive/Dropbox)
-  mock-cloud-server:
+  cloud-mock:
     build:
       context: .
       dockerfile: tests/docker/Dockerfile.cloud-mock
     container_name: wmr-cloud-mock
     ports:
-      - "8080:8080"
-      - "8443:8443"
+      - "3000:3000"
     volumes:
-      - mock-cloud-storage:/cloud-storage
+      - mock-cloud:/cloud-storage
       - ./tests/mock-data:/mock-data
     environment:
       - CLOUD_TYPE=multi
@@ -69,6 +67,11 @@ services:
       - DROPBOX_PATH=/cloud-storage/Dropbox
     networks:
       - wmr-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
   # Test Runner (PowerShell with Pester)
   test-runner:
@@ -77,9 +80,9 @@ services:
       dockerfile: tests/docker/Dockerfile.test-runner
     container_name: wmr-test-runner
     volumes:
-      # Mount project root for live updates
       - .:/workspace
-      - mock-cloud-storage:/mock-cloud
+      - /var/run/docker.sock:/var/run/docker.sock
+      - mock-cloud:/mock-cloud
       - ./test-results:/test-results
       - ./tests/mock-data/registry:/mock-registry
       - ./tests/mock-data/appdata:/mock-appdata
@@ -88,8 +91,6 @@ services:
       - ./tests/mock-data/epic:/mock-epic
       - ./tests/mock-data/gog:/mock-gog
       - ./tests/mock-data/ea:/mock-ea
-      # Mount Docker socket to allow test-runner to communicate with other containers
-      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PESTER_OUTPUT_PATH=/test-results
       - MOCK_WINDOWS_HOST=wmr-windows-mock
@@ -100,8 +101,7 @@ services:
     depends_on:
       - windows-mock
       - wsl-mock
-      - mock-cloud-server
-    command: /bin/bash -c "tail -f /dev/null"
+      - cloud-mock
 
   # Gaming Platform Mocks
   gaming-mock:
@@ -140,7 +140,7 @@ services:
       - wmr-test-network
 
 volumes:
-  mock-cloud-storage:
+  mock-cloud:
   mock-steam:
   mock-epic:
   mock-gog:

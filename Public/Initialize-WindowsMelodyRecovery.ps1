@@ -28,6 +28,39 @@ function Initialize-WindowsMelodyRecovery {
         }
     }
 
+    # Validate InstallPath immediately after it's set
+    try {
+        # Check if the parent directory exists and is accessible
+        $parentPath = Split-Path $InstallPath -Parent
+        if ($parentPath -and -not [string]::IsNullOrWhiteSpace($parentPath) -and $parentPath -ne $InstallPath) {
+            if (-not (Test-Path $parentPath)) {
+                throw "The parent directory '$parentPath' does not exist or is not accessible."
+            }
+        }
+        
+        # Check if we can access the installation path (either it exists or we can create it)
+        if (Test-Path $InstallPath) {
+            # Path exists, check if we can write to it
+            try {
+                $testFile = Join-Path $InstallPath "test-write-access.tmp"
+                New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
+                Remove-Item -Path $testFile -Force -ErrorAction Stop
+            } catch {
+                throw "The installation path '$InstallPath' exists but is not writable: $($_.Exception.Message)"
+            }
+        } else {
+            # Path doesn't exist, check if we can create it
+            try {
+                New-Item -Path $InstallPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                Remove-Item -Path $InstallPath -Force -ErrorAction Stop
+            } catch {
+                throw "Cannot create the installation path '$InstallPath': $($_.Exception.Message)"
+            }
+        }
+    } catch {
+        throw "Invalid installation path '$InstallPath': $($_.Exception.Message)"
+    }
+
     # Configuration should always be in the module's Config directory
     $configFile = Join-Path $InstallPath "Config\windows.env"
     $configExists = Test-Path $configFile
@@ -45,7 +78,13 @@ function Initialize-WindowsMelodyRecovery {
         Write-Host "Configuration migrated successfully." -ForegroundColor Green
     }
 
+    # If using existing configuration, validate the path is still accessible
     if ($configExists -and -not $Force) {
+        # Validate that the installation path is accessible for existing configs
+        if (-not (Test-Path $InstallPath)) {
+            throw "The installation path '$InstallPath' is no longer accessible for existing configuration."
+        }
+        
         Write-Host "WindowsMelodyRecovery is already initialized with the following configuration:" -ForegroundColor Yellow
         Get-Content $configFile | ForEach-Object {
             if ($_ -match '^([^=]+)=(.*)$') {
@@ -130,17 +169,30 @@ function Initialize-WindowsMelodyRecovery {
             $backupRoot = $path
         }
     } elseif ($selectedProvider -eq 'OneDrive') {
-        # Find OneDrive paths
+        # Find OneDrive paths (including mock paths for testing)
         $onedrivePaths = @(
             "$env:USERPROFILE\OneDrive",
             "$env:USERPROFILE\OneDrive - *",
             "$env:USERPROFILE\OneDriveCommercial",
-            "$env:USERPROFILE\OneDrive - Enterprise"
+            "$env:USERPROFILE\OneDrive - Enterprise",
+            "/mock-cloud/OneDrive",  # Mock cloud storage for testing
+            "/tmp/mock-cloud/OneDrive"  # Alternative mock path
         )
 
         $possiblePaths = $onedrivePaths | 
-            ForEach-Object { Get-Item -Path $_ -ErrorAction SilentlyContinue } |
+            ForEach-Object { 
+                Write-Host "Checking OneDrive path: $_" -ForegroundColor Gray
+                $item = Get-Item -Path $_ -ErrorAction SilentlyContinue
+                if ($item) {
+                    Write-Host "  ✓ Found: $($item.FullName)" -ForegroundColor Green
+                } else {
+                    Write-Host "  ✗ Not found: $_" -ForegroundColor Red
+                }
+                $item
+            } |
             Where-Object { $_ }
+        
+        Write-Host "Found $($possiblePaths.Count) OneDrive paths: $($possiblePaths.FullName -join ', ')" -ForegroundColor Cyan
 
         if ($possiblePaths.Count -gt 0) {
             if (-not $NoPrompt) {

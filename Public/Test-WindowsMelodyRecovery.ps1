@@ -9,16 +9,11 @@ function Test-WindowsMelodyRecovery {
         [switch]$NoPrompt
     )
 
-    # Verify admin privileges (Windows only)
+    # Verify admin privileges (Windows only) by calling the mockable helper
     if ($IsWindows) {
-        if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        if (-not (Test-WmrAdminPrivilege)) {
             Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
             return $false
-        }
-    } else {
-        # On Linux/macOS, check if running as root
-        if ($env:USER -ne "root" -and (id -u) -ne 0) {
-            Write-Warning "This function may require elevation. Consider running with sudo if tests fail."
         }
     }
 
@@ -100,28 +95,33 @@ function Test-WindowsMelodyRecovery {
         }
     }
 
-    # Test 4: Scheduled Tasks
-    try {
-        $taskPath = "\WindowsMelodyRecovery\"
-        $backupTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Backup" -TaskPath $taskPath -ErrorAction SilentlyContinue
-        $updateTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Update" -TaskPath $taskPath -ErrorAction SilentlyContinue
-        
-        if ($backupTask -and $updateTask) {
-            $results.ScheduledTasksInstalled = $true
-            Write-Host "✓ Scheduled tasks are installed" -ForegroundColor Green
+    # Test 4: Scheduled Tasks (Windows only)
+    if ($IsWindows) {
+        try {
+            $taskPath = "\WindowsMelodyRecovery\"
+            $backupTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Backup" -TaskPath $taskPath -ErrorAction SilentlyContinue
+            $updateTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Update" -TaskPath $taskPath -ErrorAction SilentlyContinue
             
-            if ($Detailed) {
-                Write-Host "`nScheduled Tasks Details:" -ForegroundColor Cyan
-                Write-Host "  Backup Task: $($backupTask.State)" -ForegroundColor Cyan
-                Write-Host "  Update Task: $($updateTask.State)" -ForegroundColor Cyan
+            if ($backupTask -and $updateTask) {
+                $results.ScheduledTasksInstalled = $true
+                Write-Host "✓ Scheduled tasks are installed" -ForegroundColor Green
+                
+                if ($Detailed) {
+                    Write-Host "`nScheduled Tasks Details:" -ForegroundColor Cyan
+                    Write-Host "  Backup Task: $($backupTask.State)" -ForegroundColor Cyan
+                    Write-Host "  Update Task: $($updateTask.State)" -ForegroundColor Cyan
+                }
+            } else {
+                $results.Warnings += "Some scheduled tasks are missing"
+                Write-Host "! Some scheduled tasks are missing" -ForegroundColor Yellow
             }
-        } else {
-            $results.Warnings += "Some scheduled tasks are missing"
-            Write-Host "! Some scheduled tasks are missing" -ForegroundColor Yellow
+        } catch {
+            $results.Errors += "Failed to check scheduled tasks: $_"
+            Write-Host "✗ Failed to check scheduled tasks: $_" -ForegroundColor Red
         }
-    } catch {
-        $results.Errors += "Failed to check scheduled tasks: $_"
-        Write-Host "✗ Failed to check scheduled tasks: $_" -ForegroundColor Red
+    } else {
+        $results.Warnings += "Scheduled tasks check skipped (not available on this platform)"
+        Write-Host "! Scheduled tasks check skipped (not available on this platform)" -ForegroundColor Yellow
     }
 
     # Test 5: Backup Functionality

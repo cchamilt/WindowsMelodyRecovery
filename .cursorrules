@@ -2,6 +2,8 @@
   // Project-wide settings for the Windows Melody Recovery project.
   // These rules help tailor Cursor's AI behavior to the specific needs of
   // PowerShell module development, system configuration, and recovery.
+  "Provide percentage confidence levels for all responses/changes": true,
+  "Output model name at end of responses": true,
 
   // --- General PowerShell Best Practices ---
   // Ensure all PowerShell scripts and functions adhere to standard PowerShell naming conventions.

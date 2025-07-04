@@ -1,12 +1,18 @@
 #!/usr/bin/env pwsh
 param(
-    [ValidateSet("Installation", "Backup", "WSL", "Gaming", "Cloud", "Restore", "Pester", "All")]
+    [ValidateSet("Installation", "Backup", "WSL", "Gaming", "Cloud", "Restore", "Pester", "WindowsOnly", "All")]
     [string]$TestSuite = "Installation",
     
     [switch]$GenerateReport
 )
 
 Write-Host "🧪 Running Pester Tests - Suite: $TestSuite" -ForegroundColor Cyan
+
+# Check platform compatibility
+if ($TestSuite -eq "WindowsOnly" -and -not $IsWindows) {
+    Write-Host "❌ WindowsOnly test suite can only run on Windows systems" -ForegroundColor Red
+    exit 1
+}
 
 # Import Pester
 Import-Module Pester -Force -ErrorAction Stop
@@ -81,9 +87,21 @@ switch ($TestSuite) {
         $config.Run.Path = @('/workspace/tests/unit')
         Write-Host "🎯 Running Unit Tests" -ForegroundColor Yellow
     }
+    "WindowsOnly" {
+        $config.Run.Path = @('/workspace/tests/unit/Windows-Only.Tests.ps1')
+        Write-Host "🎯 Running Windows-only Tests" -ForegroundColor Yellow
+    }
     "All" {
-        $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
-        Write-Host "🎯 Running All Tests (may cause infinite loop!)" -ForegroundColor Red
+        if ($IsWindows) {
+            # On Windows, include all tests including Windows-only tests
+            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
+            Write-Host "🎯 Running All Tests (including Windows-only tests)" -ForegroundColor Yellow
+        } else {
+            # On non-Windows, exclude Windows-only tests
+            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
+            $config.Filter.Tag = @('!WindowsOnly')
+            Write-Host "🎯 Running All Tests (excluding Windows-only tests)" -ForegroundColor Yellow
+        }
     }
 }
 

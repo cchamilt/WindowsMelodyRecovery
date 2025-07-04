@@ -178,17 +178,6 @@ function Import-PrivateScripts {
         return
     }
     
-    # For backup and restore, recommend using the template system instead
-    if ($Category -in @('backup', 'restore')) {
-        Write-Warning "The '$Category' category is being migrated to the template system for better consistency."
-        Write-Host "Consider using template-based operations:" -ForegroundColor Yellow
-        Write-Host "  Invoke-WmrTemplate -TemplatePath 'Templates/System/display.yaml' -Operation 'Backup' -StateFilesDirectory 'path/to/state'" -ForegroundColor Cyan
-        Write-Host "  Available templates: display.yaml, ssh.yaml, explorer.yaml, winget-apps.yaml" -ForegroundColor Cyan
-        
-        # Still load legacy scripts for backward compatibility, but warn about deprecation
-        Write-Host "Loading legacy $Category scripts for backward compatibility..." -ForegroundColor Yellow
-    }
-    
     $categoryPath = Join-Path $PSScriptRoot "Private\$Category"
     Write-Verbose "Looking for $Category scripts in: $categoryPath"
     
@@ -228,17 +217,24 @@ if (Test-Path $InitializationPath) {
 }
 
 # Load core utilities
-$CorePath = Join-Path $PSScriptRoot "Private\Core\WindowsMelodyRecovery.Core.ps1"
+$CorePath = Join-Path $PSScriptRoot "Private\Core"
+$script:LoadedCoreFunctions = @()
 if (Test-Path $CorePath) {
-    try {
-        . $CorePath
-        Write-Verbose "Successfully loaded core utilities from: $CorePath"
-    } catch {
-        Write-Warning "Failed to load core utilities from: $CorePath"
-        Write-Warning $_.Exception.Message
+    $coreScripts = Get-ChildItem -Path "$CorePath\*.ps1" -ErrorAction SilentlyContinue
+    foreach ($script in $coreScripts) {
+        try {
+            . $script.FullName
+            # Extract function names from the script content to add to export list
+            $scriptContent = Get-Content -Path $script.FullName -Raw
+            $functionNames = $scriptContent | Select-String -Pattern 'function\s+([a-zA-Z0-9_-]+)' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
+            $script:LoadedCoreFunctions += $functionNames
+            Write-Verbose "Successfully loaded core utility: $($script.Name) (found functions: $($functionNames -join ', '))"
+        } catch {
+            Write-Warning "Failed to load core utility $($script.Name): $($_.Exception.Message)"
+        }
     }
 } else {
-    Write-Warning "Core utilities not found at: $CorePath"
+    Write-Warning "Core utilities path not found at: $CorePath"
 }
 
 # Initialize module using the new initialization system
@@ -390,21 +386,28 @@ if ($script:LoadedPublicFunctions) {
     }
 }
 
+# Add core functions to the list of all functions to be exported
+if ($script:LoadedCoreFunctions) {
+    $AllFunctions += $script:LoadedCoreFunctions
+    Write-Verbose "Adding $($script:LoadedCoreFunctions.Count) core functions to export list."
+}
+
 # Only export functions that actually exist
 $ExistingFunctions = @()
-foreach ($funcName in $AllFunctions) {
-    if (Get-Command $funcName -ErrorAction SilentlyContinue) {
-        $ExistingFunctions += $funcName
+$AllFunctions | ForEach-Object {
+    if (Get-Command $_ -ErrorAction SilentlyContinue) {
+        $ExistingFunctions += $_
     } else {
-        Write-Warning "Function $funcName not found, skipping export"
+        Write-Warning "Function $_ not found, skipping export"
     }
 }
 
+# Deduplicate before exporting
+$ExistingFunctions = $ExistingFunctions | Sort-Object -Unique
+
 if ($ExistingFunctions.Count -gt 0) {
     Export-ModuleMember -Function $ExistingFunctions
-    Write-Verbose "Exported $($ExistingFunctions.Count) functions: $($ExistingFunctions -join ', ')"
-} else {
-    Write-Warning "No functions were successfully loaded to export"
+    Write-Verbose "Exported $($ExistingFunctions.Count) functions."
 }
 
 # Export configuration variable
@@ -485,4 +488,45 @@ if ($script:ModuleInitialized) {
     }
 } else {
     Write-Warning "Module loaded but initialization may be incomplete"
+}
+
+# If initialization was successful, load functions and export them.
+if ($script:ModuleInitialized) {
+    # --- Simplified Function Loading and Exporting ---
+
+    # 1. Define paths for Public and Core functions
+    $PublicPath = Join-Path $PSScriptRoot "Public"
+    $CorePath = Join-Path $PSScriptRoot "Private\Core"
+    $AllScriptsToLoad = @()
+    $AllFunctionsToExport = @()
+
+    # 2. Gather all scripts from Public and Core directories
+    if (Test-Path $PublicPath) {
+        $AllScriptsToLoad += Get-ChildItem -Path $PublicPath -Filter "*.ps1"
+    }
+    if (Test-Path $CorePath) {
+        $AllScriptsToLoad += Get-ChildItem -Path $CorePath -Filter "*.ps1"
+    }
+
+    # 3. Dot-source each script and parse its function names for export
+    foreach ($script in $AllScriptsToLoad) {
+        try {
+            . $script.FullName
+            $scriptContent = Get-Content -Path $script.FullName -Raw
+            $functionNames = $scriptContent | Select-String -Pattern 'function\s+([a-zA-Z0-9_-]+)' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
+            if ($functionNames) {
+                $AllFunctionsToExport += $functionNames
+                Write-Verbose "Loaded script '$($script.Name)' and found functions: $($functionNames -join ', ')"
+            }
+        } catch {
+            Write-Warning "Failed to load or parse script '$($script.Name)': $($_.Exception.Message)"
+        }
+    }
+
+    # 4. Export all discovered functions
+    $UniqueFunctions = $AllFunctionsToExport | Sort-Object -Unique
+    if ($UniqueFunctions) {
+        Export-ModuleMember -Function $UniqueFunctions
+        Write-Verbose "Exported $($UniqueFunctions.Count) functions."
+    }
 } 
