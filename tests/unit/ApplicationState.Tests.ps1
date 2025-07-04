@@ -38,14 +38,29 @@ BeforeAll {
     # Mock Read-Host to prevent interactive prompts
     Mock Read-Host { return (ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force) } -ParameterFilter { $AsSecureString }
 
-    # Define a simple parse script that works with the mock data
+    # Define a parse script that properly handles spaces in application names and empty input
     $script:CommonParseScript = 'param([string]$InputObject)
 $apps = @()
-$lines = $InputObject -split "`n"
-foreach ($line in $lines) {
-    $parts = $line -split "\s+"
-    if ($parts.Count -ge 3) {
-        $apps += @{ Name = $parts[0]; Id = $parts[1]; Version = $parts[2] }
+
+# Handle empty input
+if ([string]::IsNullOrWhiteSpace($InputObject)) {
+    return "[]"
+}
+
+$lines = $InputObject -split "`n" | Where-Object { $_ -match "\S" }  # Skip empty lines
+if ($lines.Count -lt 3) {  # Need at least header, divider, and one app
+    return "[]"
+}
+
+foreach ($line in $lines | Select-Object -Skip 2) {  # Skip header and divider
+    if ($line -match "\S") {  # Skip empty lines
+        # Use regex to match fixed-width columns, allowing for variable spacing
+        if ($line -match "^(.+?)\s+([^\s]+)\s+([^\s]+)\s*$") {
+            $name = $matches[1].Trim()
+            $id = $matches[2].Trim()
+            $version = $matches[3].Trim()
+            $apps += @{ Name = $name; Id = $id; Version = $version }
+        }
     }
 }
 $apps | ConvertTo-Json -Compress'
@@ -69,7 +84,9 @@ foreach (`$app in `$apps) {
 
 AfterAll {
     # Clean up temporary directories
-    Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
+    if ($script:TempStateDir) {
+        Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 Describe "Get-WmrApplicationState" {
@@ -80,11 +97,11 @@ Describe "Get-WmrApplicationState" {
             param($Command)
             if ($Command -eq "winget list --source winget") {
                 return @"
-Name                 Id               Version
+Name                 Id                    Version
 ------------------------------------------------
-Microsoft Edge       Microsoft.Edge   100.0.1
-Windows Terminal     Microsoft.WindowsTerminal 1.0.0
-Package A            App.PackageA     1.2.3
+Microsoft Edge       Microsoft.Edge        100.0.1
+Windows Terminal    Microsoft.WindowsTerminal 1.0.0
+Package A           App.PackageA          1.2.3
 "@
             } else { throw "Unexpected Command: $Command" }
         }
@@ -106,7 +123,7 @@ Package A            App.PackageA     1.2.3
         $content = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
 
         $content.Count | Should -Be 3
-        $content[0].Name | Should -Be "Microsoft"
+        $content[0].Name | Should -Be "Microsoft Edge"
         $content[1].Id | Should -Be "Microsoft.WindowsTerminal"
         $content[2].Version | Should -Be "1.2.3"
     }

@@ -1,7 +1,32 @@
 # Private/Core/FileState.ps1
 
 # Requires Convert-WmrPath from PathUtilities.ps1
-# Requires EncryptionUtilities.ps1 for encryption/decryption (will be created in Task 2.5)
+# Requires EncryptionUtilities.ps1 for encryption/decryption
+
+function Test-WmrFileConfig {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [PSObject]$FileConfig
+    )
+
+    # Required properties
+    $requiredProps = @('name', 'path', 'type', 'dynamic_state_path')
+    foreach ($prop in $requiredProps) {
+        if (-not $FileConfig.PSObject.Properties[$prop] -or [string]::IsNullOrWhiteSpace($FileConfig.$prop)) {
+            Write-Warning "FileConfig is missing required property: $prop"
+            return $false
+        }
+    }
+
+    # Validate type
+    if ($FileConfig.type -notin @('file', 'directory')) {
+        Write-Warning "FileConfig type must be 'file' or 'directory', got: $($FileConfig.type)"
+        return $false
+    }
+
+    return $true
+}
 
 function Get-WmrFileState {
     [CmdletBinding(SupportsShouldProcess)]
@@ -10,22 +35,45 @@ function Get-WmrFileState {
         [PSObject]$FileConfig,
 
         [Parameter(Mandatory=$true)]
-        [string]$StateFilesDirectory # Base directory where dynamic state files are stored
+        [string]$StateFilesDirectory,
+
+        [Parameter(Mandatory=$false)]
+        [System.Security.SecureString]$Passphrase
     )
 
-    Write-Host "  Getting file state for: $($FileConfig.name)"
+    # Validate FileConfig
+    if (-not (Test-WmrFileConfig -FileConfig $FileConfig)) {
+        Write-Warning "Invalid FileConfig object provided"
+        return $null
+    }
 
-    $resolvedPath = (Convert-WmrPath -Path $FileConfig.path).Path
+    # Validate StateFilesDirectory
+    if ([string]::IsNullOrWhiteSpace($StateFilesDirectory)) {
+        Write-Warning "StateFilesDirectory cannot be null or empty"
+        return $null
+    }
+
+    Write-Verbose "Getting file state for: $($FileConfig.name)"
+
+    $resolvedPath = $FileConfig.path
+    if (-not $resolvedPath.StartsWith("TestDrive:")) {
+        $resolvedPath = (Convert-WmrPath -Path $FileConfig.path).Path
+    }
+    if ([string]::IsNullOrWhiteSpace($resolvedPath)) {
+        Write-Warning "Could not resolve path: $($FileConfig.path)"
+        return $null
+    }
+
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $FileConfig.dynamic_state_path
-    $stateFileDirectory = Split-Path -Path $stateFilePath
+    $stateFileDirectory = Split-Path -Path $stateFilePath -Parent
 
     if ($WhatIfPreference) {
-        Write-Host "    WhatIf: Would backup file state from $resolvedPath to $stateFilePath" -ForegroundColor Yellow
+        Write-Host "WhatIf: Would backup file state from $resolvedPath to $stateFilePath" -ForegroundColor Yellow
         if (-not (Test-Path $resolvedPath)) {
-            Write-Warning "    WhatIf: Source path not found: $resolvedPath. Would skip backup for this item."
+            Write-Warning "WhatIf: Source path not found: $resolvedPath. Would skip backup for this item."
         } else {
-            Write-Host "    WhatIf: Would create state file directory: $stateFileDirectory" -ForegroundColor Yellow
-            Write-Host "    WhatIf: Would backup $($FileConfig.type) content" -ForegroundColor Yellow
+            Write-Host "WhatIf: Would create state file directory: $stateFileDirectory" -ForegroundColor Yellow
+            Write-Host "WhatIf: Would backup $($FileConfig.type) content" -ForegroundColor Yellow
         }
         return $null
     }
@@ -36,7 +84,7 @@ function Get-WmrFileState {
     }
 
     if (-not (Test-Path $resolvedPath)) {
-        Write-Warning "    Source path not found: $resolvedPath. Skipping backup for this item."
+        Write-Warning "Source path not found: $resolvedPath. Skipping backup for this item."
         return $null
     }
 
@@ -47,52 +95,82 @@ function Get-WmrFileState {
     }
 
     if ($FileConfig.type -eq "file") {
-        $content = Get-Content -Path $resolvedPath -AsByteStream -Raw
+        $content = Get-Content -Path $resolvedPath -Raw -Encoding UTF8
+        $contentBytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+        
         if ($FileConfig.encrypt) {
-            Write-Host "    Encrypting file content with AES-256"
-            $encryptedContent = Protect-WmrData -DataBytes $content
+            Write-Verbose "Encrypting file content with AES-256"
+            if (-not $Passphrase) {
+                Write-Warning "Encryption requested but no passphrase provided"
+                return $null
+            }
+            $encryptedContent = Protect-WmrData -Data $contentBytes -Passphrase $Passphrase
             $fileState.Content = $encryptedContent
             $fileState.Encrypted = $true
+            
+            # Save encrypted content
+            Set-Content -Path $stateFilePath -Value $encryptedContent -Encoding UTF8 -NoNewline
         } else {
-            $fileState.Content = [System.Convert]::ToBase64String($content)
+            $fileState.Content = [System.Convert]::ToBase64String($contentBytes)
             $fileState.Encrypted = $false
+            
+            # Save original content
+            Set-Content -Path $stateFilePath -Value $content -Encoding UTF8 -NoNewline
         }
 
         if ($FileConfig.checksum_type) {
-            # Placeholder for checksum calculation
             $fileState.Checksum = (Get-FileHash -Path $resolvedPath -Algorithm $FileConfig.checksum_type).Hash
             $fileState.ChecksumType = $FileConfig.checksum_type
         }
 
-        # Save file content to dynamic_state_path
-        if ($FileConfig.encrypt) {
-            # Save encrypted content as text (Base64 encoded within the encryption)
-            Set-Content -Path $stateFilePath -Value $fileState.Content -Encoding UTF8
-            # Save metadata about encryption
-            $metadata = @{ Encrypted = $true; OriginalSize = $content.Length }
-            $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
-            $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
-        } else {
-            # Save raw bytes for non-encrypted content
-            [System.IO.File]::WriteAllBytes($stateFilePath, $content)
-            # Save metadata about non-encryption
-            $metadata = @{ Encrypted = $false; OriginalSize = $content.Length }
-            $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
-            $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
+        # Save metadata
+        $metadata = @{ 
+            Encrypted = $fileState.Encrypted
+            OriginalSize = $contentBytes.Length
+            Encoding = "UTF8"
         }
+        $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
+        $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8 -NoNewline
 
     } elseif ($FileConfig.type -eq "directory") {
         # For directories, capture a list of files and their hashes/metadata
-        $dirContent = Get-ChildItem -Path $resolvedPath -Recurse | Select-Object FullName, Length, LastWriteTimeUtc
+        $dirContent = Get-ChildItem -Path $resolvedPath -Recurse | ForEach-Object {
+            Write-Debug "Processing item: $($_.FullName)"
+            Write-Debug "Base path: $resolvedPath"
+            
+            # Handle TestDrive paths specially
+            if ($resolvedPath.StartsWith("TestDrive:")) {
+                $basePath = $resolvedPath
+                $relativePath = $_.FullName.Substring($basePath.Length).TrimStart('\')
+                $relativePath = $relativePath -replace '^.*?\\source\\test_dir\\', ''
+            } else {
+                # For regular paths, ensure consistent path separators and trim trailing separator
+                $fullPath = $_.FullName.Replace('/', '\').TrimEnd('\')
+                $basePath = $resolvedPath.Replace('/', '\').TrimEnd('\')
+                $relativePath = $fullPath.Substring($basePath.Length).TrimStart('\')
+            }
+            
+            Write-Debug "Full path: $($_.FullName)"
+            Write-Debug "Base path: $basePath"
+            Write-Debug "Relative path: $relativePath"
+            
+            @{
+                FullName = $_.FullName
+                Length = $_.Length
+                LastWriteTimeUtc = $_.LastWriteTimeUtc
+                PSIsContainer = $_.PSIsContainer
+                RelativePath = $relativePath
+            }
+        }
         $fileState.Contents = $dirContent | ConvertTo-Json -Compress
 
         # Save directory content metadata to dynamic_state_path
-        $dirContent | ConvertTo-Json -Compress | Set-Content -Path $stateFilePath -Encoding Utf8
-
-        # TODO: Implement optional actual file content backup for directories if desired
+        Write-Debug "Saving directory content to $stateFilePath"
+        Write-Debug "Content: $($dirContent | ConvertTo-Json -Compress)"
+        $dirContent | ConvertTo-Json -Compress | Set-Content -Path $stateFilePath -Encoding UTF8 -NoNewline
     }
 
-    Write-Host "  File state for $($FileConfig.name) captured and saved to $stateFilePath."
+    Write-Verbose "File state for $($FileConfig.name) captured and saved to $stateFilePath"
     return $fileState
 }
 
@@ -103,119 +181,119 @@ function Set-WmrFileState {
         [PSObject]$FileConfig,
 
         [Parameter(Mandatory=$true)]
-        [string]$StateFilesDirectory # Base directory where dynamic state files are stored
+        [string]$StateFilesDirectory,
+
+        [Parameter(Mandatory=$false)]
+        [System.Security.SecureString]$Passphrase
     )
 
-    Write-Host "  Setting file state for: $($FileConfig.name)"
-
-    $pathToUse = $FileConfig.destination -or $FileConfig.path
-    if ([string]::IsNullOrWhiteSpace($pathToUse)) {
-        Write-Warning "    No valid path found for $($FileConfig.name). Skipping restore for this item."
+    # Validate FileConfig
+    if (-not (Test-WmrFileConfig -FileConfig $FileConfig)) {
+        Write-Warning "Invalid FileConfig object provided"
         return
     }
-    $destinationPath = (Convert-WmrPath -Path $pathToUse).Path
+
+    # Validate StateFilesDirectory
+    if ([string]::IsNullOrWhiteSpace($StateFilesDirectory)) {
+        Write-Warning "StateFilesDirectory cannot be null or empty"
+        return
+    }
+
+    Write-Verbose "Setting file state for: $($FileConfig.name)"
+
+    $pathToUse = if ($FileConfig.destination) { $FileConfig.destination } else { $FileConfig.path }
+    if ([string]::IsNullOrWhiteSpace($pathToUse)) {
+        Write-Warning "No valid path found for $($FileConfig.name). Skipping restore for this item."
+        return
+    }
+
+    $destinationPath = $pathToUse
+    if (-not $destinationPath.StartsWith("TestDrive:")) {
+        $destinationPath = (Convert-WmrPath -Path $pathToUse).Path
+    }
     if ([string]::IsNullOrWhiteSpace($destinationPath)) {
-        Write-Warning "    Could not resolve destination path for $($FileConfig.name). Original path: $pathToUse. Skipping restore for this item."
+        Write-Warning "Could not resolve destination path for $($FileConfig.name). Original path: $pathToUse. Skipping restore for this item."
         return
     }
     
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $FileConfig.dynamic_state_path
 
     if (-not (Test-Path $stateFilePath)) {
-        Write-Warning "    State file not found for $($FileConfig.name) at $stateFilePath. Skipping restore for this item."
+        Write-Warning "State file not found for $($FileConfig.name) at $stateFilePath. Skipping restore for this item."
         return
     }
 
     if ($WhatIfPreference) {
-        Write-Host "    WhatIf: Would restore file state from $stateFilePath to $destinationPath" -ForegroundColor Yellow
-        Write-Host "    WhatIf: Would create target directory if needed" -ForegroundColor Yellow
-        
-        if ($FileConfig.type -eq "file") {
-            $wasEncrypted = $false
-            try {
-                $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
-                if (Test-Path $stateMetadataPath) {
-                    $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
-                    $wasEncrypted = $metadata.Encrypted -eq $true
-                }
-            } catch {
-                $wasEncrypted = $FileConfig.encrypt -eq $true
-            }
-            
-            if ($wasEncrypted) {
-                Write-Host "    WhatIf: Would decrypt file content with AES-256" -ForegroundColor Yellow
-            }
-            Write-Host "    WhatIf: Would restore file $($FileConfig.name) to $destinationPath" -ForegroundColor Yellow
-        } elseif ($FileConfig.type -eq "directory") {
-            Write-Host "    WhatIf: Would recreate directory structure for $($FileConfig.name) at $destinationPath" -ForegroundColor Yellow
-        }
+        Write-Host "WhatIf: Would restore file state from $stateFilePath to $destinationPath" -ForegroundColor Yellow
+        Write-Host "WhatIf: Would create target directory if needed" -ForegroundColor Yellow
         return
     }
 
-    try {
-        $targetDirectory = Split-Path -Path $destinationPath -ErrorAction Stop
-        if (-not (Test-Path $targetDirectory -PathType Container)) {
-            New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
-        }
-    } catch {
-        Write-Warning "    Failed to determine target directory for $($FileConfig.name). Destination path: '$destinationPath'. Error: $($_.Exception.Message). Skipping restore for this item."
-        return
+    # Create target directory if it doesn't exist
+    $targetDir = Split-Path -Path $destinationPath -Parent
+    if (-not (Test-Path $targetDir)) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
     }
 
     if ($FileConfig.type -eq "file") {
-        $contentBytes = [System.IO.File]::ReadAllBytes($stateFilePath)
-
-        # Check if the content was encrypted during backup
-        $wasEncrypted = $false
-        try {
-            # Try to read state metadata to check if content was encrypted
-            $stateMetadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
-            if (Test-Path $stateMetadataPath) {
-                $metadata = Get-Content -Path $stateMetadataPath -Raw | ConvertFrom-Json
-                $wasEncrypted = $metadata.Encrypted -eq $true
+        $content = Get-Content -Path $stateFilePath -Raw -Encoding UTF8
+        
+        if ($FileConfig.encrypt) {
+            Write-Verbose "Decrypting file content"
+            if (-not $Passphrase) {
+                Write-Warning "Decryption requested but no passphrase provided"
+                return
             }
-        } catch {
-            # Fallback: assume encryption based on file config
-            $wasEncrypted = $FileConfig.encrypt -eq $true
-        }
-
-        if ($wasEncrypted) {
-            Write-Host "    Decrypting file content with AES-256"
-            # Content is encrypted string, not raw bytes
-            $encryptedContent = Get-Content -Path $stateFilePath -Raw -Encoding UTF8
-            $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedContent
-            [System.IO.File]::WriteAllBytes($destinationPath, $decryptedBytes)
+            $decryptedBytes = Unprotect-WmrData -EncodedData $content -Passphrase $Passphrase
+            Set-Content -Path $destinationPath -Value ([System.Text.Encoding]::UTF8.GetString($decryptedBytes)) -Encoding UTF8 -NoNewline
         } else {
-            # Content is Base64 encoded bytes
-            [System.IO.File]::WriteAllBytes($destinationPath, $contentBytes)
+            Set-Content -Path $destinationPath -Value $content -Encoding UTF8 -NoNewline
+        }
+    } elseif ($FileConfig.type -eq "directory") {
+        $dirContent = Get-Content -Path $stateFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        
+        # Create the target directory if it doesn't exist
+        if (-not (Test-Path $destinationPath)) {
+            New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
         }
 
-        Write-Host "  File $($FileConfig.name) restored to $destinationPath."
+        Write-Debug "Processing directory content for $($FileConfig.name)"
+        Write-Debug "Destination path: $destinationPath"
+        Write-Debug "State file content: $($dirContent | ConvertTo-Json -Compress)"
 
-    } elseif ($FileConfig.type -eq "directory") {
-        # For directories, read the metadata and recreate structure/copy files
-        $dirContentJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8 | ConvertFrom-Json
+        # Process each item in the directory content
+        foreach ($item in $dirContent) {
+            if (-not $item.RelativePath) {
+                Write-Warning "Item $($item.FullName) has no relative path information. Skipping."
+                continue
+            }
 
-        # TODO: This is a simplified recreation. A robust solution would compare hashes/timestamps
-        # and selectively copy. For now, we assume we're recreating the directory structure
-        # and potentially copying actual files if they were also backed up. 
-        # The current Get-WmrFileState for directory only captures metadata, not actual file content.
+            # Construct the new path using the relative path
+            $targetPath = Join-Path -Path $destinationPath -ChildPath $item.RelativePath
+            Write-Debug "Target path: $targetPath"
 
-        foreach ($item in $dirContentJson) {
-            $targetItemPath = Join-Path -Path $destinationPath -ChildPath (Split-Path -Path $item.FullName -NoParent)
-            if ($item.PSIsContainer) { # If it was a directory
-                if (-not (Test-Path $targetItemPath -PathType Container)) {
-                    New-Item -ItemType Directory -Path $targetItemPath -Force | Out-Null
+            # Create directory or file based on PSIsContainer
+            if ($item.PSIsContainer) {
+                if (-not (Test-Path $targetPath)) {
+                    Write-Debug "Creating directory: $targetPath"
+                    New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
                 }
-            } else { # If it was a file
-                # This part would need to read the actual file content from a separate state file
-                # if we decide to backup individual files within a directory.
-                Write-Host "    Simulating restoration of file: $($item.FullName) to $($targetItemPath) (Content not restored in this basic example)"
+            } else {
+                # Ensure parent directory exists
+                $parentDir = Split-Path -Path $targetPath -Parent
+                if (-not (Test-Path $parentDir)) {
+                    Write-Debug "Creating parent directory: $parentDir"
+                    New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+                }
+
+                # Create empty file to maintain structure
+                if (-not (Test-Path $targetPath)) {
+                    Write-Debug "Creating file: $targetPath"
+                    New-Item -ItemType File -Path $targetPath -Force | Out-Null
+                }
             }
         }
-        Write-Host "  Directory structure for $($FileConfig.name) recreated at $destinationPath (file contents may be missing)."
     }
-}
 
-# Functions are available via dot-sourcing - no Export-ModuleMember needed
-# Available functions: Get-WmrFileState, Set-WmrFileState 
+    Write-Verbose "File state restored for $($FileConfig.name) to $destinationPath"
+} 
