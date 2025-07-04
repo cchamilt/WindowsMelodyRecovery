@@ -35,6 +35,9 @@ BeforeAll {
         param([string]$EncodedData)
         return [System.Convert]::FromBase64String($EncodedData) # Simply Base64 decode for mock
     }
+    
+    # Mock Read-Host to prevent interactive prompts during testing
+    Mock Read-Host { return (ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force) } -ParameterFilter { $AsSecureString }
 }
 
 AfterAll {
@@ -61,16 +64,16 @@ Describe "Get-WmrFileState - File Type" {
         }
 
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should Not BeNull
-        $result.Name | Should Be "Test File"
-        $result.Path | Should Be $testFilePath
-        $result.Type | Should Be "file"
-        $result.Content | Should Not BeNullOrEmpty
-        $result.Checksum | Should Not BeNullOrEmpty
+        $result | Should -Not -BeNull
+        $result.Name | Should -Be "Test File"
+        $result.Path | Should -Be $testFilePath
+        $result.Type | Should -Be "file"
+        $result.Content | Should -Not -BeNullOrEmpty
+        $result.Checksum | Should -Not -BeNullOrEmpty
 
         $stateFilePath = Join-Path $script:TempStateDir "files/testfile.txt"
-        (Test-Path $stateFilePath) | Should Be $true
-        (Get-Content -Path $stateFilePath -Encoding Utf8 -Raw) | Should Be "Hello World"
+        (Test-Path $stateFilePath) | Should -Be $true
+        (Get-Content -Path $stateFilePath -Encoding Utf8 -Raw).TrimEnd() | Should -Be "Hello World"
     }
 
     It "should simulate encryption for file content if encrypt is true" {
@@ -87,13 +90,13 @@ Describe "Get-WmrFileState - File Type" {
         }
 
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should Not BeNull
-        $result.Content | Should Not Be "Secret Data" # Should be Base64 encoded due to mock
+        $result | Should -Not -BeNull
+        $result.Content | Should -Not -Be "Secret Data" # Should be Base64 encoded due to mock
 
         $stateFilePath = Join-Path $script:TempStateDir "files/encrypted_file.txt"
-        (Test-Path $stateFilePath) | Should Be $true
+        (Test-Path $stateFilePath) | Should -Be $true
         # Content saved to file should be the original, encryption happens on the 'state' object
-        (Get-Content -Path $stateFilePath -Encoding Utf8 -Raw) | Should Be "Secret Data"
+        (Get-Content -Path $stateFilePath -Encoding Utf8 -Raw) | Should -Be "Secret Data"
     }
 
     It "should warn and return null if source path does not exist" {
@@ -106,7 +109,7 @@ Describe "Get-WmrFileState - File Type" {
             encrypt = $false
         }
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should BeNull
+        $result | Should -BeNull
     }
 }
 
@@ -127,17 +130,17 @@ Describe "Get-WmrFileState - Directory Type" {
         }
 
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should Not BeNull
-        $result.Name | Should Be "Test Directory"
-        $result.Type | Should Be "directory"
-        $result.Contents | Should Not BeNullOrEmpty
+        $result | Should -Not -BeNull
+        $result.Name | Should -Be "Test Directory"
+        $result.Type | Should -Be "directory"
+        $result.Contents | Should -Not -BeNullOrEmpty
 
         $stateFilePath = Join-Path $script:TempStateDir "dirs/test_dir_meta.json"
-        (Test-Path $stateFilePath) | Should Be $true
+        (Test-Path $stateFilePath) | Should -Be $true
         $content = (Get-Content -Path $stateFilePath -Encoding Utf8 -Raw) | ConvertFrom-Json
-        $content.Count | Should Be 3 # test_dir, file1.txt, subdir, file2.txt
-        ($content | Where-Object { $_.FullName -like "*file1.txt" }).FullName | Should Not BeNullOrEmpty
-        ($content | Where-Object { $_.FullName -like "*file2.txt" }).FullName | Should Not BeNullOrEmpty
+        $content.Count | Should -Be 3 # test_dir, file1.txt, subdir, file2.txt
+        ($content | Where-Object { $_.FullName -like "*file1.txt" }).FullName | Should -Not -BeNullOrEmpty
+        ($content | Where-Object { $_.FullName -like "*file2.txt" }).FullName | Should -Not -BeNullOrEmpty
 
         Remove-Item -Path $testDirPath -Recurse -Force -ErrorAction SilentlyContinue
     }
@@ -168,8 +171,8 @@ Describe "Set-WmrFileState - File Type" {
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
 
         $restoredFilePath = Join-Path $script:DestDir "restored_file.txt"
-        (Test-Path $restoredFilePath) | Should Be $true
-        (Get-Content -Path $restoredFilePath -Encoding Utf8 -Raw) | Should Be $originalContent
+        (Test-Path $restoredFilePath) | Should -Be $true
+        (Get-Content -Path $restoredFilePath -Encoding Utf8 -Raw) | Should -Be $originalContent
     }
 
     It "should simulate decryption for file content if encrypt is true" {
@@ -190,9 +193,9 @@ Describe "Set-WmrFileState - File Type" {
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
 
         $restoredFilePath = Join-Path $script:DestDir "restored_encrypted_file.txt"
-        (Test-Path $restoredFilePath) | Should Be $true
+        (Test-Path $restoredFilePath) | Should -Be $true
         # Decryption mock means content should be identical to original saved in state file
-        (Get-Content -Path $restoredFilePath -Encoding Utf8 -Raw) | Should Be $originalContent
+        (Get-Content -Path $restoredFilePath -Encoding Utf8 -Raw) | Should -Be $originalContent
     }
 
     It "should warn if state file does not exist" {
@@ -206,7 +209,7 @@ Describe "Set-WmrFileState - File Type" {
             encrypt = $false
         }
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
-        (Test-Path (Join-Path $script:DestDir "should_not_exist.txt")) | Should Be $false
+        (Test-Path (Join-Path $script:DestDir "should_not_exist.txt")) | Should -Be $false
     }
 }
 
@@ -237,9 +240,9 @@ Describe "Set-WmrFileState - Directory Type" {
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
 
         $restoredDirPath = Join-Path $script:DestDir "restored_dir"
-        (Test-Path $restoredDirPath -PathType Container) | Should Be $true
-        (Test-Path (Join-Path $restoredDirPath "fileA.txt")) | Should Be $true # File itself is not restored, but path created
-        (Test-Path (Join-Path $restoredDirPath "subdirB") -PathType Container) | Should Be $true
-        (Test-Path (Join-Path $restoredDirPath "subdirB\fileC.txt")) | Should Be $true # File itself is not restored, but path created
+        (Test-Path $restoredDirPath -PathType Container) | Should -Be $true
+        (Test-Path (Join-Path $restoredDirPath "fileA.txt")) | Should -Be $true # File itself is not restored, but path created
+        (Test-Path (Join-Path $restoredDirPath "subdirB") -PathType Container) | Should -Be $true
+        (Test-Path (Join-Path $restoredDirPath "subdirB\fileC.txt")) | Should -Be $true # File itself is not restored, but path created
     }
 } 

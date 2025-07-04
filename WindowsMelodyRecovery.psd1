@@ -75,7 +75,13 @@
         'Remove-WindowsMelodyRecoveryTasks',
         
         # Utility functions
-        'Import-PrivateScripts'
+        'Import-PrivateScripts',
+        
+        # Encryption functions
+        'Protect-WmrData',
+        'Unprotect-WmrData',
+        'Get-WmrEncryptionKey',
+        'Clear-WmrEncryptionCache'
     )
     
     # Cmdlets to export
