@@ -7,13 +7,24 @@
     Fast unit tests for core module functionality, configuration, and basic operations.
 #>
 
+# Helper function to get the correct module path
+function Get-WmrModulePath {
+    if (Test-Path "./WindowsMelodyRecovery.psm1") {
+        return "./WindowsMelodyRecovery.psm1"
+    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
+        return "/workspace/WindowsMelodyRecovery.psm1"
+    } else {
+        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    }
+}
+
 BeforeAll {
     # Import test utilities
     . $PSScriptRoot/../utilities/Test-Utilities.ps1
     . $PSScriptRoot/../utilities/Mock-Utilities.ps1
     
     # Set up test environment
-    $TestModulePath = "/workspace/WindowsMelodyRecovery.psm1"
+    $TestModulePath = Get-WmrModulePath
     $TestManifestPath = "/workspace/WindowsMelodyRecovery.psd1"
     $TestInstallScriptPath = "/workspace/Install-Module.ps1"
     
@@ -67,11 +78,11 @@ Describe "Windows Melody Recovery Module - Installation Tests" -Tag "Installatio
     
     Context "Module Import" {
         It "Should import without errors" {
-            { Import-Module WindowsMelodyRecovery -Force -ErrorAction Stop } | Should -Not -Throw
+            { Import-Module (Get-WmrModulePath) -Force -ErrorAction Stop } | Should -Not -Throw
         }
         
         It "Should export expected functions" {
-            Import-Module WindowsMelodyRecovery -Force
+            Import-Module (Get-WmrModulePath) -Force
             
             $exportedFunctions = Get-Command -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $exportedFunctions | Should -Not -BeNullOrEmpty
@@ -94,7 +105,7 @@ Describe "Windows Melody Recovery Module - Installation Tests" -Tag "Installatio
 Describe "Windows Melody Recovery Module - Initialization Tests" -Tag "Initialization" {
     
     BeforeAll {
-        Import-Module WindowsMelodyRecovery -Force
+        Import-Module (Get-WmrModulePath) -Force
     }
     
     Context "Initialization Function" {
@@ -179,7 +190,7 @@ Describe "Windows Melody Recovery Module - Initialization Tests" -Tag "Initializ
 Describe "Windows Melody Recovery Module - Core Functionality Tests" -Tag "Core" {
     
     BeforeAll {
-        Import-Module WindowsMelodyRecovery -Force
+        Import-Module (Get-WmrModulePath) -Force
         Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
     }
     
@@ -272,7 +283,7 @@ Describe "Windows Melody Recovery Module - Core Functionality Tests" -Tag "Core"
 Describe "Windows Melody Recovery Module - Integration Tests" -Tag "Integration" {
     
     BeforeAll {
-        Import-Module WindowsMelodyRecovery -Force
+        Import-Module (Get-WmrModulePath) -Force
         Initialize-WindowsMelodyRecovery -InstallPath $TestTempDir -NoPrompt
     }
     
@@ -323,7 +334,7 @@ Describe "Windows Melody Recovery Module - Integration Tests" -Tag "Integration"
 Describe "Windows Melody Recovery Module - Error Handling Tests" -Tag "ErrorHandling" {
     
     BeforeAll {
-        Import-Module WindowsMelodyRecovery -Force
+        Import-Module (Get-WmrModulePath) -Force
     }
     
     Context "Invalid Parameters" {

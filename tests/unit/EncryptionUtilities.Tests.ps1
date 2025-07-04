@@ -2,7 +2,14 @@
 
 BeforeAll {
     # Import the WindowsMelodyRecovery module to make functions available
-    Import-Module WindowsMelodyRecovery -Force
+    $ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
+        "./WindowsMelodyRecovery.psm1"
+    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
+        "/workspace/WindowsMelodyRecovery.psm1"
+    } else {
+        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    }
+    Import-Module $ModulePath -Force
     
     # Create a test passphrase for consistent testing
     $script:TestPassphrase = ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force
@@ -27,15 +34,15 @@ Describe "AES-256 Encryption Utilities" {
             $originalBytes = [System.Text.Encoding]::UTF8.GetBytes($originalString)
 
             $encryptedString = Protect-WmrData -DataBytes $originalBytes -Passphrase $script:TestPassphrase
-            $encryptedString | Should Not BeNullOrEmpty
-            $encryptedString | Should Not Be $originalString
-            $encryptedString | Should Match '^[A-Za-z0-9+/]+=*$'  # Base64 pattern
+            $encryptedString | Should -Not -BeNullOrEmpty
+            $encryptedString | Should -Not -Be $originalString
+            $encryptedString | Should -Match '^[A-Za-z0-9+/]+=*$'  # Base64 pattern
 
             $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedString -Passphrase $script:TestPassphrase
-            $decryptedBytes | Should Not BeNullOrEmpty
+            $decryptedBytes | Should -Not -BeNullOrEmpty
 
             $decryptedString = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
-            $decryptedString | Should Be $originalString
+            $decryptedString | Should -Be $originalString
         }
 
         It "should handle empty string data" {
@@ -43,13 +50,13 @@ Describe "AES-256 Encryption Utilities" {
             $originalBytes = [System.Text.Encoding]::UTF8.GetBytes($originalString)
 
             $encryptedString = Protect-WmrData -DataBytes $originalBytes -Passphrase $script:TestPassphrase
-            $encryptedString | Should Not BeNullOrEmpty  # Even empty data creates encrypted output due to salt+IV
+            $encryptedString | Should -Not -BeNullOrEmpty  # Even empty data creates encrypted output due to salt+IV
 
             $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedString -Passphrase $script:TestPassphrase
-            $decryptedBytes | Should Not BeNull
+            $decryptedBytes | Should -Not -BeNull
 
             $decryptedString = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
-            $decryptedString | Should Be $originalString
+            $decryptedString | Should -Be $originalString
         }
 
         It "should handle string with special characters and Unicode" {
@@ -60,7 +67,7 @@ Describe "AES-256 Encryption Utilities" {
             $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedString -Passphrase $script:TestPassphrase
             $decryptedString = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
 
-            $decryptedString | Should Be $originalString
+            $decryptedString | Should -Be $originalString
         }
 
         It "should handle large binary data" {
@@ -71,7 +78,7 @@ Describe "AES-256 Encryption Utilities" {
             $encryptedString = Protect-WmrData -DataBytes $originalBytes -Passphrase $script:TestPassphrase
             $decryptedBytes = Unprotect-WmrData -EncodedData $encryptedString -Passphrase $script:TestPassphrase
 
-            $decryptedBytes.Length | Should Be $originalBytes.Length
+            $decryptedBytes.Length | Should -Be $originalBytes.Length
             
             # Compare byte arrays
             $bytesMatch = $true
@@ -81,7 +88,7 @@ Describe "AES-256 Encryption Utilities" {
                     break
                 }
             }
-            $bytesMatch | Should Be $true
+            $bytesMatch | Should -Be $true
         }
 
         It "should fail with wrong passphrase" {
@@ -91,7 +98,7 @@ Describe "AES-256 Encryption Utilities" {
 
             $encryptedString = Protect-WmrData -DataBytes $originalBytes -Passphrase $script:TestPassphrase
             
-            { Unprotect-WmrData -EncodedData $encryptedString -Passphrase $wrongPassphrase } | Should Throw
+            { Unprotect-WmrData -EncodedData $encryptedString -Passphrase $wrongPassphrase } | Should -Throw
         }
 
         It "should produce different encrypted output for same input (different IVs)" {
@@ -102,7 +109,7 @@ Describe "AES-256 Encryption Utilities" {
             Clear-WmrEncryptionCache  # Clear cache to force new salt/IV
             $encrypted2 = Protect-WmrData -DataBytes $originalBytes -Passphrase $script:TestPassphrase
 
-            $encrypted1 | Should Not Be $encrypted2  # Different due to different IVs
+            $encrypted1 | Should -Not -Be $encrypted2  # Different due to different IVs
             
             # But both should decrypt to the same data
             $decrypted1 = Unprotect-WmrData -EncodedData $encrypted1 -Passphrase $script:TestPassphrase
@@ -111,8 +118,8 @@ Describe "AES-256 Encryption Utilities" {
             $decryptedString1 = [System.Text.Encoding]::UTF8.GetString($decrypted1)
             $decryptedString2 = [System.Text.Encoding]::UTF8.GetString($decrypted2)
             
-            $decryptedString1 | Should Be $originalString
-            $decryptedString2 | Should Be $originalString
+            $decryptedString1 | Should -Be $originalString
+            $decryptedString2 | Should -Be $originalString
         }
     }
 
@@ -126,8 +133,8 @@ Describe "AES-256 Encryption Utilities" {
             Clear-WmrEncryptionCache
             $keyInfo2 = Get-WmrEncryptionKey -Passphrase $script:TestPassphrase -Salt $salt
 
-            $keyInfo1.Key.Length | Should Be 32  # 256-bit key
-            $keyInfo2.Key.Length | Should Be 32
+            $keyInfo1.Key.Length | Should -Be 32  # 256-bit key
+            $keyInfo2.Key.Length | Should -Be 32
 
             # Keys should be identical for same passphrase and salt
             $keysMatch = $true
@@ -137,7 +144,7 @@ Describe "AES-256 Encryption Utilities" {
                     break
                 }
             }
-            $keysMatch | Should Be $true
+            $keysMatch | Should -Be $true
         }
 
         It "should cache key during session" {
@@ -145,7 +152,7 @@ Describe "AES-256 Encryption Utilities" {
             $keyInfo2 = Get-WmrEncryptionKey  # Should use cached key
 
             # Should return same key reference when cached
-            $keyInfo1.Key.Length | Should Be $keyInfo2.Key.Length
+            $keyInfo1.Key.Length | Should -Be $keyInfo2.Key.Length
         }
     }
 
@@ -154,14 +161,14 @@ Describe "AES-256 Encryption Utilities" {
         It "should clear cached encryption key" {
             # Create a key to cache
             $keyInfo = Get-WmrEncryptionKey -Passphrase $script:TestPassphrase
-            $keyInfo.Key | Should Not BeNull
+            $keyInfo.Key | Should -Not -BeNull
 
             # Clear cache
             Clear-WmrEncryptionCache
 
             # Verify cache is cleared by checking that script variables are null
-            $script:CachedEncryptionKey | Should BeNull
-            $script:CachedKeySalt | Should BeNull
+            $script:CachedEncryptionKey | Should -BeNull
+            $script:CachedKeySalt | Should -BeNull
         }
     }
 
@@ -171,7 +178,7 @@ Describe "AES-256 Encryption Utilities" {
             Mock Read-Host { return $script:TestPassphrase } -ParameterFilter { $AsSecureString }
             
             $result = Test-WmrEncryption -TestData "Test encryption functionality"
-            $result | Should Be $true
+            $result | Should -Be $true
         }
 
         It "should handle custom test data" {
@@ -179,7 +186,7 @@ Describe "AES-256 Encryption Utilities" {
             
             $customData = "Custom test data with special chars: 🔒🗝️"
             $result = Test-WmrEncryption -TestData $customData
-            $result | Should Be $true
+            $result | Should -Be $true
         }
     }
 
@@ -188,13 +195,13 @@ Describe "AES-256 Encryption Utilities" {
         It "should handle corrupted encrypted data" {
             $corruptedData = "InvalidBase64Data!@#"
             
-            { Unprotect-WmrData -EncodedData $corruptedData -Passphrase $script:TestPassphrase } | Should Throw
+            { Unprotect-WmrData -EncodedData $corruptedData -Passphrase $script:TestPassphrase } | Should -Throw
         }
 
         It "should handle encrypted data that is too short" {
             $tooShortData = [System.Convert]::ToBase64String([byte[]](1..10))  # Less than 48 bytes
             
-            { Unprotect-WmrData -EncodedData $tooShortData -Passphrase $script:TestPassphrase } | Should Throw
+            { Unprotect-WmrData -EncodedData $tooShortData -Passphrase $script:TestPassphrase } | Should -Throw
         }
     }
 } 

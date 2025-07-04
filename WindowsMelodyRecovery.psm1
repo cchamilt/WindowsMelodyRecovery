@@ -55,6 +55,10 @@ $script:ModuleInitialized = $false
 $script:InitializationErrors = @()
 $script:LoadedComponents = @()
 
+# Import Template module and dot-source EncryptionUtilities so their functions are always available
+Import-Module (Join-Path $PSScriptRoot 'Private/Core/WindowsMelodyRecovery.Template.psm1') -Force
+. (Join-Path $PSScriptRoot 'Private/Core/EncryptionUtilities.ps1')
+
 # Define core functions first
 function Get-WindowsMelodyRecovery {
     <#
@@ -392,6 +396,9 @@ if ($script:LoadedCoreFunctions) {
     Write-Verbose "Adding $($script:LoadedCoreFunctions.Count) core functions to export list."
 }
 
+# After collecting all functions to export, add Template and EncryptionUtilities functions explicitly
+$AllFunctionsToExport += 'Read-WmrTemplateConfig','Test-WmrTemplateSchema','Protect-WmrData','Unprotect-WmrData','Get-WmrEncryptionKey','Clear-WmrEncryptionCache','Test-WmrEncryption'
+
 # Only export functions that actually exist
 $ExistingFunctions = @()
 $AllFunctions | ForEach-Object {
@@ -404,6 +411,17 @@ $AllFunctions | ForEach-Object {
 
 # Deduplicate before exporting
 $ExistingFunctions = $ExistingFunctions | Sort-Object -Unique
+
+# Always add Template and EncryptionUtilities functions to export list
+$TemplateAndEncryptionFunctions = @(
+    'Read-WmrTemplateConfig','Test-WmrTemplateSchema',
+    'Protect-WmrData','Unprotect-WmrData','Get-WmrEncryptionKey','Clear-WmrEncryptionCache','Test-WmrEncryption'
+)
+foreach ($fn in $TemplateAndEncryptionFunctions) {
+    if ($ExistingFunctions -notcontains $fn -and (Get-Command $fn -ErrorAction SilentlyContinue)) {
+        $ExistingFunctions += $fn
+    }
+}
 
 if ($ExistingFunctions.Count -gt 0) {
     Export-ModuleMember -Function $ExistingFunctions
@@ -488,6 +506,19 @@ if ($script:ModuleInitialized) {
     }
 } else {
     Write-Warning "Module loaded but initialization may be incomplete"
+}
+
+# Always load the Template module to ensure template functions are available
+try {
+    $TemplateModulePath = Join-Path $PSScriptRoot "Private\Core\WindowsMelodyRecovery.Template.psm1"
+    if (Test-Path $TemplateModulePath) {
+        Import-Module $TemplateModulePath -Force
+        Write-Verbose "Successfully loaded Template module"
+    } else {
+        Write-Warning "Template module not found at: $TemplateModulePath"
+    }
+} catch {
+    Write-Warning "Failed to load Template module: $($_.Exception.Message)"
 }
 
 # If initialization was successful, load functions and export them.

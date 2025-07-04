@@ -2,7 +2,14 @@
 
 BeforeAll {
     # Import the WindowsMelodyRecovery module to make functions available
-    Import-Module WindowsMelodyRecovery -Force
+    $ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
+        "./WindowsMelodyRecovery.psm1"
+    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
+        "/workspace/WindowsMelodyRecovery.psm1"
+    } else {
+        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    }
+    Import-Module $ModulePath -Force # For mocked encryption
 
     # Setup a temporary directory for state files
     $script:TempStateDir = Join-Path $PSScriptRoot "..\..\Temp\ApplicationStateTests"

@@ -2,7 +2,14 @@
 
 BeforeAll {
     # Import the WindowsMelodyRecovery module to make functions available
-    Import-Module WindowsMelodyRecovery -Force
+    $ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
+        "./WindowsMelodyRecovery.psm1"
+    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
+        "/workspace/WindowsMelodyRecovery.psm1"
+    } else {
+        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    }
+    Import-Module $ModulePath -Force
 
     # Create a dummy script for prerequisite testing
     $script:TempScriptPath = Join-Path $PSScriptRoot "..\..\Temp\test_prereq_script.ps1"
@@ -36,7 +43,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "application"; name = "Winget"; check_command = "winget --version"; expected_output = "^v\d+\.\d+\.\d+$"; on_missing = "fail_backup" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Not Throw
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Not -Throw
         }
 
         It "should warn if application check_command output does not match and on_missing is 'warn'" {
@@ -53,7 +60,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "application"; name = "Winget"; check_command = "winget --version"; expected_output = "^v\d+\.\d+\.\d+$"; on_missing = "warn" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Not Throw
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Not -Throw
             # Verify that a warning was written (Pester doesn't have direct Should Write-Warning assertion)
             # This typically requires inspecting output streams, but for now, rely on no throw.
         }
@@ -72,7 +79,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "application"; name = "Winget"; check_command = "winget --version"; expected_output = "^v\d+\.\d+\.\d+$"; on_missing = "fail_backup" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Throw "Prerequisite 'Winget' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Throw "Prerequisite 'Winget' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
         }
     }
 
@@ -103,7 +110,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "registry"; name = "Test Reg Value"; path = "HKCU:\SOFTWARE\WmrTest"; key_name = "TestValue"; expected_value = "Expected"; on_missing = "fail_restore" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Not Throw
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should -Not -Throw
         }
 
         It "should pass if registry key exists when checking key only" -Skip:(-not $IsWindows) {
@@ -113,7 +120,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "registry"; name = "Test Reg Key"; path = "HKCU:\SOFTWARE\WmrTest"; on_missing = "fail_restore" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Not Throw
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should -Not -Throw
         }
 
         It "should fail if registry value does not match and on_missing is 'fail_restore'" -Skip:(-not $IsWindows) {
@@ -123,7 +130,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "registry"; name = "Test Reg Value"; path = "HKCU:\SOFTWARE\WmrTest"; key_name = "TestValue"; expected_value = "Wrong"; on_missing = "fail_restore" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Throw "Prerequisite 'Test Reg Value' failed. Cannot proceed with Restore operation as 'fail_restore' is set."
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should -Throw "Prerequisite 'Test Reg Value' failed. Cannot proceed with Restore operation as 'fail_restore' is set."
         }
 
         It "should fail if registry key does not exist and on_missing is 'fail_restore'" -Skip:(-not $IsWindows) {
@@ -133,7 +140,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "registry"; name = "Non Existent Key"; path = "HKCU:\SOFTWARE\NonExistent"; on_missing = "fail_restore" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should Throw "Prerequisite 'Non Existent Key' failed. Cannot proceed with Restore operation as 'fail_restore' is set."
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Restore" } | Should -Throw "Prerequisite 'Non Existent Key' failed. Cannot proceed with Restore operation as 'fail_restore' is set."
         }
     }
 
@@ -145,7 +152,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "script"; name = "Inline Script"; inline_script = "Write-Output 'Hello World'"; expected_output = "Hello World"; on_missing = "warn" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Not Throw
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Not -Throw
         }
 
         It "should pass if script from path output matches expected_output" {
@@ -155,7 +162,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "script"; name = "Path Script"; path = $script:TempScriptPath; expected_output = "Script Ran Successfully"; on_missing = "fail_backup" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Not Throw
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Not -Throw
         }
 
         It "should fail if script output does not match and on_missing is 'fail_backup'" {
@@ -165,7 +172,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "script"; name = "Inline Script Fail"; inline_script = "Write-Output 'Wrong Output'"; expected_output = "Correct Output"; on_missing = "fail_backup" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Throw "Prerequisite 'Inline Script Fail' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Throw "Prerequisite 'Inline Script Fail' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
         }
     }
 
@@ -191,7 +198,7 @@ Describe "Test-WmrPrerequisites" {
                 prerequisites = $prerequisites
             }
             $result = Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup"
-            $result | Should Be $true
+            $result | Should -Be $true
 
             if ($IsWindows) {
                 Remove-Item -Path "HKCU:\SOFTWARE\WmrCombinedTest" -Recurse -Force -ErrorAction SilentlyContinue
@@ -211,7 +218,7 @@ Describe "Test-WmrPrerequisites" {
                     @{ type = "application"; name = "Winget Critical"; check_command = "winget --version"; expected_output = "^v\d"; on_missing = "fail_backup" }
                 )
             }
-            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should Throw "Prerequisite 'Winget Critical' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
+            { Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup" } | Should -Throw "Prerequisite 'Winget Critical' failed. Cannot proceed with Backup operation as 'fail_backup' is set."
             Remove-Mock Invoke-Expression
         }
     }

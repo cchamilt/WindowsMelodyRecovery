@@ -3,6 +3,9 @@
 Describe "Template Integration Tests" {
 
     BeforeAll {
+        # Import the WindowsMelodyRecovery module to ensure Template functions are available
+        Import-Module WindowsMelodyRecovery -Force
+        
         # Define paths
         $script:ProjectPath = (Get-Item -Path $PSScriptRoot).Parent.Parent.FullName
         $script:InvokeTemplatePath = Join-Path $script:ProjectPath "Private\Core\InvokeWmrTemplate.ps1"
@@ -88,32 +91,32 @@ MyDummyApp           Test.DummyApp    9.9.9
             Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionHeight" -Value "1080" -Force | Out-Null
             Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionWidth" -Value "1920" -Force | Out-Null
 
-            { Invoke-WmrTemplate -TemplatePath $script:DisplayTemplatePath -Operation "Backup" -StateFilesDirectory $currentBackupDir } | Should Not Throw
+            { Invoke-WmrTemplate -TemplatePath $script:DisplayTemplatePath -Operation "Backup" -StateFilesDirectory $currentBackupDir } | Should -Not -Throw
 
             # Verify state files are created
-            (Test-Path (Join-Path $currentBackupDir "system_settings\display_orientation.json")) | Should Be $true
-            (Test-Path (Join-Path $currentBackupDir "system_settings\resolution_height.json")) | Should Be $true
-            (Test-Path (Join-Path $currentBackupDir "system_settings\resolution_width.json")) | Should Be $true
+            (Test-Path (Join-Path $currentBackupDir "system_settings\display_orientation.json")) | Should -Be $true
+            (Test-Path (Join-Path $currentBackupDir "system_settings\resolution_height.json")) | Should -Be $true
+            (Test-Path (Join-Path $currentBackupDir "system_settings\resolution_width.json")) | Should -Be $true
 
             # Verify content of state files
             $orientationState = (Get-Content -Path (Join-Path $currentBackupDir "system_settings\display_orientation.json") -Raw | ConvertFrom-Json)
-            $orientationState.Value | Should Be "99"
+            $orientationState.Value | Should -Be "99"
         }
 
         It "should successfully backup winget application list" {
             $timestamp = (Get-Date -Format "yyyyMMdd_HHmmss")
             $currentBackupDir = Join-Path $script:BackupBaseDir "winget_backup_$timestamp"
 
-            { Invoke-WmrTemplate -TemplatePath $script:WingetAppsTemplatePath -Operation "Backup" -StateFilesDirectory $currentBackupDir } | Should Not Throw
+            { Invoke-WmrTemplate -TemplatePath $script:WingetAppsTemplatePath -Operation "Backup" -StateFilesDirectory $currentBackupDir } | Should -Not -Throw
 
             # Verify state file is created
-            (Test-Path (Join-Path $currentBackupDir "applications\winget-installed.json")) | Should Be $true
+            (Test-Path (Join-Path $currentBackupDir "applications\winget-installed.json")) | Should -Be $true
 
             # Verify content of state file
             $appList = (Get-Content -Path (Join-Path $currentBackupDir "applications\winget-installed.json") -Raw | ConvertFrom-Json)
-            $appList.Count | Should Be 3
-            $appList | Where-Object Id -eq "Microsoft.Edge" | Should Not BeNull
-            $appList | Where-Object Id -eq "Test.DummyApp" | Should Not BeNull
+            $appList.Count | Should -Be 3
+            $appList | Where-Object Id -eq "Microsoft.Edge" | Should -Not -BeNull
+            $appList | Where-Object Id -eq "Test.DummyApp" | Should -Not -BeNull
         }
     }
 
@@ -153,12 +156,12 @@ MyDummyApp           Test.DummyApp    9.9.9
             Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionWidth" -Value "2222" -Force | Out-Null
 
             # Perform restore
-            { Invoke-WmrTemplate -TemplatePath $script:DisplayTemplatePath -Operation "Restore" -StateFilesDirectory $mockBackupDir } | Should Not Throw
+            { Invoke-WmrTemplate -TemplatePath $script:DisplayTemplatePath -Operation "Restore" -StateFilesDirectory $mockBackupDir } | Should -Not -Throw
 
             # Verify registry values are restored
-            (Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "DisplayOrientation").DisplayOrientation | Should Be "1"
-            (Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionHeight").ResolutionHeight | Should Be "1024"
-            (Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionWidth").ResolutionWidth | Should Be "768"
+            (Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "DisplayOrientation").DisplayOrientation | Should -Be "1"
+            (Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionHeight").ResolutionHeight | Should -Be "1024"
+            (Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ResolutionWidth").ResolutionWidth | Should -Be "768"
         }
 
         It "should successfully restore winget applications" {
@@ -176,11 +179,11 @@ MyDummyApp           Test.DummyApp    9.9.9
             Remove-Item -Path (Join-Path $script:TempInstalledAppsDir "Test.App2.installed") -ErrorAction SilentlyContinue
 
             # Perform restore
-            { Invoke-WmrTemplate -TemplatePath $script:WingetAppsTemplatePath -Operation "Restore" -StateFilesDirectory $mockBackupDir } | Should Not Throw
+            { Invoke-WmrTemplate -TemplatePath $script:WingetAppsTemplatePath -Operation "Restore" -StateFilesDirectory $mockBackupDir } | Should -Not -Throw
 
             # Verify simulation of installation
-            (Test-Path (Join-Path $script:TempInstalledAppsDir "Test.App1.installed")) | Should Be $true
-            (Test-Path (Join-Path $script:TempInstalledAppsDir "Test.App2.installed")) | Should Be $true
+            (Test-Path (Join-Path $script:TempInstalledAppsDir "Test.App1.installed")) | Should -Be $true
+            (Test-Path (Join-Path $script:TempInstalledAppsDir "Test.App2.installed")) | Should -Be $true
         }
     }
 
@@ -194,7 +197,7 @@ MyDummyApp           Test.DummyApp    9.9.9
             $timestamp = (Get-Date -Format "yyyyMMdd_HHmmss")
             $currentBackupDir = Join-Path $script:BackupBaseDir "failing_prereq_backup_$timestamp"
 
-            { Invoke-WmrTemplate -TemplatePath $script:DisplayTemplatePath -Operation "Backup" -StateFilesDirectory $currentBackupDir } | Should Throw "Prerequisites not met for Backup operation. Aborting."
+            { Invoke-WmrTemplate -TemplatePath $script:DisplayTemplatePath -Operation "Backup" -StateFilesDirectory $currentBackupDir } | Should -Throw "Prerequisites not met for Backup operation. Aborting."
 
             # Revert template changes
             $originalDisplayTemplate | Set-Content -Path $script:DisplayTemplatePath -Encoding Utf8
