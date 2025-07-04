@@ -97,9 +97,9 @@ switch ($TestSuite) {
             $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
             Write-Host "🎯 Running All Tests (including Windows-only tests)" -ForegroundColor Yellow
         } else {
-            # On non-Windows, exclude Windows-only tests
+            # On non-Windows, exclude Windows-only tests by excluding the specific file
             $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
-            $config.Filter.Tag = @('!WindowsOnly')
+            $config.Run.ExcludePath = @('/workspace/tests/unit/Windows-Only.Tests.ps1')
             Write-Host "🎯 Running All Tests (excluding Windows-only tests)" -ForegroundColor Yellow
         }
     }
