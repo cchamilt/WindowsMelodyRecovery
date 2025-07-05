@@ -10,369 +10,221 @@ Describe "WSL Integration Tests" {
         }
         Import-Module $ModulePath -Force -ErrorAction SilentlyContinue
         
-        # Set up test paths
-        $testWslPath = "/workspace/test-wsl"
-        $wslHomePath = "/home/testuser"
-        $wslEtcPath = "/etc"
-        $wslVarPath = "/var"
+        # Test WSL container connectivity first
+        Write-Host "Testing WSL container connectivity..." -ForegroundColor Cyan
+        $connectivityTest = & wsl --test-connectivity 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "WSL container connectivity test failed: $connectivityTest"
+        }
+        Write-Host "WSL container connectivity: PASSED" -ForegroundColor Green
+    }
+    
+    Context "WSL Container Communication" {
+        It "Should have working WSL container communication" {
+            # Test basic connectivity
+            $result = & wsl --test-connectivity 2>&1
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Match "PASSED"
+        }
         
-        # Create test directories if they don't exist
-        if (-not (Test-Path $testWslPath)) {
-            New-Item -Path $testWslPath -ItemType Directory -Force | Out-Null
+        It "Should list WSL distributions" {
+            $result = & wsl --list --verbose
+            $LASTEXITCODE | Should -Be 0
+            # Check that Ubuntu-22.04 appears in the output (may be formatted)
+            $result -join " " | Should -Match "Ubuntu-22.04"
+            $result -join " " | Should -Match "Running"
+        }
+        
+        It "Should execute commands in WSL container" {
+            $result = & wsl --exec "whoami"
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Be "testuser"
         }
     }
     
-    Context "Environment Setup" {
-        It "Should have access to WSL home directory" {
-            Test-Path $wslHomePath | Should -Be $true
+    Context "WSL Environment Validation" {
+        It "Should have proper user environment" {
+            $result = & wsl --user testuser --exec "echo `$HOME"
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Be "/home/testuser"
         }
         
-        It "Should have access to WSL etc directory" {
-            Test-Path $wslEtcPath | Should -Be $true
+        It "Should have development tools available" {
+            $tools = @("python3", "node", "git", "chezmoi")
+            foreach ($tool in $tools) {
+                $result = & wsl --user testuser --exec "which $tool"
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Not -BeNullOrEmpty
+            }
         }
         
-        It "Should have access to WSL var directory" {
-            Test-Path $wslVarPath | Should -Be $true
-        }
-        
-        It "Should be able to create test directories" {
-            Test-Path $testWslPath | Should -Be $true
+        It "Should have package managers available" {
+            $managers = @("apt", "pip3", "npm")
+            foreach ($manager in $managers) {
+                $result = & wsl --user testuser --exec "$manager --version"
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Not -BeNullOrEmpty
+            }
         }
     }
     
-    Context "WSL Distribution Management" {
-        It "Should be able to list WSL distributions" {
-            # Create mock WSL distribution list
-            $distributionsPath = Join-Path $testWslPath "distributions"
-            if (-not (Test-Path $distributionsPath)) {
-                New-Item -Path $distributionsPath -ItemType Directory -Force | Out-Null
-            }
+    Context "WSL File System Operations" {
+        It "Should handle file operations in WSL" {
+            $testFile = "/tmp/wsl-test-$(Get-Random).txt"
+            $testContent = "WSL test content $(Get-Date)"
             
-            $distributions = @(
-                @{
-                    Name = "Ubuntu-22.04"
-                    Version = "2"
-                    Default = $true
-                    State = "Running"
-                    BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState"
-                },
-                @{
-                    Name = "Debian"
-                    Version = "2"
-                    Default = $false
-                    State = "Stopped"
-                    BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\TheDebianProject.DebianGNULinux_79rhkp1fndgsc\\LocalState"
-                },
-                @{
-                    Name = "openSUSE-Leap-15.5"
-                    Version = "2"
-                    Default = $false
-                    State = "Stopped"
-                    BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\openSUSEProject.openSUSELeap155_79rhkp1fndgsc\\LocalState"
-                }
-            )
+            # Create file
+            $createResult = & wsl --user testuser --exec "echo '$testContent' > $testFile"
+            $LASTEXITCODE | Should -Be 0
             
-            $distributions | ConvertTo-Json -Depth 3 | Out-File -FilePath (Join-Path $distributionsPath "wsl-list.json") -Encoding UTF8
-            Test-Path (Join-Path $distributionsPath "wsl-list.json") | Should -Be $true
+            # Read file
+            $readResult = & wsl --user testuser --exec "cat $testFile"
+            $LASTEXITCODE | Should -Be 0
+            $readResult | Should -Be $testContent
             
-            $loadedDistributions = Get-Content (Join-Path $distributionsPath "wsl-list.json") | ConvertFrom-Json
-            $loadedDistributions.Count | Should -Be 3
-            ($loadedDistributions | Where-Object { $_.Default -eq $true }).Count | Should -Be 1
+            # Clean up
+            & wsl --user testuser --exec "rm $testFile" | Out-Null
         }
         
-        It "Should be able to manage WSL configuration" {
-            # Create mock WSL configuration
-            $configPath = Join-Path $testWslPath "config"
-            if (-not (Test-Path $configPath)) {
-                New-Item -Path $configPath -ItemType Directory -Force | Out-Null
-            }
+        It "Should handle directory operations in WSL" {
+            $testDir = "/tmp/wsl-test-dir-$(Get-Random)"
             
-            $wslConfig = @{
-                Global = @{
-                    Default = "Ubuntu-22.04"
-                    NetworkMode = "mirrored"
-                    LocalhostForwarding = $true
-                }
-                Ubuntu2204 = @{
-                    KernelCommandLine = "cgroup_enable=1 cgroup_memory=1 cgroup_v2=1 swapaccount=1"
-                    Memory = "8GB"
-                    Processors = 4
-                    Swap = "2GB"
-                    LocalhostForwarding = $true
-                }
-                Debian = @{
-                    KernelCommandLine = "cgroup_enable=1 cgroup_memory=1 cgroup_v2=1 swapaccount=1"
-                    Memory = "4GB"
-                    Processors = 2
-                    Swap = "1GB"
-                    LocalhostForwarding = $true
-                }
-            }
+            # Create directory
+            $createResult = & wsl --user testuser --exec "mkdir -p $testDir"
+            $LASTEXITCODE | Should -Be 0
             
-            $wslConfig | ConvertTo-Json -Depth 4 | Out-File -FilePath (Join-Path $configPath "wsl-config.json") -Encoding UTF8
-            Test-Path (Join-Path $configPath "wsl-config.json") | Should -Be $true
+            # Check directory exists
+            $checkResult = & wsl --user testuser --exec "test -d $testDir && echo 'exists'"
+            $LASTEXITCODE | Should -Be 0
+            $checkResult | Should -Be "exists"
             
-            $loadedConfig = Get-Content (Join-Path $configPath "wsl-config.json") | ConvertFrom-Json
-            $loadedConfig.Global.Default | Should -Be "Ubuntu-22.04"
-            $loadedConfig.Ubuntu2204.Memory | Should -Be "8GB"
+            # Clean up
+            & wsl --user testuser --exec "rmdir $testDir" | Out-Null
         }
     }
     
-    Context "WSL Cross-Platform Operations" {
-        It "Should be able to execute WSL commands from Windows" {
-            # Create mock WSL command execution results
-            $commandsPath = Join-Path $testWslPath "commands"
-            if (-not (Test-Path $commandsPath)) {
-                New-Item -Path $commandsPath -ItemType Directory -Force | Out-Null
-            }
-            
-            # Mock command results
-            $commandResults = @{
-                "wsl --list --verbose" = @{
-                    Command = "wsl --list --verbose"
-                    ExitCode = 0
-                    Output = @"
-  NAME                   STATE           VERSION
-* Ubuntu-22.04          Running         2
-  Debian                Stopped         2
-  openSUSE-Leap-15.5    Stopped         2
-"@
-                    Error = ""
-                }
-                "wsl -d Ubuntu-22.04 -- uname -a" = @{
-                    Command = "wsl -d Ubuntu-22.04 -- uname -a"
-                    ExitCode = 0
-                    Output = "Linux TestHost 5.15.0-generic #1 SMP x86_64 x86_64 x86_64 GNU/Linux"
-                    Error = ""
-                }
-                "wsl -d Ubuntu-22.04 -- lsb_release -a" = @{
-                    Command = "wsl -d Ubuntu-22.04 -- lsb_release -a"
-                    ExitCode = 0
-                    Output = @"
-Distributor ID: Ubuntu
-Description:    Ubuntu 22.04.3 LTS
-Release:        22.04
-Codename:       jammy
-"@
-                    Error = ""
-                }
-            }
-            
-            foreach ($command in $commandResults.Keys) {
-                $commandFile = Join-Path $commandsPath "$($command -replace '[^a-zA-Z0-9]', '-').json"
-                $commandResults[$command] | ConvertTo-Json -Depth 3 | Out-File -FilePath $commandFile -Encoding UTF8
-                Test-Path $commandFile | Should -Be $true
-            }
+    Context "WSL Package Management" {
+        It "Should list installed packages" {
+            $result = & wsl --user testuser --exec "dpkg --list | wc -l"
+            $LASTEXITCODE | Should -Be 0
+            $packageCount = [int]$result
+            $packageCount | Should -BeGreaterThan 100
         }
         
-        It "Should be able to transfer files between Windows and WSL" {
-            # Create mock file transfer operations
-            $transferPath = Join-Path $testWslPath "transfers"
-            if (-not (Test-Path $transferPath)) {
-                New-Item -Path $transferPath -ItemType Directory -Force | Out-Null
-            }
-            
-            # Mock Windows to WSL transfer
-            $windowsToWsl = @{
-                Source = "C:\\Users\\TestUser\\Documents\\test-file.txt"
-                Destination = "/home/testuser/test-file.txt"
-                Status = "Completed"
-                Size = "1024"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-            }
-            
-            $windowsToWsl | ConvertTo-Json | Out-File -FilePath (Join-Path $transferPath "windows-to-wsl.json") -Encoding UTF8
-            Test-Path (Join-Path $transferPath "windows-to-wsl.json") | Should -Be $true
-            
-            # Mock WSL to Windows transfer
-            $wslToWindows = @{
-                Source = "/home/testuser/linux-file.txt"
-                Destination = "C:\\Users\\TestUser\\Documents\\linux-file.txt"
-                Status = "Completed"
-                Size = "2048"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-            }
-            
-            $wslToWindows | ConvertTo-Json | Out-File -FilePath (Join-Path $transferPath "wsl-to-windows.json") -Encoding UTF8
-            Test-Path (Join-Path $transferPath "wsl-to-windows.json") | Should -Be $true
+        It "Should have Python packages available" {
+            $result = & wsl --user testuser --exec "pip3 list | grep -E '^(requests|flask|django)'"
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Not -BeNullOrEmpty
         }
         
-        It "Should be able to manage WSL services" {
-            # Create mock WSL service management
-            $servicesPath = Join-Path $testWslPath "services"
-            if (-not (Test-Path $servicesPath)) {
-                New-Item -Path $servicesPath -ItemType Directory -Force | Out-Null
-            }
-            
-            $services = @{
-                "ssh" = @{
-                    Status = "active"
-                    Enabled = $true
-                    Port = 22
-                }
-                "docker" = @{
-                    Status = "active"
-                    Enabled = $true
-                    Port = 2375
-                }
-                "nginx" = @{
-                    Status = "inactive"
-                    Enabled = $false
-                    Port = 80
-                }
-            }
-            
-            $services | ConvertTo-Json -Depth 3 | Out-File -FilePath (Join-Path $servicesPath "wsl-services.json") -Encoding UTF8
-            Test-Path (Join-Path $servicesPath "wsl-services.json") | Should -Be $true
-            
-            $loadedServices = Get-Content (Join-Path $servicesPath "wsl-services.json") | ConvertFrom-Json
-            $loadedServices.ssh.Status | Should -Be "active"
-            $loadedServices.nginx.Status | Should -Be "inactive"
+        It "Should have Node.js packages available" {
+            $result = & wsl --user testuser --exec "npm list -g --depth=0"
+            $LASTEXITCODE | Should -Be 0
+            # Check for typescript in the output (may be formatted differently)
+            $result -join " " | Should -Match "typescript"
         }
     }
     
-    Context "WSL Development Environment" {
-        It "Should be able to manage development tools" {
-            # Create mock development tools configuration
-            $devToolsPath = Join-Path $testWslPath "dev-tools"
-            if (-not (Test-Path $devToolsPath)) {
-                New-Item -Path $devToolsPath -ItemType Directory -Force | Out-Null
+    Context "WSL User Configuration" {
+        It "Should have user configuration files" {
+            $configFiles = @(".bashrc", ".gitconfig")
+            foreach ($file in $configFiles) {
+                $result = & wsl --user testuser --exec "test -f /home/testuser/$file && echo 'exists'"
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Be "exists"
             }
-            
-            $devTools = @{
-                Languages = @{
-                    "python" = @{
-                        Version = "3.11.0"
-                        Path = "/usr/bin/python3"
-                        Packages = @("pip", "virtualenv", "pytest")
-                    }
-                    "nodejs" = @{
-                        Version = "18.17.0"
-                        Path = "/usr/bin/node"
-                        Packages = @("npm", "yarn", "typescript")
-                    }
-                    "golang" = @{
-                        Version = "1.21.0"
-                        Path = "/usr/local/go/bin/go"
-                        Packages = @("gofmt", "golint", "goimports")
-                    }
-                }
-                IDEs = @{
-                    "vscode" = @{
-                        Installed = $true
-                        Extensions = @("ms-vscode.go", "ms-python.python", "ms-vscode.vscode-typescript-next")
-                    }
-                    "vim" = @{
-                        Installed = $true
-                        Plugins = @("vim-go", "python-mode", "typescript-vim")
-                    }
-                }
-                VersionControl = @{
-                    "git" = @{
-                        Version = "2.40.0"
-                        Config = @{
-                            UserName = "Test User"
-                            UserEmail = "test@example.com"
-                        }
-                    }
-                }
-            }
-            
-            $devTools | ConvertTo-Json -Depth 4 | Out-File -FilePath (Join-Path $devToolsPath "dev-tools.json") -Encoding UTF8
-            Test-Path (Join-Path $devToolsPath "dev-tools.json") | Should -Be $true
-            
-            $loadedDevTools = Get-Content (Join-Path $devToolsPath "dev-tools.json") | ConvertFrom-Json
-            $loadedDevTools.Languages.python.Version | Should -Be "3.11.0"
-            $loadedDevTools.IDEs.vscode.Installed | Should -Be $true
         }
         
-        It "Should be able to manage Docker integration" {
-            # Create mock Docker integration configuration
-            $dockerPath = Join-Path $testWslPath "docker"
-            if (-not (Test-Path $dockerPath)) {
-                New-Item -Path $dockerPath -ItemType Directory -Force | Out-Null
-            }
-            
-            $dockerConfig = @{
-                Docker = @{
-                    Version = "24.0.5"
-                    Status = "running"
-                    Images = @(
-                        @{ Name = "ubuntu:22.04"; Size = "72.8MB" },
-                        @{ Name = "node:18-alpine"; Size = "169MB" },
-                        @{ Name = "python:3.11-slim"; Size = "45.1MB" }
-                    )
-                    Containers = @(
-                        @{ Name = "test-container"; Status = "running"; Image = "ubuntu:22.04" }
-                    )
-                }
-                DockerCompose = @{
-                    Version = "2.20.0"
-                    Projects = @(
-                        @{ Name = "test-project"; Status = "up"; Services = @("web", "db") }
-                    )
-                }
-            }
-            
-            $dockerConfig | ConvertTo-Json -Depth 4 | Out-File -FilePath (Join-Path $dockerPath "docker-config.json") -Encoding UTF8
-            Test-Path (Join-Path $dockerPath "docker-config.json") | Should -Be $true
-            
-            $loadedDocker = Get-Content (Join-Path $dockerPath "docker-config.json") | ConvertFrom-Json
-            $loadedDocker.Docker.Status | Should -Be "running"
-            $loadedDocker.Docker.Images.Count | Should -Be 3
+        It "Should have chezmoi configuration" {
+            $result = & wsl --user testuser --exec "test -f /home/testuser/.config/chezmoi/chezmoi.toml && echo 'exists'"
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Be "exists"
+        }
+        
+        It "Should have chezmoi source directory" {
+            $result = & wsl --user testuser --exec "test -d /home/testuser/.local/share/chezmoi && echo 'exists'"
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Be "exists"
+        }
+    }
+    
+    Context "WSL Cross-Platform Integration" {
+        It "Should execute WSL commands from Windows context" {
+            # Test that we can execute WSL commands from the test runner
+            $result = & wsl --user testuser --exec "uname -a"
+            $LASTEXITCODE | Should -Be 0
+            $result | Should -Match "Linux"
+        }
+        
+        It "Should handle complex command chains" {
+            $result = & wsl --user testuser --exec "ls -la /home/testuser | grep -E '\.(bashrc|gitconfig)$' | wc -l"
+            $LASTEXITCODE | Should -Be 0
+            $fileCount = [int]$result
+            $fileCount | Should -BeGreaterThan 0
+        }
+        
+        It "Should handle environment variables" {
+            $result = & wsl --user testuser --exec "echo `$PATH"
+            $LASTEXITCODE | Should -Be 0
+            # Check for common PATH directories
+            $result | Should -Match "/usr/bin"
+        }
+    }
+    
+    Context "WSL Error Handling" {
+        It "Should handle invalid commands gracefully" {
+            $result = & wsl --user testuser --exec "nonexistentcommand" 2>&1
+            $LASTEXITCODE | Should -Not -Be 0
+            $result | Should -Not -BeNullOrEmpty
+        }
+        
+        It "Should handle permission errors appropriately" {
+            $result = & wsl --user testuser --exec "touch /root/test-file" 2>&1
+            $LASTEXITCODE | Should -Not -Be 0
+            $result -join " " | Should -Match "Permission denied"
         }
     }
     
     Context "WSL Integration Validation" {
-        It "Should create WSL integration manifest" {
-            $manifestPath = Join-Path $testWslPath "wsl-integration-manifest.json"
-            @{
+        It "Should validate WSL integration completeness" {
+            # Test that all expected components are available
+            $components = @{
+                "User Environment" = "echo `$HOME"
+                "Development Tools" = "which python3"
+                "Package Managers" = "apt --version"
+                "Version Control" = "git --version"
+                "Dotfile Management" = "chezmoi --version"
+            }
+            
+            foreach ($component in $components.GetEnumerator()) {
+                $result = & wsl --user testuser --exec $component.Value
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Not -BeNullOrEmpty
+                Write-Host "✓ $($component.Key): Available" -ForegroundColor Green
+            }
+        }
+        
+        It "Should create integration summary" {
+            $summary = @{
                 IntegrationType = "WSL"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 Version = "1.0.0"
-                Distributions = @("Ubuntu-22.04", "Debian", "openSUSE-Leap-15.5")
+                ContainerStatus = "Running"
+                UserEnvironment = "testuser"
+                Distribution = "Ubuntu-22.04"
                 Features = @(
-                    "Distribution Management",
-                    "Cross-Platform Operations",
-                    "Development Environment",
-                    "Docker Integration"
+                    "Container Communication",
+                    "Command Execution",
+                    "File System Operations",
+                    "Package Management",
+                    "User Configuration",
+                    "Development Tools"
                 )
-                Items = @(
-                    @{ Type = "Distributions"; Path = "distributions" },
-                    @{ Type = "Config"; Path = "config" },
-                    @{ Type = "Commands"; Path = "commands" },
-                    @{ Type = "Transfers"; Path = "transfers" },
-                    @{ Type = "Services"; Path = "services" },
-                    @{ Type = "DevTools"; Path = "dev-tools" },
-                    @{ Type = "Docker"; Path = "docker" }
-                )
-            } | ConvertTo-Json -Depth 3 | Out-File -FilePath $manifestPath -Encoding UTF8
-            
-            Test-Path $manifestPath | Should -Be $true
-            
-            $manifest = Get-Content $manifestPath | ConvertFrom-Json
-            $manifest.IntegrationType | Should -Be "WSL"
-            $manifest.Distributions.Count | Should -Be 3
-            $manifest.Features.Count | Should -Be 4
-        }
-        
-        It "Should validate WSL integration integrity" {
-            $manifestPath = Join-Path $testWslPath "wsl-integration-manifest.json"
-            if (Test-Path $manifestPath) {
-                $manifest = Get-Content $manifestPath | ConvertFrom-Json
-                
-                foreach ($item in $manifest.Items) {
-                    $itemPath = Join-Path $testWslPath $item.Path
-                    Test-Path $itemPath | Should -Be $true
-                }
             }
-        }
-    }
-    
-    AfterAll {
-        # Clean up test files
-        if (Test-Path $testWslPath) {
-            Remove-Item -Path $testWslPath -Recurse -Force -ErrorAction SilentlyContinue
+            
+            $summary | Should -Not -BeNullOrEmpty
+            $summary.IntegrationType | Should -Be "WSL"
+            $summary.Features.Count | Should -BeGreaterThan 5
         }
     }
 } 
