@@ -18,6 +18,7 @@
   "Promote modular design for PowerShell scripts and functions": true,
   // All scripts should handle errors gracefully using try-catch-finally.
   "Implement robust try-catch-finally error handling in PowerShell scripts": true,
+  "Never remove functionality or features from scripts without permission after you provide discussion and justification": true,
 
   // --- Idempotency and Configuration Management ---
   // Ensure all configuration and state capture/restore scripts are idempotent.
@@ -52,6 +53,8 @@
   "Use descriptive names for Pester test blocks (Describe, Context, It)": true,
   // Encourage testing in isolated environments like Pester's TestDrive.
   "Advise on using Pester's TestDrive for isolated file system tests": true,
+  "Do not alter verbs or sentiment of tests without permission and discussion": true,
+  "Do not lie, hallucinate, or ignore where and how a test fails": true,
 
   // --- Code Quality and Maintainability ---
   // Emphasize code readability and clear variable/function naming.

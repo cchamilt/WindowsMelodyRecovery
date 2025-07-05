@@ -13,6 +13,13 @@
         Container = @{
             Parallel = $false  # Ensure tests run sequentially for now until we fix isolation
         }
+        Timeout = @{
+            TestTimeout = 300  # 5 minutes per test
+            DescribeTimeout = 1800  # 30 minutes per describe block
+            ContextTimeout = 900  # 15 minutes per context block
+            BlockTimeout = 3600  # 1 hour per test block file
+            GlobalTimeout = 7200  # 2 hours total test run
+        }
     }
     
     CodeCoverage = @{
