@@ -31,6 +31,9 @@ RUN apt-get update && apt-get install -y \
     ruby-dev \
     php \
     composer \
+    openssh-server \
+    rsync \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 18+ (instead of the default v12)
@@ -43,6 +46,14 @@ RUN apt-get update && apt-get install -y snapd && rm -rf /var/lib/apt/lists/*
 
 # Install Flatpak
 RUN apt-get update && apt-get install -y flatpak && rm -rf /var/lib/apt/lists/*
+
+# Configure SSH server
+RUN mkdir /var/run/sshd && \
+    echo 'root:rootpass' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    echo 'Port 2222' >> /etc/ssh/sshd_config
 
 # Create test user
 RUN useradd -m -s /bin/bash testuser && \
@@ -81,6 +92,15 @@ RUN mkdir -p /home/testuser/.config/chezmoi && \
     mkdir -p /home/testuser/.local/bin && \
     chmod 700 /home/testuser/.ssh && \
     chown -R testuser:testuser /home/testuser
+
+# Set up SSH key authentication for testuser
+RUN mkdir -p /home/testuser/.ssh && \
+    ssh-keygen -t rsa -b 2048 -f /home/testuser/.ssh/id_rsa -N "" && \
+    cp /home/testuser/.ssh/id_rsa.pub /home/testuser/.ssh/authorized_keys && \
+    chmod 600 /home/testuser/.ssh/authorized_keys && \
+    chmod 600 /home/testuser/.ssh/id_rsa && \
+    chmod 644 /home/testuser/.ssh/id_rsa.pub && \
+    chown -R testuser:testuser /home/testuser/.ssh
 
 # Copy mock data files
 COPY tests/mock-data/wsl/dotfiles/ /home/testuser/
@@ -173,9 +193,39 @@ RUN npm install -g typescript@4.9.5 eslint@8.57.0 prettier@2.8.8
 # Create mock system configuration files
 COPY tests/mock-data/wsl/etc/ /etc/
 
-# Create startup script
+# Create enhanced startup script
 COPY tests/mock-scripts/wsl-startup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/wsl-startup.sh
+
+# Create SSH communication test script
+RUN echo '#!/bin/bash' > /usr/local/bin/test-ssh-connectivity.sh && \
+    echo 'echo "SSH connectivity test passed"' >> /usr/local/bin/test-ssh-connectivity.sh && \
+    echo 'whoami' >> /usr/local/bin/test-ssh-connectivity.sh && \
+    echo 'hostname' >> /usr/local/bin/test-ssh-connectivity.sh && \
+    chmod +x /usr/local/bin/test-ssh-connectivity.sh
+
+# Create WSL CLI simulation script
+RUN echo '#!/bin/bash' > /usr/local/bin/wsl-cli-sim.sh && \
+    echo '# WSL CLI simulation for Docker environment' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo 'case "$1" in' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '  --test-connectivity)' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    echo "PASSED"' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    ;;' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '  --list)' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    echo "Ubuntu-22.04 Running"' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    ;;' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '  --exec)' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    shift' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    su -c "$*" testuser' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    ;;' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '  *)' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    echo "WSL CLI simulation - Ubuntu-22.04"' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo '    ;;' >> /usr/local/bin/wsl-cli-sim.sh && \
+    echo 'esac' >> /usr/local/bin/wsl-cli-sim.sh && \
+    chmod +x /usr/local/bin/wsl-cli-sim.sh
+
+# Expose SSH port
+EXPOSE 2222
 
 # Default command
 CMD ["/usr/local/bin/wsl-startup.sh"] 
