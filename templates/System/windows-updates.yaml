@@ -1,0 +1,232 @@
+metadata:
+  name: "Windows Updates and Store Apps"
+  description: "Backup and restore Windows Updates and Store Apps information"
+  version: "1.0.0"
+  category: "System Configuration"
+  author: "WindowsMelodyRecovery"
+  tags: ["windows-updates", "store-apps", "appx", "hotfix"]
+
+prerequisites:
+  - type: script
+    name: "System Access Required"
+    inline_script: |
+      try {
+          # Check if we can access system information
+          $osInfo = Get-WmiObject -Class Win32_OperatingSystem -ErrorAction SilentlyContinue
+          if ($osInfo) {
+              Write-Output "System access confirmed"
+          } else {
+              Write-Output "Unable to access system information"
+          }
+      } catch {
+          Write-Output "System access check failed"
+      }
+    expected_output: "System access confirmed"
+    on_missing: warn
+
+registry:
+  # Windows Update and Servicing
+  - name: "Windows Update Services Pending"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windows_update_pending.json"
+
+  - name: "Windows Update Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windows_update_policies.json"
+
+  - name: "TrustedInstaller Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TrustedInstaller'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/trusted_installer.json"
+
+applications:
+  # Windows Updates Information
+  - name: "Windows Updates Information"
+    dynamic_state_path: "installed_updates.json"
+    discovery_command: |
+      try {
+          $updatePackages = Get-HotFix | Select-Object Description, HotFixID, InstalledBy, InstalledOn
+          $result = @{
+              InstalledUpdates = $updatePackages
+              UpdateCount = $updatePackages.Count
+          }
+          
+          return $result
+      } catch {
+          return @{
+              InstalledUpdates = @()
+              UpdateCount = 0
+          }
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput.InstalledUpdates) {
+          foreach ($update in $DiscoveryOutput.InstalledUpdates) {
+              $safeHotFixID = if ($update.HotFixID) { $update.HotFixID -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+              $applications += @{
+                  Name = "Update-$safeHotFixID"
+                  Version = "Windows Update"
+                  Status = "Installed"
+                  HotFixID = $update.HotFixID
+                  Description = $update.Description
+                  InstalledBy = $update.InstalledBy
+                  InstalledOn = $update.InstalledOn
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "Windows Updates information restored:" -ForegroundColor Green
+          Write-Host "  Installed Updates: $($StateObject.Count)" -ForegroundColor Cyan
+          
+          # Show recent updates
+          $recentUpdates = $StateObject | Sort-Object InstalledOn -Descending | Select-Object -First 10
+          Write-Host "Recent Updates:" -ForegroundColor Yellow
+          foreach ($update in $recentUpdates) {
+              Write-Host "  - $($update.HotFixID): $($update.Description)" -ForegroundColor Gray
+              if ($update.InstalledOn) {
+                  Write-Host "    Installed: $($update.InstalledOn)" -ForegroundColor DarkGray
+              }
+          }
+      } else {
+          Write-Host "No Windows Updates information found in backup" -ForegroundColor Yellow
+      }
+
+  # Windows Store Apps (AppX Packages)
+  - name: "Windows Store Apps"
+    dynamic_state_path: "appx_packages.json"
+    discovery_command: |
+      try {
+          $appxPackages = Get-AppxPackage | Select-Object Name, PackageFullName, Version, Architecture, Publisher
+          $result = @{
+              AppXPackages = $appxPackages
+              PackageCount = $appxPackages.Count
+          }
+          
+          return $result
+      } catch {
+          return @{
+              AppXPackages = @()
+              PackageCount = 0
+          }
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput.AppXPackages) {
+          foreach ($package in $DiscoveryOutput.AppXPackages) {
+              $applications += @{
+                  Name = "AppX-$($package.Name)"
+                  Version = $package.Version
+                  Status = "Installed"
+                  PackageName = $package.Name
+                  PackageFullName = $package.PackageFullName
+                  Architecture = $package.Architecture
+                  Publisher = $package.Publisher
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "Windows Store Apps information restored:" -ForegroundColor Green
+          Write-Host "  AppX Packages: $($StateObject.Count)" -ForegroundColor Cyan
+          
+          # Group by publisher
+          $groupedPackages = $StateObject | Group-Object Publisher | Sort-Object Count -Descending
+          Write-Host "Top Publishers:" -ForegroundColor Yellow
+          foreach ($group in $groupedPackages | Select-Object -First 5) {
+              Write-Host "  - $($group.Name): $($group.Count) packages" -ForegroundColor Gray
+          }
+          
+          Write-Host "" -ForegroundColor Yellow
+          Write-Host "Note: Store app restoration requires manual installation from Microsoft Store" -ForegroundColor Yellow
+      } else {
+          Write-Host "No Windows Store Apps information found in backup" -ForegroundColor Yellow
+      }
+
+  # System Information
+  - name: "System Information"
+    dynamic_state_path: "system_info.json"
+    discovery_command: |
+      try {
+          $osInfo = Get-WmiObject -Class Win32_OperatingSystem
+          $systemInfo = @{
+              LastBackupDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              OSVersion = $osInfo.Version
+              OSBuildNumber = $osInfo.BuildNumber
+              OSArchitecture = $osInfo.OSArchitecture
+              ProductType = $osInfo.ProductType
+              IsServer = ($osInfo.ProductType -ne 1)
+              ServicePackMajorVersion = $osInfo.ServicePackMajorVersion
+              ServicePackMinorVersion = $osInfo.ServicePackMinorVersion
+              WindowsDirectory = $osInfo.WindowsDirectory
+              SystemDirectory = $osInfo.SystemDirectory
+              Caption = $osInfo.Caption
+              Manufacturer = $osInfo.Manufacturer
+              TotalPhysicalMemory = $osInfo.TotalVisibleMemorySize
+          }
+          
+          return $systemInfo
+      } catch {
+          return @{}
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput -and $DiscoveryOutput.OSVersion) {
+          $applications += @{
+              Name = "SystemInfo-WindowsOS"
+              Version = $DiscoveryOutput.OSVersion
+              Status = "Active"
+              OSBuildNumber = $DiscoveryOutput.OSBuildNumber
+              OSArchitecture = $DiscoveryOutput.OSArchitecture
+              IsServer = $DiscoveryOutput.IsServer
+              WindowsDirectory = $DiscoveryOutput.WindowsDirectory
+              SystemDirectory = $DiscoveryOutput.SystemDirectory
+              Caption = $DiscoveryOutput.Caption
+              Manufacturer = $DiscoveryOutput.Manufacturer
+              TotalPhysicalMemory = $DiscoveryOutput.TotalPhysicalMemory
+              LastBackupDate = $DiscoveryOutput.LastBackupDate
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          $info = $StateObject[0]
+          Write-Host "System Information restored:" -ForegroundColor Green
+          Write-Host "  OS: $($info.Caption)" -ForegroundColor Cyan
+          Write-Host "  Version: $($info.Version) (Build $($info.OSBuildNumber))" -ForegroundColor Cyan
+          Write-Host "  Architecture: $($info.OSArchitecture)" -ForegroundColor Cyan
+          Write-Host "  Server OS: $($info.IsServer)" -ForegroundColor Cyan
+          Write-Host "  Windows Directory: $($info.WindowsDirectory)" -ForegroundColor Cyan
+          Write-Host "  Last Backup: $($info.LastBackupDate)" -ForegroundColor Cyan
+      } else {
+          Write-Host "No system information found in backup" -ForegroundColor Yellow
+      }
+
+stages:
+  post_update:
+    - name: "Windows Updates Backup Complete"
+      type: script
+      inline_script: |
+        Write-Host "Windows Updates and Store Apps backup completed." -ForegroundColor Green
+        Write-Host "Update history and Store app information captured." -ForegroundColor Yellow
+        Write-Host "Note: Updates cannot be automatically restored." -ForegroundColor Yellow
+      parameters: {} 

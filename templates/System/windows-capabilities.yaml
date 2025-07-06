@@ -1,0 +1,241 @@
+metadata:
+  name: "Windows Capabilities and Server Features"
+  description: "Backup and restore Windows Capabilities and Server Features"
+  version: "1.0.0"
+  category: "System Configuration"
+  author: "WindowsMelodyRecovery"
+  tags: ["windows-capabilities", "server-features", "dism"]
+
+prerequisites:
+  - type: script
+    name: "Administrative Privileges Required"
+    inline_script: |
+      try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if ($isAdmin) {
+              Write-Output "Administrative privileges confirmed"
+          } else {
+              Write-Output "Administrative privileges required for Windows Capabilities backup"
+          }
+      } catch {
+          Write-Output "Unable to verify administrative privileges"
+      }
+    expected_output: "Administrative privileges confirmed"
+    on_missing: warn
+
+registry:
+  # Component Based Servicing
+  - name: "Component Based Servicing"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/component_based_servicing.json"
+
+  - name: "Servicing Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Servicing'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/servicing.json"
+
+  - name: "Servicing Policies"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Servicing'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/servicing_policies.json"
+
+applications:
+  # Windows Capabilities
+  - name: "Windows Capabilities"
+    dynamic_state_path: "capabilities.json"
+    discovery_command: |
+      try {
+          # Check if running with elevated privileges
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "Get-WindowsCapability requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  AllCapabilities = @()
+                  InstalledCapabilities = @()
+                  CapabilityCount = 0
+                  InstalledCount = 0
+              }
+          }
+          
+          $allCapabilities = Get-WindowsCapability -Online | Select-Object Name, State, Description
+          $installedCapabilities = $allCapabilities | Where-Object { $_.State -eq "Installed" }
+          
+          $result = @{
+              RequiresElevation = $false
+              AllCapabilities = $allCapabilities
+              InstalledCapabilities = $installedCapabilities
+              CapabilityCount = $allCapabilities.Count
+              InstalledCount = $installedCapabilities.Count
+          }
+          
+          return $result
+      } catch {
+          return @{
+              RequiresElevation = $true
+              AllCapabilities = @()
+              InstalledCapabilities = @()
+              CapabilityCount = 0
+              InstalledCount = 0
+          }
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("AllCapabilities") -and $DiscoveryOutput.AllCapabilities) {
+              # Ensure it's an array
+              $capabilities = $DiscoveryOutput.AllCapabilities
+              if ($capabilities -isnot [array]) {
+                  $capabilities = @($capabilities)
+              }
+              
+              foreach ($capability in $capabilities) {
+                  if ($capability -and $capability.Name) {
+                      $safeName = if ($capability.Name) { $capability.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "Capability-$safeName"
+                          Version = "Windows Capability"
+                          Status = if ($capability.State) { $capability.State } else { "Unknown" }
+                          CapabilityName = $capability.Name
+                          Description = if ($capability.Description) { $capability.Description } else { "No description" }
+                          IsInstalled = ($capability.State -eq "Installed")
+                      }
+                  }
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          $installedCapabilities = $StateObject | Where-Object { $_.IsInstalled -eq $true }
+          Write-Host "Windows Capabilities information restored:" -ForegroundColor Green
+          Write-Host "  Total Capabilities: $($StateObject.Count)" -ForegroundColor Cyan
+          Write-Host "  Installed Capabilities: $($installedCapabilities.Count)" -ForegroundColor Cyan
+          
+          if ($installedCapabilities.Count -gt 0) {
+              Write-Host "Installed Capabilities:" -ForegroundColor Yellow
+              foreach ($capability in $installedCapabilities) {
+                  Write-Host "  - $($capability.CapabilityName)" -ForegroundColor Gray
+                  if ($capability.Description) {
+                      Write-Host "    Description: $($capability.Description)" -ForegroundColor DarkGray
+                  }
+              }
+              Write-Host "" -ForegroundColor Yellow
+              Write-Host "To restore capabilities, run as Administrator:" -ForegroundColor Yellow
+              Write-Host "Add-WindowsCapability -Online -Name <CapabilityName>" -ForegroundColor Cyan
+          }
+      } else {
+          Write-Host "No Windows Capabilities found in backup" -ForegroundColor Yellow
+      }
+
+  # Windows Server Features (if applicable)
+  - name: "Windows Server Features"
+    dynamic_state_path: "server_features.json"
+    discovery_command: |
+      try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "Get-WindowsFeature requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  IsServer = $false
+                  ServerFeatures = @()
+                  InstalledCount = 0
+              }
+          }
+          
+          $osInfo = Get-WmiObject -Class Win32_OperatingSystem
+          if ($osInfo.ProductType -ne 1) {
+              # This is a server OS
+              $serverFeatures = Get-WindowsFeature | Where-Object { $_.Installed -eq $true }
+              $result = @{
+                  IsServer = $true
+                  ServerFeatures = $serverFeatures | Select-Object Name, InstallState, Description
+                  InstalledCount = $serverFeatures.Count
+              }
+              return $result
+          } else {
+              $result = @{
+                  IsServer = $false
+                  ServerFeatures = @()
+                  InstalledCount = 0
+              }
+              return $result
+          }
+      } catch {
+          return @{
+              IsServer = $false
+              ServerFeatures = @()
+              InstalledCount = 0
+          }
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("IsServer") -and $DiscoveryOutput.IsServer -and $DiscoveryOutput.ContainsKey("ServerFeatures") -and $DiscoveryOutput.ServerFeatures) {
+              # Ensure it's an array
+              $features = $DiscoveryOutput.ServerFeatures
+              if ($features -isnot [array]) {
+                  $features = @($features)
+              }
+              
+              foreach ($feature in $features) {
+                  if ($feature -and $feature.Name) {
+                      $safeName = if ($feature.Name) { $feature.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "ServerFeature-$safeName"
+                          Version = "Windows Server Feature"
+                          Status = if ($feature.InstallState) { $feature.InstallState } else { "Unknown" }
+                          FeatureName = $feature.Name
+                          Description = if ($feature.Description) { $feature.Description } else { "No description" }
+                          IsInstalled = ($feature.InstallState -eq "Installed")
+                      }
+                  }
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "Windows Server Features information restored:" -ForegroundColor Green
+          Write-Host "  Installed Server Features: $($StateObject.Count)" -ForegroundColor Cyan
+          
+          foreach ($feature in $StateObject) {
+              Write-Host "  - $($feature.FeatureName): $($feature.Description)" -ForegroundColor Gray
+          }
+          Write-Host "" -ForegroundColor Yellow
+          Write-Host "To restore server features, run as Administrator:" -ForegroundColor Yellow
+          Write-Host "Install-WindowsFeature -Name <FeatureName>" -ForegroundColor Cyan
+      } else {
+          Write-Host "No Windows Server Features found in backup (likely client OS)" -ForegroundColor Yellow
+      }
+
+stages:
+  post_update:
+    - name: "Windows Capabilities Backup Complete"
+      type: script
+      inline_script: |
+        Write-Host "Windows Capabilities and Server Features backup completed." -ForegroundColor Green
+        Write-Host "Capabilities and server features captured." -ForegroundColor Yellow
+        Write-Host "Note: Feature installation requires administrative privileges." -ForegroundColor Yellow
+      parameters: {} 

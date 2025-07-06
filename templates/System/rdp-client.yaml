@@ -1,0 +1,171 @@
+metadata:
+  name: "RDP Client Settings"
+  description: "Backup and restore Windows Remote Desktop Protocol (RDP) client settings including connections, recent files, and user preferences"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+  category: "Network Configuration"
+  tags: ["rdp", "client", "remote-desktop", "connections"]
+
+prerequisites:
+  - type: script
+    name: "RDP Client Available"
+    inline_script: |
+      try {
+          $rdpAvailable = $false
+          
+          # Check for RDP client registry settings
+          if (Test-Path "HKCU:\Software\Microsoft\Terminal Server Client") {
+              $rdpAvailable = $true
+          }
+          
+          if ($rdpAvailable) {
+              Write-Output "RDP client available"
+          } else {
+              Write-Output "RDP client not available"
+          }
+      } catch {
+          Write-Output "RDP client not available"
+      }
+    expected_output: "RDP client available"
+    on_missing: warn
+
+registry:
+  # RDP Client Settings
+  - name: "RDP Client Settings"
+    path: 'HKCU:\Software\Microsoft\Terminal Server Client'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/client_main.yaml"
+
+  - name: "RDP Client Servers"
+    path: 'HKCU:\Software\Microsoft\Terminal Server Client\Servers'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/client_servers.yaml"
+
+  - name: "RDP Client Defaults"
+    path: 'HKCU:\Software\Microsoft\Terminal Server Client\Default'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/client_defaults.yaml"
+
+  # System-wide RDP Client Settings
+  - name: "System RDP Client Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Terminal Server Client'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/system_client.yaml"
+
+files:
+  # RDP Connection Files
+  - name: "RDP Documents Connections"
+    path: "$env:USERPROFILE/Documents"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/documents.yaml"
+    filter: "*.rdp"
+
+  - name: "RDP Desktop Connections"
+    path: "$env:USERPROFILE/Desktop"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/desktop.yaml"
+    filter: "*.rdp"
+
+  - name: "RDP Recent Connections"
+    path: "$env:APPDATA/Microsoft/Windows/Recent/AutomaticDestinations"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/recent.yaml"
+    filter: "*.rdp"
+
+  - name: "RDP Connection Manager"
+    path: "$env:USERPROFILE/Documents/Remote Desktop Connection Manager"
+    type: directory
+    action: sync
+    dynamic_state_path: "files/rdcman.yaml"
+
+applications:
+  # RDP Connection Files
+  - name: "RDP Connection Files"
+    dynamic_state_path: "rdp_connections.json"
+    discovery_command: |
+      try {
+          $connections = @()
+          
+          # Look for .rdp files in common locations
+          $locations = @(
+              "$env:USERPROFILE\Documents",
+              "$env:USERPROFILE\Desktop",
+              "$env:APPDATA\Microsoft\Terminal Server Client\Cache"
+          )
+          
+          foreach ($location in $locations) {
+              if (Test-Path $location) {
+                  $rdpFiles = Get-ChildItem -Path $location -Filter "*.rdp" -ErrorAction SilentlyContinue
+                  foreach ($file in $rdpFiles) {
+                      $connections += @{
+                          Name = $file.Name
+                          Path = $file.FullName
+                          Size = $file.Length
+                          LastModified = $file.LastWriteTime
+                          Location = $location
+                      }
+                  }
+              }
+          }
+          
+          return @{
+              Connections = $connections
+              Count = $connections.Count
+          }
+      } catch {
+          return @{
+              Connections = @()
+              Count = 0
+          }
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput.Connections) {
+          foreach ($connection in $DiscoveryOutput.Connections) {
+              $applications += @{
+                  Name = "RDP-$($connection.Name)"
+                  Version = "RDP Connection"
+                  Status = "Available"
+                  FilePath = $connection.Path
+                  FileSize = $connection.Size
+                  LastModified = $connection.LastModified
+                  Location = $connection.Location
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "RDP Connection Files restored:" -ForegroundColor Green
+          Write-Host "  Connection Files: $($StateObject.Count)" -ForegroundColor Cyan
+          
+          # Group by location
+          $groupedConnections = $StateObject | Group-Object Location | Sort-Object Count -Descending
+          Write-Host "Connection Locations:" -ForegroundColor Yellow
+          foreach ($group in $groupedConnections) {
+              Write-Host "  - $($group.Name): $($group.Count) files" -ForegroundColor Gray
+          }
+      } else {
+          Write-Host "No RDP connection files found in backup" -ForegroundColor Yellow
+      }
+
+stages:
+  post_update:
+    - name: "RDP Client Backup Complete"
+      type: script
+      inline_script: |
+        Write-Host "RDP Client settings backup completed." -ForegroundColor Green
+        Write-Host "Client settings, connections, and files captured." -ForegroundColor Yellow
+        Write-Host "Note: Connection files contain server information and credentials." -ForegroundColor Yellow
+      parameters: {} 

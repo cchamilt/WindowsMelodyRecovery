@@ -1,0 +1,333 @@
+metadata:
+  name: "RDP Server Settings"
+  description: "Backup and restore Windows Remote Desktop Protocol (RDP) server settings including configuration, services, firewall rules, and certificates"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+  category: "Network Configuration"
+  tags: ["rdp", "server", "remote-desktop", "services", "firewall"]
+
+prerequisites:
+  - type: script
+    name: "RDP Server Available"
+    inline_script: |
+      try {
+          $rdpAvailable = $false
+          
+          # Check for RDP server registry settings  
+          if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server") {
+              $rdpAvailable = $true
+          }
+          
+          # Check for RDP services
+          $rdpServices = @("TermService", "UmRdpService")
+          foreach ($serviceName in $rdpServices) {
+              if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+                  $rdpAvailable = $true
+                  break
+              }
+          }
+          
+          if ($rdpAvailable) {
+              Write-Output "RDP server available"
+          } else {
+              Write-Output "RDP server not available"
+          }
+      } catch {
+          Write-Output "RDP server not available"
+      }
+    expected_output: "RDP server available"
+    on_missing: warn
+
+registry:
+  # RDP Server Settings
+  - name: "RDP Server Terminal Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/server_terminal.yaml"
+
+  - name: "RDP Server WinStations"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/server_winstations.yaml"
+
+  - name: "RDP Server Default User Config"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultUserConfiguration'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/server_defaultuser.yaml"
+
+  - name: "RDP Terminal Services Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/policies_terminal.yaml"
+
+  - name: "RDP Remote Assistance"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/remote_assistance.yaml"
+
+  - name: "RDP Authentication LogonUI"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/auth_logonui.yaml"
+
+  - name: "RDP TermService Parameters"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\TermService\Parameters'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/termservice_params.yaml"
+
+  - name: "RDP UmRdpService Parameters"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\UmRdpService\Parameters'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/umrdpservice_params.yaml"
+
+applications:
+  # RDP Configuration Information
+  - name: "RDP Configuration"
+    dynamic_state_path: "configuration.json"
+    discovery_command: |
+      try {
+          $rdpConfig = @{
+              Enabled = $null
+              UserAuthentication = $null
+              SecurityLayer = $null
+              PortNumber = $null
+              MinEncryptionLevel = $null
+          }
+          
+          # Get RDP enabled status
+          try {
+              $fDenyConnections = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -ErrorAction SilentlyContinue).fDenyTSConnections
+              $rdpConfig.Enabled = $fDenyConnections -eq 0
+          } catch {
+              Write-Verbose "Could not read RDP enabled status"
+          }
+          
+          # Get authentication settings
+          try {
+              $rdpConfig.UserAuthentication = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -ErrorAction SilentlyContinue).UserAuthentication
+          } catch {
+              Write-Verbose "Could not read user authentication setting"
+          }
+          
+          # Get security layer
+          try {
+              $rdpConfig.SecurityLayer = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -ErrorAction SilentlyContinue).SecurityLayer
+          } catch {
+              Write-Verbose "Could not read security layer setting"
+          }
+          
+          # Get port number
+          try {
+              $rdpConfig.PortNumber = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "PortNumber" -ErrorAction SilentlyContinue).PortNumber
+          } catch {
+              Write-Verbose "Could not read port number"
+          }
+          
+          # Get encryption level
+          try {
+              $rdpConfig.MinEncryptionLevel = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "MinEncryptionLevel" -ErrorAction SilentlyContinue).MinEncryptionLevel
+          } catch {
+              Write-Verbose "Could not read encryption level"
+          }
+          
+          return $rdpConfig
+      } catch {
+          return @{}
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput) {
+          $applications += @{
+              Name = "RDP-Configuration"
+              Version = "Server Configuration"
+              Status = if ($DiscoveryOutput.Enabled) { "Enabled" } else { "Disabled" }
+              Enabled = $DiscoveryOutput.Enabled
+              UserAuthentication = $DiscoveryOutput.UserAuthentication
+              SecurityLayer = $DiscoveryOutput.SecurityLayer
+              PortNumber = $DiscoveryOutput.PortNumber
+              MinEncryptionLevel = $DiscoveryOutput.MinEncryptionLevel
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          $config = $StateObject[0]
+          Write-Host "RDP Configuration restored:" -ForegroundColor Green
+          Write-Host "  Enabled: $($config.Enabled)" -ForegroundColor Cyan
+          Write-Host "  Port: $($config.PortNumber)" -ForegroundColor Cyan
+          Write-Host "  User Authentication: $($config.UserAuthentication)" -ForegroundColor Cyan
+          Write-Host "  Security Layer: $($config.SecurityLayer)" -ForegroundColor Cyan
+          Write-Host "  Min Encryption Level: $($config.MinEncryptionLevel)" -ForegroundColor Cyan
+          Write-Host "" -ForegroundColor Yellow
+          Write-Host "Note: RDP configuration changes require administrative privileges." -ForegroundColor Yellow
+      } else {
+          Write-Host "No RDP configuration found in backup" -ForegroundColor Yellow
+      }
+
+  # RDP Services Information
+  - name: "RDP Services"
+    dynamic_state_path: "services.json"
+    discovery_command: |
+      try {
+          $rdpServices = @("TermService", "UmRdpService", "SessionEnv")
+          $serviceConfig = @()
+          
+          foreach ($serviceName in $rdpServices) {
+              try {
+                  $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+                  if ($service) {
+                      $serviceConfig += @{
+                          Name = $serviceName
+                          Status = $service.Status.ToString()
+                          StartType = $service.StartType.ToString()
+                          DisplayName = $service.DisplayName
+                      }
+                  }
+              } catch {
+                  Write-Verbose "Could not get service information for: $serviceName"
+              }
+          }
+          
+          return $serviceConfig
+      } catch {
+          return @()
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput -and $DiscoveryOutput.Count -gt 0) {
+          foreach ($service in $DiscoveryOutput) {
+              $applications += @{
+                  Name = "RDP-Service-$($service.Name)"
+                  Version = $service.StartType
+                  Status = $service.Status
+                  ServiceName = $service.Name
+                  DisplayName = $service.DisplayName
+                  StartType = $service.StartType
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "RDP Services information restored:" -ForegroundColor Green
+          
+          foreach ($service in $StateObject) {
+              $statusColor = switch ($service.Status) {
+                  "Running" { "Green" }
+                  "Stopped" { "Yellow" }
+                  default { "Gray" }
+              }
+              
+              Write-Host "  $($service.ServiceName):" -ForegroundColor Cyan
+              Write-Host "    Display Name: $($service.DisplayName)" -ForegroundColor Gray
+              Write-Host "    Status: $($service.Status)" -ForegroundColor $statusColor
+              Write-Host "    Start Type: $($service.StartType)" -ForegroundColor Gray
+          }
+          
+          Write-Host "" -ForegroundColor Yellow
+          Write-Host "Note: Service configurations require administrative privileges to modify." -ForegroundColor Yellow
+      } else {
+          Write-Host "No RDP services information found in backup" -ForegroundColor Yellow
+      }
+
+  # RDP Firewall Rules
+  - name: "RDP Firewall Rules"
+    dynamic_state_path: "firewall.json"
+    discovery_command: |
+      try {
+          $rdpFirewallRules = Get-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+          $firewallConfig = @()
+          
+          foreach ($rule in $rdpFirewallRules) {
+              $firewallConfig += @{
+                  DisplayName = $rule.DisplayName
+                  Enabled = $rule.Enabled
+                  Direction = $rule.Direction.ToString()
+                  Action = $rule.Action.ToString()
+                  Profile = $rule.Profile.ToString()
+                  Group = $rule.Group
+              }
+          }
+          
+          return $firewallConfig
+      } catch {
+          return @()
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      if ($DiscoveryOutput -and $DiscoveryOutput.Count -gt 0) {
+          foreach ($rule in $DiscoveryOutput) {
+              $applications += @{
+                  Name = "RDP-Firewall-$($rule.DisplayName -replace '[^a-zA-Z0-9]', '')"
+                  Version = $rule.Profile
+                  Status = if ($rule.Enabled) { "Enabled" } else { "Disabled" }
+                  DisplayName = $rule.DisplayName
+                  Direction = $rule.Direction
+                  Action = $rule.Action
+                  Profile = $rule.Profile
+                  Group = $rule.Group
+                  Enabled = $rule.Enabled
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          Write-Host "RDP Firewall Rules information restored:" -ForegroundColor Green
+          
+          $enabledRules = $StateObject | Where-Object { $_.Enabled }
+          $disabledRules = $StateObject | Where-Object { -not $_.Enabled }
+          
+          if ($enabledRules.Count -gt 0) {
+              Write-Host "  Enabled Rules ($($enabledRules.Count)):" -ForegroundColor Green
+              foreach ($rule in $enabledRules) {
+                  Write-Host "    - $($rule.DisplayName)" -ForegroundColor Gray
+                  Write-Host "      Direction: $($rule.Direction), Action: $($rule.Action), Profile: $($rule.Profile)" -ForegroundColor DarkGray
+              }
+          }
+          
+          if ($disabledRules.Count -gt 0) {
+              Write-Host "  Disabled Rules ($($disabledRules.Count)):" -ForegroundColor Yellow
+              foreach ($rule in $disabledRules | Select-Object -First 3) {
+                  Write-Host "    - $($rule.DisplayName)" -ForegroundColor Gray
+              }
+              if ($disabledRules.Count -gt 3) {
+                  Write-Host "    ... and $($disabledRules.Count - 3) more" -ForegroundColor Gray
+              }
+          }
+          
+          Write-Host "" -ForegroundColor Yellow
+          Write-Host "Note: Firewall rule configurations require administrative privileges to modify." -ForegroundColor Yellow
+      } else {
+          Write-Host "No RDP firewall rules found in backup" -ForegroundColor Yellow
+      }
+
+stages:
+  post_update:
+    - name: "RDP Server Backup Complete"
+      type: script
+      inline_script: |
+        Write-Host "RDP Server settings backup completed." -ForegroundColor Green
+        Write-Host "Server configuration, services, and firewall rules captured." -ForegroundColor Yellow
+        Write-Host "Note: Server configuration changes require administrative privileges." -ForegroundColor Yellow
+      parameters: {} 

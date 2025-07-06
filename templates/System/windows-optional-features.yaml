@@ -1,0 +1,161 @@
+metadata:
+  name: "Windows Optional Features"
+  description: "Backup and restore Windows Optional Features and basic feature settings"
+  version: "1.0.0"
+  category: "System Configuration"
+  author: "WindowsMelodyRecovery"
+  tags: ["windows-features", "optional-features", "dism"]
+
+prerequisites:
+  - type: script
+    name: "Administrative Privileges Required"
+    inline_script: |
+      try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if ($isAdmin) {
+              Write-Output "Administrative privileges confirmed"
+          } else {
+              Write-Output "Administrative privileges required for Windows Features backup"
+          }
+      } catch {
+          Write-Output "Unable to verify administrative privileges"
+      }
+    expected_output: "Administrative privileges confirmed"
+    on_missing: warn
+
+registry:
+  # Windows Features Core Settings
+  - name: "Optional Features Registry"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OptionalFeatures'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/optional_features.json"
+
+  - name: "Optional Components Policies"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\OptionalComponents'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/optional_components_policies.json"
+
+  - name: "Windows Features Registry"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Features'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/features.json"
+
+  - name: "Feature Staging Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup\FeatureStaging'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/feature_staging.json"
+
+  - name: "DISM Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DISM'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/dism.json"
+
+applications:
+  # Windows Optional Features
+  - name: "Windows Optional Features"
+    dynamic_state_path: "optional_features.json"
+    discovery_command: |
+      try {
+          # Check if running with elevated privileges
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "Get-WindowsOptionalFeature requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  AllFeatures = @()
+                  EnabledFeatures = @()
+                  FeatureCount = 0
+                  EnabledCount = 0
+              }
+          }
+          
+          $allFeatures = Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State, Description
+          $enabledFeatures = $allFeatures | Where-Object { $_.State -eq "Enabled" }
+          
+          $result = @{
+              RequiresElevation = $false
+              AllFeatures = $allFeatures
+              EnabledFeatures = $enabledFeatures
+              FeatureCount = $allFeatures.Count
+              EnabledCount = $enabledFeatures.Count
+          }
+          
+          return $result
+      } catch {
+          return @{
+              RequiresElevation = $true
+              AllFeatures = @()
+              EnabledFeatures = @()
+              FeatureCount = 0
+              EnabledCount = 0
+          }
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("AllFeatures") -and $DiscoveryOutput.AllFeatures) {
+              # Ensure it's an array
+              $features = $DiscoveryOutput.AllFeatures
+              if ($features -isnot [array]) {
+                  $features = @($features)
+              }
+              
+              foreach ($feature in $features) {
+                  if ($feature -and $feature.FeatureName) {
+                      $safeName = if ($feature.FeatureName) { $feature.FeatureName -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "OptionalFeature-$safeName"
+                          Version = "Windows Optional Feature"
+                          Status = if ($feature.State) { $feature.State } else { "Unknown" }
+                          FeatureName = $feature.FeatureName
+                          Description = if ($feature.Description) { $feature.Description } else { "No description" }
+                          IsEnabled = ($feature.State -eq "Enabled")
+                      }
+                  }
+              }
+          }
+      }
+      
+      return $applications
+    install_script: |
+      param($StateObject)
+      if ($StateObject.Count -gt 0) {
+          $enabledFeatures = $StateObject | Where-Object { $_.IsEnabled -eq $true }
+          Write-Host "Windows Optional Features information restored:" -ForegroundColor Green
+          Write-Host "  Total Features: $($StateObject.Count)" -ForegroundColor Cyan
+          Write-Host "  Enabled Features: $($enabledFeatures.Count)" -ForegroundColor Cyan
+          
+          if ($enabledFeatures.Count -gt 0) {
+              Write-Host "Enabled Features:" -ForegroundColor Yellow
+              foreach ($feature in $enabledFeatures) {
+                  Write-Host "  - $($feature.FeatureName): $($feature.Description)" -ForegroundColor Gray
+              }
+              Write-Host "" -ForegroundColor Yellow
+              Write-Host "To restore these features, run as Administrator:" -ForegroundColor Yellow
+              Write-Host "Enable-WindowsOptionalFeature -Online -FeatureName <FeatureName>" -ForegroundColor Cyan
+          }
+      } else {
+          Write-Host "No Windows Optional Features found in backup" -ForegroundColor Yellow
+      }
+
+stages:
+  post_update:
+    - name: "Windows Optional Features Backup Complete"
+      type: script
+      inline_script: |
+        Write-Host "Windows Optional Features backup completed." -ForegroundColor Green
+        Write-Host "Registry settings and feature states captured." -ForegroundColor Yellow
+        Write-Host "Note: Feature installation requires administrative privileges." -ForegroundColor Yellow
+      parameters: {} 
