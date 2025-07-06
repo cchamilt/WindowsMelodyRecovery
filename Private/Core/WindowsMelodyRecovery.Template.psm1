@@ -28,7 +28,7 @@ function Read-WmrTemplateConfig {
 
     try {
         $yamlContent = Get-Content $TemplatePath -Raw
-        $templateConfig = $yamlContent | ConvertFrom-Yaml
+        $templateConfig = $yamlContent | ConvertFrom-Yaml -ErrorAction Stop
         return $templateConfig
     } catch {
         throw "Failed to parse YAML template file '$TemplatePath': $($_.Exception.Message)"
@@ -48,6 +48,10 @@ function Test-WmrTemplateSchema {
     # ensuring all required fields are present and data types are correct.
 
     # Example placeholder validation: Check for 'metadata.name'
+    if (-not $TemplateConfig.metadata) {
+        throw "Template schema validation failed: 'metadata' section is missing."
+    }
+    
     if (-not $TemplateConfig.metadata.name) {
         throw "Template schema validation failed: 'metadata.name' is missing."
     }

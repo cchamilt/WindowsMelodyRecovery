@@ -208,5 +208,5 @@ function Get-CloudProviderFailoverOrder {
     return $prioritized
 }
 
-# Export functions for use in tests
-Export-ModuleMember -Function Get-MockCloudProviders, Test-CloudProviderConnectivity, Get-CloudProviderFailoverOrder 
+# Functions are available for dot-sourcing in tests
+# Export-ModuleMember -Function Get-MockCloudProviders, Test-CloudProviderConnectivity, Get-CloudProviderFailoverOrder 

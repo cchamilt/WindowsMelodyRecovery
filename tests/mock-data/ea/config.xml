@@ -1,15 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<EAConfiguration>
-  <InstallPath>C:\Program Files\EA Games</InstallPath>
-  <LauncherPath>C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe</LauncherPath>
+<EADesktopConfig>
+  <General>
+    <Version>12.0.254.5322</Version>
+    <Language>en_US</Language>
+    <AutoStart>true</AutoStart>
+    <MinimizeToTray>true</MinimizeToTray>
+    <StartMinimized>false</StartMinimized>
+    <CheckForUpdates>true</CheckForUpdates>
+    <TelemetryEnabled>false</TelemetryEnabled>
+    <CloudSaveEnabled>true</CloudSaveEnabled>
+  </General>
+  
+  <Downloads>
+    <DownloadPath>C:\Program Files\EA Games</DownloadPath>
+    <MaxConcurrentDownloads>2</MaxConcurrentDownloads>
+    <BandwidthLimit>0</BandwidthLimit>
+    <AutoPauseDownloads>true</AutoPauseDownloads>
+    <PauseWhenPlaying>false</PauseWhenPlaying>
+  </Downloads>
+  
+  <Library>
+    <ShowInstalledOnly>false</ShowInstalledOnly>
+    <SortBy>LastPlayed</SortBy>
+    <ViewMode>Grid</ViewMode>
+    <EnableGameOverlay>true</EnableGameOverlay>
+    <OverlayHotkey>Shift+F1</OverlayHotkey>
+  </Library>
+  
+  <UserProfile>
+    <Username>TestUser_EA</Username>
+    <UserId>1234567890123456</UserId>
+    <Email>testuser@example.com</Email>
+    <SubscriptionType>EA Play</SubscriptionType>
+    <MemberSince>2024-01-01</MemberSince>
+    <FriendsCount>28</FriendsCount>
+    <AchievementsUnlocked>189</AchievementsUnlocked>
+  </UserProfile>
+  
   <InstalledGames>
-    <Game id="1">
-      <Name>Test EA Game 1</Name>
-      <Path>C:\Program Files\EA Games\TestEAGame1</Path>
+    <Game>
+      <Title>FIFA 24</Title>
+      <AppId>1234567890</AppId>
+      <InstallPath>C:\Program Files\EA Games\FIFA 24</InstallPath>
+      <InstallDate>2024-01-01T10:00:00Z</InstallDate>
+      <LastPlayed>2024-01-15T08:30:00Z</LastPlayed>
+      <PlayTime>4560</PlayTime>
+      <Version>1.0.85.58722</Version>
+      <CloudSaveEnabled>true</CloudSaveEnabled>
     </Game>
-    <Game id="2">
-      <Name>Test EA Game 2</Name>
-      <Path>C:\Program Files\EA Games\TestEAGame2</Path>
+    <Game>
+      <Title>Battlefield 2042</Title>
+      <AppId>2345678901</AppId>
+      <InstallPath>C:\Program Files\EA Games\Battlefield 2042</InstallPath>
+      <InstallDate>2024-01-02T14:30:00Z</InstallDate>
+      <LastPlayed>2024-01-14T20:15:00Z</LastPlayed>
+      <PlayTime>2340</PlayTime>
+      <Version>7.2.1.47525</Version>
+      <CloudSaveEnabled>true</CloudSaveEnabled>
+    </Game>
+    <Game>
+      <Title>The Sims 4</Title>
+      <AppId>3456789012</AppId>
+      <InstallPath>C:\Program Files\EA Games\The Sims 4</InstallPath>
+      <InstallDate>2024-01-03T16:45:00Z</InstallDate>
+      <LastPlayed>2024-01-13T19:20:00Z</LastPlayed>
+      <PlayTime>8920</PlayTime>
+      <Version>1.105.231.1020</Version>
+      <CloudSaveEnabled>true</CloudSaveEnabled>
     </Game>
   </InstalledGames>
-</EAConfiguration> 
+  
+  <Achievements>
+    <EnableNotifications>true</EnableNotifications>
+    <ShowProgressBars>true</ShowProgressBars>
+    <SyncWithEA>true</SyncWithEA>
+  </Achievements>
+  
+  <Social>
+    <ShowOnlineStatus>true</ShowOnlineStatus>
+    <AllowFriendRequests>true</AllowFriendRequests>
+    <ShowGameActivity>true</ShowGameActivity>
+    <VoiceChatEnabled>true</VoiceChatEnabled>
+  </Social>
+</EADesktopConfig> 

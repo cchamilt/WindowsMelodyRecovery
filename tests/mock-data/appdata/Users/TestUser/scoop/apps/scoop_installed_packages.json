@@ -1,0 +1,142 @@
+{
+  "scoop_version": "0.4.1",
+  "created_date": "2024-01-15T10:30:00Z",
+  "install_path": "C:\\Users\\TestUser\\scoop",
+  "global_path": "C:\\ProgramData\\scoop",
+  "buckets": [
+    {
+      "name": "main",
+      "source": "https://github.com/ScoopInstaller/Main",
+      "updated": "2024-01-15T08:00:00Z"
+    },
+    {
+      "name": "extras",
+      "source": "https://github.com/ScoopInstaller/Extras",
+      "updated": "2024-01-15T08:00:00Z"
+    },
+    {
+      "name": "versions",
+      "source": "https://github.com/ScoopInstaller/Versions",
+      "updated": "2024-01-15T08:00:00Z"
+    }
+  ],
+  "installed_apps": [
+    {
+      "name": "scoop",
+      "version": "0.4.1",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-01T08:30:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\scoop\\current",
+      "description": "A command-line installer for Windows",
+      "homepage": "https://scoop.sh",
+      "size": "12.3 MB"
+    },
+    {
+      "name": "git",
+      "version": "2.43.0.windows.1",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-01T08:45:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\git\\current",
+      "description": "Distributed version control system",
+      "homepage": "https://git-scm.com/",
+      "size": "287.5 MB"
+    },
+    {
+      "name": "neovim",
+      "version": "0.9.5",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-02T14:20:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\neovim\\current",
+      "description": "Vim-fork focused on extensibility and usability",
+      "homepage": "https://neovim.io/",
+      "size": "45.7 MB"
+    },
+    {
+      "name": "ripgrep",
+      "version": "14.0.3",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-03T10:15:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\ripgrep\\current",
+      "description": "Fast line-oriented search tool",
+      "homepage": "https://github.com/BurntSushi/ripgrep",
+      "size": "8.9 MB"
+    },
+    {
+      "name": "fd",
+      "version": "8.7.1",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-04T16:30:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\fd\\current",
+      "description": "Simple, fast and user-friendly alternative to find",
+      "homepage": "https://github.com/sharkdp/fd",
+      "size": "4.2 MB"
+    },
+    {
+      "name": "bat",
+      "version": "0.24.0",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-05T12:45:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\bat\\current",
+      "description": "Cat clone with syntax highlighting and Git integration",
+      "homepage": "https://github.com/sharkdp/bat",
+      "size": "6.8 MB"
+    },
+    {
+      "name": "delta",
+      "version": "0.16.5",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-06T09:20:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\delta\\current",
+      "description": "Syntax-highlighting pager for git, diff, and grep output",
+      "homepage": "https://github.com/dandavison/delta",
+      "size": "11.4 MB"
+    },
+    {
+      "name": "starship",
+      "version": "1.17.1",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-07T15:10:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\starship\\current",
+      "description": "Cross-shell prompt for astronauts",
+      "homepage": "https://starship.rs/",
+      "size": "14.6 MB"
+    },
+    {
+      "name": "lazygit",
+      "version": "0.40.2",
+      "bucket": "main",
+      "architecture": "64bit",
+      "install_date": "2024-01-08T11:35:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\lazygit\\current",
+      "description": "Simple terminal UI for git commands",
+      "homepage": "https://github.com/jesseduffield/lazygit",
+      "size": "18.3 MB"
+    },
+    {
+      "name": "vscode",
+      "version": "1.85.1",
+      "bucket": "extras",
+      "architecture": "64bit",
+      "install_date": "2024-01-09T13:50:00Z",
+      "install_path": "C:\\Users\\TestUser\\scoop\\apps\\vscode\\current",
+      "description": "Lightweight but powerful source code editor",
+      "homepage": "https://code.visualstudio.com/",
+      "size": "89.7 MB"
+    }
+  ],
+  "statistics": {
+    "total_apps": 10,
+    "total_install_size": "499.4 MB",
+    "last_updated": "2024-01-15T10:30:00Z",
+    "shims_created": 45,
+    "environment_variables": 12
+  }
+} 

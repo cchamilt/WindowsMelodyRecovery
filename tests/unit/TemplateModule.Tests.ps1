@@ -55,7 +55,15 @@ Describe "Read-WmrTemplateConfig" {
 
     It "should throw an error if the YAML content is invalid" {
         $invalidYamlPath = Join-Path $PSScriptRoot "..\..\Temp\invalid.yaml"
-        "metadata: name: [" | Set-Content -Path $invalidYamlPath -Encoding Utf8
+        # Create truly invalid YAML that will cause ConvertFrom-Yaml to fail
+        @"
+metadata:
+  name: Test
+  invalid_structure: [
+    - item1
+    - item2
+  unclosed_array: true
+"@ | Set-Content -Path $invalidYamlPath -Encoding Utf8
         { Read-WmrTemplateConfig -TemplatePath $invalidYamlPath } | Should -Throw
         Remove-Item -Path $invalidYamlPath -ErrorAction SilentlyContinue
     }
@@ -69,8 +77,15 @@ Describe "Test-WmrTemplateSchema" {
     }
 
     It "should throw an error if metadata.name is missing" {
-        $invalidConfig = Read-WmrTemplateConfig -TemplatePath $script:TempTemplatePath
-        $invalidConfig.metadata.PSObject.Properties.Remove("name") # Remove the 'name' property
+        $config = Read-WmrTemplateConfig -TemplatePath $script:TempTemplatePath
+        # Create a new config object without the name property
+        $invalidConfig = [PSCustomObject]@{
+            metadata = [PSCustomObject]@{
+                description = $config.metadata.description
+                version = $config.metadata.version
+            }
+            prerequisites = $config.prerequisites
+        }
         { Test-WmrTemplateSchema -TemplateConfig $invalidConfig } | Should -Throw "Template schema validation failed: 'metadata.name' is missing."
     }
 

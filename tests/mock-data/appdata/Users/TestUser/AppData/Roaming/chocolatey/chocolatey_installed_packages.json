@@ -1,0 +1,134 @@
+{
+  "chocolatey_version": "2.2.2",
+  "created_date": "2024-01-15T10:30:00Z",
+  "machine_name": "TESTPC-01",
+  "user_name": "TestUser",
+  "packages": [
+    {
+      "name": "chocolatey",
+      "version": "2.2.2",
+      "title": "Chocolatey",
+      "summary": "Chocolatey is a package manager for Windows",
+      "authors": "Chocolatey Software, Inc.",
+      "tags": "package-manager chocolatey",
+      "install_date": "2024-01-01T09:00:00Z",
+      "install_location": "C:\\ProgramData\\chocolatey",
+      "dependencies": [],
+      "size": "45.2 MB"
+    },
+    {
+      "name": "nodejs",
+      "version": "20.10.0",
+      "title": "Node.js",
+      "summary": "Node.js JavaScript runtime",
+      "authors": "Node.js Foundation",
+      "tags": "nodejs javascript runtime",
+      "install_date": "2024-01-02T10:30:00Z",
+      "install_location": "C:\\Program Files\\nodejs",
+      "dependencies": [],
+      "size": "67.8 MB"
+    },
+    {
+      "name": "python",
+      "version": "3.12.1",
+      "title": "Python",
+      "summary": "Python programming language",
+      "authors": "Python Software Foundation",
+      "tags": "python programming language",
+      "install_date": "2024-01-03T14:15:00Z",
+      "install_location": "C:\\Python312",
+      "dependencies": [],
+      "size": "156.3 MB"
+    },
+    {
+      "name": "jq",
+      "version": "1.7.1",
+      "title": "jq",
+      "summary": "Command-line JSON processor",
+      "authors": "Stephen Dolan",
+      "tags": "json cli utility",
+      "install_date": "2024-01-04T16:45:00Z",
+      "install_location": "C:\\ProgramData\\chocolatey\\lib\\jq\\tools",
+      "dependencies": [],
+      "size": "2.1 MB"
+    },
+    {
+      "name": "curl",
+      "version": "8.5.0",
+      "title": "cURL",
+      "summary": "Command line tool for transferring data",
+      "authors": "Daniel Stenberg",
+      "tags": "curl http cli utility",
+      "install_date": "2024-01-05T11:20:00Z",
+      "install_location": "C:\\ProgramData\\chocolatey\\lib\\curl\\tools",
+      "dependencies": [],
+      "size": "8.7 MB"
+    },
+    {
+      "name": "terraform",
+      "version": "1.6.6",
+      "title": "Terraform",
+      "summary": "Infrastructure as Code tool",
+      "authors": "HashiCorp",
+      "tags": "terraform infrastructure iac",
+      "install_date": "2024-01-06T09:10:00Z",
+      "install_location": "C:\\ProgramData\\chocolatey\\lib\\terraform\\tools",
+      "dependencies": [],
+      "size": "89.4 MB"
+    },
+    {
+      "name": "kubernetes-cli",
+      "version": "1.29.0",
+      "title": "Kubernetes CLI (kubectl)",
+      "summary": "Kubernetes command-line tool",
+      "authors": "The Kubernetes Authors",
+      "tags": "kubernetes kubectl cli",
+      "install_date": "2024-01-07T13:35:00Z",
+      "install_location": "C:\\ProgramData\\chocolatey\\lib\\kubernetes-cli\\tools",
+      "dependencies": [],
+      "size": "23.6 MB"
+    },
+    {
+      "name": "azure-cli",
+      "version": "2.56.0",
+      "title": "Azure CLI",
+      "summary": "Microsoft Azure command-line interface",
+      "authors": "Microsoft Corporation",
+      "tags": "azure cli microsoft cloud",
+      "install_date": "2024-01-08T15:50:00Z",
+      "install_location": "C:\\Program Files (x86)\\Microsoft SDKs\\Azure\\CLI2",
+      "dependencies": [],
+      "size": "234.7 MB"
+    },
+    {
+      "name": "golang",
+      "version": "1.21.5",
+      "title": "Go Programming Language",
+      "summary": "Go programming language compiler and tools",
+      "authors": "The Go Authors",
+      "tags": "go golang programming language",
+      "install_date": "2024-01-09T12:25:00Z",
+      "install_location": "C:\\Program Files\\Go",
+      "dependencies": [],
+      "size": "178.9 MB"
+    },
+    {
+      "name": "fzf",
+      "version": "0.46.1",
+      "title": "fzf",
+      "summary": "Command-line fuzzy finder",
+      "authors": "Junegunn Choi",
+      "tags": "fzf fuzzy finder cli utility",
+      "install_date": "2024-01-10T08:40:00Z",
+      "install_location": "C:\\ProgramData\\chocolatey\\lib\\fzf\\tools",
+      "dependencies": [],
+      "size": "4.2 MB"
+    }
+  ],
+  "statistics": {
+    "total_packages": 10,
+    "total_install_size": "810.9 MB",
+    "last_updated": "2024-01-15T10:30:00Z",
+    "chocolatey_config_location": "C:\\ProgramData\\chocolatey\\config\\chocolatey.config"
+  }
+} 

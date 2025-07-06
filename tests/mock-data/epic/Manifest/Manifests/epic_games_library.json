@@ -1,0 +1,54 @@
+{
+  "FormatVersion": 0,
+  "bIsIncompleteInstall": false,
+  "LaunchCommand": "",
+  "LaunchExecutable": "",
+  "ManifestLocation": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests",
+  "bIsApplication": true,
+  "bIsExecutable": true,
+  "bIsManaged": true,
+  "bNeedsValidation": false,
+  "bRequiresAuth": true,
+  "bCanRunOffline": false,
+  "AppName": "Fortnite",
+  "CatalogNamespace": "fn",
+  "CatalogItemId": "4fe75bbc5a674f4f9b356b5c90567da5",
+  "AppCategories": [
+    "public",
+    "games",
+    "applications"
+  ],
+  "ChunkDbs": [],
+  "CompatibleApps": [],
+  "DisplayName": "Fortnite",
+  "FullAppName": "Fortnite",
+  "InstallationGuid": "12345678-1234-1234-1234-123456789012",
+  "InstallLocation": "C:\\Program Files\\Epic Games\\Fortnite",
+  "InstallSessionId": "87654321-4321-4321-4321-210987654321",
+  "InstallTags": [
+    "Windows"
+  ],
+  "InstallComponents": [
+    {
+      "ComponentId": "FortniteGame",
+      "ChunkId": "1234567890123456",
+      "InstallSize": 85899345920
+    }
+  ],
+  "HostInstallationGuid": "00000000-0000-0000-0000-000000000000",
+  "PrereqIds": [],
+  "StagingLocation": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\StagingLocation",
+  "TechnicalType": "",
+  "VaultThumbnailUrl": "",
+  "VaultTitleText": "",
+  "InstallSize": 85899345920,
+  "MainWindowProcessName": "",
+  "ProcessNames": [
+    "FortniteClient-Win64-Shipping.exe"
+  ],
+  "BackgroundProcessNames": [],
+  "MandatoryAppFolderName": "",
+  "OwnershipToken": true,
+  "CatalogAppVersion": "24.40.0",
+  "AppVersionString": "++Fortnite+Release-24.40-CL-25170441-Windows"
+} 

@@ -1,0 +1,61 @@
+"UserLocalConfigStore"
+{
+	"friends"
+	{
+		"PersonaName"		"TestUser_Steam"
+		"PersonaState"		"1"
+		"PersonaStateDesired"		"1"
+		"VoiceVolume"		"1.0"
+		"MicrophoneVolume"		"1.0"
+		"Sounds_PlayAudioWhenWindowNotInFocus"		"0"
+		"Sounds_EventSoundsEnabled"		"1"
+		"ChatFlashMode"		"0"
+		"RememberPassword"		"1"
+		"AutoLaunchSteamAtStartup"		"1"
+	}
+	"system"
+	{
+		"EnableGameOverlay"		"1"
+		"InGameOverlayShortcutKey"		"Shift+Tab"
+		"InGameOverlayScreenshotKey"		"F12"
+		"InGameOverlayScreenshotNotification"		"1"
+		"EnableShaderPreCaching"		"1"
+		"AllowDesktopConfiguration"		"1"
+		"NavUrlBar"		"1"
+		"displayratesasbits"		"0"
+		"UsePushToTalk"		"0"
+		"PushToTalkKey"		"MOUSE3"
+	}
+	"streaming_v2"
+	{
+		"EnableStreaming"		"0"
+		"QualityPreference"		"1"
+		"BitrateKbps"		"3000"
+		"EncoderSelection"		"0"
+		"AudioChannels"		"2"
+	}
+	"games"
+	{
+		"730"		// Counter-Strike 2
+		{
+			"LaunchOptions"		"-novid -tickrate 128"
+			"LastPlayed"		"1705401600"
+			"Playtime"		"15420"
+			"PlaytimeWindowsForever"		"15420"
+		}
+		"440"		// Team Fortress 2
+		{
+			"LaunchOptions"		"-novid -autoconfig"
+			"LastPlayed"		"1705315200"
+			"Playtime"		"8940"
+			"PlaytimeWindowsForever"		"8940"
+		}
+		"570"		// Dota 2
+		{
+			"LaunchOptions"		"-console"
+			"LastPlayed"		"1705228800"
+			"Playtime"		"25680"
+			"PlaytimeWindowsForever"		"25680"
+		}
+	}
+} 
