@@ -1,0 +1,74 @@
+{
+  "provider": "Dropbox",
+  "type": "personal",
+  "account": {
+    "email": "testuser@example.com",
+    "name": "Test User",
+    "id": "dbid:AAH4f99T0taONIb-OurWxbNQ6ywGRopQngc",
+    "subscription": "Dropbox Plus (2 TB)"
+  },
+  "storage": {
+    "total_bytes": 2199023255552,
+    "used_bytes": 1099511627776,
+    "available_bytes": 1099511627776,
+    "total_human": "2 TB",
+    "used_human": "1 TB",
+    "available_human": "1 TB"
+  },
+  "sync": {
+    "status": "up_to_date",
+    "last_sync": "2024-01-15T10:20:00Z",
+    "sync_enabled": true,
+    "files_pending": 0,
+    "errors": []
+  },
+  "paths": {
+    "local_root": "C:\\Users\\TestUser\\Dropbox",
+    "backup_folder": "C:\\Users\\TestUser\\Dropbox\\WindowsMelodyRecovery",
+    "settings_folder": "C:\\Users\\TestUser\\Dropbox\\WindowsMelodyRecovery\\Settings",
+    "temp_folder": "C:\\Users\\TestUser\\Dropbox\\WindowsMelodyRecovery\\Temp"
+  },
+  "features": {
+    "smart_sync": true,
+    "version_history": true,
+    "sharing": true,
+    "collaboration": true,
+    "paper_integration": true,
+    "camera_upload": true,
+    "offline_access": true
+  },
+  "backup_history": [
+    {
+      "date": "2024-01-15T08:00:00Z",
+      "type": "full",
+      "size_bytes": 157286400,
+      "size_human": "150 MB",
+      "files_count": 1875,
+      "success": true
+    },
+    {
+      "date": "2024-01-14T08:00:00Z",
+      "type": "incremental",
+      "size_bytes": 15728640,
+      "size_human": "15 MB",
+      "files_count": 187,
+      "success": true
+    }
+  ],
+  "limitations": {
+    "max_file_size_bytes": 53687091200,
+    "max_file_size_human": "50 GB",
+    "max_path_length": 260,
+    "restricted_characters": ["<", ">", ":", "\"", "|", "?", "*"],
+    "restricted_names": ["con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9", "desktop.ini", "thumbs.db"]
+  },
+  "api_info": {
+    "app_key": "mock-dropbox-app-key",
+    "api_version": "2",
+    "scopes": ["files.content.write", "files.content.read"],
+    "rate_limits": {
+      "requests_per_second": 25,
+      "requests_per_hour": 1000
+    }
+  }
+} 

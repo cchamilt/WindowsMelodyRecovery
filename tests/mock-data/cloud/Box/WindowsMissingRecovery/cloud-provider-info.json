@@ -1,0 +1,74 @@
+{
+  "provider": "Box",
+  "type": "business",
+  "account": {
+    "email": "testuser@company.com",
+    "name": "Test User",
+    "id": "123456789",
+    "subscription": "Box Business (100 GB)"
+  },
+  "storage": {
+    "total_bytes": 107374182400,
+    "used_bytes": 53687091200,
+    "available_bytes": 53687091200,
+    "total_human": "100 GB",
+    "used_human": "50 GB",
+    "available_human": "50 GB"
+  },
+  "sync": {
+    "status": "up_to_date",
+    "last_sync": "2024-01-15T10:15:00Z",
+    "sync_enabled": true,
+    "files_pending": 0,
+    "errors": []
+  },
+  "paths": {
+    "local_root": "C:\\Users\\TestUser\\Box",
+    "backup_folder": "C:\\Users\\TestUser\\Box\\WindowsMelodyRecovery",
+    "settings_folder": "C:\\Users\\TestUser\\Box\\WindowsMelodyRecovery\\Settings",
+    "temp_folder": "C:\\Users\\TestUser\\Box\\WindowsMelodyRecovery\\Temp"
+  },
+  "features": {
+    "box_sync": true,
+    "version_history": true,
+    "sharing": true,
+    "collaboration": true,
+    "notes_integration": true,
+    "workflow_automation": true,
+    "security_controls": true
+  },
+  "backup_history": [
+    {
+      "date": "2024-01-15T08:00:00Z",
+      "type": "full",
+      "size_bytes": 78643200,
+      "size_human": "75 MB",
+      "files_count": 937,
+      "success": true
+    },
+    {
+      "date": "2024-01-14T08:00:00Z",
+      "type": "incremental",
+      "size_bytes": 7864320,
+      "size_human": "7.5 MB",
+      "files_count": 93,
+      "success": true
+    }
+  ],
+  "limitations": {
+    "max_file_size_bytes": 32212254720,
+    "max_file_size_human": "30 GB",
+    "max_path_length": 255,
+    "restricted_characters": ["<", ">", ":", "\"", "|", "?", "*", "/", "\\"],
+    "restricted_names": [".", "..", "desktop.ini", "thumbs.db", ".box"]
+  },
+  "api_info": {
+    "client_id": "mock-box-client-id",
+    "api_version": "2.0",
+    "scopes": ["root_readwrite"],
+    "rate_limits": {
+      "requests_per_second": 10,
+      "requests_per_hour": 1000
+    }
+  }
+} 

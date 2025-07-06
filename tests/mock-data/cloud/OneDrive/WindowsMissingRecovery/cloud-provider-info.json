@@ -1,0 +1,64 @@
+{
+  "provider": "OneDrive",
+  "type": "personal",
+  "account": {
+    "email": "testuser@outlook.com",
+    "name": "Test User",
+    "id": "1234567890abcdef",
+    "subscription": "Microsoft 365 Family"
+  },
+  "storage": {
+    "total_bytes": 1099511627776,
+    "used_bytes": 536870912000,
+    "available_bytes": 562641675776,
+    "total_human": "1 TB",
+    "used_human": "500 GB",
+    "available_human": "524 GB"
+  },
+  "sync": {
+    "status": "up_to_date",
+    "last_sync": "2024-01-15T10:30:00Z",
+    "sync_enabled": true,
+    "files_pending": 0,
+    "errors": []
+  },
+  "paths": {
+    "local_root": "C:\\Users\\TestUser\\OneDrive",
+    "backup_folder": "C:\\Users\\TestUser\\OneDrive\\WindowsMelodyRecovery",
+    "settings_folder": "C:\\Users\\TestUser\\OneDrive\\WindowsMelodyRecovery\\Settings",
+    "temp_folder": "C:\\Users\\TestUser\\OneDrive\\WindowsMelodyRecovery\\Temp"
+  },
+  "features": {
+    "files_on_demand": true,
+    "backup_pc_folders": true,
+    "photo_backup": true,
+    "version_history": true,
+    "sharing": true,
+    "collaboration": true
+  },
+  "backup_history": [
+    {
+      "date": "2024-01-15T08:00:00Z",
+      "type": "full",
+      "size_bytes": 104857600,
+      "size_human": "100 MB",
+      "files_count": 1250,
+      "success": true
+    },
+    {
+      "date": "2024-01-14T08:00:00Z",
+      "type": "incremental",
+      "size_bytes": 10485760,
+      "size_human": "10 MB",
+      "files_count": 125,
+      "success": true
+    }
+  ],
+  "limitations": {
+    "max_file_size_bytes": 107374182400,
+    "max_file_size_human": "100 GB",
+    "max_path_length": 400,
+    "restricted_characters": ["<", ">", ":", "\"", "|", "?", "*"],
+    "restricted_names": ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"]
+  }
+} 

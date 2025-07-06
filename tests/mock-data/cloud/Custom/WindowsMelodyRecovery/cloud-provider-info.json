@@ -1,0 +1,72 @@
+{
+  "provider": "Custom",
+  "type": "custom",
+  "account": {
+    "email": "testuser@example.com",
+    "name": "Test User",
+    "id": "custom-user-123",
+    "subscription": "Custom Local Storage"
+  },
+  "storage": {
+    "total_bytes": 5497558138880,
+    "used_bytes": 2748779069440,
+    "available_bytes": 2748779069440,
+    "total_human": "5 TB",
+    "used_human": "2.5 TB",
+    "available_human": "2.5 TB"
+  },
+  "sync": {
+    "status": "up_to_date",
+    "last_sync": "2024-01-15T10:10:00Z",
+    "sync_enabled": true,
+    "files_pending": 0,
+    "errors": []
+  },
+  "paths": {
+    "local_root": "C:\\Users\\TestUser\\CustomCloud",
+    "backup_folder": "C:\\Users\\TestUser\\CustomCloud\\WindowsMelodyRecovery",
+    "settings_folder": "C:\\Users\\TestUser\\CustomCloud\\WindowsMelodyRecovery\\Settings",
+    "temp_folder": "C:\\Users\\TestUser\\CustomCloud\\WindowsMelodyRecovery\\Temp"
+  },
+  "features": {
+    "local_sync": true,
+    "version_history": false,
+    "sharing": false,
+    "collaboration": false,
+    "encryption": true,
+    "compression": true,
+    "incremental_backup": true
+  },
+  "backup_history": [
+    {
+      "date": "2024-01-15T08:00:00Z",
+      "type": "full",
+      "size_bytes": 209715200,
+      "size_human": "200 MB",
+      "files_count": 2500,
+      "success": true
+    },
+    {
+      "date": "2024-01-14T08:00:00Z",
+      "type": "incremental",
+      "size_bytes": 20971520,
+      "size_human": "20 MB",
+      "files_count": 250,
+      "success": true
+    }
+  ],
+  "limitations": {
+    "max_file_size_bytes": 10737418240,
+    "max_file_size_human": "10 GB",
+    "max_path_length": 260,
+    "restricted_characters": ["<", ">", ":", "\"", "|", "?", "*"],
+    "restricted_names": ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"]
+  },
+  "local_config": {
+    "backup_method": "file_copy",
+    "compression_enabled": true,
+    "encryption_enabled": true,
+    "retention_days": 90,
+    "auto_cleanup": true
+  }
+} 
