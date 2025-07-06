@@ -1,0 +1,32 @@
+Steam Installation Information
+Version: 1.0.0.75
+Build Date: 2024-01-08
+Platform: Windows x64
+Install Date: 2024-01-01T10:00:00Z
+Last Update: 2024-01-08T16:20:00Z
+Install Path: C:\Program Files (x86)\Steam
+User Data Path: C:\Program Files (x86)\Steam\userdata
+Games Library: C:\Program Files (x86)\Steam\steamapps
+Workshop Content: C:\Program Files (x86)\Steam\steamapps\workshop
+Screenshots: C:\Program Files (x86)\Steam\userdata\screenshots
+
+User Account: TestUser_Steam
+Steam ID: 76561198123456789
+Account Type: Standard
+Family Sharing: Enabled
+Steam Guard: Enabled
+Auto Login: Enabled
+
+Installed Games Count: 25
+Total Games Library: 156
+Last Played: Counter-Strike 2
+Playtime This Week: 8.5 hours
+Total Playtime: 1,247 hours
+
+Features:
+- Steam Cloud: Enabled
+- Steam Workshop: Enabled
+- Steam Broadcasting: Enabled
+- Steam Voice Chat: Enabled
+- Steam Remote Play: Enabled
+- Steam Input: Enabled 

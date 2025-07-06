@@ -1,0 +1,26 @@
+# Mock Windows Explorer Quick Access Data
+# This simulates the Quick Access pinned and frequent folders
+
+[QuickAccess]
+Version=2.0
+LastUpdated=2024-01-15T10:30:00Z
+
+[PinnedFolders]
+Folder1=C:\Users\TestUser\Documents
+Folder2=C:\Users\TestUser\Downloads
+Folder3=C:\Users\TestUser\Pictures
+Folder4=C:\Users\TestUser\Desktop
+Folder5=C:\Projects\WindowsMelodyRecovery
+
+[FrequentFolders]
+Folder1=C:\Users\TestUser\Documents|AccessCount=156|LastAccess=2024-01-15T09:45:00Z
+Folder2=C:\Users\TestUser\Downloads|AccessCount=89|LastAccess=2024-01-15T08:30:00Z
+Folder3=C:\Users\TestUser\AppData\Local|AccessCount=45|LastAccess=2024-01-14T16:20:00Z
+Folder4=C:\Program Files\Microsoft Office|AccessCount=23|LastAccess=2024-01-13T14:15:00Z
+Folder5=C:\Windows\System32|AccessCount=12|LastAccess=2024-01-12T11:30:00Z
+
+[Settings]
+ShowFrequentFolders=true
+ShowRecentFiles=true
+MaxFrequentItems=20
+MaxRecentItems=20 

@@ -1,0 +1,25 @@
+Microsoft Office Professional Plus 2021
+Version: 16.0.17328.20184
+Build: 16.0.17328.20184
+Product ID: 00426-00000-00000-AA000
+License Type: Volume License
+Install Date: 2024-01-01T10:00:00Z
+Last Update: 2024-01-10T14:30:00Z
+Install Path: C:\Program Files\Microsoft Office\root\Office16
+User Name: TestUser
+Organization: Test Organization
+Activation Status: Activated
+Update Channel: Current Channel
+Architecture: x64
+Language: English (United States)
+
+Installed Applications:
+- Microsoft Word 2021
+- Microsoft Excel 2021  
+- Microsoft PowerPoint 2021
+- Microsoft Outlook 2021
+- Microsoft Access 2021
+- Microsoft Publisher 2021
+- Microsoft OneNote 2021
+- Microsoft Teams
+- OneDrive for Business 

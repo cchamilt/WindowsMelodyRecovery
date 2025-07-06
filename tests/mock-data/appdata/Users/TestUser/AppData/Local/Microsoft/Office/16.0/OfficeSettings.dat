@@ -1,0 +1,57 @@
+# Mock Microsoft Office 16.0 Settings
+# This simulates Office application settings and preferences
+
+[General]
+Version=16.0.17328.20184
+InstallDate=2024-01-01T10:00:00Z
+LastUpdate=2024-01-10T14:30:00Z
+UserName=TestUser
+Organization=Test Organization
+ProductKey=XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+
+[Word]
+RecentDocuments=5
+AutoSave=true
+SpellCheck=true
+Grammar=true
+AutoCorrect=true
+DefaultFont=Calibri
+DefaultFontSize=11
+ShowRuler=true
+ShowStatusBar=true
+
+[Excel]
+RecentWorkbooks=5
+AutoSave=true
+R1C1Reference=false
+ShowFormulas=false
+GridLines=true
+Headers=true
+ZeroValues=true
+DefaultWorksheets=3
+
+[PowerPoint]
+RecentPresentations=5
+AutoSave=true
+SlideSize=Widescreen
+DefaultView=Normal
+ShowRuler=true
+SnapToGrid=true
+SnapToObjects=true
+
+[Outlook]
+MailFormat=HTML
+ReadingPane=Right
+ConversationView=true
+AutoPreview=true
+MarkAsRead=true
+EmptyDeletedItems=false
+CompactOnExit=false
+
+[CommonSettings]
+CheckForUpdates=true
+SendCustomerData=false
+OfficeTheme=Colorful
+Language=en-US
+TimeZone=Pacific Standard Time
+StartupBehavior=ShowStartScreen 

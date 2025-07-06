@@ -1,0 +1,73 @@
+{
+  "profile": {
+    "name": "TestUser",
+    "managed_user_id": "",
+    "avatar_index": 0,
+    "content_settings": {
+      "exceptions": {
+        "notifications": {},
+        "geolocation": {},
+        "media_stream_camera": {},
+        "media_stream_mic": {}
+      }
+    },
+    "default_content_setting_values": {
+      "notifications": 1,
+      "geolocation": 1,
+      "media_stream_camera": 1,
+      "media_stream_mic": 1
+    },
+    "password_manager_enabled": true,
+    "web_form_enabled": true
+  },
+  "browser": {
+    "show_home_button": true,
+    "check_default_browser": true,
+    "window_placement": {
+      "maximized": false,
+      "top": 100,
+      "left": 100,
+      "width": 1200,
+      "height": 800
+    }
+  },
+  "bookmark_bar": {
+    "show_on_all_tabs": false
+  },
+  "distribution": {
+    "msi": true,
+    "system_level": true,
+    "verbose_logging": false
+  },
+  "homepage": "https://www.google.com",
+  "homepage_is_newtabpage": true,
+  "search": {
+    "suggest_enabled": true
+  },
+  "session": {
+    "restore_on_startup": 1,
+    "startup_urls": []
+  },
+  "sync_promo": {
+    "show_on_first_run_allowed": true
+  },
+  "extensions": {
+    "settings": {},
+    "alerts": {
+      "initialized": true
+    }
+  },
+  "autofill": {
+    "enabled": true,
+    "credit_card_enabled": true,
+    "profile_enabled": true
+  },
+  "safebrowsing": {
+    "enabled": true,
+    "extended_reporting_enabled": false
+  },
+  "download": {
+    "default_directory": "C:\\Users\\TestUser\\Downloads",
+    "prompt_for_download": false
+  }
+} 

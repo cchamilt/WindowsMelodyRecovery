@@ -1,0 +1,35 @@
+# Mock Windows Startup Programs Configuration
+# This simulates programs configured to start with Windows
+
+[StartupPrograms]
+Version=1.0
+LastModified=2024-01-15T10:30:00Z
+
+[EnabledPrograms]
+Program1=Microsoft Office|C:\Program Files\Microsoft Office\root\Office16\MSOSYNC.EXE|High
+Program2=Windows Security|C:\Program Files\Windows Defender\MSASCuiL.exe|High
+Program3=Adobe Updater|C:\Program Files (x86)\Common Files\Adobe\ARM\1.0\AdobeARM.exe|Normal
+Program4=Steam|C:\Program Files (x86)\Steam\steam.exe|Normal
+Program5=Spotify|C:\Users\TestUser\AppData\Roaming\Spotify\Spotify.exe|Low
+
+[DisabledPrograms]
+Program1=Skype|C:\Program Files (x86)\Microsoft\Skype for Desktop\Skype.exe|Normal
+Program2=Adobe Reader|C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe|Low
+
+[UserAddedPrograms]
+Program1=PowerShell|C:\Program Files\PowerShell\7\pwsh.exe|Normal
+Program2=Windows Terminal|C:\Users\TestUser\AppData\Local\Microsoft\WindowsApps\wt.exe|Normal
+
+[Settings]
+DelayStartup=true
+DelaySeconds=30
+ShowNotifications=true
+LogStartupTimes=true
+AutoManageStartup=false
+
+[Statistics]
+TotalPrograms=7
+EnabledPrograms=5
+DisabledPrograms=2
+AverageStartupTime=45.6
+LastBootTime=2024-01-15T08:00:00Z 
