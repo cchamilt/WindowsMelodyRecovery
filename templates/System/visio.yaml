@@ -185,24 +185,38 @@ applications:
               }
           }
           
-          $visioVersions | ConvertTo-Json -Depth 10
+          if ($visioVersions.Count -gt 0) {
+              $visioVersions | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      $versions = $State | ConvertFrom-Json
-      return @{
-          VisioVersionCount = $versions.Count
-          InstalledVersions = $versions | ForEach-Object { 
-              switch ($_.Version) {
-                  "16.0" { "Visio 2019/365" }
-                  "15.0" { "Visio 2016" }
-                  "14.0" { "Visio 2013" }
-                  "12.0" { "Visio 2010" }
-                  default { "Visio $($_.Version)" }
+      param($DiscoveryOutput)
+      try {
+          $versions = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              VisioVersionCount = $versions.Count
+              InstalledVersions = $versions | ForEach-Object { 
+                  switch ($_.Version) {
+                      "16.0" { "Visio 2019/365" }
+                      "15.0" { "Visio 2016" }
+                      "14.0" { "Visio 2013" }
+                      "12.0" { "Visio 2010" }
+                      default { "Visio $($_.Version)" }
+                  }
               }
+              InstallPaths = $versions | ForEach-Object { $_.InstallPath }
           }
-          InstallPaths = $versions | ForEach-Object { $_.InstallPath }
+      } catch {
+          Write-Verbose "Error parsing Visio installation information: $_"
+          return @{
+              VisioVersionCount = 0
+              InstalledVersions = @()
+              InstallPaths = @()
+          }
       }
     dynamic_state_path: "applications/installation.json"
 
@@ -226,16 +240,30 @@ applications:
               }
           }
           
-          $addIns | ConvertTo-Json -Depth 10
+          if ($addIns.Count -gt 0) {
+              $addIns | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      $addIns = $State | ConvertFrom-Json
-      return @{
-          VisioAddInCount = $addIns.Count
-          AddInsByVersion = $addIns | Group-Object Version | ForEach-Object { "$($_.Name): $($_.Count)" }
-          AddInNames = $addIns | ForEach-Object { $_.Name }
+      param($DiscoveryOutput)
+      try {
+          $addIns = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              VisioAddInCount = $addIns.Count
+              AddInsByVersion = $addIns | Group-Object Version | ForEach-Object { "$($_.Name): $($_.Count)" }
+              AddInNames = $addIns | ForEach-Object { $_.Name }
+          }
+      } catch {
+          Write-Verbose "Error parsing Visio add-ins: $_"
+          return @{
+              VisioAddInCount = 0
+              AddInsByVersion = @()
+              AddInNames = @()
+          }
       }
     dynamic_state_path: "applications/addins.json"
 
@@ -259,16 +287,30 @@ applications:
               }
           }
           
-          $associations | ConvertTo-Json -Depth 10
+          if ($associations.Count -gt 0) {
+              $associations | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      $associations = $State | ConvertFrom-Json
-      return @{
-          FileAssociationCount = $associations.Count
-          SupportedExtensions = $associations | ForEach-Object { $_.Extension }
-          AssociationHandlers = $associations | ForEach-Object { "$($_.Extension): $($_.Handler)" }
+      param($DiscoveryOutput)
+      try {
+          $associations = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              FileAssociationCount = $associations.Count
+              SupportedExtensions = $associations | ForEach-Object { $_.Extension }
+              AssociationHandlers = $associations | ForEach-Object { "$($_.Extension): $($_.Handler)" }
+          }
+      } catch {
+          Write-Verbose "Error parsing Visio file associations: $_"
+          return @{
+              FileAssociationCount = 0
+              SupportedExtensions = @()
+              AssociationHandlers = @()
+          }
       }
     dynamic_state_path: "applications/file_associations.json"
 

@@ -107,61 +107,51 @@ applications:
           "[]"
       }
     parse_script: |
-      param([string]$DiscoveryOutput)
-      try {
-          # Try with -AsHashtable first to handle case sensitivity issues
-          $printersData = $null
-          try {
-              $printersData = $DiscoveryOutput | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-          } catch {
-              # Fallback to regular ConvertFrom-Json if -AsHashtable fails
-              $printersData = $DiscoveryOutput | ConvertFrom-Json
-          }
-          
-          $applications = @()
-          
-          if ($printersData -and $printersData.Count -gt 0) {
-              foreach ($printer in $printersData) {
-                  # Handle both hashtable and PSCustomObject formats
-                  $printerName = if ($printer -is [hashtable]) { $printer['Name'] } else { $printer.Name }
-                  $driverName = if ($printer -is [hashtable]) { $printer['DriverName'] } else { $printer.DriverName }
-                  $portName = if ($printer -is [hashtable]) { $printer['PortName'] } else { $printer.PortName }
-                  $shared = if ($printer -is [hashtable]) { $printer['Shared'] } else { $printer.Shared }
-                  $shareName = if ($printer -is [hashtable]) { $printer['ShareName'] } else { $printer.ShareName }
-                  $published = if ($printer -is [hashtable]) { $printer['Published'] } else { $printer.Published }
-                  $deviceType = if ($printer -is [hashtable]) { $printer['DeviceType'] } else { $printer.DeviceType }
-                  $status = if ($printer -is [hashtable]) { $printer['Status'] } else { $printer.Status }
-                  $location = if ($printer -is [hashtable]) { $printer['Location'] } else { $printer.Location }
-                  $comment = if ($printer -is [hashtable]) { $printer['Comment'] } else { $printer.Comment }
-                  $isDefault = if ($printer -is [hashtable]) { $printer['IsDefault'] } else { $printer.IsDefault }
-                  
-                  $applications += @{
-                      Name = "Printer-$printerName"
-                      Version = if ($driverName) { $driverName } else { "Unknown Driver" }
-                      Status = $status
-                      PrinterName = $printerName
-                      DriverName = $driverName
-                      PortName = $portName
-                      DeviceType = $deviceType
-                      Location = $location
-                      Comment = $comment
-                      IsShared = $shared
-                      ShareName = $shareName
-                      IsPublished = $published
-                      IsDefault = $isDefault
-                  }
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null) {
+          # If it's a JSON string, parse it
+          if ($DiscoveryOutput -is [string]) {
+              try {
+                  $DiscoveryOutput = $DiscoveryOutput | ConvertFrom-Json
+              } catch {
+                  Write-Verbose "Failed to parse JSON: $_"
+                  return $applications
               }
           }
           
-          if ($applications.Count -eq 0) {
-              "[]"
-          } else {
-              $applications | ConvertTo-Json -Depth 10 -Compress
+          # Ensure it's an array
+          if ($DiscoveryOutput -isnot [array]) {
+              $DiscoveryOutput = @($DiscoveryOutput)
           }
-      } catch {
-          Write-Warning "Failed to parse printer information: $_"
-          "[]"
+          
+          if ($DiscoveryOutput.Count -gt 0) {
+              foreach ($printer in $DiscoveryOutput) {
+                  if ($printer -and $printer.Name) {
+                      $safeName = if ($printer.Name) { $printer.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "Printer-$safeName"
+                          Version = if ($printer.DriverName) { $printer.DriverName } else { "Unknown Driver" }
+                          Status = if ($printer.Status) { $printer.Status } else { "Unknown" }
+                          PrinterName = $printer.Name
+                          DriverName = if ($printer.DriverName) { $printer.DriverName } else { "Unknown" }
+                          PortName = if ($printer.PortName) { $printer.PortName } else { "Unknown" }
+                          DeviceType = if ($printer.DeviceType) { $printer.DeviceType } else { "Unknown" }
+                          Location = if ($printer.Location) { $printer.Location } else { "Unknown" }
+                          Comment = if ($printer.Comment) { $printer.Comment } else { "None" }
+                          IsShared = if ($printer.Shared -ne $null) { $printer.Shared } else { $false }
+                          ShareName = if ($printer.ShareName) { $printer.ShareName } else { "None" }
+                          IsPublished = if ($printer.Published -ne $null) { $printer.Published } else { $false }
+                          IsDefault = if ($printer.IsDefault -ne $null) { $printer.IsDefault } else { $false }
+                      }
+                  }
+              }
+          }
       }
+      
+      return $applications
     dynamic_state_path: "printers.yaml"
     install_script: |
       param([string]$StateJson)
@@ -227,8 +217,9 @@ applications:
           
           if ($portsData -and $portsData.Count -gt 0) {
               foreach ($port in $portsData) {
+                  $safePortName = if ($port.Name) { $port.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
                   $applications += @{
-                      Name = "PrinterPort-$($port.Name)"
+                      Name = "PrinterPort-$safePortName"
                       Version = "Port"
                       Status = "Available"
                       PortName = $port.Name

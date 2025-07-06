@@ -212,22 +212,39 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($conn in $DiscoveryOutput) {
-          $applications += @{
-              Name = "VPNConnection-$($conn.Name -replace '[^a-zA-Z0-9]', '')"
-              Version = "VPN Connection"
-              Status = $conn.ConnectionStatus
-              ConnectionName = $conn.Name
-              ServerAddress = $conn.ServerAddress
-              TunnelType = $conn.TunnelType
-              EncryptionLevel = $conn.EncryptionLevel
-              AuthenticationMethod = $conn.AuthenticationMethod
-              SplitTunneling = $conn.SplitTunneling
-              RememberCredential = $conn.RememberCredential
-              UseWinlogonCredential = $conn.UseWinlogonCredential
-              ProxyServer = $conn.ProxyServer
-              IdleDisconnectSeconds = $conn.IdleDisconnectSeconds
+      try {
+          # Handle empty or null discovery output
+          if ($DiscoveryOutput -ne $null) {
+              # Ensure it's an array
+              if ($DiscoveryOutput -isnot [array]) {
+                  $DiscoveryOutput = @($DiscoveryOutput)
+              }
+              
+              if ($DiscoveryOutput -and $DiscoveryOutput.Count -gt 0) {
+                  foreach ($conn in $DiscoveryOutput) {
+                      if ($conn -and $conn.Name) {
+                          $safeName = if ($conn.Name) { $conn.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                          $applications += @{
+                              Name = "VPNConnection-$safeName"
+                              Version = "VPN Connection"
+                              Status = if ($conn.ConnectionStatus) { $conn.ConnectionStatus } else { "Unknown" }
+                              ConnectionName = $conn.Name
+                              ServerAddress = if ($conn.ServerAddress) { $conn.ServerAddress } else { "Unknown" }
+                              TunnelType = if ($conn.TunnelType) { $conn.TunnelType } else { "Unknown" }
+                              EncryptionLevel = if ($conn.EncryptionLevel) { $conn.EncryptionLevel } else { "Unknown" }
+                              AuthenticationMethod = if ($conn.AuthenticationMethod) { $conn.AuthenticationMethod } else { "Unknown" }
+                              SplitTunneling = if ($conn.SplitTunneling -ne $null) { $conn.SplitTunneling } else { $false }
+                              RememberCredential = if ($conn.RememberCredential -ne $null) { $conn.RememberCredential } else { $false }
+                              UseWinlogonCredential = if ($conn.UseWinlogonCredential -ne $null) { $conn.UseWinlogonCredential } else { $false }
+                              ProxyServer = if ($conn.ProxyServer) { $conn.ProxyServer } else { "None" }
+                              IdleDisconnectSeconds = if ($conn.IdleDisconnectSeconds) { $conn.IdleDisconnectSeconds } else { 0 }
+                          }
+                      }
+                  }
+              }
           }
+      } catch {
+          Write-Verbose "Error in VPN Connections parse_script: $_"
       }
       
       return $applications
@@ -296,23 +313,36 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($cert in $DiscoveryOutput) {
-          $applications += @{
-              Name = "VPNCert-$($cert.Thumbprint.Substring(0, 8))"
-              Version = "VPN Certificate"
-              Status = if ((Get-Date) -gt [DateTime]$cert.NotAfter) { "Expired" } elseif ((Get-Date) -lt [DateTime]$cert.NotBefore) { "Not Yet Valid" } else { "Valid" }
-              Subject = $cert.Subject
-              Issuer = $cert.Issuer
-              Thumbprint = $cert.Thumbprint
-              FriendlyName = $cert.FriendlyName
-              NotBefore = $cert.NotBefore
-              NotAfter = $cert.NotAfter
-              HasPrivateKey = $cert.HasPrivateKey
-              KeyAlgorithm = $cert.KeyAlgorithm
-              KeyLength = $cert.KeyLength
-              EnhancedKeyUsage = $cert.EnhancedKeyUsage
-              SerialNumber = $cert.SerialNumber
-              CertVersion = $cert.Version
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null) {
+          # Ensure it's an array
+          if ($DiscoveryOutput -isnot [array]) {
+              $DiscoveryOutput = @($DiscoveryOutput)
+          }
+          
+          if ($DiscoveryOutput.Count -gt 0) {
+              foreach ($cert in $DiscoveryOutput) {
+                  if ($cert -and $cert.Thumbprint) {
+                      $safeThumbprint = if ($cert.Thumbprint -and $cert.Thumbprint.Length -ge 8) { $cert.Thumbprint.Substring(0, 8) } else { "Unknown" }
+                      $applications += @{
+                          Name = "VPNCert-$safeThumbprint"
+                          Version = "VPN Certificate"
+                          Status = if ((Get-Date) -gt [DateTime]$cert.NotAfter) { "Expired" } elseif ((Get-Date) -lt [DateTime]$cert.NotBefore) { "Not Yet Valid" } else { "Valid" }
+                          Subject = if ($cert.Subject) { $cert.Subject } else { "Unknown" }
+                          Issuer = if ($cert.Issuer) { $cert.Issuer } else { "Unknown" }
+                          Thumbprint = $cert.Thumbprint
+                          FriendlyName = if ($cert.FriendlyName) { $cert.FriendlyName } else { "Unknown" }
+                          NotBefore = if ($cert.NotBefore) { $cert.NotBefore } else { (Get-Date) }
+                          NotAfter = if ($cert.NotAfter) { $cert.NotAfter } else { (Get-Date) }
+                          HasPrivateKey = if ($cert.HasPrivateKey -ne $null) { $cert.HasPrivateKey } else { $false }
+                          KeyAlgorithm = if ($cert.KeyAlgorithm) { $cert.KeyAlgorithm } else { "Unknown" }
+                          KeyLength = if ($cert.KeyLength) { $cert.KeyLength } else { 0 }
+                          EnhancedKeyUsage = if ($cert.EnhancedKeyUsage) { $cert.EnhancedKeyUsage } else { "Unknown" }
+                          SerialNumber = if ($cert.SerialNumber) { $cert.SerialNumber } else { "Unknown" }
+                          CertVersion = if ($cert.Version) { $cert.Version } else { 0 }
+                      }
+                  }
+              }
           }
       }
       
@@ -376,15 +406,18 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      if ($DiscoveryOutput -and $DiscoveryOutput.ClientInstalled) {
-          $applications += @{
-              Name = "AzureVPN"
-              Version = $DiscoveryOutput.Version
-              Status = "Installed"
-              ClientPath = $DiscoveryOutput.ClientPath
-              ConfigPath = $DiscoveryOutput.ConfigPath
-              ConfigFileCount = if ($DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles.Count } else { 0 }
-              ConfigFiles = $DiscoveryOutput.ConfigFiles
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("ClientInstalled") -and $DiscoveryOutput.ClientInstalled) {
+              $applications += @{
+                  Name = "AzureVPN"
+                  Version = if ($DiscoveryOutput.ContainsKey("Version") -and $DiscoveryOutput.Version) { $DiscoveryOutput.Version } else { "Unknown" }
+                  Status = "Installed"
+                  ClientPath = if ($DiscoveryOutput.ContainsKey("ClientPath") -and $DiscoveryOutput.ClientPath) { $DiscoveryOutput.ClientPath } else { "Unknown" }
+                  ConfigPath = if ($DiscoveryOutput.ContainsKey("ConfigPath") -and $DiscoveryOutput.ConfigPath) { $DiscoveryOutput.ConfigPath } else { "None" }
+                  ConfigFileCount = if ($DiscoveryOutput.ContainsKey("ConfigFiles") -and $DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles.Count } else { 0 }
+                  ConfigFiles = if ($DiscoveryOutput.ContainsKey("ConfigFiles") -and $DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles } else { @() }
+              }
           }
       }
       
@@ -467,14 +500,20 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      if ($DiscoveryOutput -and ($DiscoveryOutput.ClientInstalled -or $DiscoveryOutput.ConfigFiles)) {
-          $applications += @{
-              Name = "OpenVPN"
-              Version = if ($DiscoveryOutput.Version) { $DiscoveryOutput.Version } else { "Config Only" }
-              Status = if ($DiscoveryOutput.ClientInstalled) { "Installed" } else { "Config Only" }
-              ClientPath = $DiscoveryOutput.ClientPath
-              ConfigFileCount = if ($DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles.Count } else { 0 }
-              ConfigFiles = $DiscoveryOutput.ConfigFiles
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          $hasClient = $DiscoveryOutput.ContainsKey("ClientInstalled") -and $DiscoveryOutput.ClientInstalled
+          $hasConfig = $DiscoveryOutput.ContainsKey("ConfigFiles") -and $DiscoveryOutput.ConfigFiles
+          
+          if ($hasClient -or $hasConfig) {
+              $applications += @{
+                  Name = "OpenVPN"
+                  Version = if ($DiscoveryOutput.ContainsKey("Version") -and $DiscoveryOutput.Version) { $DiscoveryOutput.Version } else { "Config Only" }
+                  Status = if ($hasClient) { "Installed" } else { "Config Only" }
+                  ClientPath = if ($DiscoveryOutput.ContainsKey("ClientPath") -and $DiscoveryOutput.ClientPath) { $DiscoveryOutput.ClientPath } else { "None" }
+                  ConfigFileCount = if ($DiscoveryOutput.ContainsKey("ConfigFiles") -and $DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles.Count } else { 0 }
+                  ConfigFiles = if ($DiscoveryOutput.ContainsKey("ConfigFiles") -and $DiscoveryOutput.ConfigFiles) { $DiscoveryOutput.ConfigFiles } else { @() }
+              }
           }
       }
       

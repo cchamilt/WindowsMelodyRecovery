@@ -13,7 +13,15 @@ function Test-WmrFileConfig {
     # Required properties
     $requiredProps = @('name', 'path', 'type', 'dynamic_state_path')
     foreach ($prop in $requiredProps) {
-        if (-not $FileConfig.PSObject.Properties[$prop] -or [string]::IsNullOrWhiteSpace($FileConfig.$prop)) {
+        # Handle both PSObject and YAML parser object structures
+        $propValue = $null
+        try {
+            $propValue = $FileConfig.$prop
+        } catch {
+            # Property doesn't exist
+        }
+        
+        if ([string]::IsNullOrWhiteSpace($propValue)) {
             Write-Warning "FileConfig is missing required property: $prop"
             return $false
         }

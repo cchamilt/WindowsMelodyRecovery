@@ -153,14 +153,33 @@ applications:
       }
     parse_script: |
       param([object]$EndpointData)
-      try {
-          $endpoints = $EndpointData | Select-Object -Property *
-          $result = $endpoints | ConvertTo-Json -Depth 5
-          return $result
-      } catch {
-          Write-Warning "Failed to parse audio endpoints: $_"
-          return "[]"
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($EndpointData -ne $null) {
+          # Ensure it's an array
+          if ($EndpointData -isnot [array]) {
+              $EndpointData = @($EndpointData)
+          }
+          
+          if ($EndpointData.Count -gt 0) {
+              foreach ($endpoint in $EndpointData) {
+                  if ($endpoint -and $endpoint.DeviceId) {
+                      $safeType = if ($endpoint.Type) { $endpoint.Type } else { "Unknown" }
+                      $safeRole = if ($endpoint.Role) { $endpoint.Role } else { "Unknown" }
+                      $applications += @{
+                          Name = "AudioEndpoint-$safeType$safeRole"
+                          Version = "Audio Endpoint"
+                          Type = if ($endpoint.Type) { $endpoint.Type } else { "Unknown" }
+                          Role = if ($endpoint.Role) { $endpoint.Role } else { "Unknown" }
+                          DeviceId = if ($endpoint.DeviceId) { $endpoint.DeviceId } else { "Unknown" }
+                      }
+                  }
+              }
+          }
       }
+      
+      return $applications
     dynamic_state_path: "applications/default_endpoints.json"
 
   # Audio Volume Information

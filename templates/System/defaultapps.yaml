@@ -80,30 +80,46 @@ applications:
   - name: "Default Apps Export"
     type: custom
     dynamic_state_path: "default_apps_export.json"
-    discovery_command: "try { $tempFile = [System.IO.Path]::GetTempFileName() + '.xml'; Dism.exe /Online /Export-DefaultAppAssociations:$tempFile | Out-Null; if (Test-Path $tempFile) { $content = Get-Content $tempFile -Raw; Remove-Item $tempFile -Force; $content } else { '<DefaultAssociations></DefaultAssociations>' } } catch { '<DefaultAssociations></DefaultAssociations>' }"
+    discovery_command: "try { $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator); if (-not $isElevated) { Write-Warning 'DISM Export-DefaultAppAssociations requires elevated privileges. Skipping.'; return @{ RequiresElevation = $true; DefaultAssociations = @() } | ConvertTo-Json -Compress }; $tempFile = [System.IO.Path]::GetTempFileName() + '.xml'; Dism.exe /Online /Export-DefaultAppAssociations:$tempFile | Out-Null; if (Test-Path $tempFile) { $content = Get-Content $tempFile -Raw; Remove-Item $tempFile -Force; $content } else { '<DefaultAssociations></DefaultAssociations>' } } catch { '<DefaultAssociations></DefaultAssociations>' }"
     parse_script: |
       param($DismOutput)
-      try {
-          [xml]$xmlContent = $DismOutput
-          $associations = @()
-          
-          if ($xmlContent.DefaultAssociations.Association) {
-              foreach ($assoc in $xmlContent.DefaultAssociations.Association) {
-                  $associations += @{
-                      Identifier = $assoc.Identifier
-                      ProgId = $assoc.ProgId
-                      ApplicationName = $assoc.ApplicationName
-                      Type = if ($assoc.Identifier -like "*.*") { "FileExtension" } else { "UrlProtocol" }
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($DismOutput -ne $null -and $DismOutput.Trim() -ne "") {
+          try {
+              # Check if output is JSON (privilege check result)
+              if ($DismOutput.StartsWith('{')) {
+                  $privilegeResult = $DismOutput | ConvertFrom-Json
+                  if ($privilegeResult.RequiresElevation) {
+                      Write-Verbose "DISM Export-DefaultAppAssociations requires elevated privileges"
+                      return $applications
                   }
               }
+              
+              [xml]$xmlContent = $DismOutput
+              
+              if ($xmlContent -and $xmlContent.DefaultAssociations -and $xmlContent.DefaultAssociations.Association) {
+                  foreach ($assoc in $xmlContent.DefaultAssociations.Association) {
+                      if ($assoc -and $assoc.Identifier) {
+                          $safeIdentifier = if ($assoc.Identifier) { $assoc.Identifier -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                          $applications += @{
+                              Name = "DefaultApp-$safeIdentifier"
+                              Version = "Default App Association"
+                              Identifier = if ($assoc.Identifier) { $assoc.Identifier } else { "Unknown" }
+                              ProgId = if ($assoc.ProgId) { $assoc.ProgId } else { "Unknown" }
+                              ApplicationName = if ($assoc.ApplicationName) { $assoc.ApplicationName } else { "Unknown" }
+                              Type = if ($assoc.Identifier -like "*.*") { "FileExtension" } else { "UrlProtocol" }
+                          }
+                      }
+                  }
+              }
+          } catch {
+              Write-Verbose "Failed to parse XML content: $_"
           }
-          
-          Write-Host "Found $($associations.Count) default app associations"
-          return $associations | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse default apps export: $_"
-          return "[]"
       }
+      
+      return $applications
     install_script: |
       param($AssociationsJson)
       try {

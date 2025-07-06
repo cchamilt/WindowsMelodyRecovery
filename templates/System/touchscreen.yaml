@@ -251,12 +251,23 @@ applications:
           Write-Output "[]"
       }
     parse_script: |
-      $devices = $State | ConvertFrom-Json
-      return @{
-          TouchscreenDeviceCount = $devices.Count
-          EnabledDevices = ($devices | Where-Object { $_.Status -eq "OK" }).Count
-          Manufacturers = $devices | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count)" }
-          DeviceTypes = $devices | Group-Object Class | ForEach-Object { "$($_.Name): $($_.Count)" }
+      param($DiscoveryOutput)
+      try {
+          $devices = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              TouchscreenDeviceCount = $devices.Count
+              EnabledDevices = ($devices | Where-Object { $_.Status -eq "OK" }).Count
+              Manufacturers = $devices | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count)" }
+              DeviceTypes = $devices | Group-Object Class | ForEach-Object { "$($_.Name): $($_.Count)" }
+          }
+      } catch {
+          Write-Verbose "Error parsing touchscreen devices: $_"
+          return @{
+              TouchscreenDeviceCount = 0
+              EnabledDevices = 0
+              Manufacturers = @()
+              DeviceTypes = @()
+          }
       }
     dynamic_state_path: "applications/devices.json"
 
@@ -264,22 +275,58 @@ applications:
   - name: "Touchscreen Services"
     discovery_command: |
       try {
-          $services = Get-Service | Where-Object {
-              $_.Name -match "Touch|TabletInput|Pen|Wacom|HID" -or
-              $_.DisplayName -match "Touch|Screen|Tablet|Pen|Stylus|Wacom|Handwriting|Ink"
-          } | Select-Object Name, DisplayName, Status, StartType | ConvertTo-Json -Depth 10
-          if (-not $services) { $services = "[]" }
-          $services
+          # Check if running with elevated privileges
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if ($isElevated) {
+              # Full service enumeration with elevated privileges
+              $services = Get-Service | Where-Object {
+                  $_.Name -match "Touch|TabletInput|Pen|Wacom|HID" -or
+                  $_.DisplayName -match "Touch|Screen|Tablet|Pen|Stylus|Wacom|Handwriting|Ink"
+              } | Select-Object Name, DisplayName, Status, StartType
+          } else {
+              # Limited service enumeration without elevated privileges
+              $serviceNames = @("hidserv", "lltdsvc", "PenService_1567e6", "WTabletServiceISD", "TabletInputService", "TouchKeyboardAndHandwritingPanelService")
+              $services = @()
+              foreach ($serviceName in $serviceNames) {
+                  try {
+                      $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+                      if ($service) {
+                          $services += $service | Select-Object Name, DisplayName, Status, StartType
+                      }
+                  } catch {
+                      # Skip services that can't be queried
+                  }
+              }
+          }
+          
+          if ($services -and $services.Count -gt 0) {
+              $services | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      $services = $State | ConvertFrom-Json
-      return @{
-          TouchscreenServiceCount = $services.Count
-          RunningServices = ($services | Where-Object { $_.Status -eq "Running" }).Count
-          AutomaticServices = ($services | Where-Object { $_.StartType -eq "Automatic" }).Count
-          ServiceNames = $services | ForEach-Object { $_.Name }
+      param($DiscoveryOutput)
+      try {
+          $services = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              TouchscreenServiceCount = $services.Count
+              RunningServices = ($services | Where-Object { $_.Status -eq "Running" }).Count
+              AutomaticServices = ($services | Where-Object { $_.StartType -eq "Automatic" }).Count
+              ServiceNames = $services | ForEach-Object { $_.Name }
+          }
+      } catch {
+          Write-Verbose "Error parsing touchscreen services: $_"
+          return @{
+              TouchscreenServiceCount = 0
+              RunningServices = 0
+              AutomaticServices = 0
+              ServiceNames = @()
+          }
       }
     dynamic_state_path: "applications/services.json"
 
@@ -297,12 +344,23 @@ applications:
           Write-Output "[]"
       }
     parse_script: |
-      $drivers = $State | ConvertFrom-Json
-      return @{
-          TouchDriverCount = $drivers.Count
-          RunningDrivers = ($drivers | Where-Object { $_.State -eq "Running" }).Count
-          SystemDrivers = ($drivers | Where-Object { $_.StartMode -eq "System" }).Count
-          DriverNames = $drivers | ForEach-Object { $_.Name }
+      param($DiscoveryOutput)
+      try {
+          $drivers = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              TouchDriverCount = $drivers.Count
+              RunningDrivers = ($drivers | Where-Object { $_.State -eq "Running" }).Count
+              SystemDrivers = ($drivers | Where-Object { $_.StartMode -eq "System" }).Count
+              DriverNames = $drivers | ForEach-Object { $_.Name }
+          }
+      } catch {
+          Write-Verbose "Error parsing touch drivers: $_"
+          return @{
+              TouchDriverCount = 0
+              RunningDrivers = 0
+              SystemDrivers = 0
+              DriverNames = @()
+          }
       }
     dynamic_state_path: "applications/drivers.json"
 

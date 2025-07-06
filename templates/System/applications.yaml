@@ -247,47 +247,32 @@ applications:
     discovery_command: "Get-CimInstance -ClassName Win32_Product | Select-Object Name, Version, Vendor, InstallDate | Sort-Object Name"
     parse_script: |
       param($MSIOutput)
-      try {
-          # The discovery command should output objects that we can parse
-          $apps = @()
-          $lines = $MSIOutput -split "`n"
-          $headerPassed = $false
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($MSIOutput -ne $null) {
+          # Ensure it's an array
+          if ($MSIOutput -isnot [array]) {
+              $MSIOutput = @($MSIOutput)
+          }
           
-          foreach ($line in $lines) {
-              # Skip empty lines
-              if ([string]::IsNullOrWhiteSpace($line)) {
-                  continue
-              }
-              
-              # Skip header lines
-              if ($line -match "^Name\s+Version\s+Vendor" -or $line -match "^-+\s*$") {
-                  $headerPassed = $true
-                  continue
-              }
-              
-              # Parse data lines after header (flexible parsing for varying column widths)
-              if ($headerPassed -and $line -match "\S") {
-                  # Try to split by multiple spaces, but handle cases where data might have spaces
-                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
-                  if ($parts.Count -ge 1) {
-                      $app = @{
-                          Name = $parts[0].Trim()
+          if ($MSIOutput.Count -gt 0) {
+              foreach ($app in $MSIOutput) {
+                  if ($app -and $app.Name) {
+                      $safeName = if ($app.Name) { $app.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "MSIApp-$safeName"
+                          Version = if ($app.Version) { $app.Version } else { "Unknown" }
+                          DisplayName = $app.Name
+                          Vendor = if ($app.Vendor) { $app.Vendor } else { "Unknown" }
+                          InstallDate = if ($app.InstallDate) { $app.InstallDate } else { "Unknown" }
                       }
-                      if ($parts.Count -ge 2) { $app.Version = $parts[1].Trim() }
-                      if ($parts.Count -ge 3) { $app.Vendor = $parts[2].Trim() }
-                      if ($parts.Count -ge 4) { $app.InstallDate = $parts[3].Trim() }
-                      
-                      $apps += $app
                   }
               }
           }
-          
-          Write-Host "Found $($apps.Count) MSI-installed applications"
-          return $apps | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse MSI applications output: $_"
-          return "[]"
       }
+      
+      return $applications
     install_script: |
       param($AppsJson)
       try {

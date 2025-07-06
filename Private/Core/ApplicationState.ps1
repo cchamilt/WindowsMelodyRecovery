@@ -35,56 +35,72 @@ function Get-WmrApplicationState {
     try {
         Write-Host "    Running discovery command: $($AppConfig.discovery_command)"
         
-        # Check if discovery command is a PowerShell script file
-        if ($AppConfig.discovery_command -match '\.ps1(\s|$)') {
-            # For PowerShell scripts, execute directly and capture output as string
-            $discoveryOutput = & { Invoke-Expression $AppConfig.discovery_command } | Out-String
-        } else {
-            # For other commands, use traditional approach
-            $discoveryOutput = Invoke-Expression $AppConfig.discovery_command | Out-String
-        }
-
+        # Execute discovery command and capture raw output
+        $discoveryOutput = Invoke-Expression $AppConfig.discovery_command
+        
         Write-Host "    Parsing discovery output with parse_script..."
         # Pass output to the parse_script (inline or file)
         try {
             if (Test-Path $AppConfig.parse_script -PathType Leaf) {
                 # Execute script from file path
-                $installedAppsJson = (& $AppConfig.parse_script -DiscoveryOutput $discoveryOutput.Trim()) -join ""
+                $parseResult = & $AppConfig.parse_script -DiscoveryOutput $discoveryOutput
             } else {
                 # Execute inline script (from YAML template)
                 $scriptBlock = [ScriptBlock]::Create($AppConfig.parse_script)
-                $installedAppsJson = (& $scriptBlock $discoveryOutput.Trim()) -join ""
+                $parseResult = & $scriptBlock $discoveryOutput
+            }
+            
+            # Ensure we have a valid result - if parse_script failed, it might return null
+            if ($parseResult -eq $null) {
+                $parseResult = @()
+            }
+            
+            # Handle different types of parse_script output
+            if ($parseResult -is [string]) {
+                # Parse script returned JSON string
+                $installedAppsJson = $parseResult
+            } elseif ($parseResult -is [array]) {
+                # Parse script returned PowerShell array
+                if ($parseResult.Count -eq 0) {
+                    $installedAppsJson = "[]"
+                } else {
+                    $installedAppsJson = $parseResult | ConvertTo-Json -Depth 10 -AsArray
+                }
+            } elseif ($parseResult -is [PSCustomObject] -or $parseResult -is [Hashtable]) {
+                # Parse script returned PowerShell objects, convert to JSON
+                $installedAppsJson = $parseResult | ConvertTo-Json -Depth 10
+            } else {
+                # Convert other types to JSON
+                try {
+                    $installedAppsJson = $parseResult | ConvertTo-Json -Depth 10
+                } catch {
+                    # If conversion fails, treat as empty array
+                    $installedAppsJson = "[]"
+                }
             }
         } catch {
-            throw "Error executing parse script: $($_.Exception.Message)"
+            # If parse script fails, log the error and return empty array
+            Write-Warning "Parse script execution failed for $($AppConfig.name): $($_.Exception.Message)"
+            $installedAppsJson = "[]"
         }
 
-        # Basic validation: ensure it's valid JSON (array or single object)
+        # Validate the final JSON output
         try {
-            # Handle empty arrays specifically
             if ($installedAppsJson.Trim() -eq "[]") {
                 $parsedApps = @()
             } else {
                 $parsedApps = $installedAppsJson | ConvertFrom-Json
                 
-                # PowerShell ConvertFrom-Json returns single objects for single-element arrays
-                # So we need to handle both arrays and single objects
-                if ($parsedApps -is [array]) {
-                    # Already an array, good
-                } elseif ($parsedApps -is [PSCustomObject] -or $parsedApps -is [Hashtable]) {
-                    # Single object, wrap in array for consistency
+                # Ensure consistent array format
+                if ($parsedApps -isnot [array] -and $parsedApps -ne $null) {
                     $parsedApps = @($parsedApps)
                     $installedAppsJson = $parsedApps | ConvertTo-Json -Depth 10 -AsArray
-                } elseif ($parsedApps -eq $null) {
-                    # Null result, treat as empty array
-                    $parsedApps = @()
-                    $installedAppsJson = "[]"
-                } else {
-                    throw "Parse script returned unexpected data type: $($parsedApps.GetType().Name)"
                 }
             }
         } catch {
-            throw "Invalid JSON output from parse_script: $($_.Exception.Message)"
+            Write-Warning "JSON validation failed for $($AppConfig.name): $($_.Exception.Message). Using empty array."
+            $installedAppsJson = "[]"
+            $parsedApps = @()
         }
 
         # Implement encryption of the JSON string if needed for application lists

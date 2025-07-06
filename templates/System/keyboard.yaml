@@ -189,6 +189,9 @@ applications:
     type: custom
     discovery_command: |
       try {
+          # Try to load Windows Forms assembly
+          Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+          
           # Get loaded keyboard layouts
           $layouts = [System.Windows.Forms.InputLanguage]::InstalledInputLanguages | ForEach-Object {
               @{
@@ -198,21 +201,60 @@ applications:
                   Handle = $_.Handle.ToString()
               }
           }
-          $layouts
+          return $layouts
       } catch {
-          Write-Warning "Could not retrieve keyboard layouts (requires Windows Forms): $_"
-          @()
+          Write-Warning "Could not retrieve keyboard layouts (Windows Forms assembly not available or requires elevation): $_"
+          # Fallback to registry-based approach
+          try {
+              $layouts = @()
+              $keyboardLayouts = Get-ItemProperty -Path "HKCU:\Keyboard Layout\Preload" -ErrorAction SilentlyContinue
+              if ($keyboardLayouts) {
+                  foreach ($property in $keyboardLayouts.PSObject.Properties) {
+                      if ($property.Name -match '^\d+$') {
+                          $layouts += @{
+                              Culture = $property.Value
+                              DisplayName = "Keyboard Layout $($property.Value)"
+                              LayoutName = "Layout $($property.Value)"
+                              Handle = $property.Value
+                          }
+                      }
+                  }
+              }
+              return $layouts
+          } catch {
+              Write-Warning "Fallback keyboard layout detection also failed: $_"
+              return @()
+          }
       }
     parse_script: |
       param([object]$LayoutData)
-      try {
-          $layouts = $LayoutData | Select-Object -Property *
-          $result = $layouts | ConvertTo-Json -Depth 5
-          return $result
-      } catch {
-          Write-Warning "Failed to parse keyboard layouts: $_"
-          return "[]"
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($LayoutData -ne $null) {
+          # Ensure it's an array
+          if ($LayoutData -isnot [array]) {
+              $LayoutData = @($LayoutData)
+          }
+          
+          if ($LayoutData.Count -gt 0) {
+              foreach ($layout in $LayoutData) {
+                  if ($layout -and $layout.Culture) {
+                      $safeName = if ($layout.Culture) { $layout.Culture -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "KeyboardLayout-$safeName"
+                          Version = "Keyboard Layout"
+                          Culture = if ($layout.Culture) { $layout.Culture } else { "Unknown" }
+                          DisplayName = if ($layout.DisplayName) { $layout.DisplayName } else { "Unknown" }
+                          LayoutName = if ($layout.LayoutName) { $layout.LayoutName } else { "Unknown" }
+                          Handle = if ($layout.Handle) { $layout.Handle } else { "Unknown" }
+                      }
+                  }
+              }
+          }
       }
+      
+      return $applications
     dynamic_state_path: "applications/keyboard_layouts.json"
 
 cleanup:

@@ -359,21 +359,34 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($addIn in $DiscoveryOutput) {
-          $versionName = switch ($addIn.Version) {
-              "16.0" { "Word 2016/365" }
-              "15.0" { "Word 2013" }
-              "14.0" { "Word 2010" }
-              default { "Word $($addIn.Version)" }
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null) {
+          # Ensure it's an array
+          if ($DiscoveryOutput -isnot [array]) {
+              $DiscoveryOutput = @($DiscoveryOutput)
           }
           
-          $applications += @{
-              Name = "AddIn-$($addIn.Name)"
-              Version = $versionName
-              Status = "Configured"
-              AddInName = $addIn.Name
-              OfficeVersion = $addIn.Version
-              Properties = $addIn.Properties
+          if ($DiscoveryOutput.Count -gt 0) {
+              foreach ($addIn in $DiscoveryOutput) {
+                  if ($addIn -and $addIn.Name) {
+                      $versionName = switch ($addIn.Version) {
+                          "16.0" { "Word 2016/365" }
+                          "15.0" { "Word 2013" }
+                          "14.0" { "Word 2010" }
+                          default { "Word $($addIn.Version)" }
+                      }
+                      
+                      $safeName = if ($addIn.Name) { $addIn.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "AddIn-$safeName"
+                          Version = $versionName
+                          Status = "Configured"
+                          AddInName = $addIn.Name
+                          OfficeVersion = if ($addIn.Version) { $addIn.Version } else { "Unknown" }
+                          Properties = if ($addIn.Properties) { $addIn.Properties } else { @{} }
+                      }
+                  }
+              }
           }
       }
       
@@ -444,8 +457,9 @@ applications:
               default { "Template" }
           }
           
+          $safeName = if ($template.Name) { $template.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
           $applications += @{
-              Name = "Template-$($template.Name -replace '[^a-zA-Z0-9]', '')"
+              Name = "Template-$safeName"
               Version = $templateType
               Status = "Available"
               TemplateName = $template.Name
@@ -516,17 +530,30 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($bb in $DiscoveryOutput) {
-          $applications += @{
-              Name = "BuildingBlock-$($bb.Name -replace '[^a-zA-Z0-9]', '')"
-              Version = "Building Blocks Template"
-              Status = "Available"
-              BuildingBlockName = $bb.Name
-              BuildingBlockDirectory = $bb.Directory
-              Language = $bb.Language
-              FileSize = $bb.Length
-              LastModified = $bb.LastWriteTime
-              Created = $bb.CreationTime
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null) {
+          # Ensure it's an array
+          if ($DiscoveryOutput -isnot [array]) {
+              $DiscoveryOutput = @($DiscoveryOutput)
+          }
+          
+          if ($DiscoveryOutput.Count -gt 0) {
+              foreach ($bb in $DiscoveryOutput) {
+                  if ($bb -and $bb.Name) {
+                      $safeName = if ($bb.Name) { $bb.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "BuildingBlock-$safeName"
+                          Version = "Building Blocks Template"
+                          Status = "Available"
+                          BuildingBlockName = $bb.Name
+                          BuildingBlockDirectory = if ($bb.Directory) { $bb.Directory } else { "Unknown" }
+                          Language = if ($bb.Language) { $bb.Language } else { "Default" }
+                          FileSize = if ($bb.Length) { $bb.Length } else { 0 }
+                          LastModified = if ($bb.LastWriteTime) { $bb.LastWriteTime } else { (Get-Date) }
+                          Created = if ($bb.CreationTime) { $bb.CreationTime } else { (Get-Date) }
+                      }
+                  }
+              }
           }
       }
       

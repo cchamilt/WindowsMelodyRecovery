@@ -117,10 +117,26 @@ applications:
     dynamic_state_path: "optional_features.json"
     discovery_command: |
       try {
+          # Check if running with elevated privileges
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "Get-WindowsOptionalFeature requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  AllFeatures = @()
+                  EnabledFeatures = @()
+                  FeatureCount = 0
+                  EnabledCount = 0
+              }
+          }
+          
           $allFeatures = Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State, Description
           $enabledFeatures = $allFeatures | Where-Object { $_.State -eq "Enabled" }
           
           $result = @{
+              RequiresElevation = $false
               AllFeatures = $allFeatures
               EnabledFeatures = $enabledFeatures
               FeatureCount = $allFeatures.Count
@@ -129,21 +145,39 @@ applications:
           
           return $result
       } catch {
-          return @{}
+          return @{
+              RequiresElevation = $true
+              AllFeatures = @()
+              EnabledFeatures = @()
+              FeatureCount = 0
+              EnabledCount = 0
+          }
       }
     parse_script: |
       param($DiscoveryOutput)
       $applications = @()
       
-      if ($DiscoveryOutput -and $DiscoveryOutput.AllFeatures) {
-          foreach ($feature in $DiscoveryOutput.AllFeatures) {
-              $applications += @{
-                  Name = "OptionalFeature-$($feature.FeatureName)"
-                  Version = "Windows Optional Feature"
-                  Status = $feature.State
-                  FeatureName = $feature.FeatureName
-                  Description = $feature.Description
-                  IsEnabled = ($feature.State -eq "Enabled")
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("AllFeatures") -and $DiscoveryOutput.AllFeatures) {
+              # Ensure it's an array
+              $features = $DiscoveryOutput.AllFeatures
+              if ($features -isnot [array]) {
+                  $features = @($features)
+              }
+              
+              foreach ($feature in $features) {
+                  if ($feature -and $feature.FeatureName) {
+                      $safeName = if ($feature.FeatureName) { $feature.FeatureName -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "OptionalFeature-$safeName"
+                          Version = "Windows Optional Feature"
+                          Status = if ($feature.State) { $feature.State } else { "Unknown" }
+                          FeatureName = $feature.FeatureName
+                          Description = if ($feature.Description) { $feature.Description } else { "No description" }
+                          IsEnabled = ($feature.State -eq "Enabled")
+                      }
+                  }
               }
           }
       }
@@ -172,10 +206,26 @@ applications:
     dynamic_state_path: "capabilities.json"
     discovery_command: |
       try {
+          # Check if running with elevated privileges
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "Get-WindowsCapability requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  AllCapabilities = @()
+                  InstalledCapabilities = @()
+                  CapabilityCount = 0
+                  InstalledCount = 0
+              }
+          }
+          
           $allCapabilities = Get-WindowsCapability -Online | Select-Object Name, State, Description
           $installedCapabilities = $allCapabilities | Where-Object { $_.State -eq "Installed" }
           
           $result = @{
+              RequiresElevation = $false
               AllCapabilities = $allCapabilities
               InstalledCapabilities = $installedCapabilities
               CapabilityCount = $allCapabilities.Count
@@ -184,21 +234,39 @@ applications:
           
           return $result
       } catch {
-          return @{}
+          return @{
+              RequiresElevation = $true
+              AllCapabilities = @()
+              InstalledCapabilities = @()
+              CapabilityCount = 0
+              InstalledCount = 0
+          }
       }
     parse_script: |
       param($DiscoveryOutput)
       $applications = @()
       
-      if ($DiscoveryOutput -and $DiscoveryOutput.AllCapabilities) {
-          foreach ($capability in $DiscoveryOutput.AllCapabilities) {
-              $applications += @{
-                  Name = "Capability-$($capability.Name -replace '[^a-zA-Z0-9]', '')"
-                  Version = "Windows Capability"
-                  Status = $capability.State
-                  CapabilityName = $capability.Name
-                  Description = $capability.Description
-                  IsInstalled = ($capability.State -eq "Installed")
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("AllCapabilities") -and $DiscoveryOutput.AllCapabilities) {
+              # Ensure it's an array
+              $capabilities = $DiscoveryOutput.AllCapabilities
+              if ($capabilities -isnot [array]) {
+                  $capabilities = @($capabilities)
+              }
+              
+              foreach ($capability in $capabilities) {
+                  if ($capability -and $capability.Name) {
+                      $safeName = if ($capability.Name) { $capability.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "Capability-$safeName"
+                          Version = "Windows Capability"
+                          Status = if ($capability.State) { $capability.State } else { "Unknown" }
+                          CapabilityName = $capability.Name
+                          Description = if ($capability.Description) { $capability.Description } else { "No description" }
+                          IsInstalled = ($capability.State -eq "Installed")
+                      }
+                  }
               }
           }
       }
@@ -230,6 +298,19 @@ applications:
     dynamic_state_path: "server_features.json"
     discovery_command: |
       try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "Get-WindowsFeature requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  IsServer = $false
+                  ServerFeatures = @()
+                  InstalledCount = 0
+              }
+          }
+          
           $osInfo = Get-WmiObject -Class Win32_OperatingSystem
           if ($osInfo.ProductType -ne 1) {
               # This is a server OS
@@ -259,15 +340,27 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      if ($DiscoveryOutput.IsServer -and $DiscoveryOutput.ServerFeatures) {
-          foreach ($feature in $DiscoveryOutput.ServerFeatures) {
-              $applications += @{
-                  Name = "ServerFeature-$($feature.Name)"
-                  Version = "Windows Server Feature"
-                  Status = $feature.InstallState
-                  FeatureName = $feature.Name
-                  Description = $feature.Description
-                  IsInstalled = ($feature.InstallState -eq "Installed")
+      # Handle empty or null discovery output
+      if ($DiscoveryOutput -ne $null -and $DiscoveryOutput -is [hashtable]) {
+          if ($DiscoveryOutput.ContainsKey("IsServer") -and $DiscoveryOutput.IsServer -and $DiscoveryOutput.ContainsKey("ServerFeatures") -and $DiscoveryOutput.ServerFeatures) {
+              # Ensure it's an array
+              $features = $DiscoveryOutput.ServerFeatures
+              if ($features -isnot [array]) {
+                  $features = @($features)
+              }
+              
+              foreach ($feature in $features) {
+                  if ($feature -and $feature.Name) {
+                      $safeName = if ($feature.Name) { $feature.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "ServerFeature-$safeName"
+                          Version = "Windows Server Feature"
+                          Status = if ($feature.InstallState) { $feature.InstallState } else { "Unknown" }
+                          FeatureName = $feature.Name
+                          Description = if ($feature.Description) { $feature.Description } else { "No description" }
+                          IsInstalled = ($feature.InstallState -eq "Installed")
+                      }
+                  }
               }
           }
       }
@@ -291,6 +384,19 @@ applications:
     dynamic_state_path: "dism_packages.json"
     discovery_command: |
       try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if (-not $isElevated) {
+              Write-Warning "DISM /online /get-packages requires elevated privileges. Skipping."
+              return @{
+                  RequiresElevation = $true
+                  DISMOutput = ""
+                  ParsedPackages = @()
+                  PackageCount = 0
+              }
+          }
+          
           $dismOutput = dism /online /get-packages /format:table 2>&1
           $packages = @()
           
@@ -326,8 +432,9 @@ applications:
       
       if ($DiscoveryOutput.ParsedPackages) {
           foreach ($package in $DiscoveryOutput.ParsedPackages) {
+              $safeName = if ($package.PackageIdentity) { $package.PackageIdentity -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
               $applications += @{
-                  Name = "DISMPackage-$($package.PackageIdentity -replace '[^a-zA-Z0-9]', '')"
+                  Name = "DISMPackage-$safeName"
                   Version = "DISM Package"
                   Status = "Installed"
                   PackageIdentity = $package.PackageIdentity
@@ -387,8 +494,9 @@ applications:
       
       if ($DiscoveryOutput.InstalledUpdates) {
           foreach ($update in $DiscoveryOutput.InstalledUpdates) {
+              $safeHotFixID = if ($update.HotFixID) { $update.HotFixID -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
               $applications += @{
-                  Name = "Update-$($update.HotFixID)"
+                  Name = "Update-$safeHotFixID"
                   Version = "Windows Update"
                   Status = "Installed"
                   HotFixID = $update.HotFixID

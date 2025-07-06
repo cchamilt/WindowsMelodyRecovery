@@ -102,14 +102,31 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       
-      foreach ($distro in $DiscoveryOutput) {
-          $applications += @{
-              Name = "WSL-$($distro.Name)"
-              Version = $distro.Version
-              Status = $distro.State
-              IsDefault = $distro.IsDefault
-              DistributionName = $distro.Name
+      try {
+          # Handle empty or null discovery output
+          if ($DiscoveryOutput -ne $null) {
+              # Ensure it's an array
+              if ($DiscoveryOutput -isnot [array]) {
+                  $DiscoveryOutput = @($DiscoveryOutput)
+              }
+              
+              if ($DiscoveryOutput -and $DiscoveryOutput.Count -gt 0) {
+                  foreach ($distro in $DiscoveryOutput) {
+                      if ($distro -and $distro.Name) {
+                          $safeName = if ($distro.Name) { $distro.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                          $applications += @{
+                              Name = "WSL-$safeName"
+                              Version = if ($distro.Version) { $distro.Version } else { "WSL2" }
+                              Status = if ($distro.State) { $distro.State } else { "Unknown" }
+                              IsDefault = if ($distro.IsDefault -ne $null) { $distro.IsDefault } else { $false }
+                              DistributionName = $distro.Name
+                          }
+                      }
+                  }
+              }
           }
+      } catch {
+          Write-Verbose "Error in WSL Distribution Info parse_script: $_"
       }
       
       return $applications
@@ -171,23 +188,41 @@ applications:
     parse_script: |
       param($DiscoveryOutput)
       $applications = @()
-      $managerCounts = @{}
       
-      foreach ($package in $DiscoveryOutput) {
-          if (-not $managerCounts.ContainsKey($package.Manager)) {
-              $managerCounts[$package.Manager] = 0
+      try {
+          # Handle empty or null discovery output
+          if ($DiscoveryOutput -ne $null) {
+              # Ensure it's an array
+              if ($DiscoveryOutput -isnot [array]) {
+                  $DiscoveryOutput = @($DiscoveryOutput)
+              }
+              
+              if ($DiscoveryOutput -and $DiscoveryOutput.Count -gt 0) {
+                  $managerCounts = @{}
+                  
+                  foreach ($package in $DiscoveryOutput) {
+                      if ($package -and $package.Manager) {
+                          if (-not $managerCounts.ContainsKey($package.Manager)) {
+                              $managerCounts[$package.Manager] = 0
+                          }
+                          $managerCounts[$package.Manager]++
+                      }
+                  }
+                  
+                  foreach ($manager in $managerCounts.Keys) {
+                      $safeName = if ($manager) { $manager -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                      $applications += @{
+                          Name = "PackageManager-$safeName"
+                          Version = "System Package Manager"
+                          Status = "Active"
+                          PackageManager = $manager
+                          PackageCount = $managerCounts[$manager]
+                      }
+                  }
+              }
           }
-          $managerCounts[$package.Manager]++
-      }
-      
-      foreach ($manager in $managerCounts.Keys) {
-          $applications += @{
-              Name = "PackageManager-$manager"
-              Version = "System Package Manager"
-              Status = "Active"
-              PackageManager = $manager
-              PackageCount = $managerCounts[$manager]
-          }
+      } catch {
+          Write-Verbose "Error in WSL Packages parse_script: $_"
       }
       
       return $applications
@@ -239,8 +274,9 @@ applications:
       param($DiscoveryOutput)
       $applications = @()
       foreach ($config in $DiscoveryOutput) {
+          $safeFileName = if ($config.Path) { (Split-Path $config.Path -Leaf) -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
           $applications += @{
-              Name = "Config-$(Split-Path $config.Path -Leaf)"
+              Name = "Config-$safeFileName"
               Version = "1.0"
               Status = if ($config.Exists) { "Present" } else { "Missing" }
               Path = $config.Path

@@ -148,21 +148,38 @@ applications:
   - name: "Touchpad Devices"
     discovery_command: |
       try {
-          Get-PnpDevice | Where-Object { 
+          $touchpadDevices = Get-PnpDevice | Where-Object { 
               ($_.Class -eq "Mouse" -or $_.Class -eq "HIDClass") -and 
               ($_.FriendlyName -match "touchpad|synaptics|elan|precision|alps" -or
                $_.Manufacturer -match "synaptics|elan|alps|microsoft")
-          } | Select-Object InstanceId, FriendlyName, Manufacturer, Status, Class, DeviceID, ConfigManagerErrorCode | ConvertTo-Json -Depth 10
+          } | Select-Object InstanceId, FriendlyName, Manufacturer, Status, Class, DeviceID, ConfigManagerErrorCode
+          
+          if ($touchpadDevices) {
+              $touchpadDevices | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      $devices = $State | ConvertFrom-Json
-      return @{
-          TouchpadDeviceCount = $devices.Count
-          EnabledDevices = ($devices | Where-Object { $_.Status -eq "OK" }).Count
-          Manufacturers = $devices | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count)" }
-          DeviceTypes = $devices | Group-Object Class | ForEach-Object { "$($_.Name): $($_.Count)" }
+      param($DiscoveryOutput)
+      try {
+          $devices = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              TouchpadDeviceCount = $devices.Count
+              EnabledDevices = ($devices | Where-Object { $_.Status -eq "OK" }).Count
+              Manufacturers = $devices | Group-Object Manufacturer | ForEach-Object { "$($_.Name): $($_.Count)" }
+              DeviceTypes = $devices | Group-Object Class | ForEach-Object { "$($_.Name): $($_.Count)" }
+          }
+      } catch {
+          Write-Verbose "Error parsing touchpad devices: $_"
+          return @{
+              TouchpadDeviceCount = 0
+              EnabledDevices = 0
+              Manufacturers = @()
+              DeviceTypes = @()
+          }
       }
     dynamic_state_path: "applications/devices.json"
 
@@ -183,34 +200,81 @@ applications:
           Write-Output "{}"
       }
     parse_script: |
-      $status = $State | ConvertFrom-Json
-      return @{
-          IsPrecisionTouchpadEnabled = $status.PrecisionTouchpadEnabled
-          CurrentMouseSensitivity = $status.MouseSensitivity
-          HasConfiguredGestures = $status.HasGestureSettings
-          GesturesEnabled = $status.ThreeFingerSwipeEnabled
+      param($DiscoveryOutput)
+      try {
+          $status = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              IsPrecisionTouchpadEnabled = $status.PrecisionTouchpadEnabled
+              CurrentMouseSensitivity = $status.MouseSensitivity
+              HasConfiguredGestures = $status.HasGestureSettings
+              GesturesEnabled = $status.ThreeFingerSwipeEnabled
+          }
+      } catch {
+          Write-Verbose "Error parsing precision touchpad status: $_"
+          return @{
+              IsPrecisionTouchpadEnabled = $false
+              CurrentMouseSensitivity = $null
+              HasConfiguredGestures = $false
+              GesturesEnabled = $null
+          }
       }
     dynamic_state_path: "applications/precision_status.json"
 
   - name: "Touchpad Services Status"
     discovery_command: |
       try {
-          $services = Get-Service | Where-Object { 
-              $_.Name -match "touchpad|synaptics|elan|alps|hid" -or
-              $_.DisplayName -match "touchpad|precision|gesture"
-          } | Select-Object Name, DisplayName, Status, StartType | ConvertTo-Json -Depth 10
-          if (-not $services) { $services = "[]" }
-          $services
+          # Check if running with elevated privileges
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if ($isElevated) {
+              # Full service enumeration with elevated privileges
+              $services = Get-Service | Where-Object { 
+                  $_.Name -match "touchpad|synaptics|elan|alps|hid" -or
+                  $_.DisplayName -match "touchpad|precision|gesture"
+              } | Select-Object Name, DisplayName, Status, StartType
+          } else {
+              # Limited service enumeration without elevated privileges
+              $serviceNames = @("ELANFPService", "hidserv", "SynTPEnhService", "AlpsService", "PrecisionTouchpadService")
+              $services = @()
+              foreach ($serviceName in $serviceNames) {
+                  try {
+                      $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+                      if ($service) {
+                          $services += $service | Select-Object Name, DisplayName, Status, StartType
+                      }
+                  } catch {
+                      # Skip services that can't be queried
+                  }
+              }
+          }
+          
+          if ($services -and $services.Count -gt 0) {
+              $services | ConvertTo-Json -Depth 10
+          } else {
+              Write-Output "[]"
+          }
       } catch {
           Write-Output "[]"
       }
     parse_script: |
-      $services = $State | ConvertFrom-Json
-      return @{
-          TouchpadServiceCount = $services.Count
-          RunningServices = ($services | Where-Object { $_.Status -eq "Running" }).Count
-          AutomaticServices = ($services | Where-Object { $_.StartType -eq "Automatic" }).Count
-          ServiceNames = $services | ForEach-Object { $_.Name }
+      param($DiscoveryOutput)
+      try {
+          $services = $DiscoveryOutput | ConvertFrom-Json
+          return @{
+              TouchpadServiceCount = $services.Count
+              RunningServices = ($services | Where-Object { $_.Status -eq "Running" }).Count
+              AutomaticServices = ($services | Where-Object { $_.StartType -eq "Automatic" }).Count
+              ServiceNames = $services | ForEach-Object { $_.Name }
+          }
+      } catch {
+          Write-Verbose "Error parsing touchpad services: $_"
+          return @{
+              TouchpadServiceCount = 0
+              RunningServices = 0
+              AutomaticServices = 0
+              ServiceNames = @()
+          }
       }
     dynamic_state_path: "applications/services.json"
 

@@ -149,18 +149,37 @@ applications:
       }
     parse_script: |
       param($DiscoveryOutput)
-      $keys = @()
-      if ($DiscoveryOutput) {
-          foreach ($key in $DiscoveryOutput) {
-              $keys += @{
-                  Name = $key.Name
-                  Path = $key.FullName
-                  Size = $key.Length
-                  LastModified = $key.LastWriteTime
+      $applications = @()
+      
+      try {
+          # Handle empty or null discovery output
+          if ($DiscoveryOutput -ne $null) {
+              # Ensure it's an array
+              if ($DiscoveryOutput -isnot [array]) {
+                  $DiscoveryOutput = @($DiscoveryOutput)
+              }
+              
+              if ($DiscoveryOutput -and $DiscoveryOutput.Count -gt 0) {
+                  foreach ($key in $DiscoveryOutput) {
+                      if ($key -and $key.Name) {
+                          $safeName = if ($key.Name) { $key.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                          $applications += @{
+                              Name = "SSHKey-$safeName"
+                              Version = "SSH Private Key"
+                              KeyName = $key.Name
+                              Path = if ($key.FullName) { $key.FullName } else { "Unknown" }
+                              Size = if ($key.Length) { $key.Length } else { 0 }
+                              LastModified = if ($key.LastWriteTime) { $key.LastWriteTime } else { (Get-Date) }
+                          }
+                      }
+                  }
               }
           }
+      } catch {
+          Write-Verbose "Error in SSH Private Keys parse_script: $_"
       }
-      $keys | ConvertTo-Json -Compress
+      
+      return $applications
     install_script: |
       param($AppListJson)
       $keys = $AppListJson | ConvertFrom-Json

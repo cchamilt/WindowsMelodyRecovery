@@ -140,45 +140,30 @@ applications:
     discovery_command: "Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' | Where-Object { $_.DisplayName -match '(Chrome|Firefox|Edge|Brave|Vivaldi|Opera)' } | Select-Object DisplayName, DisplayVersion, InstallLocation"
     parse_script: |
       param($BrowserOutput)
-      try {
-          $browsers = @()
-          $lines = $BrowserOutput -split "`n"
-          $headerPassed = $false
+      $applications = @()
+      
+      # Handle empty or null discovery output
+      if ($BrowserOutput -ne $null) {
+          # Ensure it's an array
+          if ($BrowserOutput -isnot [array]) {
+              $BrowserOutput = @($BrowserOutput)
+          }
           
-          foreach ($line in $lines) {
-              # Skip empty lines
-              if ([string]::IsNullOrWhiteSpace($line)) {
-                  continue
-              }
-              
-              # Skip header lines
-              if ($line -match "^DisplayName\s+DisplayVersion\s+InstallLocation" -or $line -match "^-+\s*$") {
-                  $headerPassed = $true
-                  continue
-              }
-              
-              # Parse data lines after header
-              if ($headerPassed -and $line -match "\S") {
-                  # Split by multiple spaces to handle column format
-                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
-                  if ($parts.Count -ge 1) {
-                      $browser = @{
-                          DisplayName = $parts[0].Trim()
+          if ($BrowserOutput.Count -gt 0) {
+              foreach ($browser in $BrowserOutput) {
+                  if ($browser -and $browser.DisplayName) {
+                      $applications += @{
+                          Name = "Browser-$($browser.DisplayName -replace '[^a-zA-Z0-9]', '')"
+                          Version = if ($browser.DisplayVersion) { $browser.DisplayVersion } else { "Unknown" }
+                          DisplayName = $browser.DisplayName
+                          InstallLocation = if ($browser.InstallLocation) { $browser.InstallLocation } else { "Unknown" }
                       }
-                      if ($parts.Count -ge 2) { $browser.DisplayVersion = $parts[1].Trim() }
-                      if ($parts.Count -ge 3) { $browser.InstallLocation = $parts[2].Trim() }
-                      
-                      $browsers += $browser
                   }
               }
           }
-          
-          Write-Host "Found $($browsers.Count) installed browsers"
-          return $browsers | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse browser discovery output: $_"
-          return "[]"
       }
+      
+      return $applications
     install_script: |
       param($BrowsersJson)
       try {
