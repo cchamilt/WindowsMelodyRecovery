@@ -86,7 +86,9 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 encrypt = $true
             }
             
-            $result = Get-WmrFileState -FileConfig $encryptedConfig -StateFilesDirectory "C:\test"
+            # Need to provide passphrase for encryption to work
+            $passphrase = ConvertTo-SecureString "test" -AsPlainText -Force
+            $result = Get-WmrFileState -FileConfig $encryptedConfig -StateFilesDirectory "C:\test" -Passphrase $passphrase
             $result.Encrypted | Should -Be $true
         }
     }
@@ -170,6 +172,10 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 destination = "C:\custom\destination.txt"
             }
             
+            # Mock the state file exists and has content
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
+            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
+            
             Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\StateDir"
             
             # Should restore to destination, not original path
@@ -186,6 +192,10 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 action = "restore"
                 dynamic_state_path = "files/restore.txt"
             }
+            
+            # Mock the state file exists and has content
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
+            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
             
             Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\StateDir"
             
@@ -242,8 +252,9 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 encrypt = $true
             }
             
-            # Mock encrypted content
-            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" }
+            # Mock the encrypted state file exists and has encrypted content
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "C:\test\files\encrypted.txt" }
+            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq "C:\test\files\encrypted.txt" }
             
             Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\test" -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
             

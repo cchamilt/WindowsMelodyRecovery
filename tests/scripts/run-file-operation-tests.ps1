@@ -32,6 +32,9 @@ param(
     [switch]$SkipCleanup
 )
 
+# Set execution policy for current process to allow unsigned scripts
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
 # Import the test environment utilities
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 

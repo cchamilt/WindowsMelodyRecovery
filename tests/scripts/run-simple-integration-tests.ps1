@@ -23,6 +23,9 @@ param(
     [switch]$NoCleanup
 )
 
+# Import Docker management utilities
+. "$PSScriptRoot/../utilities/Docker-Management.ps1"
+
 function Write-TestHeader {
     param([string]$Title)
     $border = "=" * 80
@@ -79,20 +82,17 @@ function Start-DockerEnvironment {
     "Starting Docker containers..." | Tee-Object -FilePath $global:mainLogFile -Append
     
     try {
-        $result = docker-compose -f docker-compose.test.yml up -d 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            $errorMsg = "Failed to start Docker containers: $result"
+        # Use centralized Docker management
+        $startResult = Initialize-DockerEnvironment
+        if (-not $startResult) {
+            $errorMsg = "Failed to initialize Docker environment"
             $errorMsg | Tee-Object -FilePath $global:mainLogFile -Append
             throw $errorMsg
         }
+        
         $successMsg = "Docker containers started successfully"
         $successMsg | Tee-Object -FilePath $global:mainLogFile -Append
         Write-Host "✓ $successMsg" -ForegroundColor Green
-        
-        # Wait for containers to be ready
-        Write-Host "Waiting for containers to be ready..." -ForegroundColor Yellow
-        "Waiting for containers to be ready..." | Tee-Object -FilePath $global:mainLogFile -Append
-        Start-Sleep -Seconds 15
         
     } catch {
         $errorMsg = "Failed to start Docker environment: $($_.Exception.Message)"
@@ -102,22 +102,19 @@ function Start-DockerEnvironment {
     }
 }
 
-function Test-ContainerConnectivity {
+function Test-IntegrationContainerConnectivity {
     Write-TestSection "Testing Container Connectivity"
     "Testing container connectivity..." | Tee-Object -FilePath $global:mainLogFile -Append
     
     try {
-        $testResult = docker exec wmr-test-runner pwsh -Command "Write-Host 'Container is ready'; Get-Location" 2>&1
-        if ($LASTEXITCODE -eq 0) {
+        # Use centralized Docker management
+        $connectivityResult = Test-ContainerConnectivity
+        if ($connectivityResult) {
             $successMsg = "Test runner container is accessible"
             $successMsg | Tee-Object -FilePath $global:mainLogFile -Append
             Write-Host "✓ $successMsg" -ForegroundColor Green
-            
-            # Log container environment info
-            "Container environment:" | Tee-Object -FilePath $global:mainLogFile -Append
-            $testResult | Tee-Object -FilePath $global:mainLogFile -Append
         } else {
-            throw "Container not responding properly"
+            throw "Container connectivity test failed"
         }
     } catch {
         $errorMsg = "Cannot connect to test runner container: $($_.Exception.Message)"
@@ -401,7 +398,7 @@ function Clean-TestArtifacts {
 try {
     Initialize-TestEnvironment
     Start-DockerEnvironment
-    Test-ContainerConnectivity
+    Test-IntegrationContainerConnectivity
     $testResult = Invoke-CoreTests
     Copy-TestResults
     Write-TestSummary -TestResult $testResult

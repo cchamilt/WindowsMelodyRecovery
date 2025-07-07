@@ -65,44 +65,17 @@ param(
     [switch]$NoCleanup
 )
 
-# Check if Docker is available
-function Test-DockerAvailable {
-    try {
-        $dockerVersion = docker --version 2>$null
-        if ($dockerVersion) {
-            Write-Host "✓ Docker is available: $dockerVersion" -ForegroundColor Green
-            return $true
-        }
-    } catch {
-        Write-Host "✗ Docker is not available or not running" -ForegroundColor Red
-        Write-Host "Please install Docker Desktop and ensure it's running" -ForegroundColor Yellow
-        return $false
-    }
-    return $false
-}
-
-# Check if Docker Compose is available
-function Test-DockerComposeAvailable {
-    try {
-        $composeVersion = docker compose version 2>$null
-        if ($composeVersion) {
-            Write-Host "✓ Docker Compose is available: $composeVersion" -ForegroundColor Green
-            return $true
-        }
-    } catch {
-        Write-Host "✗ Docker Compose is not available" -ForegroundColor Red
-        return $false
-    }
-    return $false
-}
+# Import Docker management utilities
+. "$PSScriptRoot/../utilities/Docker-Management.ps1"
 
 # Clean up existing containers and volumes
 function Invoke-Cleanup {
     Write-Host "🧹 Cleaning up existing containers and volumes..." -ForegroundColor Yellow
     
     try {
-        # Stop and remove containers
-        docker compose -f docker-compose.test.yml down --volumes --remove-orphans 2>$null
+        # Use centralized Docker management
+        Stop-TestContainers -Force
+        Remove-TestContainers -Force
         
         # Remove any dangling images
         $danglingImages = docker images -f "dangling=true" -q 2>$null
@@ -121,117 +94,14 @@ function Start-TestEnvironment {
     Write-Host "🚀 Building and starting test environment..." -ForegroundColor Yellow
     
     try {
-        # Check if containers are already running
-        $runningContainers = docker compose -f docker-compose.test.yml ps -q 2>$null
-        if ($runningContainers -and -not $ForceRebuild) {
-            Write-Host "✓ Containers are already running, skipping build" -ForegroundColor Green
-            return
+        # Use centralized Docker management to start containers
+        $startResult = Start-TestContainers -ForceRebuild:$ForceRebuild -NoBuild:$NoBuild -Clean:$Clean
+        if (-not $startResult) {
+            throw "Failed to start test containers"
         }
         
-        # Handle build options
-        if ($NoBuild) {
-            Write-Host "⏭ Skipping build due to -NoBuild flag" -ForegroundColor Yellow
-        } else {
-            # Use Docker Compose parallel building (faster and more reliable)
-            Write-Host "Building Docker images with compose (parallel)..." -ForegroundColor Cyan
-            
-            $buildArgs = @("-f", "docker-compose.test.yml", "build")
-            if ($ForceRebuild) {
-                $buildArgs += "--no-cache"
-            }
-            if ($Parallel) {
-                $buildArgs += "--parallel"
-            }
-            
-            # Run the build command
-            docker compose $buildArgs
-            
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "✗ Docker compose build failed, trying individual builds..." -ForegroundColor Yellow
-                
-                # Fallback to individual builds
-                $services = @("windows-mock", "wsl-mock", "mock-cloud-server", "test-runner", "gaming-mock", "package-mock")
-                $buildResults = @{}
-                $failedBuilds = @()
-                
-                foreach ($service in $services) {
-                    Write-Host "Building $service..." -ForegroundColor Cyan
-                    $serviceArgs = @("-f", "docker-compose.test.yml", "build")
-                    if ($ForceRebuild) {
-                        $serviceArgs += "--no-cache"
-                    }
-                    $serviceArgs += $service
-                    
-                    docker compose $serviceArgs 2>&1 | Tee-Object -FilePath "build-$service.log"
-                    $buildResults[$service] = $LASTEXITCODE
-                    
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Host "✓ $service built successfully" -ForegroundColor Green
-                    } else {
-                        Write-Host "✗ $service build failed" -ForegroundColor Red
-                        $failedBuilds += $service
-                    }
-                }
-                
-                # Report build results
-                if ($failedBuilds.Count -gt 0) {
-                    Write-Host "`n📋 Build Summary:" -ForegroundColor Yellow
-                    Write-Host "Failed builds: $($failedBuilds -join ', ')" -ForegroundColor Red
-                    
-                    # Show build logs for failed services
-                    Write-Host "`n📝 Build logs for failed services:" -ForegroundColor Yellow
-                    foreach ($failedService in $failedBuilds) {
-                        if (Test-Path "build-$failedService.log") {
-                            Write-Host "`n--- $failedService build log ---" -ForegroundColor Cyan
-                            Get-Content "build-$failedService.log" | Select-Object -Last 20
-                        }
-                    }
-                    
-                    throw "Some Docker images failed to build: $($failedBuilds -join ', ')"
-                }
-            } else {
-                Write-Host "✓ All Docker images built successfully" -ForegroundColor Green
-            }
-        }
-        
-        # Start the containers
-        Write-Host "`nStarting containers..." -ForegroundColor Cyan
-        docker compose -f docker-compose.test.yml up -d
-        
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to start containers"
-        }
-        
-        # Wait for containers to be ready
-        Write-Host "Waiting for containers to be ready..." -ForegroundColor Cyan
-        Start-Sleep -Seconds 30
-        
-        # Check container health
-        $containers = @("wmr-windows-mock", "wmr-wsl-mock", "wmr-cloud-mock", "wmr-test-runner")
-        foreach ($container in $containers) {
-            $status = docker inspect --format='{{.State.Status}}' $container 2>$null
-            if ($status -eq "running") {
-                Write-Host "✓ $container is running" -ForegroundColor Green
-            } else {
-                Write-Host "✗ $container is not running (status: $status)" -ForegroundColor Red
-            }
-        }
-        
-        # Test cloud server health
-        try {
-            Start-Sleep -Seconds 5
-            $healthCheck = Invoke-RestMethod -Uri "http://localhost:8080/health" -TimeoutSec 10
-            if ($healthCheck.status -eq "healthy") {
-                Write-Host "✓ Cloud mock server is healthy" -ForegroundColor Green
-            }
-        } catch {
-            Write-Host "⚠ Cloud mock server health check failed (may still be starting)" -ForegroundColor Yellow
-        }
-        
-        Write-Host "✓ Test environment is ready" -ForegroundColor Green
-        
-        # Clean up build logs
-        Get-ChildItem "build-*.log" -ErrorAction SilentlyContinue | Remove-Item -Force
+        Write-Host "✓ Test environment started successfully" -ForegroundColor Green
+        return
         
     } catch {
         Write-Host "✗ Failed to start test environment: $($_.Exception.Message)" -ForegroundColor Red
@@ -334,16 +204,9 @@ function Copy-TestResults {
     }
 }
 
-# Show container logs for debugging
-function Show-ContainerLogs {
-    Write-Host "📝 Container logs:" -ForegroundColor Yellow
-    
-    $containers = @("wmr-windows-mock", "wmr-wsl-mock", "wmr-cloud-mock", "wmr-test-runner")
-    
-    foreach ($container in $containers) {
-        Write-Host "`n--- $container logs ---" -ForegroundColor Cyan
-        docker logs $container --tail 20 2>$null
-    }
+# Show container logs for debugging (use centralized utility)
+function Show-TestContainerLogs {
+    Show-ContainerLogs -Lines 20
 }
 
 # Cleanup function
@@ -427,7 +290,7 @@ try {
         Write-Host "🎉 Integration tests completed successfully!" -ForegroundColor Green
     } else {
         Write-Host "❌ Integration tests failed" -ForegroundColor Red
-        Show-ContainerLogs
+        Show-TestContainerLogs
     }
     
     # Final cleanup
@@ -442,7 +305,7 @@ try {
     Write-Host "💥 Integration test runner failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
     
-    Show-ContainerLogs
+    Show-TestContainerLogs
     Stop-TestEnvironment
     
     # Clean test artifacts
