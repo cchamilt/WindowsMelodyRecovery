@@ -55,9 +55,11 @@ $script:ModuleInitialized = $false
 $script:InitializationErrors = @()
 $script:LoadedComponents = @()
 
-# Import Template module and dot-source EncryptionUtilities so their functions are always available
+# Import Template module and dot-source core utilities so their functions are always available
 Import-Module (Join-Path $PSScriptRoot 'Private/Core/WindowsMelodyRecovery.Template.psm1') -Force
 . (Join-Path $PSScriptRoot 'Private/Core/EncryptionUtilities.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/FileState.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/RegistryState.ps1')
 
 # Define core functions first
 function Get-WindowsMelodyRecovery {
@@ -523,43 +525,5 @@ try {
     Write-Warning "Failed to load Template module: $($_.Exception.Message)"
 }
 
-# If initialization was successful, load functions and export them.
-if ($script:ModuleInitialized) {
-    # --- Simplified Function Loading and Exporting ---
-
-    # 1. Define paths for Public and Core functions
-    $PublicPath = Join-Path $PSScriptRoot "Public"
-    $CorePath = Join-Path $PSScriptRoot "Private\Core"
-    $AllScriptsToLoad = @()
-    $AllFunctionsToExport = @()
-
-    # 2. Gather all scripts from Public and Core directories
-    if (Test-Path $PublicPath) {
-        $AllScriptsToLoad += Get-ChildItem -Path $PublicPath -Filter "*.ps1"
-    }
-    if (Test-Path $CorePath) {
-        $AllScriptsToLoad += Get-ChildItem -Path $CorePath -Filter "*.ps1"
-    }
-
-    # 3. Dot-source each script and parse its function names for export
-    foreach ($script in $AllScriptsToLoad) {
-        try {
-            . $script.FullName
-            $scriptContent = Get-Content -Path $script.FullName -Raw
-            $functionNames = $scriptContent | Select-String -Pattern 'function\s+([a-zA-Z0-9_-]+)' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
-            if ($functionNames) {
-                $AllFunctionsToExport += $functionNames
-                Write-Verbose "Loaded script '$($script.Name)' and found functions: $($functionNames -join ', ')"
-            }
-        } catch {
-            Write-Warning "Failed to load or parse script '$($script.Name)': $($_.Exception.Message)"
-        }
-    }
-
-    # 4. Export all discovered functions
-    $UniqueFunctions = $AllFunctionsToExport | Sort-Object -Unique
-    if ($UniqueFunctions) {
-        Export-ModuleMember -Function $UniqueFunctions
-        Write-Verbose "Exported $($UniqueFunctions.Count) functions."
-    }
-}
+# Remove the conflicting secondary export logic that was overriding the first export
+# The module already exports functions correctly in the first export section above

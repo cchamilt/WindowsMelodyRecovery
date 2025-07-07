@@ -81,7 +81,12 @@
         'Protect-WmrData',
         'Unprotect-WmrData',
         'Get-WmrEncryptionKey',
-        'Clear-WmrEncryptionCache'
+        'Clear-WmrEncryptionCache',
+        
+        # Core state management functions
+        'Get-WmrRegistryState',
+        'Get-WmrFileState',
+        'Invoke-WmrTemplate'
     )
     
     # Cmdlets to export
