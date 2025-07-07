@@ -38,12 +38,15 @@ Write-Host "🪟 Running Windows-Only Tests - Suite: $TestSuite" -ForegroundColo
 Import-Module Pester -Force -ErrorAction Stop
 Write-Host "✓ Pester imported" -ForegroundColor Green
 
-# Create output directories
+# Calculate project root (two levels up from this script)
+$projectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+
+# Create output directories relative to project root
 $outputDirs = @(
-    "./test-results/junit",
-    "./test-results/coverage", 
-    "./test-results/reports",
-    "./test-results/logs"
+    (Join-Path $projectRoot "test-results/junit"),
+    (Join-Path $projectRoot "test-results/coverage"), 
+    (Join-Path $projectRoot "test-results/reports"),
+    (Join-Path $projectRoot "test-results/logs")
 )
 
 foreach ($dir in $outputDirs) {
@@ -63,16 +66,16 @@ $config.Output.RenderMode = 'Plaintext'
 # Test result configuration
 $config.TestResult.Enabled = $true
 $config.TestResult.OutputFormat = 'NUnitXml'
-$config.TestResult.OutputPath = './test-results/junit/windows-test-results.xml'
+$config.TestResult.OutputPath = Join-Path $projectRoot "test-results/junit/windows-test-results.xml"
 
 # Set test paths based on suite
 switch ($TestSuite) {
     "WindowsOnly" {
-        $config.Run.Path = @('./tests/unit/Windows-Only.Tests.ps1')
+        $config.Run.Path = @((Join-Path $projectRoot "tests/unit/Windows-Only.Tests.ps1"))
         Write-Host "🎯 Running Windows-Only Tests" -ForegroundColor Yellow
     }
     "All" {
-        $config.Run.Path = @('./tests/unit', './tests/integration')
+        $config.Run.Path = @((Join-Path $projectRoot "tests/unit"), (Join-Path $projectRoot "tests/integration"))
         Write-Host "🎯 Running All Tests (including Windows-only tests)" -ForegroundColor Yellow
     }
 }
@@ -115,7 +118,7 @@ try {
     Write-Host "  Duration: $($results.Duration)" -ForegroundColor White
     
     # Save detailed JSON results
-    $jsonPath = './test-results/reports/windows-pester-results.json'
+    $jsonPath = Join-Path $projectRoot "test-results/reports/windows-pester-results.json"
     try {
         $simplifiedResults = @{
             TotalCount = $results.TotalCount

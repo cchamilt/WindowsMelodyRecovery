@@ -215,7 +215,7 @@ function Invoke-IntegrationTests {
             throw "Failed to initialize Docker environment for integration tests"
         }
         
-        $scriptPath = Join-Path $PSScriptRoot "run-simple-integration-tests.ps1"
+        $scriptPath = Join-Path $PSScriptRoot "run-integration-tests.ps1"
         if ($SkipCleanup) {
             $output = & $scriptPath -TestSuite "All" -NoCleanup
         } else {

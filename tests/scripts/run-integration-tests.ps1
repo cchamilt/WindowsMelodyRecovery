@@ -151,7 +151,7 @@ function Invoke-IntegrationTests {
         }
         
         # Execute the dedicated Pester script in container
-        docker exec wmr-test-runner pwsh -Command "/workspace/run-pester-tests.ps1 $pesterArgs"
+        docker exec wmr-test-runner pwsh -Command "/workspace/tests/scripts/run-pester-tests.ps1 $pesterArgs"
         $testExitCode = $LASTEXITCODE
         
         # Generate additional reports if requested

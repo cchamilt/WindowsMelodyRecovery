@@ -4,22 +4,32 @@
     Simple Integration Test Runner for Windows Melody Recovery
 
 .DESCRIPTION
-    Runs only the core backup integration tests that are known to work well.
-    This bypasses the complex test orchestrator that may be causing issues.
+    Runs comprehensive integration tests for Windows Melody Recovery.
+    Tests are organized into logical groups: Backup, Restore, WSL, Cloud, Installation.
+    This provides flexible test execution options with full coverage.
 
 .PARAMETER TestSuite
-    Which test suite to run (Backup, All)
+    Which test suite to run:
+    - All: Run all integration tests (default)
+    - Backup: Backup-related tests (backup-applications, backup-gaming, backup-cloud, backup-system-settings, backup-wsl, backup-tests)
+    - Restore: Restore-related tests (restore-system-settings, application-backup-restore, cloud-backup-restore)
+    - WSL: WSL integration tests (wsl-integration, wsl-communication-validation, wsl-package-management, wsl-tests, chezmoi-wsl-integration)
+    - Cloud: Cloud-related tests (cloud-connectivity, cloud-provider-detection, cloud-failover)
+    - Installation: Installation tests (installation-integration, chezmoi-integration, TemplateIntegration)
+    - Core: Legacy 4-test subset for backward compatibility
 
 .PARAMETER NoCleanup
     Skip cleanup of test directories and Docker containers
 
 .EXAMPLE
+    ./run-simple-integration-tests.ps1 -TestSuite All
     ./run-simple-integration-tests.ps1 -TestSuite Backup
+    ./run-simple-integration-tests.ps1 -TestSuite WSL -NoCleanup
 #>
 
 param(
-    [ValidateSet("Backup", "All")]
-    [string]$TestSuite = "Backup",
+    [ValidateSet("All", "Backup", "Restore", "WSL", "Cloud", "Installation", "Core")]
+    [string]$TestSuite = "All",
     [switch]$NoCleanup
 )
 
@@ -46,13 +56,16 @@ function Write-TestSection {
 function Initialize-TestEnvironment {
     Write-TestSection "Initializing Test Environment"
     
-    # Create test-results directory structure
+    # Calculate project root (two levels up from this script)
+    $script:projectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+    
+    # Create test-results directory structure relative to project root
     $resultDirs = @(
-        "test-results",
-        "test-results/logs", 
-        "test-results/reports",
-        "test-results/junit",
-        "test-results/coverage"
+        (Join-Path $script:projectRoot "test-results"),
+        (Join-Path $script:projectRoot "test-results/logs"), 
+        (Join-Path $script:projectRoot "test-results/reports"),
+        (Join-Path $script:projectRoot "test-results/junit"),
+        (Join-Path $script:projectRoot "test-results/coverage")
     )
     
     foreach ($dir in $resultDirs) {
@@ -63,7 +76,7 @@ function Initialize-TestEnvironment {
     
     # Initialize main log file
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-    $global:mainLogFile = "test-results/logs/test-run-$timestamp.log"
+    $global:mainLogFile = Join-Path $script:projectRoot "test-results/logs/test-run-$timestamp.log"
     
     "Windows Melody Recovery - Integration Test Run" | Tee-Object -FilePath $global:mainLogFile
     "Started: $(Get-Date)" | Tee-Object -FilePath $global:mainLogFile -Append
@@ -128,19 +141,79 @@ function Invoke-CoreTests {
     Write-TestSection "Running Core Backup Integration Tests"
     "Starting core backup integration tests..." | Tee-Object -FilePath $global:mainLogFile -Append
 
-    $coreTests = @(
-        "tests/integration/backup-applications.Tests.ps1",
-        "tests/integration/backup-gaming.Tests.ps1", 
-        "tests/integration/backup-cloud.Tests.ps1",
-        "tests/integration/backup-system-settings.Tests.ps1"
-    )
+    # Define test groups for organized execution
+    $testGroups = @{
+        "Backup" = @(
+            "tests/integration/backup-applications.Tests.ps1",
+            "tests/integration/backup-gaming.Tests.ps1", 
+            "tests/integration/backup-cloud.Tests.ps1",
+            "tests/integration/backup-system-settings.Tests.ps1",
+            "tests/integration/backup-wsl.Tests.ps1",
+            "tests/integration/backup-tests.Tests.ps1"
+        )
+        "Restore" = @(
+            "tests/integration/restore-system-settings.Tests.ps1",
+            "tests/integration/application-backup-restore.Tests.ps1",
+            "tests/integration/cloud-backup-restore.Tests.ps1"
+        )
+        "WSL" = @(
+            "tests/integration/wsl-integration.Tests.ps1",
+            "tests/integration/wsl-communication-validation.Tests.ps1",
+            "tests/integration/wsl-package-management.Tests.ps1",
+            "tests/integration/wsl-tests.Tests.ps1",
+            "tests/integration/chezmoi-wsl-integration.Tests.ps1"
+        )
+        "Cloud" = @(
+            "tests/integration/cloud-connectivity.Tests.ps1",
+            "tests/integration/cloud-provider-detection.Tests.ps1",
+            "tests/integration/cloud-failover.Tests.ps1"
+        )
+        "Installation" = @(
+            "tests/integration/installation-integration.Tests.ps1",
+            "tests/integration/chezmoi-integration.Tests.ps1",
+            "tests/integration/TemplateIntegration.Tests.ps1"
+        )
+    }
+    
+    # Select tests based on TestSuite parameter
+    $testsToRun = @()
+    switch ($TestSuite) {
+        "All" {
+            # Run all tests from all groups
+            foreach ($group in $testGroups.Values) {
+                $testsToRun += $group
+            }
+        }
+        "Backup" { $testsToRun = $testGroups["Backup"] }
+        "Restore" { $testsToRun = $testGroups["Restore"] }
+        "WSL" { $testsToRun = $testGroups["WSL"] }
+        "Cloud" { $testsToRun = $testGroups["Cloud"] }
+        "Installation" { $testsToRun = $testGroups["Installation"] }
+        "Core" {
+            # Legacy: Keep the original 4 tests for backward compatibility
+            $testsToRun = @(
+                "tests/integration/backup-applications.Tests.ps1",
+                "tests/integration/backup-gaming.Tests.ps1", 
+                "tests/integration/backup-cloud.Tests.ps1",
+                "tests/integration/backup-system-settings.Tests.ps1"
+            )
+        }
+        default {
+            # Default to all tests
+            foreach ($group in $testGroups.Values) {
+                $testsToRun += $group
+            }
+        }
+    }
+    
+    "Selected $($testsToRun.Count) tests to run for TestSuite: $TestSuite" | Tee-Object -FilePath $global:mainLogFile -Append
 
     $allTestResults = @()
     $totalPassed = 0
     $totalFailed = 0
     $totalSkipped = 0
 
-    foreach ($testFile in $coreTests) {
+    foreach ($testFile in $testsToRun) {
         $testName = [System.IO.Path]::GetFileNameWithoutExtension($testFile)
         $testStartTime = Get-Date
         
@@ -259,10 +332,10 @@ function Copy-TestResults {
     
     try {
         # Copy test results from container
-        $copyResult = docker cp wmr-test-runner:/test-results/. ./test-results/ 2>&1
+        $copyResult = docker cp wmr-test-runner:/test-results/. (Join-Path $script:projectRoot "test-results/") 2>&1
         
         if ($LASTEXITCODE -eq 0) {
-            $successMsg = "Test results copied successfully to ./test-results/"
+            $successMsg = "Test results copied successfully to $(Join-Path $script:projectRoot "test-results/")"
             $successMsg | Tee-Object -FilePath $global:mainLogFile -Append
             Write-Host "✓ $successMsg" -ForegroundColor Green
         } else {
@@ -272,7 +345,7 @@ function Copy-TestResults {
         }
         
         # List what was actually copied
-        $logFiles = Get-ChildItem "test-results/logs" -Filter "*.log" -ErrorAction SilentlyContinue
+        $logFiles = Get-ChildItem (Join-Path $script:projectRoot "test-results/logs") -Filter "*.log" -ErrorAction SilentlyContinue
         if ($logFiles) {
             "Copied log files:" | Tee-Object -FilePath $global:mainLogFile -Append
             foreach ($logFile in $logFiles) {
@@ -346,7 +419,7 @@ function Write-TestSummary {
         Results = $TestResult.Results
     }
     
-    $jsonReportPath = "test-results/reports/test-summary-$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').json"
+    $jsonReportPath = Join-Path $script:projectRoot "test-results/reports/test-summary-$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').json"
     $jsonReport | ConvertTo-Json -Depth 4 | Out-File -FilePath $jsonReportPath -Encoding UTF8
     
     "JSON report generated: $jsonReportPath" | Tee-Object -FilePath $global:mainLogFile -Append
