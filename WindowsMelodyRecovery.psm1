@@ -398,10 +398,11 @@ if ($script:LoadedCoreFunctions) {
     Write-Verbose "Adding $($script:LoadedCoreFunctions.Count) core functions to export list."
 }
 
-# After collecting all functions to export, add Template and EncryptionUtilities functions explicitly
+# After collecting all functions to export, add Template, EncryptionUtilities, and Core functions explicitly
 $AllFunctionsToExport = @()
 $AllFunctionsToExport += $AllFunctions
 $AllFunctionsToExport += 'Read-WmrTemplateConfig','Test-WmrTemplateSchema','Protect-WmrData','Unprotect-WmrData','Get-WmrEncryptionKey','Clear-WmrEncryptionCache','Test-WmrEncryption'
+$AllFunctionsToExport += 'Get-WmrFileState','Set-WmrFileState','Get-WmrRegistryState','Set-WmrRegistryState','Invoke-WmrTemplate'
 
 # Only export functions that actually exist
 $ExistingFunctions = @()
