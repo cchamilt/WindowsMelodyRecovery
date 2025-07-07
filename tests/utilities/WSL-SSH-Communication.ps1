@@ -32,48 +32,36 @@ function Invoke-WSLSSHCommand {
         [string]$Command,
         
         [Parameter(Mandatory = $false)]
-        [string]$User = "testuser",
+        [string]$HostName = "wmr-wsl-mock",
         
         [Parameter(Mandatory = $false)]
-        [string]$ContainerHost = "wmr-wsl-mock",
+        [string]$UserName = "testuser",
         
         [Parameter(Mandatory = $false)]
-        [int]$Port = 2222
+        [int]$Port = 22
     )
     
     try {
-        # Build the SSH command
-        $sshArgs = @(
-            "-o", "StrictHostKeyChecking=no"
-            "-o", "UserKnownHostsFile=/dev/null"
-            "-o", "LogLevel=ERROR"
-            "-p", $Port
-            "$User@$ContainerHost"
-            $Command
-        )
+        # Execute command via SSH with proper key authentication
+        $sshCommand = "docker exec wmr-test-runner ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -i /workspace/tests/mock-data/ssh/id_rsa $UserName@$HostName '$Command'"
         
-        Write-Verbose "Executing: ssh $($sshArgs -join ' ')"
-        
-        # Execute the SSH command
-        $result = & ssh @sshArgs 2>&1
+        $result = Invoke-Expression $sshCommand
         $exitCode = $LASTEXITCODE
         
         return @{
             Success = ($exitCode -eq 0)
-            ExitCode = $exitCode
-            Output = $result
-            Command = $Command
+            Output = if ($result) { $result -join "`n" } else { "" }
+            Error = if ($exitCode -ne 0) { "SSH command failed with exit code $exitCode" } else { $null }
             Method = "SSH"
+            ExitCode = $exitCode
         }
     }
     catch {
         return @{
             Success = $false
-            ExitCode = -1
-            Output = $_.Exception.Message
-            Command = $Command
+            Output = ""
+            Error = $_.Exception.Message
             Method = "SSH"
-            Error = $_.Exception
         }
     }
 }
@@ -98,27 +86,32 @@ function Test-WSLSSHConnectivity {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
-        [string]$ContainerHost = "wmr-wsl-mock",
+        [string]$HostName = "wmr-wsl-mock",
         
         [Parameter(Mandatory = $false)]
-        [int]$Port = 2222
+        [string]$UserName = "testuser",
+        
+        [Parameter(Mandatory = $false)]
+        [int]$Port = 22
     )
     
     try {
-        # Test basic SSH connectivity
-        $result = Invoke-WSLSSHCommand -Command "echo 'SSH_CONNECTIVITY_TEST_PASSED'" -ContainerHost $ContainerHost -Port $Port
+        # Test SSH connectivity using the container's SSH key
+        $sshCommand = "docker exec wmr-test-runner ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -i /workspace/tests/mock-data/ssh/id_rsa $UserName@$HostName 'echo connection-test'"
         
-        if ($result.Success -and $result.Output -match "SSH_CONNECTIVITY_TEST_PASSED") {
-            Write-Verbose "WSL SSH connectivity test passed"
-            return $true
+        $result = Invoke-Expression $sshCommand
+        $success = ($LASTEXITCODE -eq 0) -and ($result -eq "connection-test")
+        
+        if ($success) {
+            Write-Verbose "SSH connectivity test passed"
+        } else {
+            Write-Warning "SSH connectivity test failed. Exit code: $LASTEXITCODE, Output: $result"
         }
-        else {
-            Write-Warning "WSL SSH connectivity test failed: $($result.Output)"
-            return $false
-        }
+        
+        return $success
     }
     catch {
-        Write-Warning "WSL SSH connectivity test error: $($_.Exception.Message)"
+        Write-Warning "SSH connectivity test error: $($_.Exception.Message)"
         return $false
     }
 }
@@ -256,63 +249,56 @@ function Invoke-WSLSSHScript {
         [string]$ScriptContent,
         
         [Parameter(Mandatory = $false)]
-        [ValidateSet("bash", "python", "python3", "sh")]
         [string]$ScriptType = "bash",
         
         [Parameter(Mandatory = $false)]
-        [string]$User = "testuser",
+        [string]$HostName = "wmr-wsl-mock",
         
         [Parameter(Mandatory = $false)]
-        [string]$ContainerHost = "wmr-wsl-mock",
+        [string]$UserName = "testuser",
         
         [Parameter(Mandatory = $false)]
-        [int]$Port = 2222
+        [int]$Port = 22
     )
     
     try {
-        # Create a temporary script file
-        $scriptFileName = "temp_ssh_script_$(Get-Random).sh"
-        $localScriptPath = "/tmp/$scriptFileName"
-        $remoteScriptPath = "/tmp/$scriptFileName"
+        # Create a temporary script file and execute it
+        $scriptFile = "/tmp/ssh-script-$(Get-Random).sh"
         
-        # Write script content to local temp file
-        $ScriptContent | Out-File -FilePath $localScriptPath -Encoding UTF8
+        # First, create the script file via SSH
+        $createCommand = "cat > $scriptFile << 'EOF'`n$ScriptContent`nEOF && chmod +x $scriptFile"
+        $createResult = Invoke-WSLSSHCommand -Command $createCommand -HostName $HostName -UserName $UserName -Port $Port
         
-        # Copy script to container
-        $copyResult = Copy-WSLSSHFile -SourcePath $localScriptPath -DestinationPath $remoteScriptPath -ToContainer -User $User -ContainerHost $ContainerHost -Port $Port
-        
-        if (-not $copyResult.Success) {
-            throw "Failed to copy script to container: $($copyResult.Output)"
+        if (-not $createResult.Success) {
+            return @{
+                Success = $false
+                Output = "Failed to create script file: $($createResult.Output)"
+                Error = "Script creation failed"
+                Method = "SSH"
+            }
         }
         
-        # Make script executable
-        $chmodResult = Invoke-WSLSSHCommand -Command "chmod +x $remoteScriptPath" -User $User -ContainerHost $ContainerHost -Port $Port
+        # Execute the script with proper environment
+        $executeCommand = "cd /home/$UserName && export HOME=/home/$UserName && export USER=$UserName && export SHELL=/bin/bash && $scriptFile"
+        $result = Invoke-WSLSSHCommand -Command $executeCommand -HostName $HostName -UserName $UserName -Port $Port
         
-        if (-not $chmodResult.Success) {
-            throw "Failed to make script executable: $($chmodResult.Output)"
-        }
-        
-        # Execute the script
-        $executeResult = Invoke-WSLSSHCommand -Command "$ScriptType $remoteScriptPath" -User $User -ContainerHost $ContainerHost -Port $Port
-        
-        # Clean up remote script
-        Invoke-WSLSSHCommand -Command "rm -f $remoteScriptPath" -User $User -ContainerHost $ContainerHost -Port $Port | Out-Null
-        
-        # Clean up local script
-        Remove-Item -Path $localScriptPath -Force -ErrorAction SilentlyContinue
-        
-        return $executeResult
-    }
-    catch {
-        # Clean up on error
-        Remove-Item -Path $localScriptPath -Force -ErrorAction SilentlyContinue
+        # Clean up the script file
+        Invoke-WSLSSHCommand -Command "rm -f $scriptFile" -HostName $HostName -UserName $UserName -Port $Port | Out-Null
         
         return @{
-            Success = $false
-            ExitCode = -1
-            Output = $_.Exception.Message
+            Success = $result.Success
+            Output = $result.Output
+            Error = $result.Error
             Method = "SSH"
-            Error = $_.Exception
+            ExitCode = $result.ExitCode
+        }
+    }
+    catch {
+        return @{
+            Success = $false
+            Output = ""
+            Error = $_.Exception.Message
+            Method = "SSH"
         }
     }
 }

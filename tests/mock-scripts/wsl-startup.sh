@@ -115,7 +115,23 @@ start_services() {
     # Start SSH service if available
     if command -v sshd >/dev/null 2>&1; then
         log "Starting SSH service..."
-        service ssh start || log "Warning: Could not start SSH service"
+        # Ensure SSH directory exists
+        mkdir -p /var/run/sshd
+        
+        # Start SSH service
+        if service ssh start; then
+            log "SSH service started successfully"
+            # Verify SSH is listening
+            if netstat -tlnp 2>/dev/null | grep -q ':22 '; then
+                log "SSH is listening on port 22"
+            else
+                log "Warning: SSH service started but not listening on port 22"
+            fi
+        else
+            log "Warning: Could not start SSH service"
+        fi
+    else
+        log "Warning: SSH daemon not available"
     fi
     
     # Start cron service if available

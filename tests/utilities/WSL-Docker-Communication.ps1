@@ -43,14 +43,17 @@ function Invoke-WSLDockerCommand {
     )
     
     try {
-        # Build the docker exec command
+        # Set basic environment variables for the command
+        $envCommand = "export HOME=/home/$User USER=$User SHELL=/bin/bash PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; $Command"
+        
+        # Build the docker exec command with basic bash shell
         $dockerArgs = @(
             "exec"
             "-i"
             "--user", $User
             "--workdir", $WorkingDirectory
             $ContainerName
-            "bash", "-c", $Command
+            "bash", "-c", $envCommand
         )
         
         Write-Verbose "Executing: docker $($dockerArgs -join ' ')"
@@ -191,74 +194,86 @@ pwd
 Invoke-WSLDockerScript -ScriptContent $script
 #>
 function Invoke-WSLDockerScript {
-    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$ScriptContent,
         
         [Parameter(Mandatory = $false)]
-        [string]$User = "testuser",
+        [string]$ContainerName = "wmr-wsl-mock",
         
         [Parameter(Mandatory = $false)]
-        [string]$ContainerName = "wmr-wsl-mock"
+        [string]$ScriptType = "bash"
     )
     
     try {
         # Create a temporary script file in the container
-        $scriptFileName = "temp_script_$(Get-Random).sh"
-        $scriptPath = "/tmp/$scriptFileName"
+        $scriptFile = "/tmp/script-$(Get-Random).sh"
         
-        # Normalize line endings for Unix (LF only)
-        $normalizedScript = $ScriptContent -replace "`r`n", "`n" -replace "`r", "`n"
+        # Clean up the script content - remove Windows line endings and fix paths
+        $cleanContent = $ScriptContent -replace "`r`n", "`n" -replace "`r", "`n"
         
-        # Split script into lines and write each line separately to avoid quoting issues
-        $scriptLines = $normalizedScript -split "`n"
+        # Write the script content to the container using printf to handle line endings properly
+        $lines = $cleanContent -split "`n"
+        $createCommands = @()
         
-        # Create empty file first
-        $createResult = Invoke-WSLDockerCommand -Command "touch $scriptPath" -User $User -ContainerName $ContainerName
-        if (-not $createResult.Success) {
-            throw "Failed to create script file: $($createResult.Output)"
-        }
+        # Clear the file first
+        $createCommands += "printf '' > $scriptFile"
         
-        # Write each line to the file
-        foreach ($line in $scriptLines) {
+        # Add each line with proper line ending
+        foreach ($line in $lines) {
             if ($line.Trim() -ne "") {
-                # Escape single quotes in the line
-                $escapedLine = $line -replace "'", "'\'''"
-                $writeResult = Invoke-WSLDockerCommand -Command "echo '$escapedLine' >> $scriptPath" -User $User -ContainerName $ContainerName
-                if (-not $writeResult.Success) {
-                    throw "Failed to write line to script: $($writeResult.Output)"
-                }
+                $escapedLine = $line -replace '"', '\"' -replace '`', '\`' -replace '\$', '\\$'
+                $createCommands += "printf '%s\n' `"$escapedLine`" >> $scriptFile"
             } else {
-                # Write empty line
-                $writeResult = Invoke-WSLDockerCommand -Command "echo '' >> $scriptPath" -User $User -ContainerName $ContainerName
-                if (-not $writeResult.Success) {
-                    throw "Failed to write empty line to script: $($writeResult.Output)"
-                }
+                $createCommands += "printf '\n' >> $scriptFile"
             }
         }
         
-        # Make script executable
-        $chmodResult = Invoke-WSLDockerCommand -Command "chmod +x $scriptPath" -User $User -ContainerName $ContainerName
-        
-        if (-not $chmodResult.Success) {
-            throw "Failed to make script executable: $($chmodResult.Output)"
+        # Execute all create commands
+        $createScript = $createCommands -join " && "
+        $createResult = docker exec $ContainerName bash -c $createScript
+        if ($LASTEXITCODE -ne 0) {
+            return @{
+                Success = $false
+                Output = "Failed to create script file: $createResult"
+                Error = "Script creation failed"
+                Method = "Docker"
+            }
         }
         
-        # Execute the script
-        $executeResult = Invoke-WSLDockerCommand -Command "bash $scriptPath" -User $User -ContainerName $ContainerName
+        # Make the script executable
+        $chmodResult = docker exec $ContainerName chmod +x $scriptFile
+        if ($LASTEXITCODE -ne 0) {
+            return @{
+                Success = $false
+                Output = "Failed to make script executable: $chmodResult"
+                Error = "Chmod failed"
+                Method = "Docker"
+            }
+        }
         
-        # Clean up the temporary script
-        Invoke-WSLDockerCommand -Command "rm -f $scriptPath" -User $User -ContainerName $ContainerName | Out-Null
+        # Execute the script with proper environment
+        $executeCommand = "cd /home/testuser && export HOME=/home/testuser && export USER=testuser && export SHELL=/bin/bash && bash $scriptFile"
+        $result = docker exec $ContainerName bash -c $executeCommand
+        $exitCode = $LASTEXITCODE
         
-        return $executeResult
+        # Clean up the script file
+        docker exec $ContainerName rm -f $scriptFile | Out-Null
+        
+        return @{
+            Success = ($exitCode -eq 0)
+            Output = if ($result) { $result -join "`n" } else { "" }
+            Error = if ($exitCode -ne 0) { "Script execution failed with exit code $exitCode" } else { $null }
+            Method = "Docker"
+            ExitCode = $exitCode
+        }
     }
     catch {
         return @{
             Success = $false
-            ExitCode = -1
-            Output = $_.Exception.Message
-            Error = $_.Exception
+            Output = ""
+            Error = $_.Exception.Message
+            Method = "Docker"
         }
     }
 }
