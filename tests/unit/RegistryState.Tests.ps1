@@ -1,31 +1,24 @@
 # tests/unit/RegistryState.Tests.ps1
 
 BeforeAll {
-    # Determine script root path
-    $scriptRoot = if ($PSScriptRoot) { 
-        $PSScriptRoot 
-    } elseif ($MyInvocation.MyCommand.Path) {
-        Split-Path $MyInvocation.MyCommand.Path
-    } else {
-        "/workspace/tests/unit"
-    }
+    # Import test environment utilities
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    
+    # Get standardized test paths
+    $script:TestPaths = Get-TestPaths
     
     # Import registry mocking utilities first
-    . "$scriptRoot/../utilities/Registry-Mock.ps1"
+    . (Join-Path $PSScriptRoot "..\utilities\Registry-Mock.ps1")
     
     # Enable registry mocking for the test environment
     Enable-RegistryMocking
     
     # Directly source the registry state functions
-    . "$scriptRoot/../../Private/Core/RegistryState.ps1"
-    . "$scriptRoot/../../Private/Core/PathUtilities.ps1"
+    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\RegistryState.ps1")
+    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\PathUtilities.ps1")
     
-    # Setup a temporary directory for state files
-    $script:TempStateDir = if ($IsLinux) {
-        "/tmp/RegistryStateTests"
-    } else {
-        Join-Path $env:TEMP "RegistryStateTests"
-    }
+    # Use standardized temp directory for state files
+    $script:TempStateDir = Join-Path $script:TestPaths.Temp "RegistryStateTests"
     
     if (-not (Test-Path $script:TempStateDir -PathType Container)) {
         New-Item -ItemType Directory -Path $script:TempStateDir -Force | Out-Null
