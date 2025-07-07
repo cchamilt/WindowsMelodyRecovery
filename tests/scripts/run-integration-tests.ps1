@@ -254,12 +254,8 @@ try {
     Write-Host "=" * 60 -ForegroundColor Magenta
     Write-Host ""
     
-    # Prerequisites check
+    # Prerequisites check - centralized Docker management handles both Docker and Compose
     if (-not (Test-DockerAvailable)) {
-        exit 1
-    }
-    
-    if (-not (Test-DockerComposeAvailable)) {
         exit 1
     }
     
