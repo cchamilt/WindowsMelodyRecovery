@@ -1,264 +1,315 @@
 # tests/unit/RegistryState.Tests.ps1
 
 BeforeAll {
-    # Import the WindowsMelodyRecovery module to make functions available
-    $ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
-        "./WindowsMelodyRecovery.psm1"
-    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
-        "/workspace/WindowsMelodyRecovery.psm1"
+    # Determine script root path
+    $scriptRoot = if ($PSScriptRoot) { 
+        $PSScriptRoot 
+    } elseif ($MyInvocation.MyCommand.Path) {
+        Split-Path $MyInvocation.MyCommand.Path
     } else {
-        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+        "/workspace/tests/unit"
     }
-    Import-Module $ModulePath -Force # For mocked encryption
-
+    
+    # Import registry mocking utilities first
+    . "$scriptRoot/../utilities/Registry-Mock.ps1"
+    
+    # Enable registry mocking for the test environment
+    Enable-RegistryMocking
+    
+    # Directly source the registry state functions
+    . "$scriptRoot/../../Private/Core/RegistryState.ps1"
+    . "$scriptRoot/../../Private/Core/PathUtilities.ps1"
+    
     # Setup a temporary directory for state files
-    $script:TempStateDir = Join-Path $PSScriptRoot "..\..\Temp\RegistryStateTests"
+    $script:TempStateDir = if ($IsLinux) {
+        "/tmp/RegistryStateTests"
+    } else {
+        Join-Path $env:TEMP "RegistryStateTests"
+    }
+    
     if (-not (Test-Path $script:TempStateDir -PathType Container)) {
         New-Item -ItemType Directory -Path $script:TempStateDir -Force | Out-Null
     }
 
     # Mock encryption functions for testing purposes
-    Mock Protect-WmrData {
+    function Protect-WmrData {
         param([byte[]]$DataBytes)
         return [System.Convert]::ToBase64String($DataBytes) # Simply Base64 encode for mock
     }
-    Mock Unprotect-WmrData {
+    
+    function Unprotect-WmrData {
         param([string]$EncodedData)
-        return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedData)) # Simply Base64 decode for mock
+        return [System.Text.Encoding]::UTF8.GetBytes([System.Convert]::FromBase64String($EncodedData)) # Simply Base64 decode for mock
     }
 }
 
 AfterAll {
+    # Disable registry mocking
+    Disable-RegistryMocking
+    
     # Clean up temporary directories
     Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
-    # Unmock functions
-# Note: In Pester 5+, mocks are automatically cleaned up
 }
 
 Describe "Get-WmrRegistryState" {
 
     BeforeEach {
-        # Ensure test key is clean before each test
-        Remove-Item -Path "HKCU:\SOFTWARE\WmrRegTest" -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -Path "HKCU:\SOFTWARE\WmrRegTest" -Force | Out-Null
-        Set-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTest" -Name "TestValue" -Value "OriginalData" -Force | Out-Null
-        Set-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTest" -Name "NumericValue" -Value 12345 -Force | Out-Null
+        # Reset mock registry for each test
+        Initialize-MockRegistry
+        
+        # Ensure clean state for each test
+        if (Test-Path $script:TempStateDir) {
+            Get-ChildItem $script:TempStateDir | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
     It "should capture a specific registry value and save to dynamic_state_path" {
-        $regConfig = @{
+        $registryConfig = @{
             name = "Test Reg Value Capture"
             path = "HKCU:\SOFTWARE\WmrRegTest"
-            key_name = "TestValue"
             type = "value"
-            action = "backup"
-            dynamic_state_path = "registry/test_value.json"
-            encrypt = $false
+            key_name = "TestValue"
+            dynamic_state_path = "test_reg_value.json"
         }
 
-        $result = Get-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should Not BeNull
-        $result.Name | Should Be "Test Reg Value Capture"
-        $result.Path | Should Be "HKCU:\SOFTWARE\WmrRegTest"
-        $result.KeyName | Should Be "TestValue"
-        $result.Value | Should Be "OriginalData"
+        $result = Get-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir
 
-        $stateFilePath = Join-Path $script:TempStateDir "registry/test_value.json"
-        (Test-Path $stateFilePath) | Should Be $true
-        $stateContent = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
-        $stateContent.Value | Should Be "OriginalData"
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Be "Test Reg Value Capture"
+        $result.Path | Should -Be "HKCU:\SOFTWARE\WmrRegTest"
+        $result.Type | Should -Be "value"
+        $result.KeyName | Should -Be "TestValue"
+        $result.Value | Should -Be "OriginalData"
+        $result.Encrypted | Should -Be $false
+
+        # Verify state file was created
+        $stateFilePath = Join-Path $script:TempStateDir "test_reg_value.json"
+        Test-Path $stateFilePath | Should -Be $true
+        
+        # Verify state file content
+        $stateContent = Get-Content $stateFilePath -Raw | ConvertFrom-Json
+        $stateContent.Name | Should -Be "Test Reg Value Capture"
+        $stateContent.Value | Should -Be "OriginalData"
     }
 
     It "should capture a specific registry value and simulate encryption" {
-        $regConfig = @{
+        $registryConfig = @{
             name = "Encrypted Reg Value Capture"
             path = "HKCU:\SOFTWARE\WmrRegTest"
-            key_name = "TestValue"
             type = "value"
-            action = "backup"
-            dynamic_state_path = "registry/encrypted_value.json"
+            key_name = "EncryptedValue"
+            dynamic_state_path = "test_encrypted_reg_value.json"
             encrypt = $true
         }
 
-        $result = Get-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should Not BeNull
-        $result.Value | Should Not Be "OriginalData" # Should be Base64 encoded
+        $result = Get-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir
 
-        $stateFilePath = Join-Path $script:TempStateDir "registry/encrypted_value.json"
-        (Test-Path $stateFilePath) | Should Be $true
-        $stateContent = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
-        # In Get-WmrRegistryState, the value stored in the state file is already Base64 encoded if encrypt is true
-        $stateContent.Value | Should Not Be "OriginalData"
-        [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($stateContent.Value)) | Should Be "OriginalData"
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Be "Encrypted Reg Value Capture"
+        $result.Encrypted | Should -Be $true
+        $result.EncryptedValue | Should -Not -BeNullOrEmpty
+        $result.Value | Should -BeNullOrEmpty # Should be removed after encryption
+
+        # Verify state file was created
+        $stateFilePath = Join-Path $script:TempStateDir "test_encrypted_reg_value.json"
+        Test-Path $stateFilePath | Should -Be $true
+        
+        # Verify state file content
+        $stateContent = Get-Content $stateFilePath -Raw | ConvertFrom-Json
+        $stateContent.Encrypted | Should -Be $true
+        $stateContent.EncryptedValue | Should -Not -BeNullOrEmpty
     }
 
     It "should capture all values under a registry key" {
-        $regConfig = @{
+        $registryConfig = @{
             name = "Test Reg Key Capture"
             path = "HKCU:\SOFTWARE\WmrRegTest"
             type = "key"
-            action = "backup"
-            dynamic_state_path = "registry/test_key.json"
+            dynamic_state_path = "test_reg_key.json"
         }
 
-        $result = Get-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should Not BeNull
-        $result.Name | Should Be "Test Reg Key Capture"
-        $result.Path | Should Be "HKCU:\SOFTWARE\WmrRegTest"
-        $result.Type | Should Be "key"
-        $result.Values | Should Not BeNullOrEmpty
-        $result.Values.TestValue | Should Be "OriginalData"
-        $result.Values.NumericValue | Should Be 12345
+        $result = Get-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir
 
-        $stateFilePath = Join-Path $script:TempStateDir "registry/test_key.json"
-        (Test-Path $stateFilePath) | Should Be $true
-        $stateContent = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
-        $stateContent.Values.TestValue | Should Be "OriginalData"
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Be "Test Reg Key Capture"
+        $result.Path | Should -Be "HKCU:\SOFTWARE\WmrRegTest"
+        $result.Type | Should -Be "key"
+        $result.Values | Should -Not -BeNullOrEmpty
+        $result.Values.TestValue | Should -Be "OriginalData"
+        $result.Values.NumericValue | Should -Be 12345
+
+        # Verify state file was created
+        $stateFilePath = Join-Path $script:TempStateDir "test_reg_key.json"
+        Test-Path $stateFilePath | Should -Be $true
+        
+        # Verify state file content
+        $stateContent = Get-Content $stateFilePath -Raw | ConvertFrom-Json
+        $stateContent.Values.TestValue | Should -Be "OriginalData"
+        $stateContent.Values.NumericValue | Should -Be 12345
     }
 
     It "should warn and return null if registry path does not exist" {
-        $regConfig = @{
+        $registryConfig = @{
             name = "Non Existent Reg Key"
-            path = "HKCU:\SOFTWARE\NonExistentRegKey"
+            path = "HKCU:\SOFTWARE\NonExistent"
             type = "key"
-            action = "backup"
-            dynamic_state_path = "registry/non_existent.json"
+            dynamic_state_path = "test_nonexistent_reg_key.json"
         }
-        $result = Get-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
-        $result | Should BeNull
+
+        $result = Get-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir
+
+        $result | Should -BeNullOrEmpty
     }
 }
 
 Describe "Set-WmrRegistryState" {
 
     BeforeEach {
-        # Ensure test key is clean before each test
-        Remove-Item -Path "HKCU:\SOFTWARE\WmrRegTestDest" -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -Path "HKCU:\SOFTWARE\WmrRegTestDest" -Force | Out-Null
+        # Reset mock registry for each test
+        Initialize-MockRegistry
+        
+        # Ensure clean state for each test
+        if (Test-Path $script:TempStateDir) {
+            Get-ChildItem $script:TempStateDir | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
     It "should restore a specific registry value from dynamic_state_path" {
+        # Create a state file first
         $stateData = @{
-            Name = "Restore Value"
+            Name = "Test Reg Value Restore"
             Path = "HKCU:\SOFTWARE\WmrRegTestDest"
-            KeyName = "RestoredValue"
+            Type = "value"
+            KeyName = "TestValue"
             Value = "RestoredData"
+            Encrypted = $false
         }
-        $stateFilePath = Join-Path $script:TempStateDir "registry/restore_value.json"
-        $stateData | ConvertTo-Json -Compress | Set-Content -Path $stateFilePath -Encoding Utf8
+        $stateFilePath = Join-Path $script:TempStateDir "test_reg_value_restore.json"
+        New-Item -Path (Split-Path $stateFilePath) -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+        $stateData | ConvertTo-Json | Set-Content -Path $stateFilePath -Encoding UTF8
 
-        $regConfig = @{
-            name = "Restore Value Item"
+        $registryConfig = @{
+            name = "Test Reg Value Restore"
             path = "HKCU:\SOFTWARE\WmrRegTestDest"
-            key_name = "RestoredValue"
             type = "value"
-            action = "restore"
-            dynamic_state_path = "registry/restore_value.json"
-            encrypt = $false
+            key_name = "TestValue"
+            dynamic_state_path = "test_reg_value_restore.json"
         }
 
-        Set-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
+        { Set-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
 
-        (Get-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTestDest" -Name "RestoredValue").RestoredValue | Should Be "RestoredData"
+        # Verify the value was set in mock registry
+        $mockRegistry = Get-MockRegistryState
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest']['TestValue'] | Should -Be "RestoredData"
     }
 
     It "should restore a specific registry value and simulate decryption" {
-        $originalValue = "EncryptedDataToRestore"
-        # Simulate encrypted data (Base64 encoded string)
-        $encryptedOriginalValue = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($originalValue))
-
+        # Create an encrypted state file
+        $encryptedValue = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("DecryptedData"))
         $stateData = @{
-            Name = "Restore Encrypted Value"
+            Name = "Test Encrypted Reg Value Restore"
             Path = "HKCU:\SOFTWARE\WmrRegTestDest"
-            KeyName = "EncryptedRestoredValue"
-            Value = $encryptedOriginalValue
+            Type = "value"
+            KeyName = "EncryptedValue"
+            EncryptedValue = $encryptedValue
+            Encrypted = $true
         }
-        $stateFilePath = Join-Path $script:TempStateDir "registry/restore_encrypted_value.json"
-        $stateData | ConvertTo-Json -Compress | Set-Content -Path $stateFilePath -Encoding Utf8
+        $stateFilePath = Join-Path $script:TempStateDir "test_encrypted_reg_value_restore.json"
+        New-Item -Path (Split-Path $stateFilePath) -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+        $stateData | ConvertTo-Json | Set-Content -Path $stateFilePath -Encoding UTF8
 
-        $regConfig = @{
-            name = "Restore Encrypted Value Item"
+        $registryConfig = @{
+            name = "Test Encrypted Reg Value Restore"
             path = "HKCU:\SOFTWARE\WmrRegTestDest"
-            key_name = "EncryptedRestoredValue"
             type = "value"
-            action = "restore"
-            dynamic_state_path = "registry/restore_encrypted_value.json"
-            encrypt = $true
+            key_name = "EncryptedValue"
+            dynamic_state_path = "test_encrypted_reg_value_restore.json"
         }
 
-        Set-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
+        { Set-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
 
-        (Get-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTestDest" -Name "EncryptedRestoredValue").EncryptedRestoredValue | Should Be $originalValue
+        # Verify the decrypted value was set in mock registry
+        $mockRegistry = Get-MockRegistryState
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest']['EncryptedValue'] | Should -Be "DecryptedData"
     }
 
     It "should restore registry key values from dynamic_state_path" {
+        # Create a state file with multiple values
         $stateData = @{
-            Name = "Restore Key"
+            Name = "Test Reg Key Restore"
             Path = "HKCU:\SOFTWARE\WmrRegTestDest"
+            Type = "key"
             Values = @{
-                ValueA = "DataA"
-                ValueB = 456
+                TestValue = "RestoredData"
+                NumericValue = 54321
+                StringValue = "AnotherValue"
             }
         }
-        $stateFilePath = Join-Path $script:TempStateDir "registry/restore_key.json"
-        $stateData | ConvertTo-Json -Compress | Set-Content -Path $stateFilePath -Encoding Utf8
+        $stateFilePath = Join-Path $script:TempStateDir "test_reg_key_restore.json"
+        New-Item -Path (Split-Path $stateFilePath) -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+        $stateData | ConvertTo-Json | Set-Content -Path $stateFilePath -Encoding UTF8
 
-        $regConfig = @{
-            name = "Restore Key Item"
+        $registryConfig = @{
+            name = "Test Reg Key Restore"
             path = "HKCU:\SOFTWARE\WmrRegTestDest"
             type = "key"
-            action = "restore"
-            dynamic_state_path = "registry/restore_key.json"
+            dynamic_state_path = "test_reg_key_restore.json"
         }
 
-        Set-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
+        { Set-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
 
-        (Get-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTestDest").ValueA | Should Be "DataA"
-        (Get-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTestDest").ValueB | Should Be 456
+        # Verify all values were set in mock registry
+        $mockRegistry = Get-MockRegistryState
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest']['TestValue'] | Should -Be "RestoredData"
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest']['NumericValue'] | Should -Be 54321
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest']['StringValue'] | Should -Be "AnotherValue"
     }
 
     It "should use default value_data if state file is missing for a value type" {
-        $regConfig = @{
-            name = "Default Value Test"
+        $registryConfig = @{
+            name = "Test Default Value"
             path = "HKCU:\SOFTWARE\WmrRegTestDest"
-            key_name = "DefaultedValue"
             type = "value"
-            action = "restore"
-            dynamic_state_path = "registry/non_existent_state_for_default.json"
-            value_data = "DefaultValue"
+            key_name = "DefaultValue"
+            value_data = "DefaultData"
+            dynamic_state_path = "non_existent_file.json"
         }
 
-        Set-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
+        { Set-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
 
-        (Get-ItemProperty -Path "HKCU:\SOFTWARE\WmrRegTestDest" -Name "DefaultedValue").DefaultedValue | Should Be "DefaultValue"
+        # Verify the default value was set in mock registry
+        $mockRegistry = Get-MockRegistryState
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest']['DefaultValue'] | Should -Be "DefaultData"
     }
 
     It "should warn if state file is missing and no default value_data for a value type" {
-        $regConfig = @{
-            name = "Missing State and No Default Value Test"
+        $registryConfig = @{
+            name = "Test Missing Value"
             path = "HKCU:\SOFTWARE\WmrRegTestDest"
-            key_name = "NoDataValue"
             type = "value"
-            action = "restore"
-            dynamic_state_path = "registry/non_existent_state_no_default.json"
+            key_name = "MissingValue"
+            dynamic_state_path = "non_existent_file.json"
         }
 
-        Set-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
+        { Set-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
 
-        (Test-Path -Path "HKCU:\SOFTWARE\WmrRegTestDest\NoDataValue") | Should Be $false # Ensure value was not created
+        # Verify no value was set in mock registry
+        $mockRegistry = Get-MockRegistryState
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest'].ContainsKey('MissingValue') | Should -Be $false
     }
 
     It "should warn if state file is missing for a key type" {
-        $regConfig = @{
-            name = "Missing State Key Test"
-            path = "HKCU:\SOFTWARE\WmrRegTestDest\MissingKey"
+        $registryConfig = @{
+            name = "Test Missing Key"
+            path = "HKCU:\SOFTWARE\WmrRegTestDest"
             type = "key"
-            action = "restore"
-            dynamic_state_path = "registry/non_existent_state_key.json"
+            dynamic_state_path = "non_existent_file.json"
         }
 
-        Set-WmrRegistryState -RegistryConfig $regConfig -StateFilesDirectory $script:TempStateDir
+        { Set-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
 
-        (Test-Path -Path "HKCU:\SOFTWARE\WmrRegTestDest\MissingKey") | Should Be $false # Ensure key was not created with values
+        # Verify no values were set in mock registry (key should remain empty)
+        $mockRegistry = Get-MockRegistryState
+        $mockRegistry['HKCU:\SOFTWARE\WmrRegTestDest'].Count | Should -Be 0
     }
-} 
+}

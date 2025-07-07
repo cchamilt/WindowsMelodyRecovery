@@ -397,11 +397,13 @@ if ($script:LoadedCoreFunctions) {
 }
 
 # After collecting all functions to export, add Template and EncryptionUtilities functions explicitly
+$AllFunctionsToExport = @()
+$AllFunctionsToExport += $AllFunctions
 $AllFunctionsToExport += 'Read-WmrTemplateConfig','Test-WmrTemplateSchema','Protect-WmrData','Unprotect-WmrData','Get-WmrEncryptionKey','Clear-WmrEncryptionCache','Test-WmrEncryption'
 
 # Only export functions that actually exist
 $ExistingFunctions = @()
-$AllFunctions | ForEach-Object {
+$AllFunctionsToExport | ForEach-Object {
     if (Get-Command $_ -ErrorAction SilentlyContinue) {
         $ExistingFunctions += $_
     } else {
@@ -560,4 +562,4 @@ if ($script:ModuleInitialized) {
         Export-ModuleMember -Function $UniqueFunctions
         Write-Verbose "Exported $($UniqueFunctions.Count) functions."
     }
-} 
+}
