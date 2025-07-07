@@ -43,15 +43,13 @@ function Get-MockItemProperty {
     .SYNOPSIS
     Mock implementation of Get-ItemProperty for registry testing
     #>
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
         
         [Parameter(Mandatory = $false)]
-        [string]$Name,
-        
-        [Parameter(Mandatory = $false)]
-        [string]$ErrorAction = "Continue"
+        [string]$Name
     )
     
     # Initialize mock registry if not already done
@@ -64,10 +62,11 @@ function Get-MockItemProperty {
     
     # Check if the registry key exists
     if (-not $script:MockRegistry.ContainsKey($normalizedPath)) {
-        if ($ErrorAction -eq "Stop") {
-            throw "Registry key not found: $Path"
+        $errorMessage = "Registry key not found: $Path"
+        if ($ErrorActionPreference -eq "Stop") {
+            throw $errorMessage
         } else {
-            Write-Warning "Registry key not found: $Path"
+            Write-Warning $errorMessage
             return $null
         }
     }
@@ -79,10 +78,11 @@ function Get-MockItemProperty {
         if ($keyData.ContainsKey($Name)) {
             return @{ $Name = $keyData[$Name] }
         } else {
-            if ($ErrorAction -eq "Stop") {
-                throw "Registry value not found: $Path\$Name"
+            $errorMessage = "Registry value not found: $Path\$Name"
+            if ($ErrorActionPreference -eq "Stop") {
+                throw $errorMessage
             } else {
-                Write-Warning "Registry value not found: $Path\$Name"
+                Write-Warning $errorMessage
                 return $null
             }
         }
@@ -101,6 +101,7 @@ function Set-MockItemProperty {
     .SYNOPSIS
     Mock implementation of Set-ItemProperty for registry testing
     #>
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -112,10 +113,7 @@ function Set-MockItemProperty {
         [object]$Value,
         
         [Parameter(Mandatory = $false)]
-        [switch]$Force,
-        
-        [Parameter(Mandatory = $false)]
-        [string]$ErrorAction = "Continue"
+        [switch]$Force
     )
     
     # Initialize mock registry if not already done
@@ -143,6 +141,7 @@ function Test-MockPath {
     .SYNOPSIS
     Mock implementation of Test-Path for registry testing
     #>
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -170,6 +169,7 @@ function New-MockItem {
     .SYNOPSIS
     Mock implementation of New-Item for registry testing
     #>
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -205,6 +205,7 @@ function Remove-MockItem {
     .SYNOPSIS
     Mock implementation of Remove-Item for registry testing
     #>
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -213,10 +214,7 @@ function Remove-MockItem {
         [switch]$Recurse,
         
         [Parameter(Mandatory = $false)]
-        [switch]$Force,
-        
-        [Parameter(Mandatory = $false)]
-        [string]$ErrorAction = "Continue"
+        [switch]$Force
     )
     
     # For registry paths, remove from mock registry
