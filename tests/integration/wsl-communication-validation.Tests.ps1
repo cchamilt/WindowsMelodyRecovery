@@ -192,4 +192,4 @@ echo "Package operations completed"
             $result.Output | Should -Match "Package operations completed"
         }
     }
-} 
+}

@@ -9,29 +9,6 @@ log() {
     echo "[WSL-STARTUP] $(date '+%Y-%m-%d %H:%M:%S') - $*"
 }
 
-# Function to check if service is ready
-wait_for_service() {
-    local service_name="$1"
-    local max_attempts=30
-    local attempt=1
-    
-    log "Waiting for $service_name to be ready..."
-    
-    while [ $attempt -le $max_attempts ]; do
-        if systemctl is-active --quiet "$service_name" 2>/dev/null || pgrep -f "$service_name" >/dev/null 2>&1; then
-            log "$service_name is ready"
-            return 0
-        fi
-        
-        log "Attempt $attempt/$max_attempts: $service_name not ready yet, waiting..."
-        sleep 2
-        attempt=$((attempt + 1))
-    done
-    
-    log "Warning: $service_name may not be fully ready after $max_attempts attempts"
-    return 1
-}
-
 # Function to initialize user environment
 init_user_environment() {
     log "Initializing user environment for testuser..."
@@ -88,56 +65,20 @@ EOF
     log "User environment initialization complete"
 }
 
-# Function to verify development tools
-verify_development_tools() {
-    log "Verifying development tools..."
+# Function to start SSH daemon
+start_sshd() {
+    log "Starting SSH daemon..."
     
-    local tools=("python3" "node" "git" "chezmoi" "apt" "pip3" "npm")
-    local missing_tools=()
+    # Ensure SSH directory exists
+    mkdir -p /var/run/sshd
     
-    for tool in "${tools[@]}"; do
-        if ! command -v "$tool" >/dev/null 2>&1; then
-            missing_tools+=("$tool")
-        fi
-    done
-    
-    if [ ${#missing_tools[@]} -eq 0 ]; then
-        log "All development tools are available"
-    else
-        log "Warning: Missing tools: ${missing_tools[*]}"
-    fi
-}
-
-# Function to start required services
-start_services() {
-    log "Starting required services..."
-    
-    # Start SSH service if available
+    # Start SSH daemon directly
     if command -v sshd >/dev/null 2>&1; then
-        log "Starting SSH service..."
-        # Ensure SSH directory exists
-        mkdir -p /var/run/sshd
-        
-        # Start SSH service
-        if service ssh start; then
-            log "SSH service started successfully"
-            # Verify SSH is listening
-            if netstat -tlnp 2>/dev/null | grep -q ':22 '; then
-                log "SSH is listening on port 22"
-            else
-                log "Warning: SSH service started but not listening on port 22"
-            fi
-        else
-            log "Warning: Could not start SSH service"
-        fi
+        log "Starting sshd daemon..."
+        /usr/sbin/sshd -D &
+        log "SSH daemon started in background"
     else
         log "Warning: SSH daemon not available"
-    fi
-    
-    # Start cron service if available
-    if command -v cron >/dev/null 2>&1; then
-        log "Starting cron service..."
-        service cron start || log "Warning: Could not start cron service"
     fi
 }
 
@@ -196,14 +137,11 @@ main() {
     # Initialize user environment
     init_user_environment
     
-    # Start required services
-    start_services
+    # Start SSH daemon
+    start_sshd
     
     # Create test directories
     create_test_directories
-    
-    # Verify development tools
-    verify_development_tools
     
     # Verify container health
     if ! verify_container_health; then
@@ -220,4 +158,4 @@ main() {
 }
 
 # Run main function
-main "$@" 
+main "$@"
