@@ -365,35 +365,17 @@ echo "Package restore simulation completed"
     
     Context "Package Synchronization and Cross-Platform Management" {
         It "Should detect package manager differences" {
-            $syncScript = @"
-#!/bin/bash
-echo "Analyzing package manager states..."
-
-# Count packages by manager
-apt_count=`$(dpkg --get-selections | grep -c install)
-pip_count=`$(pip3 list | wc -l)
-npm_count=`$(npm list -g --depth=0 --json 2>/dev/null | jq '.dependencies | length' 2>/dev/null || echo "0")
-
-echo "APT packages: `$apt_count"
-echo "PIP packages: `$pip_count"  
-echo "NPM packages: `$npm_count"
-
-# Check for common development packages
-echo "Checking for common development packages..."
-for pkg in git curl wget vim python3 nodejs npm; do
-    if command -v `$pkg >/dev/null 2>&1; then
-        echo "  `${pkg}: installed"
-    else
-        echo "  `${pkg}: missing"
-    fi
-done
-"@
+            $aptResult = Invoke-WSLDockerCommand -Command "dpkg --get-selections | grep -c install" -ContainerName $script:ContainerName
+            $aptResult.Success | Should -Be $true
+            [int]$aptResult.Output.Trim() | Should -BeGreaterThan 50
             
-            $result = Invoke-WSLDockerScript -ScriptContent $syncScript -ContainerName $script:ContainerName
-            $result.Success | Should -Be $true
-            $result.Output | Should -Match "APT packages: \d+"
-            $result.Output | Should -Match "PIP packages: \d+"
-            $result.Output | Should -Match "git: installed"
+            $pipResult = Invoke-WSLDockerCommand -Command "pip3 list | wc -l" -ContainerName $script:ContainerName
+            $pipResult.Success | Should -Be $true
+            [int]$pipResult.Output.Trim() | Should -BeGreaterThan 0
+            
+            $gitResult = Invoke-WSLDockerCommand -Command "command -v git" -ContainerName $script:ContainerName
+            $gitResult.Success | Should -Be $true
+            $gitResult.Output | Should -Match "/usr/bin/git"
         }
         
         It "Should handle package installation from backup data" {

@@ -106,16 +106,31 @@ function Test-WSLDockerConnectivity {
         
         if ($result.Success -and $result.Output -match "CONNECTIVITY_TEST_PASSED") {
             Write-Verbose "WSL Docker connectivity test passed"
-            return $true
+            return @{
+                Success = $true
+                Error = $null
+                Output = $result.Output
+                Method = "Docker"
+            }
         }
         else {
             Write-Warning "WSL Docker connectivity test failed: $($result.Output)"
-            return $false
+            return @{
+                Success = $false
+                Error = "Connectivity test failed: $($result.Output)"
+                Output = $result.Output
+                Method = "Docker"
+            }
         }
     }
     catch {
         Write-Warning "WSL Docker connectivity test error: $($_.Exception.Message)"
-        return $false
+        return @{
+            Success = $false
+            Error = $_.Exception.Message
+            Output = ""
+            Method = "Docker"
+        }
     }
 }
 
