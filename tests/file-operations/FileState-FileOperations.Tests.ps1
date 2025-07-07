@@ -37,7 +37,7 @@ BeforeAll {
     # Function to safely remove items
     function Remove-TestItems {
         param([string]$Path)
-        if (Test-Path $Path -and (Test-SafeTestPath $Path)) {
+        if ((Test-Path $Path) -and (Test-SafeTestPath $Path)) {
             Remove-Item -Path $Path -Force -Recurse -ErrorAction SilentlyContinue -Confirm:$false
         }
     }
@@ -84,7 +84,7 @@ Describe "Get-WmrFileState - File Type" {
 
     BeforeEach {
         # Clean up test files before each test
-        Get-ChildItem -Path $script:SourceDir -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path $script:SourceDir -Recurse | Remove-Item -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
     }
 
     It "should capture file content and metadata and save to dynamic_state_path" {
@@ -154,7 +154,7 @@ Describe "Get-WmrFileState - File Type" {
 Describe "Get-WmrFileState - Directory Type" {
     BeforeEach {
         # Clean up test directories before each test
-        Get-ChildItem -Path $script:SourceDir -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path $script:SourceDir -Recurse | Remove-Item -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
     }
 
     It "should capture directory metadata and save to dynamic_state_path" {
