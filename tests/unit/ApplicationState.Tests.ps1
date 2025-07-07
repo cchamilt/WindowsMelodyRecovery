@@ -1,21 +1,21 @@
 # tests/unit/ApplicationState.Tests.ps1
 
 BeforeAll {
+    # Import test environment utilities
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    
+    # Get standardized test paths
+    $script:TestPaths = Get-TestPaths
+    
     # Import the WindowsMelodyRecovery module to make functions available
-    $ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
-        "./WindowsMelodyRecovery.psm1"
-    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
-        "/workspace/WindowsMelodyRecovery.psm1"
-    } else {
-        throw "Cannot find WindowsMelodyRecovery.psm1 module"
-    }
+    $ModulePath = Join-Path $script:TestPaths.ModuleRoot "WindowsMelodyRecovery.psm1"
     Import-Module $ModulePath -Force
 
     # Dot-source ApplicationState.ps1 to ensure all functions are available
-    . "$PSScriptRoot/../../Private/Core/ApplicationState.ps1"
+    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\ApplicationState.ps1")
 
-    # Setup a temporary directory for state files
-    $script:TempStateDir = Join-Path $PSScriptRoot "..\..\Temp\ApplicationStateTests"
+    # Use standardized temp directory for state files
+    $script:TempStateDir = Join-Path $script:TestPaths.Temp "ApplicationStateTests"
     if (-not (Test-Path $script:TempStateDir -PathType Container)) {
         New-Item -ItemType Directory -Path $script:TempStateDir -Force | Out-Null
     }
@@ -83,8 +83,8 @@ foreach (`$app in `$apps) {
 }
 
 AfterAll {
-    # Clean up temporary directories
-    if ($script:TempStateDir) {
+    # Clean up temporary directories safely
+    if ($script:TempStateDir -and (Test-SafeTestPath $script:TempStateDir)) {
         Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 }

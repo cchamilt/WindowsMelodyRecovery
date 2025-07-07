@@ -3,43 +3,44 @@
 # Disable confirmation prompts
 $ConfirmPreference = 'None'
 
-# Import test setup
-. "$PSScriptRoot/../utilities/PesterSetup.ps1"
-$config = Initialize-WmrTestEnvironment
-
 BeforeAll {
-    # Import required modules and set up test environment
-    $script:modulePath = Resolve-Path "$PSScriptRoot/../../"
+    # Import test environment utilities
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    
+    # Get standardized test paths
+    $script:TestPaths = Get-TestPaths
     
     # Import core files directly for unit testing
-    . "$script:modulePath/Private/Core/FileState.ps1"
-    . "$script:modulePath/Private/Core/PathUtilities.ps1"
-    . "$script:modulePath/Private/Core/EncryptionUtilities.ps1"
-    . "$PSScriptRoot/../utilities/TestHelper.ps1"
-    . "$PSScriptRoot/../utilities/EncryptionTestHelper.ps1"
+    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\FileState.ps1")
+    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\PathUtilities.ps1")
+    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\EncryptionUtilities.ps1")
+    
+    # Import test utilities if they exist
+    $testHelperPath = Join-Path $PSScriptRoot "..\utilities\TestHelper.ps1"
+    if (Test-Path $testHelperPath) {
+        . $testHelperPath
+    }
+    
+    $encryptionHelperPath = Join-Path $PSScriptRoot "..\utilities\EncryptionTestHelper.ps1"
+    if (Test-Path $encryptionHelperPath) {
+        . $encryptionHelperPath
+    }
 
-    # Initialize TestDrive paths
-    $script:testStateDir = Join-Path -Path "TestDrive:" -ChildPath "state"
-    $script:testDataDir = Join-Path -Path "TestDrive:" -ChildPath "data"
-    $script:SourceDir = Join-Path -Path "TestDrive:" -ChildPath "source"
-    $script:DestDir = Join-Path -Path "TestDrive:" -ChildPath "dest"
-    $script:TempStateDir = Join-Path -Path "TestDrive:" -ChildPath "temp_state"
+    # Use standardized test directories
+    $script:testStateDir = Join-Path $script:TestPaths.TestRestore "state"
+    $script:testDataDir = Join-Path $script:TestPaths.TestRestore "data"
+    $script:SourceDir = Join-Path $script:TestPaths.TestRestore "source"
+    $script:DestDir = Join-Path $script:TestPaths.TestRestore "dest"
+    $script:TempStateDir = Join-Path $script:TestPaths.Temp "FileStateTests"
     $script:testPassphrase = ConvertTo-SecureString -String "TestPassphrase123!" -AsPlainText -Force
 
     # Function to safely remove items
     function Remove-TestItems {
         param([string]$Path)
-        if (Test-Path $Path) {
+        if (Test-Path $Path -and (Test-SafeTestPath $Path)) {
             Remove-Item -Path $Path -Force -Recurse -ErrorAction SilentlyContinue -Confirm:$false
         }
     }
-
-    # Clean up any existing test directories
-    Remove-TestItems -Path $script:testStateDir -Recurse -Force
-    Remove-TestItems -Path $script:testDataDir -Recurse -Force
-    Remove-TestItems -Path $script:SourceDir -Recurse -Force
-    Remove-TestItems -Path $script:DestDir -Recurse -Force
-    Remove-TestItems -Path $script:TempStateDir -Recurse -Force
 
     # Create fresh test directories
     New-Item -ItemType Directory -Path $script:testStateDir -Force | Out-Null
@@ -73,8 +74,10 @@ BeforeAll {
 }
 
 AfterAll {
-    # Clean up temporary directories
-    Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
+    # Clean up temporary directories safely
+    if ($script:TempStateDir -and (Test-SafeTestPath $script:TempStateDir)) {
+        Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 Describe "Get-WmrFileState - File Type" {

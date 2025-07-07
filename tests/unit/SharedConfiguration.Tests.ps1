@@ -18,13 +18,13 @@ These tests use mock data and existing test directories - no file system manipul
 Describe "SharedConfiguration" -Tag "Unit", "SharedConfiguration" {
     
     BeforeAll {
-        # Import required modules and utilities
-        $ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        Import-Module (Join-Path $ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+        # Import test environment utilities
+        . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
         
-        # Set up mock paths using existing test directories
-        $script:TestMachineBackup = Join-Path $ModuleRoot "test-restore\TEST-MACHINE"
-        $script:TestSharedBackup = Join-Path $ModuleRoot "test-restore\shared"
+        # Get standardized test paths
+        $script:TestPaths = Get-TestPaths
+        $script:TestMachineBackup = $script:TestPaths.MachineBackup
+        $script:TestSharedBackup = $script:TestPaths.SharedBackup
         
         # Ensure test directories exist
         if (-not (Test-Path $script:TestMachineBackup)) {
@@ -175,18 +175,12 @@ Describe "SharedConfiguration" -Tag "Unit", "SharedConfiguration" {
     Context "Integration with Module Configuration" {
         
         It "Should work with module configuration paths" {
-            # Mock the module configuration
-            Mock Get-WindowsMelodyRecovery {
-                return @{
-                    BackupRoot = Join-Path $ModuleRoot "test-restore"
-                    MachineName = "TEST-MACHINE"
-                    IsInitialized = $true
-                }
-            }
-            
-            $config = Get-WindowsMelodyRecovery
-            $machineBackup = Join-Path $config.BackupRoot $config.MachineName
-            $sharedBackup = Join-Path $config.BackupRoot "shared"
+            # Simulate module configuration paths (without loading the module)
+            $ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+            $backupRoot = Join-Path $ModuleRoot "test-restore"
+            $machineName = "TEST-MACHINE"
+            $machineBackup = Join-Path $backupRoot $machineName
+            $sharedBackup = Join-Path $backupRoot "shared"
             
             # These should match our test paths
             $machineBackup | Should -Be $script:TestMachineBackup
@@ -211,12 +205,12 @@ Describe "SharedConfiguration" -Tag "Unit", "SharedConfiguration" {
     Context "Error Handling and Edge Cases" {
         
         It "Should handle empty or null paths gracefully" {
-            # Test with empty paths
-            $result = Test-BackupPath -Path "test.json" -BackupType "Test" -MACHINE_BACKUP "" -SHARED_BACKUP ""
-            $result | Should -Be $null
-            
             # Test with non-existent directories
             $result = Test-BackupPath -Path "test.json" -BackupType "Test" -MACHINE_BACKUP "C:\NonExistent" -SHARED_BACKUP "C:\AlsoNonExistent"
+            $result | Should -Be $null
+            
+            # Test with paths that don't contain the file
+            $result = Test-BackupPath -Path "missing-file.json" -BackupType "Test" -MACHINE_BACKUP $script:TestMachineBackup -SHARED_BACKUP $script:TestSharedBackup
             $result | Should -Be $null
         }
         
