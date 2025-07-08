@@ -161,3 +161,4 @@ package-backup/
 chocolatey-backup/
 scoop-backup/
 winget-backup/ 
+testResults.xml
