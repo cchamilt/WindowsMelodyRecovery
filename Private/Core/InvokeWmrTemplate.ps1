@@ -8,6 +8,7 @@
 #   - Private/Core/RegistryState.ps1 (for Get-WmrRegistryState, Set-WmrRegistryState)
 #   - Private/Core/ApplicationState.ps1 (for Get-WmrApplicationState, Set-WmrApplicationState, Uninstall-WmrApplicationState)
 #   - Private/Core/EncryptionUtilities.ps1 (for Protect-WmrData, Unprotect-WmrData) - implicitly used by state functions
+#   - Private/Core/TemplateInheritance.ps1 (for template inheritance processing)
 
 function Invoke-WmrTemplate {
     [CmdletBinding(SupportsShouldProcess)]
@@ -49,6 +50,24 @@ function Invoke-WmrTemplate {
     try {
         $templateConfig = Read-WmrTemplateConfig -TemplatePath $TemplatePath
         Test-WmrTemplateSchema -TemplateConfig $templateConfig
+        
+        # Check if template uses inheritance features
+        $usesInheritance = $templateConfig.shared -or $templateConfig.machine_specific -or $templateConfig.inheritance_rules -or $templateConfig.conditional_sections
+        
+        if ($usesInheritance) {
+            Write-Host "Template uses inheritance features - resolving configuration..." -ForegroundColor Yellow
+            
+            # Import inheritance processing module
+            . (Join-Path $PSScriptRoot "TemplateInheritance.ps1")
+            
+            # Get machine context for inheritance resolution
+            $machineContext = Get-WmrMachineContext
+            
+            # Resolve template inheritance
+            $templateConfig = Resolve-WmrTemplateInheritance -TemplateConfig $templateConfig -MachineContext $machineContext
+            
+            Write-Host "Template inheritance resolved successfully" -ForegroundColor Green
+        }
     } catch {
         throw "Template validation failed: $($_.Exception.Message)"
     }

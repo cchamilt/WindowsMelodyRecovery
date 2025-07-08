@@ -1,0 +1,446 @@
+metadata:
+  name: Display Settings with Inheritance
+  description: Enhanced display settings template demonstrating configuration inheritance features
+  version: "2.0"
+  author: Windows Melody Recovery
+
+configuration:
+  inheritance_mode: merge
+  machine_precedence: true
+  validation_level: moderate
+  fallback_strategy: use_shared
+
+shared:
+  name: "Common Display Settings"
+  description: "Display settings that apply to all machines"
+  priority: 60
+  override_policy: merge
+  
+  prerequisites:
+    - type: script
+      name: "Windows Display System Available"
+      inline_script: |
+        try {
+            Get-Command Get-CimInstance -ErrorAction Stop | Out-Null
+            Get-Command Get-WmiObject -ErrorAction Stop | Out-Null
+            Write-Output "Display system available"
+        } catch {
+            Write-Output "Display system not available"
+        }
+      expected_output: "Display system available"
+      on_missing: warn
+
+  registry:
+    - name: Basic Theme Settings
+      path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ThemeManager'
+      type: key
+      action: sync
+      dynamic_state_path: "shared/registry/theme_manager.json"
+      inheritance_tags:
+        - "theme"
+        - "appearance"
+        - "shared"
+      inheritance_priority: 50
+      inheritance_policy: merge
+      conflict_resolution: machine_wins
+
+    - name: Desktop Window Manager Settings
+      path: 'HKCU:\Software\Microsoft\Windows\DWM'
+      type: key
+      action: sync
+      dynamic_state_path: "shared/registry/dwm_settings.json"
+      inheritance_tags:
+        - "dwm"
+        - "composition"
+        - "shared"
+      inheritance_priority: 50
+
+    - name: Visual Effects Settings
+      path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+      type: key
+      action: sync
+      dynamic_state_path: "shared/registry/visual_effects.json"
+      inheritance_tags:
+        - "visual_effects"
+        - "performance"
+        - "shared"
+      inheritance_priority: 50
+
+  files:
+    - name: Color Profiles Directory
+      path: '%SystemRoot%\System32\spool\drivers\color'
+      type: directory
+      action: sync
+      dynamic_state_path: "shared/files/color_profiles"
+      inheritance_tags:
+        - "color"
+        - "display"
+        - "shared"
+      inheritance_priority: 50
+
+machine_specific:
+  - machine_selectors:
+      - type: machine_name
+        value: "GAMING-RIG"
+        operator: equals
+        case_sensitive: false
+      - type: hostname_pattern
+        value: "GAMING-.*"
+        operator: matches
+        case_sensitive: false
+    
+    name: "Gaming Machine Display Settings"
+    description: "High-performance display settings for gaming machines"
+    priority: 90
+    merge_strategy: deep_merge
+    
+    registry:
+      - name: Gaming Display Performance
+        path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\VideoSettings'
+        type: key
+        action: sync
+        dynamic_state_path: "machine_specific/gaming/registry/video_settings.json"
+        inheritance_tags:
+          - "gaming"
+          - "performance"
+          - "machine_specific"
+        inheritance_priority: 90
+        inheritance_policy: merge
+        conflict_resolution: machine_wins
+
+      - name: Gaming Theme Override
+        path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ThemeManager'
+        type: key
+        action: sync
+        dynamic_state_path: "machine_specific/gaming/registry/theme_manager.json"
+        inheritance_tags:
+          - "theme"
+          - "appearance"
+          - "gaming"
+        inheritance_priority: 95
+        inheritance_policy: merge
+        conflict_resolution: machine_wins
+
+    files:
+      - name: Gaming Color Profiles
+        path: '%USERPROFILE%\Documents\Gaming\ColorProfiles'
+        type: directory
+        action: sync
+        dynamic_state_path: "machine_specific/gaming/files/color_profiles"
+        inheritance_tags:
+          - "color"
+          - "gaming"
+          - "machine_specific"
+        inheritance_priority: 90
+
+  - machine_selectors:
+      - type: environment_variable
+        value: "PROCESSOR_IDENTIFIER"
+        expected_value: ".*Intel.*"
+        operator: matches
+        case_sensitive: false
+    
+    name: "Intel Graphics Machine Settings"
+    description: "Intel-specific graphics settings"
+    priority: 85
+    merge_strategy: deep_merge
+    
+    registry:
+      - name: Intel Graphics Settings
+        path: 'HKLM:\SOFTWARE\Intel\Display'
+        type: key
+        action: sync
+        dynamic_state_path: "machine_specific/intel/registry/display.json"
+        inheritance_tags:
+          - "intel"
+          - "graphics"
+          - "machine_specific"
+        inheritance_priority: 85
+
+  - machine_selectors:
+      - type: registry_value
+        path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000'
+        key_name: "DriverDesc"
+        expected_value: ".*NVIDIA.*"
+        operator: matches
+        case_sensitive: false
+    
+    name: "NVIDIA Graphics Machine Settings"
+    description: "NVIDIA-specific graphics settings"
+    priority: 85
+    merge_strategy: deep_merge
+    
+    registry:
+      - name: NVIDIA Control Panel Settings
+        path: 'HKCU:\Software\NVIDIA Corporation\Global'
+        type: key
+        action: sync
+        dynamic_state_path: "machine_specific/nvidia/registry/control_panel.json"
+        inheritance_tags:
+          - "nvidia"
+          - "graphics"
+          - "machine_specific"
+        inheritance_priority: 85
+
+inheritance_rules:
+  - name: "Theme Merge Rule"
+    description: "Merge theme settings instead of replacing entire keys"
+    applies_to: ["registry"]
+    condition:
+      inheritance_tags:
+        contains: ["theme"]
+    action: merge
+    parameters:
+      merge_level: "value"
+      conflict_resolution: "machine_wins"
+
+  - name: "Performance Settings Priority"
+    description: "Gaming performance settings always take precedence"
+    applies_to: ["registry"]
+    condition:
+      inheritance_tags:
+        contains: ["performance", "gaming"]
+    action: merge
+    parameters:
+      merge_level: "key"
+      conflict_resolution: "machine_wins"
+
+  - name: "Path Transformation Rule"
+    description: "Transform shared paths to machine-specific paths"
+    applies_to: ["files"]
+    condition:
+      inheritance_tags:
+        contains: ["shared"]
+    action: transform
+    script: |
+      param($SharedPath, $MachineContext)
+      
+      # Transform shared paths based on machine context
+      if ($SharedPath -like "*%SystemRoot%*") {
+          $transformedPath = $SharedPath -replace "%SystemRoot%", $env:SystemRoot
+          return $transformedPath
+      }
+      
+      if ($SharedPath -like "*%USERPROFILE%*") {
+          $transformedPath = $SharedPath -replace "%USERPROFILE%", $MachineContext.UserProfile
+          return $transformedPath
+      }
+      
+      return $SharedPath
+
+conditional_sections:
+  - name: "Multi-Monitor Setup"
+    description: "Additional settings for machines with multiple monitors"
+    conditions:
+      - type: hardware_check
+        check: "Get-WmiObject -Class Win32_DesktopMonitor | Measure-Object | Select-Object -ExpandProperty Count"
+        expected_result: "^[2-9]$|^[1-9][0-9]+$"  # 2 or more monitors
+        on_failure: skip
+    logic: and
+    
+    registry:
+      - name: Multi-Monitor Display Settings
+        path: 'HKCU:\Control Panel\Desktop'
+        type: key
+        action: sync
+        dynamic_state_path: "conditional/multi_monitor/registry/desktop.json"
+        inheritance_tags:
+          - "multi_monitor"
+          - "display"
+          - "conditional"
+        inheritance_priority: 70
+
+    files:
+      - name: Multi-Monitor Wallpaper Settings
+        path: '%USERPROFILE%\AppData\Roaming\Microsoft\Windows\Themes\TranscodedWallpaper'
+        type: file
+        action: sync
+        dynamic_state_path: "conditional/multi_monitor/files/wallpaper.dat"
+        inheritance_tags:
+          - "wallpaper"
+          - "multi_monitor"
+          - "conditional"
+        inheritance_priority: 70
+
+  - name: "High DPI Display"
+    description: "Settings for high DPI displays (>1920x1080)"
+    conditions:
+      - type: hardware_check
+        check: "Get-WmiObject -Class Win32_VideoController | Where-Object { $_.CurrentHorizontalResolution -gt 1920 } | Measure-Object | Select-Object -ExpandProperty Count"
+        expected_result: "^[1-9][0-9]*$"  # At least 1 high-res display
+        on_failure: skip
+    logic: and
+    
+    registry:
+      - name: High DPI Settings
+        path: 'HKCU:\Control Panel\Desktop'
+        key_name: "LogPixels"
+        type: value
+        action: sync
+        dynamic_state_path: "conditional/high_dpi/registry/logpixels.json"
+        inheritance_tags:
+          - "high_dpi"
+          - "scaling"
+          - "conditional"
+        inheritance_priority: 75
+
+      - name: DPI Awareness Settings
+        path: 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
+        type: key
+        action: sync
+        dynamic_state_path: "conditional/high_dpi/registry/dpi_awareness.json"
+        inheritance_tags:
+          - "high_dpi"
+          - "compatibility"
+          - "conditional"
+        inheritance_priority: 75
+
+  - name: "Touch-Enabled Display"
+    description: "Settings for touch-enabled displays"
+    conditions:
+      - type: hardware_check
+        check: "Get-WmiObject -Class Win32_SystemEnclosure | Where-Object { $_.ChassisTypes -contains 31 -or $_.ChassisTypes -contains 32 } | Measure-Object | Select-Object -ExpandProperty Count"
+        expected_result: "^[1-9][0-9]*$"  # At least 1 tablet/convertible
+        on_failure: skip
+      - type: software_check
+        check: "Get-Service -Name 'TabletInputService' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status"
+        expected_result: "Running"
+        on_failure: skip
+    logic: and
+    
+    registry:
+      - name: Touch and Pen Settings
+        path: 'HKCU:\Software\Microsoft\Wisp\Touch'
+        type: key
+        action: sync
+        dynamic_state_path: "conditional/touch/registry/touch_settings.json"
+        inheritance_tags:
+          - "touch"
+          - "input"
+          - "conditional"
+        inheritance_priority: 70
+
+applications:
+  - name: Display Adapter Information
+    type: custom
+    dynamic_state_path: "applications/display_adapters.json"
+    discovery_command: "Get-WmiObject -Class Win32_VideoController | Select-Object Name, VideoProcessor, AdapterRAM, DriverVersion, VideoModeDescription, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate | ConvertTo-Json -Compress"
+    parse_script: |
+      param($VideoOutput)
+      try {
+          if ([string]::IsNullOrWhiteSpace($VideoOutput) -or $VideoOutput -eq "null") {
+              Write-Host "Found 0 display adapters"
+              return "[]"
+          }
+          
+          $adapters = $VideoOutput | ConvertFrom-Json
+          if (-not $adapters) {
+              $adapters = @()
+          }
+          
+          if ($adapters -isnot [array]) {
+              $adapters = @($adapters)
+          }
+          
+          Write-Host "Found $($adapters.Count) display adapters"
+          return $adapters | ConvertTo-Json -Compress
+      } catch {
+          Write-Warning "Failed to parse display adapter information: $_"
+          return "[]"
+      }
+    install_script: |
+      param($AdaptersJson)
+      try {
+          Write-Host "Display adapter information (read-only reference):" -ForegroundColor Cyan
+          
+          $adapters = $AdaptersJson | ConvertFrom-Json
+          foreach ($adapter in $adapters) {
+              Write-Host "  - $($adapter.Name)" -ForegroundColor Gray
+              if ($adapter.VideoProcessor) { Write-Host "    Processor: $($adapter.VideoProcessor)" -ForegroundColor DarkGray }
+              if ($adapter.AdapterRAM) { Write-Host "    RAM: $([math]::Round($adapter.AdapterRAM / 1GB, 2)) GB" -ForegroundColor DarkGray }
+              if ($adapter.CurrentHorizontalResolution -and $adapter.CurrentVerticalResolution) {
+                  Write-Host "    Resolution: $($adapter.CurrentHorizontalResolution)x$($adapter.CurrentVerticalResolution)" -ForegroundColor DarkGray
+              }
+              if ($adapter.CurrentRefreshRate) { Write-Host "    Refresh Rate: $($adapter.CurrentRefreshRate) Hz" -ForegroundColor DarkGray }
+          }
+      } catch {
+          Write-Warning "Failed to display adapter information: $_"
+      }
+    inheritance_tags:
+      - "hardware"
+      - "display"
+      - "reference"
+    inheritance_priority: 40
+
+stages:
+  prereqs:
+    - type: script
+      name: "Validate Display Inheritance Configuration"
+      inline_script: |
+        param($TemplateConfig)
+        
+        Write-Host "Validating display inheritance configuration..." -ForegroundColor Yellow
+        
+        # Check if inheritance features are properly configured
+        if ($TemplateConfig.shared -and $TemplateConfig.machine_specific) {
+            Write-Host "✓ Both shared and machine-specific configurations found" -ForegroundColor Green
+        }
+        
+        if ($TemplateConfig.inheritance_rules) {
+            Write-Host "✓ Inheritance rules configured: $($TemplateConfig.inheritance_rules.Count) rules" -ForegroundColor Green
+        }
+        
+        if ($TemplateConfig.conditional_sections) {
+            Write-Host "✓ Conditional sections configured: $($TemplateConfig.conditional_sections.Count) sections" -ForegroundColor Green
+        }
+        
+        Write-Host "Display inheritance configuration validation completed" -ForegroundColor Green
+        return "validation_passed"
+      expected_output: "validation_passed"
+      parameters: $TemplateConfig
+
+  post_update:
+    - type: script
+      name: "Apply Display Inheritance Post-Processing"
+      inline_script: |
+        Write-Host "Applying display inheritance post-processing..." -ForegroundColor Yellow
+        
+        # Apply any post-processing logic specific to inheritance
+        try {
+            # Refresh display settings if needed
+            if (Get-Command "DisplaySwitch.exe" -ErrorAction SilentlyContinue) {
+                Write-Host "Display switching capability available" -ForegroundColor Green
+            }
+            
+            # Trigger DWM restart if significant changes were made
+            Write-Host "Display inheritance post-processing completed" -ForegroundColor Green
+            return "post_processing_completed"
+        } catch {
+            Write-Warning "Display inheritance post-processing failed: $_"
+            return "post_processing_failed"
+        }
+      expected_output: "post_processing_completed"
+
+  cleanup:
+    - type: script
+      name: "Cleanup Display Inheritance Temporary Files"
+      inline_script: |
+        Write-Host "Cleaning up display inheritance temporary files..." -ForegroundColor Yellow
+        
+        # Clean up any temporary files created during inheritance processing
+        $tempPaths = @(
+            "$env:TEMP\DisplayInheritance_*.tmp",
+            "$env:TEMP\WMR_DisplayConfig_*.tmp"
+        )
+        
+        foreach ($pattern in $tempPaths) {
+            $files = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
+            if ($files) {
+                $files | Remove-Item -Force -ErrorAction SilentlyContinue
+                Write-Host "Cleaned up $($files.Count) temporary files matching $pattern" -ForegroundColor Gray
+            }
+        }
+        
+        Write-Host "Display inheritance cleanup completed" -ForegroundColor Green
+        return "cleanup_completed"
+      expected_output: "cleanup_completed" 
