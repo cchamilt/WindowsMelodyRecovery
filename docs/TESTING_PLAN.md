@@ -2,146 +2,146 @@
 
 This document outlines a structured approach to resolving all testing issues, improving test infrastructure, and implementing comprehensive test coverage for the Windows Melody Recovery module.
 
-## 🚨 Critical Issues (Priority 1)
+## 🚨 UPDATED Critical Issues (Priority 1) - POST-AUDIT
 
-### Test Suite Failures - IMMEDIATE ATTENTION REQUIRED
+### Test Suite Architecture Overhaul - IMMEDIATE ATTENTION REQUIRED
 
-**Status**: ❌ BROKEN - Multiple test suites failing with critical issues
+**Status**: ❌ BROKEN - Multiple architectural issues discovered in audit
 
-#### Installation Tests
-- **Issue**: Infinite loop causing tests to hang indefinitely
-- **Impact**: Blocks "All" test suite execution
-- **Root Cause**: Likely module loading recursion in `Import-PrivateScripts`
+#### Test Redundancy Crisis 
+- **Issue**: 6 separate WSL test files with 80%+ overlapping functionality (2,446 total lines)
+- **Impact**: Maintenance nightmare, conflicting test approaches, wasted resources
+- **Root Cause**: Multiple "generations" of tests without consolidation
 - **Priority**: CRITICAL
 
-#### WSL Tests  
-- **Issue**: 0% success rate with repetitive script loading messages
-- **Impact**: All WSL functionality untested
-- **Root Cause**: Container communication issues and script loading loops
+#### Legacy Script References
+- **Issue**: Tests still reference deleted backup scripts (`backup-wsl.ps1`, `backup-system-settings.ps1`, etc.)
+- **Impact**: 6+ test files failing with "file not found" errors
+- **Root Cause**: Incomplete migration from script-based to template-based system
 - **Priority**: CRITICAL
 
-#### Restore Tests
-- **Issue**: Tests complete but all fail (0% success rate)
-- **Impact**: No validation that restore operations work
-- **Root Cause**: Template-based restore logic incomplete
+#### Unit Test Violations
+- **Issue**: Unit tests performing file operations, violating testing hierarchy principles
+- **Impact**: Unsafe tests, unclear test boundaries, potential system damage
+- **Root Cause**: Lack of adherence to documented testing hierarchy
 - **Priority**: HIGH
 
-## 📋 Structured Testing Plan
+#### Module Import Chaos
+- **Issue**: 4+ different module import patterns across test files
+- **Impact**: Inconsistent test environment setup, hard to maintain
+- **Root Cause**: No standardized test infrastructure
+- **Priority**: HIGH
 
-### Phase 1: Emergency Stabilization (Week 1)
+## 📋 CONSOLIDATED Structured Testing Plan
 
-#### Task 1.1: Fix Test Infrastructure Infinite Loops
-- **Objective**: Stop infinite loops in Installation and All test suites
+### Phase 1: EMERGENCY Test Architecture Consolidation (Week 1)
+
+#### Task 1.1: Remove Legacy Script References
+- **Objective**: Eliminate all references to deleted backup scripts
 - **Actions**:
-  - Debug `Import-PrivateScripts` function in test environments
-  - Review module loading patterns causing recursion
-  - Implement proper test environment detection
-  - Add timeout mechanisms to prevent hanging tests
+  - Scan all test files for `backup-wsl.ps1`, `backup-system-settings.ps1`, `backup-applications.ps1` references
+  - Replace with template-based approaches using `Invoke-WmrTemplate`
+  - Update `wsl-tests.Tests.ps1` (lines 241, 286, 431, 438, 450, 494) 
+  - Remove function calls to `Backup-WSL`, `Backup-WSLSettings` that no longer exist
 
-#### Task 1.2: WSL Container Communication Fix
-- **Objective**: Restore WSL test functionality
+#### Task 1.2: WSL Test Consolidation 
+- **Objective**: Reduce 6 overlapping WSL test files to 3 logical files
+- **Current Files to Consolidate**:
+  - `backup-wsl.Tests.ps1` (371 lines) 
+  - `wsl-integration.Tests.ps1` (354 lines)
+  - `wsl-tests.Tests.ps1` (593 lines)
+  - `wsl-package-management.Tests.ps1` (520 lines)
+  - `wsl-communication-validation.Tests.ps1` (195 lines)
+  - `chezmoi-wsl-integration.Tests.ps1` (413 lines)
+- **Target Structure**:
+  - `WSL-Logic.Tests.ps1` - Pure logic tests (unit level)
+  - `WSL-FileOperations.Tests.ps1` - Safe file operations
+  - `WSL-Integration.Tests.ps1` - Docker/container integration
+
+#### Task 1.3: Standardize Module Imports
+- **Objective**: Single import pattern across all test files
 - **Actions**:
-  - Fix Docker container communication between test-runner and WSL containers
-  - Resolve WSL mock command routing issues
-  - Eliminate repetitive script loading messages
-  - Validate WSL environment simulation
+  - Replace 4+ different import patterns with standardized approach
+  - Implement: `Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force`
+  - Update all 29 test files with consistent import pattern
+  - Add error handling for missing module files
 
-#### Task 1.3: Template Restore Logic Completion
-- **Objective**: Make restore tests actually pass
+#### Task 1.4: Unit Test Purification
+- **Objective**: Move file operations out of unit tests
 - **Actions**:
-  - Complete restore implementation for all 26 templates
-  - Fix template-based restore logic gaps
-  - Validate backup/restore round-trip consistency
-  - Test restore operations with actual state files
+  - Audit `FileState-Logic.Tests.ps1` for file operations
+  - Move file operations to `tests/file-operations/`
+  - Ensure unit tests only test logic with proper mocking
+  - Validate adherence to testing hierarchy [[memory:2421544]]
 
-### Phase 2: Template System Testing (Week 2-3)
+### Phase 2: Template System Integration Testing (Week 2)
 
-#### Task 2.1: Template Backup Testing
-- **Objective**: Test all 26 templates for backup functionality
-- **Current Status**: Most backup templates are failing
+#### Task 2.1: Backup Test Unification
+- **Objective**: Consolidate 7 backup test files into coherent structure
+- **Current Files**:
+  - `backup-tests.Tests.ps1` (template-based) ✅
+  - `backup-wsl.Tests.ps1` (template-based) ✅  
+  - `backup-applications.Tests.ps1` (template-based) ✅
+  - `backup-system-settings.Tests.ps1` (template-based) ✅
+  - `backup-gaming.Tests.ps1` (template-based) ✅
+  - `backup-cloud.Tests.ps1` (mixed approach) ⚠️
+  - Legacy script references ❌
 - **Actions**:
-  - Test each template category systematically:
-    - System (6 templates): terminal, explorer, power, system-settings, defaultapps, windows-features
-    - Hardware (7 templates): display, sound, keyboard, mouse, printer, touchpad, touchscreen  
-    - Network (3 templates): network, rdp, vpn
-    - Security (2 templates): ssh, keepassxc
-    - Development (2 templates): powershell, wsl
-    - Applications (2 templates): applications, browsers
-    - Productivity (5 templates): onenote, outlook, word, excel, visio
-    - Gaming (1 template): gamemanagers
-    - UI (1 template): startmenu
+  - Merge template-based backup tests into unified suite
+  - Remove redundant backup contexts across files
+  - Standardize template testing approach
 
-#### Task 2.2: Template JSON Parsing Fixes
-- **Objective**: Fix application discovery JSON parsing errors
-- **Known Issues**:
-  - Printer template parsing errors
-  - Touchpad template parsing errors  
-  - Touchscreen template parsing errors
-  - Visio application discovery parsing errors
+#### Task 2.2: Template Coverage Validation
+- **Objective**: Ensure all 26 templates have proper test coverage
 - **Actions**:
-  - Review and fix JSON parsing in discovery scripts
-  - Standardize JSON output format across templates
-  - Add error handling for malformed JSON
+  - Audit template coverage in consolidated backup tests
+  - Add missing template tests for gaps identified
+  - Validate template parsing and JSON handling
+  - Test template backup/restore round-trips
 
-#### Task 2.3: Template Size and Performance Optimization
-- **Objective**: Optimize large templates and split oversized components
+### Phase 3: Test Category Enforcement (Week 3)
+
+#### Task 3.1: File Operations Migration
+- **Objective**: Move all file operations to proper test category
 - **Actions**:
-  - Identify templates >500 lines for splitting
-  - Split complex templates into optional subfeatures
-  - Prune excessive/transient backup states
-  - Remove hardware-specific configurations that don't transfer well
+  - Create additional files in `tests/file-operations/`
+  - Move file operations from unit and integration tests
+  - Implement safety checks for all file operations
+  - Ensure operations only in test-restore, test-backup, Temp directories
 
-### Phase 3: Mock Infrastructure Improvements (Week 3-4)
-
-#### Task 3.1: Enhanced Cloud Storage Mocking
-- **Objective**: Test all cloud storage provider code paths
+#### Task 3.2: Integration Test Safety Assessment
+- **Objective**: Identify and isolate dangerous Windows tests
 - **Actions**:
-  - Mock OneDrive, Google Drive, Dropbox, and custom cloud storage
-  - Test configuration detection and path resolution
-  - Validate cloud storage integration in backup/restore workflows
-  - Test cloud provider failover scenarios
+  - Audit integration tests for Windows admin requirements
+  - Move dangerous tests to CI-only execution [[memory:2261044]]
+  - Implement proper Windows-only test tagging
+  - Add safety checks to prevent execution on development systems
 
-#### Task 3.2: Realistic Windows Environment Simulation
-- **Objective**: Create more Windows-like mock environments
+#### Task 3.3: Missing End-to-End Implementation
+- **Objective**: Populate empty end-to-end test directory
 - **Actions**:
-  - Enhance mock AppData directory structures
-  - Create realistic Program Files directory trees  
-  - Mock Windows registry with actual-like structures
-  - Simulate realistic user home directory layouts
+  - Design end-to-end test scenarios
+  - Implement full backup/restore workflow tests
+  - Add multi-component integration scenarios
+  - Test complete user journeys
 
-#### Task 3.3: Application and Gaming Platform Mocking
-- **Objective**: Test backup/restore for games and applications
+### Phase 4: Infrastructure Modernization (Week 4)
+
+#### Task 4.1: Test Environment Standardization
+- **Objective**: Implement consistent test environment setup
 - **Actions**:
-  - Mock Steam, Epic Games, GOG, EA gaming platforms
-  - Create realistic winget/chocolatey/scoop package lists
-  - Test application backup and restore from JSON
-  - Mock application installation and configuration states
+  - Create standardized test environment utilities
+  - Implement proper test cleanup mechanisms
+  - Add safety validation for all test paths
+  - Create test environment reset functionality
 
-### Phase 4: WSL Testing Infrastructure Overhaul (Week 4-5)
-
-#### Task 4.1: WSL Container Integration
-- **Objective**: Fix real container-to-container communication
+#### Task 4.2: Mock Infrastructure Enhancement
+- **Objective**: Improve mock data quality and coverage
 - **Actions**:
-  - Implement actual Docker exec communication to WSL containers
-  - Remove superficial file-based mocking
-  - Test both SSH and WSL CLI calls into Linux
-  - Validate realistic Linux environment simulation
-
-#### Task 4.2: Chezmoi Integration Testing
-- **Objective**: Comprehensive chezmoi functionality testing
-- **Actions**:
-  - Test chezmoi installation and configuration in WSL
-  - Validate dotfile management workflows
-  - Test local and remote chezmoi repository operations
-  - Test chezmoi backup and restore operations
-
-#### Task 4.3: Package Management Testing  
-- **Objective**: Test all WSL package managers
-- **Actions**:
-  - Test APT, NPM, PIP, and other package managers
-  - Validate package backup and restore workflows
-  - Test system package, NPM global, and Python package synchronization
-  - Test package installation from backup data
+  - Enhance Windows environment simulation
+  - Improve cloud storage provider mocking
+  - Add realistic application and gaming platform mocks
+  - Standardize mock data structures
 
 ### Phase 5: Registry and Restoration Testing (Week 5-6)
 
@@ -204,6 +204,8 @@ This document outlines a structured approach to resolving all testing issues, im
   - Test application installation file documentation
   - Test app install/uninstall decision workflows
   - Test simplified user-editable app/game lists
+  - Initialization testing
+  - Setup scripting/configuration selection
 
 #### Task 7.3: Version and Update Management
 - **Objective**: Test package and module update workflows
@@ -239,76 +241,84 @@ This document outlines a structured approach to resolving all testing issues, im
   - Test module installation from PowerShell Gallery
   - Validate gallery publishing workflow
 
-## 🎯 Success Metrics
+## 🎯 UPDATED Success Metrics
 
-### Phase 1 Success Criteria
-- [x] All test suites run without infinite loops
-- [x] Installation tests complete successfully  
-- [x] WSL tests achieve >80% pass rate
-- [x] Restore tests achieve >60% pass rate
+### Phase 1 Success Criteria (CRITICAL)
+- [ ] All legacy script references removed from test files
+- [ ] WSL tests consolidated from 6 files to 3 logical files
+- [ ] Single standardized module import pattern across all 29 test files
+- [ ] Unit tests purified of file operations
 
-### Phase 2 Success Criteria
-- [x] All 26 templates backup successfully
-- [x] Template restore logic complete for all templates
-- [x] JSON parsing errors eliminated
-- [x] Template backup/restore round-trip successful
+### Phase 2 Success Criteria (HIGH)
+- [ ] Backup tests unified into coherent structure
+- [ ] All 26 templates have validated test coverage
+- [ ] Template parsing and JSON handling working
+- [ ] Template backup/restore round-trips successful
 
-### Phase 3 Success Criteria
-- [x] All cloud storage providers properly mocked
-- [x] Realistic Windows environment simulation
-- [x] Gaming and application platforms fully mocked
-- [x] Mock data covers all test scenarios
+### Phase 3 Success Criteria (MEDIUM)
+- [ ] File operations properly categorized in file-operations directory
+- [ ] Dangerous Windows tests isolated to CI-only execution
+- [ ] End-to-end test directory populated with real tests
+- [ ] Test safety mechanisms implemented
 
-### Phase 4 Success Criteria
-- [x] WSL container communication working
-- [x] Chezmoi integration tests passing
-- [x] All package managers tested and working
-- [x] WSL backup/restore workflows validated
+### Phase 4 Success Criteria (MEDIUM)
+- [ ] Standardized test environment utilities implemented
+- [ ] Enhanced mock infrastructure for realistic testing
+- [ ] Consistent test cleanup and safety validation
+- [ ] Mock data quality and coverage improved
 
-### Phase 5 Success Criteria
-- [x] Registry operations reliable across all templates
-- [x] Shared configuration logic working
+### Phase 5 Success Criteria (LOW)
+- [ ] Registry operations reliable across all templates
+- [ ] Shared configuration logic working
 - [ ] Administrative privilege handling working
-- [x] Registry prerequisite checking functional
+- [ ] Registry prerequisite checking functional
 
-### Phase 6 Success Criteria
+### Phase 6 Success Criteria (LOW)
 - [ ] Encryption workflows tested and secure
 - [ ] Authentication mechanisms validated
 - [ ] Security features fully tested
 - [ ] Secure storage mechanisms working
 
-### Phase 7 Success Criteria
+### Phase 7 Success Criteria (LOW)
 - [ ] BitLocker and Windows backup features working
 - [ ] Application discovery and management working
 - [ ] Version management and updates working
 - [ ] All new features properly tested
+- [ ] Initialization mock integration testing
+- [ ] Setup script selection scripts
+- [ ] Ability to select different bloat removal preferences and per hardware vendor removals
 
-### Phase 8 Success Criteria
+### Phase 8 Success Criteria (LOW)
 - [ ] CI/CD pipeline fully operational
 - [ ] All tests running automatically
 - [ ] Module ready for PowerShell Gallery
 - [ ] Documentation complete and accurate
 
-## 📊 Testing Dashboard
+## 📊 UPDATED Testing Dashboard - POST-AUDIT
 
-| Test Suite | Current Status | Target Status | Priority |
-|------------|---------------|---------------|----------|
-| Installation | ❌ Infinite Loop | ✅ 95% Pass | CRITICAL |
-| WSL | ❌ 0% Pass | ✅ 85% Pass | CRITICAL |  
-| Restore | ❌ 0% Pass | ✅ 80% Pass | HIGH |
-| Backup | ⚠️ Many Failures | ✅ 95% Pass | HIGH |
-| Unit Tests | ✅ Working | ✅ 95% Pass | MEDIUM |
-| Template Tests | ❌ Most Failing | ✅ 100% Pass | HIGH |
-| Mock Infrastructure | ⚠️ Basic | ✅ Comprehensive | MEDIUM |
-| Security Tests | ❌ Missing | ✅ Complete | MEDIUM |
-| CI/CD | ❌ Missing | ✅ Automated | LOW |
+| Test Area | Current Status | Root Issue | Target Status | Priority |
+|-----------|---------------|------------|---------------|----------|
+| WSL Tests | ❌ 6 Redundant Files | Multiple generations, 80% overlap | ✅ 3 Logical Files | CRITICAL |
+| Legacy References | ❌ Script Not Found | Template migration incomplete | ✅ All References Updated | CRITICAL |
+| Module Imports | ❌ 4+ Patterns | No standardization | ✅ Single Pattern | CRITICAL |
+| Unit Test Purity | ❌ File Operations | Hierarchy violations | ✅ Logic Only | HIGH |
+| Backup Tests | ⚠️ 7 Overlapping Files | Mixed approaches | ✅ Unified Structure | HIGH |
+| Template Coverage | ❌ Gaps Identified | Incomplete validation | ✅ All 26 Templates | HIGH |
+| File Operations | ⚠️ Scattered | Wrong categories | ✅ Proper Directory | MEDIUM |
+| Integration Safety | ❌ Mixed Safe/Dangerous | No safety isolation | ✅ CI-Only Dangerous | MEDIUM |
+| End-to-End | ❌ Empty Directory | Missing implementation | ✅ Full Workflows | MEDIUM |
+| Mock Infrastructure | ⚠️ Basic | Needs enhancement | ✅ Comprehensive | LOW |
 
-## 🚀 Getting Started
+## 🚀 UPDATED Getting Started
 
-1. **Start with Phase 1** - Fix the critical infinite loop and failure issues
-2. **Focus on one task at a time** - Complete each task before moving to the next
-3. **Update progress regularly** - Mark tasks as in-progress and completed
-4. **Test incrementally** - Validate each fix before proceeding
-5. **Document issues** - Record any new issues discovered during testing
+**Based on audit findings, we are NOW in Phase 1 of a completely restructured plan:**
 
-This comprehensive plan provides a structured approach to fixing all testing issues and building a robust testing infrastructure for the Windows Melody Recovery module. 
+1. **CRITICAL: Remove Legacy Script References** - Fix immediate test failures
+2. **CRITICAL: Consolidate WSL Tests** - Eliminate massive redundancy  
+3. **CRITICAL: Standardize Module Imports** - Create consistent test infrastructure
+4. **HIGH: Purify Unit Tests** - Enforce testing hierarchy
+5. **Update TODO list** - Track progress on consolidated tasks
+
+**Current Position**: We have successfully completed the audit phase and identified the architectural issues. We are now ready to execute the emergency consolidation plan.
+
+This updated plan focuses on the **critical architectural issues** discovered in the audit rather than the original runtime failures, providing a foundation for sustainable test infrastructure. 

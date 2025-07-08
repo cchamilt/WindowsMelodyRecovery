@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 param(
-    [ValidateSet("Installation", "Backup", "WSL", "Gaming", "Cloud", "Restore", "Pester", "WindowsOnly", "All")]
+    [ValidateSet("Installation", "Backup", "WSL", "Gaming", "Cloud", "Restore", "Pester", "WindowsOnly", "FileOperations", "Chezmoi", "Template", "Application", "All")]
     [string]$TestSuite = "Installation",
     
     [switch]$GenerateReport
@@ -60,14 +60,20 @@ switch ($TestSuite) {
             '/workspace/tests/integration/backup-applications.Tests.ps1',
             '/workspace/tests/integration/backup-gaming.Tests.ps1',
             '/workspace/tests/integration/backup-cloud.Tests.ps1',
-            '/workspace/tests/integration/backup-system-settings.Tests.ps1'
+            '/workspace/tests/integration/backup-system-settings.Tests.ps1',
+            '/workspace/tests/integration/backup-wsl.Tests.ps1',
+            '/workspace/tests/integration/backup-tests.Tests.ps1'
         )
         Write-Host "🎯 Running Backup Tests" -ForegroundColor Yellow
     }
     "WSL" {
         $config.Run.Path = @(
             '/workspace/tests/integration/wsl-integration.Tests.ps1',
-            '/workspace/tests/integration/wsl-tests.Tests.ps1'
+            '/workspace/tests/integration/wsl-tests.Tests.ps1',
+            '/workspace/tests/integration/wsl-package-management.Tests.ps1',
+            '/workspace/tests/integration/wsl-communication-validation.Tests.ps1',
+            '/workspace/tests/integration/backup-wsl.Tests.ps1',
+            '/workspace/tests/integration/chezmoi-wsl-integration.Tests.ps1'
         )
         Write-Host "🎯 Running WSL Tests" -ForegroundColor Yellow
     }
@@ -76,12 +82,40 @@ switch ($TestSuite) {
         Write-Host "🎯 Running Gaming Tests" -ForegroundColor Yellow
     }
     "Cloud" {
-        $config.Run.Path = @('/workspace/tests/integration/backup-cloud.Tests.ps1')
+        $config.Run.Path = @(
+            '/workspace/tests/integration/backup-cloud.Tests.ps1',
+            '/workspace/tests/integration/cloud-backup-restore.Tests.ps1',
+            '/workspace/tests/integration/cloud-connectivity.Tests.ps1',
+            '/workspace/tests/integration/cloud-failover.Tests.ps1',
+            '/workspace/tests/integration/cloud-provider-detection.Tests.ps1'
+        )
         Write-Host "🎯 Running Cloud Tests" -ForegroundColor Yellow
     }
     "Restore" {
         $config.Run.Path = @('/workspace/tests/integration/restore-system-settings.Tests.ps1')
         Write-Host "🎯 Running Restore Tests" -ForegroundColor Yellow
+    }
+    "FileOperations" {
+        $config.Run.Path = @('/workspace/tests/file-operations/FileState-FileOperations.Tests.ps1')
+        Write-Host "🎯 Running File Operations Tests" -ForegroundColor Yellow
+    }
+    "Chezmoi" {
+        $config.Run.Path = @(
+            '/workspace/tests/integration/chezmoi-integration.Tests.ps1',
+            '/workspace/tests/integration/chezmoi-wsl-integration.Tests.ps1'
+        )
+        Write-Host "🎯 Running Chezmoi Integration Tests" -ForegroundColor Yellow
+    }
+    "Template" {
+        $config.Run.Path = @('/workspace/tests/integration/TemplateIntegration.Tests.ps1')
+        Write-Host "🎯 Running Template Integration Tests" -ForegroundColor Yellow
+    }
+    "Application" {
+        $config.Run.Path = @(
+            '/workspace/tests/integration/application-backup-restore.Tests.ps1',
+            '/workspace/tests/integration/backup-applications.Tests.ps1'
+        )
+        Write-Host "🎯 Running Application Backup/Restore Tests" -ForegroundColor Yellow
     }
     "Pester" {
         $config.Run.Path = @('/workspace/tests/unit')
@@ -94,11 +128,11 @@ switch ($TestSuite) {
     "All" {
         if ($IsWindows) {
             # On Windows, include all tests including Windows-only tests
-            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
+            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration', '/workspace/tests/file-operations')
             Write-Host "🎯 Running All Tests (including Windows-only tests)" -ForegroundColor Yellow
         } else {
             # On non-Windows, exclude Windows-only tests by excluding the specific file
-            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration')
+            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration', '/workspace/tests/file-operations')
             $config.Run.ExcludePath = @('/workspace/tests/unit/Windows-Only.Tests.ps1')
             Write-Host "🎯 Running All Tests (excluding Windows-only tests)" -ForegroundColor Yellow
         }
