@@ -1,9 +1,13 @@
 # tests/unit/EncryptionUtilities.Tests.ps1
 
 BeforeAll {
-    # Import required modules
-    $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    Import-Module (Join-Path $ProjectRoot "WindowsMelodyRecovery.psd1") -Force
+    # Import the module with standardized pattern
+    try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    } catch {
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+    }
     
     # Create and import the test helper module
     $helperPath = Join-Path $PSScriptRoot "../utilities/EncryptionTestHelper.ps1"

@@ -15,8 +15,13 @@ BeforeAll {
         return
     }
     
-    # Import the module
-    Import-Module (Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1") -Force
+    # Import the module with standardized pattern
+    try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    } catch {
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+    }
     
     # Import test environment utilities
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")

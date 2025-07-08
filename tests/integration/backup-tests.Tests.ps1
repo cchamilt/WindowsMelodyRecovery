@@ -8,8 +8,13 @@
 #>
 
 BeforeAll {
-    # Import the module
-    Import-Module WindowsMelodyRecovery -Force
+    # Import the module with standardized pattern
+    try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    } catch {
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+    }
     
     # Setup test environment
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }

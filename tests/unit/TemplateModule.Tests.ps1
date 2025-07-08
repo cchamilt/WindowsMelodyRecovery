@@ -21,15 +21,13 @@ prerequisites:
     }
     $tempTemplateContent | Set-Content -Path $script:TempTemplatePath -Encoding Utf8
 
-    # Import the WindowsMelodyRecovery module to make functions available
-    $ModulePath = if (Test-Path "./WindowsMelodyRecovery.psm1") {
-        "./WindowsMelodyRecovery.psm1"
-    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
-        "/workspace/WindowsMelodyRecovery.psm1"
-    } else {
-        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    # Import the module with standardized pattern
+    try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    } catch {
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
-    Import-Module $ModulePath -Force
 }
 
 AfterAll {
