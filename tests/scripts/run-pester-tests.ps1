@@ -57,12 +57,7 @@ switch ($TestSuite) {
     }
     "Backup" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/backup-applications.Tests.ps1',
-            '/workspace/tests/integration/backup-gaming.Tests.ps1',
-            '/workspace/tests/integration/backup-cloud.Tests.ps1',
-            '/workspace/tests/integration/backup-system-settings.Tests.ps1',
-            '/workspace/tests/integration/backup-wsl.Tests.ps1',
-            '/workspace/tests/integration/backup-tests.Tests.ps1'
+                    '/workspace/tests/integration/Backup-Unified.Tests.ps1'
         )
         Write-Host "🎯 Running Backup Tests" -ForegroundColor Yellow
     }
@@ -72,18 +67,18 @@ switch ($TestSuite) {
             '/workspace/tests/integration/wsl-tests.Tests.ps1',
             '/workspace/tests/integration/wsl-package-management.Tests.ps1',
             '/workspace/tests/integration/wsl-communication-validation.Tests.ps1',
-            '/workspace/tests/integration/backup-wsl.Tests.ps1',
+            '/workspace/tests/integration/Backup-Unified.Tests.ps1',
             '/workspace/tests/integration/chezmoi-wsl-integration.Tests.ps1'
         )
         Write-Host "🎯 Running WSL Tests" -ForegroundColor Yellow
     }
     "Gaming" {
-        $config.Run.Path = @('/workspace/tests/integration/backup-gaming.Tests.ps1')
+        $config.Run.Path = @('/workspace/tests/integration/Backup-Unified.Tests.ps1')
         Write-Host "🎯 Running Gaming Tests" -ForegroundColor Yellow
     }
     "Cloud" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/backup-cloud.Tests.ps1',
+            '/workspace/tests/integration/Backup-Unified.Tests.ps1',
             '/workspace/tests/integration/cloud-backup-restore.Tests.ps1',
             '/workspace/tests/integration/cloud-connectivity.Tests.ps1',
             '/workspace/tests/integration/cloud-failover.Tests.ps1',
@@ -112,8 +107,8 @@ switch ($TestSuite) {
     }
     "Application" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/application-backup-restore.Tests.ps1',
-            '/workspace/tests/integration/backup-applications.Tests.ps1'
+                    '/workspace/tests/integration/application-backup-restore.Tests.ps1',
+        '/workspace/tests/integration/Backup-Unified.Tests.ps1'
         )
         Write-Host "🎯 Running Application Backup/Restore Tests" -ForegroundColor Yellow
     }

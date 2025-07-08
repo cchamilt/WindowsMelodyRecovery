@@ -150,10 +150,7 @@ function Invoke-CoreIntegrationTests {
     
     # Define core integration tests
     $coreTests = @(
-        "tests/integration/backup-applications.Tests.ps1",
-        "tests/integration/backup-gaming.Tests.ps1",
-        "tests/integration/backup-cloud.Tests.ps1",
-        "tests/integration/backup-system-settings.Tests.ps1"
+        "tests/integration/Backup-Unified.Tests.ps1"
     )
     
     Write-TestLog "Will run $($coreTests.Count) core integration tests" "INFO" "PESTER" $mainLogFile

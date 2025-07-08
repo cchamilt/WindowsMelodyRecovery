@@ -145,10 +145,7 @@ function Invoke-BackupTests {
     Write-TestSection "Running Backup Integration Tests"
     
     $backupTests = @(
-        @{ Name = "Applications Backup"; Path = "/tests/integration/backup-applications.Tests.ps1" },
-        @{ Name = "Gaming Platforms Backup"; Path = "/tests/integration/backup-gaming.Tests.ps1" },
-        @{ Name = "Cloud Integration Backup"; Path = "/tests/integration/backup-cloud.Tests.ps1" },
-        @{ Name = "System Settings Backup"; Path = "/tests/integration/backup-system-settings.Tests.ps1" }
+        @{ Name = "Unified Backup Tests"; Path = "/tests/integration/Backup-Unified.Tests.ps1" }
     )
     
     foreach ($test in $backupTests) {

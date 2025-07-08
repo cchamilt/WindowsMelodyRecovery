@@ -143,14 +143,9 @@ function Invoke-CoreTests {
 
     # Define test groups for organized execution
     $testGroups = @{
-        "Backup" = @(
-            "tests/integration/backup-applications.Tests.ps1",
-            "tests/integration/backup-gaming.Tests.ps1", 
-            "tests/integration/backup-cloud.Tests.ps1",
-            "tests/integration/backup-system-settings.Tests.ps1",
-            "tests/integration/backup-wsl.Tests.ps1",
-            "tests/integration/backup-tests.Tests.ps1"
-        )
+            "Backup" = @(
+        "tests/integration/Backup-Unified.Tests.ps1"
+    )
         "Restore" = @(
             "tests/integration/restore-system-settings.Tests.ps1",
             "tests/integration/application-backup-restore.Tests.ps1",
@@ -192,10 +187,7 @@ function Invoke-CoreTests {
         "Core" {
             # Legacy: Keep the original 4 tests for backward compatibility
             $testsToRun = @(
-                "tests/integration/backup-applications.Tests.ps1",
-                "tests/integration/backup-gaming.Tests.ps1", 
-                "tests/integration/backup-cloud.Tests.ps1",
-                "tests/integration/backup-system-settings.Tests.ps1"
+                "tests/integration/Backup-Unified.Tests.ps1"
             )
         }
         default {

@@ -158,10 +158,7 @@ function Invoke-CorePesterTests {
         
         # Core integration tests that we know work
         $coreTests = @(
-            "tests/integration/backup-applications.Tests.ps1",
-            "tests/integration/backup-gaming.Tests.ps1",
-            "tests/integration/backup-cloud.Tests.ps1",
-            "tests/integration/backup-system-settings.Tests.ps1"
+            "tests/integration/Backup-Unified.Tests.ps1"
         )
         
         $totalPassed = 0
