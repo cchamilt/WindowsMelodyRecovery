@@ -216,6 +216,8 @@ function Invoke-IntegrationTests {
         }
         
         $scriptPath = Join-Path $PSScriptRoot "run-integration-tests.ps1"
+        
+        # Capture stdout only to get console output, not log file content
         if ($SkipCleanup) {
             $output = & $scriptPath -TestSuite "All" -NoCleanup
         } else {
@@ -223,12 +225,46 @@ function Invoke-IntegrationTests {
         }
         $success = $LASTEXITCODE -eq 0
         
-        # Parse results from output
-        $passedMatch = $output | Select-String "Total Tests Passed: (\d+)" | Select-Object -Last 1
-        $failedMatch = $output | Select-String "Total Tests Failed: (\d+)" | Select-Object -Last 1
+        # Convert all output to string array - keep it simple
+        $outputLines = $output | ForEach-Object { 
+            $_.ToString()
+        } | Where-Object { $_ -ne $null -and $_ -ne "" }
+        
+        # Parse results from filtered output
+        $passedMatch = $outputLines | Select-String "Total Tests Passed: (\d+)" | Select-Object -Last 1
+        $failedMatch = $outputLines | Select-String "Total Tests Failed: (\d+)" | Select-Object -Last 1
         
         $passed = if ($passedMatch) { [int]$passedMatch.Matches[0].Groups[1].Value } else { 0 }
         $failed = if ($failedMatch) { [int]$failedMatch.Matches[0].Groups[1].Value } else { 0 }
+        
+        # Debug output for troubleshooting
+        Write-Host "🔍 Integration test parsing debug:" -ForegroundColor Yellow
+        Write-Host "  Exit code: $LASTEXITCODE" -ForegroundColor Gray
+        Write-Host "  Total output lines: $($outputLines.Count)" -ForegroundColor Gray
+        Write-Host "  First 10 lines of captured output:" -ForegroundColor Gray
+        $outputLines | Select-Object -First 10 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+        Write-Host "  Last 10 lines of captured output:" -ForegroundColor Gray
+        $outputLines | Select-Object -Last 10 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+        Write-Host "  Lines containing 'Total Tests':" -ForegroundColor Gray
+        $totalTestsLines = $outputLines | Where-Object { $_ -like "*Total Tests*" }
+        if ($totalTestsLines) {
+            $totalTestsLines | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+        } else {
+            Write-Host "    (none found)" -ForegroundColor Gray
+        }
+        Write-Host "  Lines containing 'Total':" -ForegroundColor Gray
+        $totalLines = $outputLines | Where-Object { $_ -like "*Total*" }
+        if ($totalLines) {
+            $totalLines | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+        } else {
+            Write-Host "    (none found)" -ForegroundColor Gray
+        }
+        Write-Host "  Passed match: $($passedMatch -ne $null)" -ForegroundColor Gray
+        Write-Host "  Failed match: $($failedMatch -ne $null)" -ForegroundColor Gray
+        if ($passedMatch) { Write-Host "  Passed match text: '$($passedMatch.Line)'" -ForegroundColor Gray }
+        if ($failedMatch) { Write-Host "  Failed match text: '$($failedMatch.Line)'" -ForegroundColor Gray }
+        Write-Host "  Parsed passed: $passed" -ForegroundColor Gray
+        Write-Host "  Parsed failed: $failed" -ForegroundColor Gray
         
         $duration = (Get-Date) - $startTime
         Write-TestResult "Integration Tests" $success $passed $failed $duration.TotalSeconds
@@ -238,7 +274,7 @@ function Invoke-IntegrationTests {
             Passed = $passed
             Failed = $failed
             Duration = $duration.TotalSeconds
-            Output = $output
+            Output = $outputLines
         }
     } catch {
         $duration = (Get-Date) - $startTime

@@ -349,13 +349,19 @@ function Write-TestSummary {
         ""
     )
     
+    # Write to log file first
     foreach ($line in $summaryLines) {
-        # Write to log file only
         $line | Out-File -FilePath $global:mainLogFile -Append -Encoding UTF8
-        # Write to console with color
-        $color = if ($line -match "Failed.*[1-9]") { "Red" } elseif ($line -match "Passed") { "Green" } else { "White" }
-        Write-Host $line -ForegroundColor $color
     }
+    
+    # Write to console cleanly - separate from log operations and ensure output goes to stdout
+    "=== INTEGRATION TEST SUMMARY ==="
+    "Completed: $(Get-Date)"
+    "Total Tests Passed: $($TestResult.Passed)"
+    "Total Tests Failed: $($TestResult.Failed)"
+    "Total Tests Skipped: $($TestResult.Skipped)"
+    "Success Rate: $successRate%"
+    ""
     
     # Generate JSON summary report
     $jsonReport = @{
