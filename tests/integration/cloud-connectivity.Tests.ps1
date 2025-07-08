@@ -10,15 +10,13 @@
 
 Describe "Cloud Provider Connectivity Tests" {
     BeforeAll {
-        # Import the module
-        $ModulePath = if (Test-Path "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1") {
-            "$PSScriptRoot\..\..\WindowsMelodyRecovery.psm1"
-        } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
-            "/workspace/WindowsMelodyRecovery.psm1"
-        } else {
-            throw "Cannot find WindowsMelodyRecovery.psm1 module"
+        # Import the module with standardized pattern
+        try {
+            $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+            Import-Module $ModulePath -Force -ErrorAction Stop
+        } catch {
+            throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
-        Import-Module $ModulePath -Force -ErrorAction SilentlyContinue
         
         # Import cloud provider detection functions
         $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {

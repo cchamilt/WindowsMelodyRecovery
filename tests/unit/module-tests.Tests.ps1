@@ -9,12 +9,11 @@
 
 # Helper function to get the correct module path
 function Get-WmrModulePath {
-    if (Test-Path "./WindowsMelodyRecovery.psm1") {
-        return "./WindowsMelodyRecovery.psm1"
-    } elseif (Test-Path "/workspace/WindowsMelodyRecovery.psm1") {
-        return "/workspace/WindowsMelodyRecovery.psm1"
-    } else {
-        throw "Cannot find WindowsMelodyRecovery.psm1 module"
+    try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+        return $ModulePath
+    } catch {
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 }
 

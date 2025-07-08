@@ -244,8 +244,8 @@ This document outlines a structured approach to resolving all testing issues, im
 ## 🎯 UPDATED Success Metrics
 
 ### Phase 1 Success Criteria (CRITICAL)
-- [ ] All legacy script references removed from test files
-- [ ] WSL tests consolidated from 6 files to 3 logical files
+- [x] All legacy script references removed from test files
+- [x] WSL tests consolidated from 6 files to 3 logical files
 - [ ] Single standardized module import pattern across all 29 test files
 - [ ] Unit tests purified of file operations
 

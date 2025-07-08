@@ -7,9 +7,13 @@ BeforeAll {
     # Get standardized test paths
     $script:TestPaths = Get-TestPaths
     
-    # Import the WindowsMelodyRecovery module to make functions available
-    $ModulePath = Join-Path $script:TestPaths.ModuleRoot "WindowsMelodyRecovery.psm1"
-    Import-Module $ModulePath -Force
+    # Import the module with standardized pattern
+    try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    } catch {
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+    }
 
     # Dot-source ApplicationState.ps1 to ensure all functions are available
     . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\ApplicationState.ps1")
