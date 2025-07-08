@@ -667,8 +667,11 @@ function Remove-StandardTestEnvironment {
     }
     Write-Host "✓ Cleaned test environment variables" -ForegroundColor Green
     
-    # Remove test directories (with safety checks)
+    # Remove ONLY temporary/dynamic test directories (NEVER source code directories)
     if ($script:StandardPaths) {
+        # SAFE PATHS TO CLEAN: Only dynamically created temporary directories
+        $safeToCleanPaths = @("TestRestore", "TestBackup", "TestTemp", "IsolatedTemp", "SafeWorkspace", "TestReports")
+        
         foreach ($pathName in $script:StandardPaths.Keys) {
             $path = $script:StandardPaths[$pathName]
             
@@ -678,20 +681,27 @@ function Remove-StandardTestEnvironment {
                 continue
             }
             
-            # Safety validation
-            if (Test-SafeTestPath -Path $path) {
-                try {
-                    if (Test-Path $path) {
-                        Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
-                        $cleanupReport.RemovedPaths += $path
-                        Write-Host "  ✓ Removed $pathName : $path" -ForegroundColor Green
+            # CRITICAL SAFETY: Only clean temporary directories, NEVER source code directories
+            if ($pathName -in $safeToCleanPaths) {
+                # Additional safety validation
+                if (Test-SafeTestPath -Path $path) {
+                    try {
+                        if (Test-Path $path) {
+                            Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
+                            $cleanupReport.RemovedPaths += $path
+                            Write-Host "  ✓ Removed $pathName : $path" -ForegroundColor Green
+                        }
+                    } catch {
+                        $cleanupReport.FailedPaths += @{ Path = $path; Error = $_.Exception.Message }
+                        Write-Warning "Failed to remove $pathName : $_"
                     }
-                } catch {
-                    $cleanupReport.FailedPaths += @{ Path = $path; Error = $_.Exception.Message }
-                    Write-Warning "Failed to remove $pathName : $_"
+                } else {
+                    Write-Warning "Skipped unsafe path: $path"
                 }
             } else {
-                Write-Warning "Skipped unsafe path: $path"
+                # NEVER delete source code directories
+                $cleanupReport.PreservedPaths += $path
+                Write-Host "  ✅ Preserved source directory: $pathName : $path" -ForegroundColor Cyan
             }
         }
     }
