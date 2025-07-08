@@ -534,6 +534,8 @@ The project includes comprehensive testing scripts for safe template development
 - **`test-template-restore.ps1`** - Tests restore operations with WhatIf simulation
 - **`test-template-workflow.ps1`** - Tests complete backup→restore workflows
 
+**Note**: These template testing scripts are designed for manual testing and development. For automated testing, use the Docker-based test runners: `run-integration-tests.ps1` and `run-end-to-end-tests.ps1`.
+
 ### WhatIf Safety Mechanism
 
 **⚠️ IMPORTANT SAFETY FEATURE**: All restore testing operations run in **WhatIf mode by default** to prevent accidental system changes during development.
@@ -570,5 +572,7 @@ The project includes comprehensive testing scripts for safe template development
 # List available test backups
 .\test-template-workflow.ps1 -Operation list
 ```
+
+**Note**: Integration and end-to-end tests require Docker for safe execution. See [Docker Testing Framework Guide](docs/DOCKER_TESTING_FRAMEWORK.md) for setup instructions.
 
 

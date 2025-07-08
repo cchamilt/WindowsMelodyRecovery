@@ -109,9 +109,14 @@ if (-not (Test-SafeTestPath $path)) {
 ```
 
 ### Test Scripts
-- **Unit Tests**: `tests/scripts/run-unit-tests.ps1`
-- **File Operations**: `tests/scripts/run-file-operation-tests.ps1` 
-- **Environment Reset**: `tests/scripts/reset-test-environment.ps1`
+- **Unit Tests**: `tests/scripts/run-unit-tests.ps1` - Local logic testing
+- **File Operations**: `tests/scripts/run-file-operation-tests.ps1` - Local file operations
+- **Integration Tests**: `tests/scripts/run-integration-tests.ps1` - Docker-based integration testing
+- **End-to-End Tests**: `tests/scripts/run-end-to-end-tests.ps1` - Docker-based workflow testing
+- **Windows-Only Tests**: `tests/scripts/run-windows-tests.ps1` - CI/CD Windows-specific testing
+- **Environment Reset**: `tests/scripts/reset-test-environment.ps1` - Test environment cleanup
+
+**Note**: `run-pester-tests.ps1` is an internal utility called by `run-integration-tests.ps1` and should not be run directly.
 
 ## 📊 **Current Status**
 
@@ -165,8 +170,10 @@ $unsafePath = "C:\Windows\System32\test.txt"  # ❌ NO!
 ## 🔄 **Test Execution Workflow**
 
 1. **Development**: Run unit tests only (`run-unit-tests.ps1`)
-2. **QA**: Run unit + file operation tests
-3. **CI/CD**: Run all test categories including integration
-4. **Docker**: Cross-platform validation
+2. **QA**: Run unit + file operation tests (`run-file-operation-tests.ps1`)
+3. **Integration**: Run Docker-based integration tests (`run-integration-tests.ps1`)
+4. **End-to-End**: Run complete workflow tests (`run-end-to-end-tests.ps1`)
+5. **CI/CD**: Run all test categories including Windows-only tests (`run-windows-tests.ps1`)
+6. **Docker**: Cross-platform validation via integration and end-to-end tests
 
 This hierarchy ensures safety while providing comprehensive test coverage across all components and scenarios. 
