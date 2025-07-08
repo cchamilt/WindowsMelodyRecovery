@@ -1,14 +1,28 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Mock Utilities for Windows Melody Recovery Integration Tests
+    Enhanced Mock Utilities for Windows Melody Recovery Testing
 
 .DESCRIPTION
-    Utility functions for working with mock environments and data.
+    Utility functions for working with enhanced mock environments and data.
+    Provides backwards compatibility while integrating with enhanced mock infrastructure.
+
+.NOTES
+    This file has been enhanced to integrate with the new Enhanced-Mock-Infrastructure.ps1
+    while maintaining backwards compatibility with existing tests.
 #>
 
-# Mock environment utilities
+# Import enhanced mock infrastructure and integration layer
+. (Join-Path $PSScriptRoot "Enhanced-Mock-Infrastructure.ps1")
+. (Join-Path $PSScriptRoot "Mock-Integration.ps1")
+
+# Enhanced mock environment utilities with backwards compatibility
 function Test-MockDataExists {
+    <#
+    .SYNOPSIS
+        Tests if mock data exists for the specified data type and path.
+        Enhanced version with improved path resolution and validation.
+    #>
     param(
         [string]$DataType,
         [string]$Path
@@ -21,11 +35,18 @@ function Test-MockDataExists {
 }
 
 function Get-MockDataPath {
+    <#
+    .SYNOPSIS
+        Gets the path to mock data for the specified data type.
+        Enhanced version with standardized test path integration.
+    #>
     param(
         [string]$DataType
     )
     
-    $basePath = "/mock-data"
+    # Use standardized test paths from Test-Environment-Standard.ps1
+    $testPaths = Get-StandardTestPaths
+    $basePath = $testPaths.TestMockData
     
     switch ($DataType) {
         "registry" { return Join-Path $basePath "registry" }
@@ -33,33 +54,50 @@ function Get-MockDataPath {
         "programfiles" { return Join-Path $basePath "programfiles" }
         "cloud" { return Join-Path $basePath "cloud" }
         "wsl" { return Join-Path $basePath "wsl" }
+        "applications" { return Join-Path $basePath "applications" }
+        "gaming" { return Join-Path $basePath "gaming" }
+        "system-settings" { return Join-Path $basePath "system-settings" }
+        "unit" { return Join-Path $basePath "unit" }
+        "file-operations" { return Join-Path $basePath "file-operations" }
+        "end-to-end" { return Join-Path $basePath "end-to-end" }
         default { return $basePath }
     }
 }
 
 function Initialize-MockEnvironment {
+    <#
+    .SYNOPSIS
+        Initializes mock environment with enhanced infrastructure.
+        Backwards compatible wrapper that uses enhanced mock infrastructure.
+    #>
     param(
-        [string]$Environment = "Docker"
+        [string]$Environment = "Enhanced",
+        [string]$TestType = "Integration",
+        [string]$Scope = "Standard"
     )
     
-    Write-Host "Initializing mock environment: $Environment" -ForegroundColor Cyan
+    Write-Host "🚀 Initializing enhanced mock environment: $Environment" -ForegroundColor Cyan
+    Write-Host "   Test Type: $TestType | Scope: $Scope" -ForegroundColor Gray
     
-    # Create mock directories if they don't exist
-    $mockDirs = @(
+    # Use enhanced mock infrastructure
+    Initialize-EnhancedMockInfrastructure -TestType $TestType -Scope $Scope
+    
+    # Legacy compatibility - create additional directories if needed
+    $legacyDirs = @(
         "/mock-registry",
         "/mock-appdata", 
         "/mock-programfiles",
         "/mock-cloud"
     )
     
-    foreach ($dir in $mockDirs) {
+    foreach ($dir in $legacyDirs) {
         if (-not (Test-Path $dir)) {
             New-Item -Path $dir -ItemType Directory -Force | Out-Null
-            Write-Host "✓ Created mock directory: $dir" -ForegroundColor Green
+            Write-Host "  ✓ Created legacy compatibility directory: $dir" -ForegroundColor Gray
         }
     }
     
-    Write-Host "✓ Mock environment initialized" -ForegroundColor Green
+    Write-Host "✅ Enhanced mock environment initialized successfully!" -ForegroundColor Green
 }
 
 function Get-MockRegistryValue {
