@@ -31,6 +31,7 @@ $script:EnhancedMockConfig = @{
         IsDockerEnvironment = $false
         DynamicMockRoot = $null
         DynamicPaths = @{}
+        DockerIndicators = @()
     }
     
     DataSources = @{
@@ -161,13 +162,17 @@ function Initialize-DockerEnvironment {
     .DESCRIPTION
         Checks for Docker environment variables and sets up appropriate paths
         for dynamic mock data generation in Docker volumes.
+        
+        SAFETY: Enhanced mock infrastructure can only run in Docker environments
+        to prevent source tree pollution.
     #>
     
     # Check for Docker environment indicators
     $isDocker = $false
     $dynamicPaths = @{}
+    $dockerIndicators = @()
     
-    # Check for Docker environment variables
+    # Primary check: Docker environment variables
     $dockerEnvVars = @(
         'DYNAMIC_MOCK_ROOT',
         'DYNAMIC_APPLICATIONS', 
@@ -183,26 +188,45 @@ function Initialize-DockerEnvironment {
         if ($value) {
             $isDocker = $true
             $dynamicPaths[$envVar] = $value
+            $dockerIndicators += "Environment variable: $envVar"
         }
     }
     
-    # Additional Docker detection methods
+    # Secondary checks: Container indicators
+    $containerChecks = @(
+        @{ Test = { Test-Path "/.dockerenv" }; Name = "Docker environment file (/.dockerenv)" },
+        @{ Test = { $env:HOSTNAME -and $env:HOSTNAME.StartsWith("wmr-") }; Name = "WMR container hostname" },
+        @{ Test = { $env:CONTAINER_NAME -and $env:CONTAINER_NAME.StartsWith("wmr-") }; Name = "WMR container name" },
+        @{ Test = { $env:DOCKER_CONTAINER -eq "true" }; Name = "Docker container flag" },
+        @{ Test = { Test-Path "/proc/1/cgroup" -and (Get-Content "/proc/1/cgroup" -ErrorAction SilentlyContinue | Select-String "docker") }; Name = "Docker cgroup detection" }
+    )
+    
+    foreach ($check in $containerChecks) {
+        try {
+            if (& $check.Test) {
+                $isDocker = $true
+                $dockerIndicators += $check.Name
+            }
+        } catch {
+            # Ignore errors in detection
+        }
+    }
+    
+    # Tertiary check: Docker volume mounts
     if (-not $isDocker) {
-        # Check for container indicators
-        $containerIndicators = @(
-            { Test-Path "/.dockerenv" },
-            { $env:HOSTNAME -and $env:HOSTNAME.StartsWith("wmr-") },
-            { $env:CONTAINER_NAME -and $env:CONTAINER_NAME.StartsWith("wmr-") }
+        $dockerVolumePaths = @(
+            "/dynamic-mock-data",
+            "/dynamic-applications", 
+            "/dynamic-gaming",
+            "/mock-registry",
+            "/mock-appdata"
         )
         
-        foreach ($indicator in $containerIndicators) {
-            try {
-                if (& $indicator) {
-                    $isDocker = $true
-                    break
-                }
-            } catch {
-                # Ignore errors in detection
+        foreach ($volumePath in $dockerVolumePaths) {
+            if (Test-Path $volumePath) {
+                $isDocker = $true
+                $dockerIndicators += "Docker volume mount: $volumePath"
+                break
             }
         }
     }
@@ -210,6 +234,7 @@ function Initialize-DockerEnvironment {
     # Update configuration
     $script:EnhancedMockConfig.DockerEnvironment.IsDockerEnvironment = $isDocker
     $script:EnhancedMockConfig.DockerEnvironment.DynamicPaths = $dynamicPaths
+    $script:EnhancedMockConfig.DockerEnvironment.DockerIndicators = $dockerIndicators
     
     if ($isDocker) {
         # Set default dynamic root if not specified
@@ -220,9 +245,168 @@ function Initialize-DockerEnvironment {
         
         Write-Host "🐳 Docker environment detected" -ForegroundColor Blue
         Write-Host "   Dynamic mock root: $($dynamicPaths['DYNAMIC_MOCK_ROOT'])" -ForegroundColor Gray
+        Write-Host "   Indicators: $($dockerIndicators.Count)" -ForegroundColor Gray
+        
+        # Create Docker environment lock file
+        Set-DockerEnvironmentLock
     } else {
         Write-Host "🖥️  Local environment detected" -ForegroundColor Green
+        Write-Host "   Enhanced mocks DISABLED for safety" -ForegroundColor Yellow
     }
+}
+
+function Set-DockerEnvironmentLock {
+    <#
+    .SYNOPSIS
+        Creates a Docker environment lock file to validate container execution.
+    
+    .DESCRIPTION
+        Creates a lock file with Docker environment metadata that can be used
+        to validate that enhanced mock operations are running in Docker.
+    #>
+    
+    try {
+        $lockData = @{
+            IsDockerEnvironment = $true
+            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+            ProcessId = $PID
+            Hostname = $env:HOSTNAME
+            ContainerName = $env:CONTAINER_NAME
+            DynamicPaths = $script:EnhancedMockConfig.DockerEnvironment.DynamicPaths
+            DockerIndicators = $script:EnhancedMockConfig.DockerEnvironment.DockerIndicators
+        }
+        
+        # Cross-platform lock path
+        if ($IsLinux -or $IsMacOS) {
+            $lockPath = "/tmp/wmr-docker-env.lock"
+        } else {
+            # Windows - use temp directory
+            $tempDir = $env:TEMP ?? $env:TMP ?? "$env:USERPROFILE\AppData\Local\Temp"
+            $lockPath = Join-Path $tempDir "wmr-docker-env.lock"
+        }
+        
+        # Ensure directory exists
+        $lockDir = Split-Path $lockPath -Parent
+        if (-not (Test-Path $lockDir)) {
+            New-Item -Path $lockDir -ItemType Directory -Force | Out-Null
+        }
+        
+        $lockData | ConvertTo-Json -Depth 10 | Set-Content -Path $lockPath -Encoding UTF8
+        
+        # Also set in environment for quick access
+        $env:WMR_DOCKER_LOCK = $lockPath
+        
+        Write-Host "   🔒 Docker environment lock created: $lockPath" -ForegroundColor Gray
+        
+    } catch {
+        Write-Warning "⚠️  Could not create Docker environment lock: $_"
+    }
+}
+
+function Test-DockerEnvironmentLock {
+    <#
+    .SYNOPSIS
+        Validates that we're running in a Docker environment using lock file.
+    
+    .DESCRIPTION
+        Checks for Docker environment lock file and validates its contents
+        to ensure enhanced mock operations are only running in Docker.
+    
+    .PARAMETER ThrowOnFailure
+        If true, throws an exception when not in Docker environment.
+        If false, returns boolean result.
+    #>
+    param(
+        [switch]$ThrowOnFailure
+    )
+    
+    $isValid = $false
+    $reason = "Unknown"
+    
+    try {
+        # Check for lock file
+        $lockPath = $env:WMR_DOCKER_LOCK
+        if (-not $lockPath) {
+            # Cross-platform default lock path
+            if ($IsLinux -or $IsMacOS) {
+                $lockPath = "/tmp/wmr-docker-env.lock"
+            } else {
+                $tempDir = $env:TEMP ?? $env:TMP ?? "$env:USERPROFILE\AppData\Local\Temp"
+                $lockPath = Join-Path $tempDir "wmr-docker-env.lock"
+            }
+        }
+        
+        if (Test-Path $lockPath) {
+            $lockData = Get-Content $lockPath | ConvertFrom-Json
+            
+            # Validate lock data
+            if ($lockData.IsDockerEnvironment -and 
+                $lockData.ProcessId -eq $PID -and
+                $lockData.DynamicPaths -and
+                $lockData.DockerIndicators) {
+                $isValid = $true
+                $reason = "Valid Docker environment lock"
+            } else {
+                $reason = "Invalid lock data"
+            }
+        } else {
+            $reason = "No Docker environment lock file found"
+        }
+        
+        # Additional runtime validation
+        if ($isValid) {
+            $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
+            if (-not $dockerConfig.IsDockerEnvironment) {
+                $isValid = $false
+                $reason = "Docker environment not detected at runtime"
+            }
+        }
+        
+    } catch {
+        $isValid = $false
+        $reason = "Lock validation error: $_"
+    }
+    
+    if ($ThrowOnFailure -and -not $isValid) {
+        throw "🚫 SAFETY VIOLATION: Enhanced mock infrastructure can only run in Docker environments. Reason: $reason"
+    }
+    
+    return $isValid
+}
+
+function Assert-DockerEnvironment {
+    <#
+    .SYNOPSIS
+        Asserts that we're running in a Docker environment or throws an exception.
+    
+    .DESCRIPTION
+        Safety check that must be called before any enhanced mock operations.
+        Throws an exception if not running in Docker environment.
+    #>
+    
+    Write-Host "🔒 Validating Docker environment..." -ForegroundColor Yellow
+    
+    # Re-initialize Docker environment to ensure fresh detection
+    Initialize-DockerEnvironment
+    
+    # Validate using lock file
+    $isValid = Test-DockerEnvironmentLock -ThrowOnFailure:$false
+    
+    if (-not $isValid) {
+        Write-Host "❌ SAFETY CHECK FAILED" -ForegroundColor Red
+        Write-Host "   Enhanced mock infrastructure requires Docker environment" -ForegroundColor Red
+        Write-Host "   This prevents source tree pollution and ensures proper isolation" -ForegroundColor Red
+        Write-Host "" -ForegroundColor Red
+        Write-Host "   To run enhanced mocks:" -ForegroundColor Yellow
+        Write-Host "   1. Use: docker-compose -f docker-compose.test.yml up test-runner" -ForegroundColor Yellow
+        Write-Host "   2. Or run tests inside Docker containers" -ForegroundColor Yellow
+        Write-Host "" -ForegroundColor Red
+        
+        throw "🚫 SAFETY VIOLATION: Enhanced mock infrastructure can only run in Docker environments"
+    }
+    
+    Write-Host "✅ Docker environment validated" -ForegroundColor Green
+    Write-Host "   Safe to proceed with enhanced mock operations" -ForegroundColor Green
 }
 
 function Get-DynamicMockPath {
@@ -335,6 +519,9 @@ function Initialize-EnhancedMockInfrastructure {
     .PARAMETER Force
         Force regeneration of existing mock data.
     
+    .PARAMETER SkipSafetyCheck
+        Skip Docker environment safety check (for testing only).
+    
     .EXAMPLE
         Initialize-EnhancedMockInfrastructure -TestType "Integration" -Scope "Standard"
         Initialize-EnhancedMockInfrastructure -TestType "EndToEnd" -Scope "Comprehensive" -Force
@@ -347,15 +534,25 @@ function Initialize-EnhancedMockInfrastructure {
         [ValidateSet('Minimal', 'Standard', 'Comprehensive', 'Enterprise')]
         [string]$Scope = 'Standard',
         
-        [switch]$Force
+        [switch]$Force,
+        
+        [switch]$SkipSafetyCheck
     )
     
     Write-Host "🚀 Initializing Enhanced Mock Infrastructure" -ForegroundColor Cyan
     Write-Host "   Test Type: $TestType | Scope: $Scope | Force: $Force" -ForegroundColor Gray
     Write-Host ""
     
-    # Initialize Docker environment detection
-    Initialize-DockerEnvironment
+    # SAFETY CHECK: Ensure we're running in Docker environment
+    if (-not $SkipSafetyCheck) {
+        try {
+            Assert-DockerEnvironment
+        } catch {
+            Write-Host "🚫 Enhanced mock infrastructure initialization BLOCKED" -ForegroundColor Red
+            Write-Host "   Reason: $_" -ForegroundColor Red
+            return $null
+        }
+    }
     
     # Get appropriate mock data root based on environment
     $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
@@ -1059,19 +1256,33 @@ function Reset-EnhancedMockData {
     
     .PARAMETER Scope
         Scope of data to regenerate.
+    
+    .PARAMETER SkipSafetyCheck
+        Skip Docker environment safety check (for testing only).
     #>
     [CmdletBinding()]
     param(
         [string]$Component,
         
         [ValidateSet('Minimal', 'Standard', 'Comprehensive', 'Enterprise')]
-        [string]$Scope = 'Standard'
+        [string]$Scope = 'Standard',
+        
+        [switch]$SkipSafetyCheck
     )
     
     Write-Host "🔄 Resetting enhanced mock data..." -ForegroundColor Yellow
     
-    # Initialize Docker environment detection
-    Initialize-DockerEnvironment
+    # SAFETY CHECK: Ensure we're running in Docker environment
+    if (-not $SkipSafetyCheck) {
+        try {
+            Assert-DockerEnvironment
+        } catch {
+            Write-Host "🚫 Enhanced mock data reset BLOCKED" -ForegroundColor Red
+            Write-Host "   Reason: $_" -ForegroundColor Red
+            return $null
+        }
+    }
+    
     $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
     
     if ($Component) {
@@ -1114,7 +1325,7 @@ function Reset-EnhancedMockData {
         
         $components = @("applications", "gaming", "cloud", "wsl", "system-settings", "registry")
         foreach ($comp in $components) {
-            Reset-EnhancedMockData -Component $comp -Scope $Scope
+            Reset-EnhancedMockData -Component $comp -Scope $Scope -SkipSafetyCheck
         }
     }
     
