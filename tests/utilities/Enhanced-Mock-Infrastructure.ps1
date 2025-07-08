@@ -19,10 +19,20 @@
 .NOTES
     This enhanced infrastructure replaces basic mock utilities with comprehensive,
     realistic data generation that scales across unit, integration, and end-to-end tests.
+    
+    In Docker environments, dynamic mock data is generated in Docker volumes to avoid
+    polluting the source tree, while static mock data remains in source control.
 #>
 
 # Enhanced mock infrastructure configuration
 $script:EnhancedMockConfig = @{
+    # Docker environment detection and paths
+    DockerEnvironment = @{
+        IsDockerEnvironment = $false
+        DynamicMockRoot = $null
+        DynamicPaths = @{}
+    }
+    
     DataSources = @{
         # Real-world application data for realistic testing
         WingetApps = @(
@@ -143,6 +153,174 @@ $script:EnhancedMockConfig = @{
     }
 }
 
+function Initialize-DockerEnvironment {
+    <#
+    .SYNOPSIS
+        Detects Docker environment and initializes dynamic mock data paths.
+    
+    .DESCRIPTION
+        Checks for Docker environment variables and sets up appropriate paths
+        for dynamic mock data generation in Docker volumes.
+    #>
+    
+    # Check for Docker environment indicators
+    $isDocker = $false
+    $dynamicPaths = @{}
+    
+    # Check for Docker environment variables
+    $dockerEnvVars = @(
+        'DYNAMIC_MOCK_ROOT',
+        'DYNAMIC_APPLICATIONS', 
+        'DYNAMIC_GAMING',
+        'DYNAMIC_SYSTEM_SETTINGS',
+        'DYNAMIC_WSL_ROOT',
+        'DYNAMIC_WSL_PACKAGES',
+        'DYNAMIC_CLOUD_ROOT'
+    )
+    
+    foreach ($envVar in $dockerEnvVars) {
+        $value = [Environment]::GetEnvironmentVariable($envVar)
+        if ($value) {
+            $isDocker = $true
+            $dynamicPaths[$envVar] = $value
+        }
+    }
+    
+    # Additional Docker detection methods
+    if (-not $isDocker) {
+        # Check for container indicators
+        $containerIndicators = @(
+            { Test-Path "/.dockerenv" },
+            { $env:HOSTNAME -and $env:HOSTNAME.StartsWith("wmr-") },
+            { $env:CONTAINER_NAME -and $env:CONTAINER_NAME.StartsWith("wmr-") }
+        )
+        
+        foreach ($indicator in $containerIndicators) {
+            try {
+                if (& $indicator) {
+                    $isDocker = $true
+                    break
+                }
+            } catch {
+                # Ignore errors in detection
+            }
+        }
+    }
+    
+    # Update configuration
+    $script:EnhancedMockConfig.DockerEnvironment.IsDockerEnvironment = $isDocker
+    $script:EnhancedMockConfig.DockerEnvironment.DynamicPaths = $dynamicPaths
+    
+    if ($isDocker) {
+        # Set default dynamic root if not specified
+        if (-not $dynamicPaths['DYNAMIC_MOCK_ROOT']) {
+            $dynamicPaths['DYNAMIC_MOCK_ROOT'] = '/dynamic-mock-data'
+        }
+        $script:EnhancedMockConfig.DockerEnvironment.DynamicMockRoot = $dynamicPaths['DYNAMIC_MOCK_ROOT']
+        
+        Write-Host "🐳 Docker environment detected" -ForegroundColor Blue
+        Write-Host "   Dynamic mock root: $($dynamicPaths['DYNAMIC_MOCK_ROOT'])" -ForegroundColor Gray
+    } else {
+        Write-Host "🖥️  Local environment detected" -ForegroundColor Green
+    }
+}
+
+function Get-DynamicMockPath {
+    <#
+    .SYNOPSIS
+        Gets the appropriate path for dynamic mock data based on environment.
+    
+    .PARAMETER Component
+        Component type (applications, gaming, system-settings, wsl, cloud).
+    
+    .PARAMETER SubPath
+        Optional sub-path within the component.
+    
+    .EXAMPLE
+        Get-DynamicMockPath -Component "applications"
+        Get-DynamicMockPath -Component "gaming" -SubPath "steam"
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('applications', 'gaming', 'system-settings', 'wsl', 'cloud', 'registry')]
+        [string]$Component,
+        
+        [string]$SubPath
+    )
+    
+    $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
+    
+    if ($dockerConfig.IsDockerEnvironment) {
+        # Use Docker volume paths
+        $basePath = switch ($Component) {
+            'applications' { $dockerConfig.DynamicPaths['DYNAMIC_APPLICATIONS'] ?? '/dynamic-applications' }
+            'gaming' { $dockerConfig.DynamicPaths['DYNAMIC_GAMING'] ?? '/dynamic-gaming' }
+            'system-settings' { $dockerConfig.DynamicPaths['DYNAMIC_SYSTEM_SETTINGS'] ?? '/dynamic-system-settings' }
+            'wsl' { $dockerConfig.DynamicPaths['DYNAMIC_WSL_ROOT'] ?? '/dynamic-wsl' }
+            'cloud' { $dockerConfig.DynamicPaths['DYNAMIC_CLOUD_ROOT'] ?? '/dynamic-cloud' }
+            'registry' { Join-Path ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] ?? '/dynamic-mock-data') 'registry' }
+            default { Join-Path ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] ?? '/dynamic-mock-data') $Component }
+        }
+    } else {
+        # Use local standardized test paths with dynamic subdirectory
+        $testPaths = Get-StandardTestPaths
+        $basePath = Join-Path $testPaths.TestMockData $Component "generated"
+    }
+    
+    if ($SubPath) {
+        return Join-Path $basePath $SubPath
+    } else {
+        return $basePath
+    }
+}
+
+function Get-StaticMockPath {
+    <#
+    .SYNOPSIS
+        Gets the path for static mock data (always in source control).
+    
+    .PARAMETER Component
+        Component type (applications, gaming, system-settings, wsl, cloud).
+    
+    .PARAMETER SubPath
+        Optional sub-path within the component.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Component,
+        
+        [string]$SubPath
+    )
+    
+    $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
+    
+    if ($dockerConfig.IsDockerEnvironment) {
+        # In Docker, static mock data is mounted read-only
+        $basePath = switch ($Component) {
+            'registry' { '/mock-registry' }
+            'appdata' { '/mock-appdata' }
+            'programfiles' { '/mock-programfiles' }
+            'steam' { '/mock-steam' }
+            'epic' { '/mock-epic' }
+            'gog' { '/mock-gog' }
+            'ea' { '/mock-ea' }
+            'wsl' { '/mnt/test-data' }
+            'cloud' { '/mock-data/cloud' }
+            default { "/mock-data/$Component" }
+        }
+    } else {
+        # Local environment uses source tree paths
+        $testPaths = Get-StandardTestPaths
+        $basePath = Join-Path $testPaths.TestMockData $Component
+    }
+    
+    if ($SubPath) {
+        return Join-Path $basePath $SubPath
+    } else {
+        return $basePath
+    }
+}
+
 function Initialize-EnhancedMockInfrastructure {
     <#
     .SYNOPSIS
@@ -176,9 +354,19 @@ function Initialize-EnhancedMockInfrastructure {
     Write-Host "   Test Type: $TestType | Scope: $Scope | Force: $Force" -ForegroundColor Gray
     Write-Host ""
     
-    # Get standardized test paths
-    $testPaths = Get-StandardTestPaths
-    $mockDataRoot = $testPaths.TestMockData
+    # Initialize Docker environment detection
+    Initialize-DockerEnvironment
+    
+    # Get appropriate mock data root based on environment
+    $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
+    if ($dockerConfig.IsDockerEnvironment) {
+        $mockDataRoot = $dockerConfig.DynamicMockRoot
+        Write-Host "   Environment: Docker (dynamic data in volumes)" -ForegroundColor Blue
+    } else {
+        $testPaths = Get-StandardTestPaths
+        $mockDataRoot = $testPaths.TestMockData
+        Write-Host "   Environment: Local (dynamic data in generated subdirectories)" -ForegroundColor Green
+    }
     
     # Initialize mock data generators based on test type
     switch ($TestType) {
@@ -244,7 +432,8 @@ function Initialize-IntegrationMockData {
     $components = @('applications', 'system-settings', 'gaming', 'cloud', 'wsl', 'registry')
     
     foreach ($component in $components) {
-        $componentPath = Join-Path $MockRoot $component
+        # Use dynamic mock path for each component
+        $componentPath = Get-DynamicMockPath -Component $component
         
         switch ($component) {
             'applications' { 
@@ -881,14 +1070,27 @@ function Reset-EnhancedMockData {
     
     Write-Host "🔄 Resetting enhanced mock data..." -ForegroundColor Yellow
     
-    $testPaths = Get-StandardTestPaths
-    $mockDataRoot = $testPaths.TestMockData
+    # Initialize Docker environment detection
+    Initialize-DockerEnvironment
+    $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
     
     if ($Component) {
-        $componentPath = Join-Path $mockDataRoot $Component
-        if (Test-Path $componentPath) {
-            Remove-Item -Path $componentPath -Recurse -Force
-            Write-Host "  ✓ Removed $Component mock data" -ForegroundColor Green
+        # Reset specific component
+        if ($dockerConfig.IsDockerEnvironment) {
+            # In Docker, simply regenerate in the volume (will overwrite existing)
+            Write-Host "  🐳 Docker environment: Regenerating $Component in volume" -ForegroundColor Blue
+            $componentPath = Get-DynamicMockPath -Component $Component
+        } else {
+            # In local environment, clean only the generated subdirectory
+            Write-Host "  🖥️  Local environment: Cleaning $Component generated data" -ForegroundColor Green
+            $componentPath = Get-DynamicMockPath -Component $Component
+            
+            if (Test-Path $componentPath) {
+                Remove-Item -Path $componentPath -Recurse -Force -ErrorAction SilentlyContinue
+                Write-Host "  ✓ Removed $Component dynamic data" -ForegroundColor Green
+            } else {
+                Write-Host "  ✅ No $Component dynamic data to clean" -ForegroundColor Cyan
+            }
         }
         
         # Regenerate specific component
@@ -903,15 +1105,20 @@ function Reset-EnhancedMockData {
         
         Write-Host "  ✓ Regenerated $Component mock data" -ForegroundColor Green
     } else {
-        # Reset all mock data
-        if (Test-Path $mockDataRoot) {
-            Remove-Item -Path $mockDataRoot -Recurse -Force
+        # Reset all components
+        if ($dockerConfig.IsDockerEnvironment) {
+            Write-Host "  🐳 Docker environment: Regenerating all components in volumes" -ForegroundColor Blue
+        } else {
+            Write-Host "  🖥️  Local environment: Cleaning all generated data" -ForegroundColor Green
         }
         
-        Initialize-EnhancedMockInfrastructure -TestType "All" -Scope $Scope -Force
+        $components = @("applications", "gaming", "cloud", "wsl", "system-settings", "registry")
+        foreach ($comp in $components) {
+            Reset-EnhancedMockData -Component $comp -Scope $Scope
+        }
     }
     
-    Write-Host "🎉 Mock data reset completed!" -ForegroundColor Green
+    Write-Host "🎉 Mock data reset completed safely!" -ForegroundColor Green
 }
 
 # Functions are available when dot-sourced 
