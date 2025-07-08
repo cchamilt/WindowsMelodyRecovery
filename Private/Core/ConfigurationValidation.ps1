@@ -456,12 +456,12 @@ function Test-ConfigurationInheritance {
                     }
                     
                     if (-not $ruleResult.Success) {
-                        $result.Errors += "Inheritance rule '$ruleName' failed at level $i: $($ruleResult.Message)"
+                        $result.Errors += "Inheritance rule '$ruleName' failed at level $i`: $($ruleResult.Message)"
                         $result.Success = $false
                     }
                 }
                 catch {
-                    $result.Errors += "Inheritance rule '$ruleName' threw an exception at level $i: $($_.Exception.Message)"
+                    $result.Errors += "Inheritance rule '$ruleName' threw an exception at level $i`: $($_.Exception.Message)"
                     $result.Success = $false
                 }
             }
