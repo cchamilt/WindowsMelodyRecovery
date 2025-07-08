@@ -56,8 +56,9 @@ switch ($TestSuite) {
         Write-Host "🎯 Running Installation Integration Tests" -ForegroundColor Yellow
     }
     "Backup" {
-        $config.Run.Path = @(
-                    '/workspace/tests/integration/Backup-Unified.Tests.ps1'
+                $config.Run.Path = @(
+            '/workspace/tests/integration/Backup-Unified.Tests.ps1',
+            '/workspace/tests/integration/Template-Coverage-Validation.Tests.ps1'
         )
         Write-Host "🎯 Running Backup Tests" -ForegroundColor Yellow
     }
@@ -102,7 +103,10 @@ switch ($TestSuite) {
         Write-Host "🎯 Running Chezmoi Integration Tests" -ForegroundColor Yellow
     }
     "Template" {
-        $config.Run.Path = @('/workspace/tests/integration/TemplateIntegration.Tests.ps1')
+        $config.Run.Path = @(
+            '/workspace/tests/integration/TemplateIntegration.Tests.ps1',
+            '/workspace/tests/integration/Template-Coverage-Validation.Tests.ps1'
+        )
         Write-Host "🎯 Running Template Integration Tests" -ForegroundColor Yellow
     }
     "Application" {

@@ -158,7 +158,12 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 "applications.yaml",
                 "system-settings.yaml", 
                 "gamemanagers.yaml",
-                "wsl.yaml"
+                "wsl.yaml",
+                "display.yaml",
+                "keyboard.yaml",
+                "mouse.yaml",
+                "browsers.yaml",
+                "powershell.yaml"
             )
             
             $availableTemplates = @()
@@ -169,9 +174,14 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 }
             }
             
-            # At least some templates should be available
-            $availableTemplates.Count | Should -BeGreaterThan 0
+            # Most templates should be available
+            $availableTemplates.Count | Should -BeGreaterThan 5
             Write-Host "Available templates: $($availableTemplates -join ', ')" -ForegroundColor Green
+            
+            # Verify all 32 templates exist
+            $allTemplates = Get-ChildItem -Path $script:TemplatesPath -Filter "*.yaml"
+            $allTemplates.Count | Should -Be 32
+            Write-Host "Total templates found: $($allTemplates.Count)" -ForegroundColor Cyan
         }
         
         It "Should create backup directory structure" {
