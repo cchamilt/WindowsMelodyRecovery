@@ -51,7 +51,8 @@ function Write-TestSection {
     Write-Host $border -ForegroundColor Green
 }
 
-# Removed local Initialize-StandardTestEnvironment -TestType "All" function - using standardized version
+function Initialize-TestEnvironment {
+    Write-TestSection "Initializing Test Environment"
     
     # Create test directories
     $testDirs = @(
@@ -261,7 +262,7 @@ try {
     Write-Host ""
     
     # Initialize environment
-    Initialize-StandardTestEnvironment -TestType "All"
+    Initialize-TestEnvironment
     
     # Set working directory
     Set-Location /workspace

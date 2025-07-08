@@ -36,14 +36,14 @@ param(
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 # Import the test environment utilities
-. (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Host "🗂️  Running File Operation Tests for Windows Melody Recovery" -ForegroundColor Cyan
 Write-Host ""
 
 # Reset test environment first
 Write-Host "🧹 Resetting test environment..." -ForegroundColor Yellow
-$testPaths = Initialize-StandardTestEnvironment -TestType "FileOperations" -Force
+$testPaths = Initialize-TestEnvironment -Force
 Write-Host "✅ Test environment ready" -ForegroundColor Green
 Write-Host ""
 
@@ -126,7 +126,7 @@ foreach ($test in $testsToRun) {
 # Cleanup unless skipped
 if (-not $SkipCleanup) {
     Write-Host "🧹 Cleaning up test directories..." -ForegroundColor Yellow
-    Remove-StandardTestEnvironment
+    Remove-TestEnvironment
     Write-Host "✅ Cleanup complete" -ForegroundColor Green
 } else {
     Write-Host "⚠️  Skipping cleanup - test files remain in:" -ForegroundColor Yellow

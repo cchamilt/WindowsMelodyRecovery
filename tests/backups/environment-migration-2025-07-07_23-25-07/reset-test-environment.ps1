@@ -25,12 +25,12 @@ param(
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 # Import the test environment utilities
-. (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Host "🧹 Resetting test environment for unit tests..." -ForegroundColor Cyan
 
 # Initialize clean test environment
-$testPaths = Initialize-StandardTestEnvironment -TestType "All" -Force:$Force
+$testPaths = Initialize-TestEnvironment -Force:$Force
 
 Write-Host ""
 Write-Host "📁 Test directories ready:" -ForegroundColor Green

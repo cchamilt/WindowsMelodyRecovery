@@ -87,7 +87,8 @@ function Write-TestSection {
 }
 
 # Initialize test environment with proper logging
-# Removed local Initialize-StandardTestEnvironment -TestType "All" function - using standardized version
+function Initialize-TestEnvironment {
+    Write-TestSection "Initializing Test Environment"
     
     try {
         # Create required directories
@@ -383,7 +384,7 @@ try {
     Write-TestHeader "Windows Melody Recovery - Simplified Test Orchestrator"
     
     # Initialize environment first
-    if (-not (Initialize-StandardTestEnvironment -TestType "All")) {
+    if (-not (Initialize-TestEnvironment)) {
         Write-TestLog "Failed to initialize test environment" "ERROR" "MAIN"
         exit 1
     }

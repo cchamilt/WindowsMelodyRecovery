@@ -39,7 +39,7 @@ param(
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 # Import the test environment utilities
-. (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Host "🎯 Running End-to-End Tests for Windows Melody Recovery" -ForegroundColor Cyan
 Write-Host ""
@@ -84,7 +84,7 @@ Write-Host ""
 
 # Reset test environment
 Write-Host "🧹 Preparing end-to-end test environment..." -ForegroundColor Yellow
-$testPaths = Initialize-StandardTestEnvironment -TestType "EndToEnd" -Force
+$testPaths = Initialize-TestEnvironment -Force
 Write-Host "✅ Test environment ready" -ForegroundColor Green
 Write-Host ""
 
@@ -237,7 +237,7 @@ $report | ConvertTo-Json -Depth 10 | Set-Content -Path $reportPath -Encoding UTF
 # Cleanup unless skipped
 if (-not $SkipCleanup) {
     Write-Host "🧹 Cleaning up test environment..." -ForegroundColor Yellow
-    Remove-StandardTestEnvironment
+    Remove-TestEnvironment
     Write-Host "✅ Cleanup complete" -ForegroundColor Green
 } else {
     Write-Host "⚠️  Skipping cleanup - test files remain in:" -ForegroundColor Yellow

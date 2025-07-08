@@ -53,7 +53,8 @@ function Write-TestSection {
     Write-Host $border -ForegroundColor Green
 }
 
-# Removed local Initialize-StandardTestEnvironment -TestType "Integration" function - using standardized version
+function Initialize-TestEnvironment {
+    Write-TestSection "Initializing Test Environment"
     
     # Calculate project root (two levels up from this script)
     $script:projectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
@@ -460,7 +461,7 @@ function Clean-TestArtifacts {
 
 # Main execution
 try {
-    Initialize-StandardTestEnvironment -TestType "Integration"
+    Initialize-TestEnvironment
     Start-DockerEnvironment
     Test-IntegrationContainerConnectivity
     $testResult = Invoke-CoreTests

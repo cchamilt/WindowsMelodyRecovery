@@ -71,7 +71,7 @@ param(
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 # Import test environment utilities
-. (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 function Write-TestHeader {
     param([string]$Title, [string]$Level)

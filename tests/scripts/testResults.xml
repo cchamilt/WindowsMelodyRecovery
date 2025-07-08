@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="15" errors="0" failures="2" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2025-07-07" time="23:36:43">
+  <environment user="ccham" cwd="C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\scripts" clr-version="9.0.4" user-domain="CHRIS" machine-name="TEST-MACHINE" os-version="10.0.26100" nunit-version="2.5.8.0" platform="Microsoft Windows 11 Home|C:\WINDOWS|\Device\Harddisk0\Partition3" />
+  <culture-info current-culture="en-US" current-uiculture="en-US" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Failure" success="False" time="0.8683" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\unit\WSL-Logic.Tests.ps1" executed="True" result="Failure" success="False" time="0.8683" asserts="0" description="C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\unit\WSL-Logic.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="WSL Logic Unit Tests" executed="True" result="Failure" success="False" time="0.1721" asserts="0" description="WSL Logic Unit Tests">
+            <results>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.WSL Template Validation" executed="True" result="Success" success="True" time="0.0471" asserts="0" description="WSL Logic Unit Tests.WSL Template Validation">
+                <results>
+                  <test-case description="Should validate WSL template structure" name="WSL Logic Unit Tests.WSL Template Validation.Should validate WSL template structure" time="0.0416" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should parse WSL template backup operations" name="WSL Logic Unit Tests.WSL Template Validation.Should parse WSL template backup operations" time="0.0031" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.WSL Distribution Information Processing" executed="True" result="Success" success="True" time="0.0657" asserts="0" description="WSL Logic Unit Tests.WSL Distribution Information Processing">
+                <results>
+                  <test-case description="Should parse WSL distribution list" name="WSL Logic Unit Tests.WSL Distribution Information Processing.Should parse WSL distribution list" time="0.0067" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should validate distribution configuration" name="WSL Logic Unit Tests.WSL Distribution Information Processing.Should validate distribution configuration" time="0.0084" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.WSL Package List Processing" executed="True" result="Failure" success="False" time="0.107" asserts="0" description="WSL Logic Unit Tests.WSL Package List Processing">
+                <results>
+                  <test-case description="Should parse APT package list" name="WSL Logic Unit Tests.WSL Package List Processing.Should parse APT package list" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should parse PIP package list" name="WSL Logic Unit Tests.WSL Package List Processing.Should parse PIP package list" time="0.0244" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected strings to be the same, but they were different.
+Expected length: 6
+Actual length:   7
+Strings differ at index 6.
+Expected: '2.28.1'
+But was:  '2.28.1\r'
+           ------^</message>
+                      <stack-trace>at $packages[0].Version | Should -Be "2.28.1", C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\unit\WSL-Logic.Tests.ps1:188
+at &lt;ScriptBlock&gt;, C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\unit\WSL-Logic.Tests.ps1:188</stack-trace>
+                    </failure>
+                  </test-case>
+                  <test-case description="Should parse NPM package list" name="WSL Logic Unit Tests.WSL Package List Processing.Should parse NPM package list" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.WSL Configuration Processing" executed="True" result="Failure" success="False" time="0.1324" asserts="0" description="WSL Logic Unit Tests.WSL Configuration Processing">
+                <results>
+                  <test-case description="Should parse WSL configuration file" name="WSL Logic Unit Tests.WSL Configuration Processing.Should parse WSL configuration file" time="0.0166" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected '[wsl2]' to be found in collection @('[wsl2]
+', 'kernelCommandLine = cgroup_enable=1 cgroup_memory=1 cgroup_v2=1 swapaccount=1
+', 'memory = 8GB
+', 'processors = 4
+', 'swap = 2GB
+', 'localhostForwarding = true'), but it was not found.</message>
+                      <stack-trace>at $configLines | Should -Contain "[wsl2]", C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\unit\WSL-Logic.Tests.ps1:229
+at &lt;ScriptBlock&gt;, C:\Users\ccham\OneDrive - Fyber Labs\work\fyberlabs\repos\WindowsMelodyRecovery\tests\unit\WSL-Logic.Tests.ps1:229</stack-trace>
+                    </failure>
+                  </test-case>
+                  <test-case description="Should validate WSL configuration values" name="WSL Logic Unit Tests.WSL Configuration Processing.Should validate WSL configuration values" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.Chezmoi Configuration Processing" executed="True" result="Success" success="True" time="0.1454" asserts="0" description="WSL Logic Unit Tests.Chezmoi Configuration Processing">
+                <results>
+                  <test-case description="Should parse chezmoi configuration data" name="WSL Logic Unit Tests.Chezmoi Configuration Processing.Should parse chezmoi configuration data" time="0.0064" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should validate chezmoi template variables" name="WSL Logic Unit Tests.Chezmoi Configuration Processing.Should validate chezmoi template variables" time="0.0039" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.WSL Command Processing" executed="True" result="Success" success="True" time="0.1603" asserts="0" description="WSL Logic Unit Tests.WSL Command Processing">
+                <results>
+                  <test-case description="Should parse WSL command output" name="WSL Logic Unit Tests.WSL Command Processing.Should parse WSL command output" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should handle WSL command errors" name="WSL Logic Unit Tests.WSL Command Processing.Should handle WSL command errors" time="0.0038" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="WSL Logic Unit Tests.WSL Path Processing" executed="True" result="Success" success="True" time="0.1693" asserts="0" description="WSL Logic Unit Tests.WSL Path Processing">
+                <results>
+                  <test-case description="Should convert Windows paths to WSL paths" name="WSL Logic Unit Tests.WSL Path Processing.Should convert Windows paths to WSL paths" time="0.003" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should validate WSL path formats" name="WSL Logic Unit Tests.WSL Path Processing.Should validate WSL path formats" time="0.0034" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>

@@ -65,7 +65,8 @@ function Write-TestSection {
     Write-Host $border -ForegroundColor Green
 }
 
-# Removed local Initialize-StandardTestEnvironment -TestType "Integration" function - using standardized version
+function Initialize-TestEnvironment {
+    Write-TestSection "Initializing Test Environment"
     
     # Calculate project root (two levels up from this script)
     $script:projectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
@@ -394,7 +395,7 @@ try {
     Write-Host ""
     
     # Initialize environment and logging
-    Initialize-StandardTestEnvironment -TestType "Integration"
+    Initialize-TestEnvironment
     
     # Prerequisites check - centralized Docker management handles both Docker and Compose
     if (-not (Test-DockerAvailable)) {
