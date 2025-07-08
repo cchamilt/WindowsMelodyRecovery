@@ -120,7 +120,7 @@ function Invoke-UnitTests {
     
     $startTime = Get-Date
     try {
-        $scriptPath = Join-Path $PSScriptRoot "run-clean-unit-tests.ps1"
+        $scriptPath = Join-Path $PSScriptRoot "run-unit-tests.ps1"
         $output = & $scriptPath
         $success = $LASTEXITCODE -eq 0
         

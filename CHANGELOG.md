@@ -482,7 +482,7 @@ return $applications
 
 ##### **Test Orchestrator Refactoring and Loop Resolution**
 - **Complex Test Orchestrator Simplification**: Refactored the monolithic `test-orchestrator.ps1` into modular components to prevent infinite loops and hanging
-- **Modular Logging System**: Created separate `test-logging.ps1` module with centralized logging functionality and proper file output
+- **Modular Logging System**: Enhanced test scripts with centralized logging functionality and proper file output
 - **Pester Test Runner Module**: Created dedicated `test-pester-runner.ps1` module for focused integration test execution with comprehensive logging
 - **Container Health Check Simplification**: Replaced verbose debugging container health checks with simple connectivity verification to prevent hanging
 - **Runtime Pester Installation**: Implemented automatic Pester module installation during test execution to resolve Docker build-time module availability issues
@@ -558,7 +558,7 @@ return $applications
 
 ##### **Test Orchestrator Refactoring and Loop Resolution**
 - **Complex Test Orchestrator Simplification**: Refactored the monolithic `test-orchestrator.ps1` into modular components to prevent infinite loops and hanging
-- **Modular Logging System**: Created separate `test-logging.ps1` module with centralized logging functionality and proper file output
+- **Modular Logging System**: Enhanced test scripts with centralized logging functionality and proper file output
 - **Pester Test Runner Module**: Created dedicated `test-pester-runner.ps1` module for focused integration test execution with comprehensive logging
 - **Container Health Check Simplification**: Replaced verbose debugging container health checks with simple connectivity verification to prevent hanging
 - **Runtime Pester Installation**: Implemented automatic Pester module installation during test execution to resolve Docker build-time module availability issues

@@ -293,7 +293,7 @@ Test-EnvironmentIntegrity -Paths $testPaths
 
 All test runners have been automatically migrated:
 
-- ✅ `run-clean-unit-tests.ps1` - Uses Unit test type
+- ✅ `run-unit-tests.ps1` - Uses Unit test type
 - ✅ `run-integration-tests.ps1` - Uses Integration test type  
 - ✅ `run-file-operation-tests.ps1` - Uses FileOperations test type
 - ✅ `run-end-to-end-tests.ps1` - Uses EndToEnd test type

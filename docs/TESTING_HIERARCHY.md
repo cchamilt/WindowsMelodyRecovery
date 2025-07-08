@@ -109,7 +109,7 @@ if (-not (Test-SafeTestPath $path)) {
 ```
 
 ### Test Scripts
-- **Unit Tests**: `tests/scripts/run-clean-unit-tests.ps1`
+- **Unit Tests**: `tests/scripts/run-unit-tests.ps1`
 - **File Operations**: `tests/scripts/run-file-operation-tests.ps1` 
 - **Environment Reset**: `tests/scripts/reset-test-environment.ps1`
 
@@ -164,7 +164,7 @@ $unsafePath = "C:\Windows\System32\test.txt"  # ❌ NO!
 
 ## 🔄 **Test Execution Workflow**
 
-1. **Development**: Run unit tests only (`run-clean-unit-tests.ps1`)
+1. **Development**: Run unit tests only (`run-unit-tests.ps1`)
 2. **QA**: Run unit + file operation tests
 3. **CI/CD**: Run all test categories including integration
 4. **Docker**: Cross-platform validation
