@@ -156,8 +156,9 @@ function Get-WmrMachineContext {
         # Collect relevant environment variables
         $relevantEnvVars = @("COMPUTERNAME", "USERNAME", "USERPROFILE", "PROCESSOR_ARCHITECTURE", "USERDOMAIN", "PROCESSOR_IDENTIFIER")
         foreach ($envVar in $relevantEnvVars) {
-            if ($env:$envVar) {
-                $context.EnvironmentVariables[$envVar] = $env:$envVar
+            $envValue = [System.Environment]::GetEnvironmentVariable($envVar)
+            if ($envValue) {
+                $context.EnvironmentVariables[$envVar] = $envValue
             }
         }
         

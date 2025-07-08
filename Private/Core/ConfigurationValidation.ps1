@@ -646,11 +646,11 @@ function Test-ConfigurationFilePaths {
                                     }
                                     catch {
                                         $pathResult.Issues += "Invalid JSON content: $($_.Exception.Message)"
-                                        $result.Errors += "Invalid JSON in configuration file $path: $($_.Exception.Message)"
+                                        $result.Errors += "Invalid JSON in configuration file $path`: $($_.Exception.Message)"
                                         $result.Success = $false
                                     }
                                 }
-                                '.yaml' -or '.yml' {
+                                { $_ -in @('.yaml', '.yml') } {
                                     # Basic YAML validation (would need PowerShell-Yaml module for full validation)
                                     if ($content.Trim().Length -gt 0) {
                                         $pathResult.ValidContent = $true
@@ -666,7 +666,7 @@ function Test-ConfigurationFilePaths {
                                     }
                                     catch {
                                         $pathResult.Issues += "Invalid XML content: $($_.Exception.Message)"
-                                        $result.Errors += "Invalid XML in configuration file $path: $($_.Exception.Message)"
+                                        $result.Errors += "Invalid XML in configuration file $path`: $($_.Exception.Message)"
                                         $result.Success = $false
                                     }
                                 }
@@ -678,7 +678,7 @@ function Test-ConfigurationFilePaths {
                     }
                     catch {
                         $pathResult.Issues += "File access error: $($_.Exception.Message)"
-                        $result.Errors += "Cannot access configuration file $path: $($_.Exception.Message)"
+                        $result.Errors += "Cannot access configuration file $path`: $($_.Exception.Message)"
                         $result.Success = $false
                     }
                 }
@@ -696,7 +696,7 @@ function Test-ConfigurationFilePaths {
         }
         catch {
             $pathResult.Issues += "Path validation error: $($_.Exception.Message)"
-            $result.Errors += "Error validating configuration path $path: $($_.Exception.Message)"
+            $result.Errors += "Error validating configuration path $path`: $($_.Exception.Message)"
             $result.Success = $false
         }
         

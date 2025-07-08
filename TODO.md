@@ -11,7 +11,7 @@
 - Create export/import or edit calls for a simplified user editable app/game lists
 - Manage version pinning
 - Implement restore procedure for the complex templates
-- Add all packaging and module updates as scheduled tasks
+- Add all packaging -winget,choco,npm,etc. and powershell module updates as scheduled tasks
 - Clean up verb practices and naming for gallery release
 - optional filtered/limited user directory rsync in windows and wsl to zip or at least a cloud home backup directory
 - store windows key information - account attached and ideally actual key.
