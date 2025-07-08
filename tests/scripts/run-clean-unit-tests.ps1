@@ -44,9 +44,18 @@ Write-Host ""
 
 # Define the cleaned-up unit tests (logic only, no file operations)
 $cleanTests = @(
-    "SharedConfiguration",
-    "ApplicationState", 
-    "FileState-Logic"
+    "ApplicationState-Logic",
+    "FileState-Logic", 
+    "module-tests-Logic",
+    "Prerequisites-Logic",
+    "RegistryState-Logic",
+    "SharedConfiguration-Logic",
+    "TemplateModule-Logic",
+    "WSL-Logic",
+    "EncryptionUtilities",
+    "PathUtilities",
+    "Windows-Only",
+    "Timeout"
 )
 
 # Determine which tests to run

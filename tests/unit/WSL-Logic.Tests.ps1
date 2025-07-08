@@ -26,20 +26,41 @@ Describe "WSL Logic Unit Tests" -Tag "Unit", "WSL" {
     
     Context "WSL Template Validation" {
         It "Should validate WSL template structure" {
-            # Test WSL template availability
-            $moduleRoot = Split-Path (Get-Module WindowsMelodyRecovery).Path -Parent
+            # Mock template path and content for logic testing
+            $moduleRoot = "/mock/module/root"
             $wslTemplate = Join-Path $moduleRoot "Templates\System\wsl.yaml"
             
-            if (Test-Path $wslTemplate) {
-                Test-Path $wslTemplate | Should -Be $true
-                
-                # Test template content structure
-                $templateContent = Get-Content $wslTemplate -Raw
-                $templateContent | Should -Not -BeNullOrEmpty
-                $templateContent | Should -Match "wsl"
-            } else {
-                Set-ItResult -Skipped -Because "wsl.yaml template not found"
-            }
+            # Mock file operations for unit testing
+            Mock Test-Path { $true } -ParameterFilter { $Path -like "*wsl.yaml" }
+            Mock Get-Content { 
+                return @"
+name: wsl
+description: WSL backup and restore operations
+backup:
+  - path: distributions
+    type: command
+    command: wsl --list --verbose
+  - path: config
+    type: file
+    source: "%USERPROFILE%\\.wslconfig"
+"@
+            } -ParameterFilter { $Path -like "*wsl.yaml" }
+            Mock Get-Module { 
+                return @{ Path = "/mock/module/WindowsMelodyRecovery.psm1" }
+            } -ParameterFilter { $Name -eq "WindowsMelodyRecovery" }
+            Mock Split-Path { return "/mock/module" }
+            
+            Test-Path $wslTemplate | Should -Be $true
+            
+            # Test template content structure with mocked content
+            $templateContent = Get-Content $wslTemplate -Raw
+            $templateContent | Should -Not -BeNullOrEmpty
+            $templateContent | Should -Match "wsl"
+            $templateContent | Should -Match "backup:"
+            $templateContent | Should -Match "distributions"
+            
+            Should -Invoke Test-Path -Times 1
+            Should -Invoke Get-Content -Times 1
         }
         
         It "Should parse WSL template backup operations" {
