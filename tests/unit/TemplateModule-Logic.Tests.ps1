@@ -243,8 +243,8 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         It "should handle absolute template paths correctly" {
             $absolutePath = (Get-WmrTestPath -WindowsPath "C:\Templates\custom\template.yaml")
             
-            # Test that absolute paths are preserved
-            $absolutePath | Should -Match "^[A-Z]:\\.*template\.yaml$"
+            # Test that absolute paths are preserved (works with both Windows and Linux paths)
+            $absolutePath | Should -Match "(^[A-Z]:\\.*template\.yaml$)|(^/.*template\.yaml$)"
         }
 
         It "should validate template file extensions" {

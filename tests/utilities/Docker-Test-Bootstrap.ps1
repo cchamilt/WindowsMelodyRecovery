@@ -34,8 +34,53 @@ if ($script:IsDockerEnvironment) {
     $env:USERPROFILE = $env:USERPROFILE ?? '/mock-c/Users/TestUser'
     $env:PROGRAMFILES = $env:PROGRAMFILES ?? '/mock-c/Program Files'
     $env:PROGRAMDATA = $env:PROGRAMDATA ?? '/mock-c/ProgramData'
-    $env:COMPUTERNAME = $env:COMPUTERNAME ?? 'docker-test'
-    $env:HOSTNAME = $env:HOSTNAME ?? 'docker-test'
+    $env:COMPUTERNAME = $env:COMPUTERNAME ?? 'TEST-MACHINE'
+    $env:HOSTNAME = $env:HOSTNAME ?? 'TEST-MACHINE'
+    $env:USERNAME = $env:USERNAME ?? 'TestUser'
+    $env:PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE ?? 'AMD64'
+    $env:USERDOMAIN = $env:USERDOMAIN ?? 'WORKGROUP'
+    $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
+    
+    # Mock Get-CimInstance for hardware information
+    if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
+        function Get-CimInstance {
+            [CmdletBinding()]
+            param(
+                [string]$ClassName,
+                [string]$ErrorAction = 'Continue'
+            )
+            
+            switch ($ClassName) {
+                'Win32_Processor' {
+                    return @(
+                        [PSCustomObject]@{
+                            Name = 'Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz'
+                            NumberOfCores = 6
+                            NumberOfLogicalProcessors = 12
+                        }
+                    )
+                }
+                'Win32_PhysicalMemory' {
+                    return @(
+                        [PSCustomObject]@{
+                            Capacity = 17179869184  # 16GB
+                        }
+                    )
+                }
+                'Win32_VideoController' {
+                    return @(
+                        [PSCustomObject]@{
+                            Name = 'NVIDIA GeForce GTX 1080'
+                            AdapterRAM = 8589934592  # 8GB
+                        }
+                    )
+                }
+                default {
+                    return @()
+                }
+            }
+        }
+    }
     
     # Set up mock Windows drives
     if (-not (Test-Path '/mock-c')) {

@@ -431,19 +431,32 @@ function Read-WmrTemplateConfig {
         [string]$TemplatePath
     )
     
-    # Mock template configuration reading
-    if (-not (Test-Path $TemplatePath)) {
-        throw "Template file not found: $TemplatePath"
-    }
-    
-    return @{
-        metadata = @{
-            name = 'mock-template'
-            version = '1.0'
+    # Mock template configuration reading with predefined responses
+    switch ($TemplatePath) {
+        "valid_template.yaml" {
+            return [PSCustomObject]@{
+                metadata = [PSCustomObject]@{
+                    name = "Test Template"
+                    version = "1.0"
+                    description = "A test template"
+                }
+                prerequisites = @(
+                    [PSCustomObject]@{
+                        name = "Dummy Prereq"
+                        type = "script"
+                        inline_script = "Write-Output 'test'"
+                        expected_output = "test"
+                        on_missing = "warn"
+                    }
+                )
+            }
         }
-        files = @()
-        registry = @()
-        applications = @()
+        "invalid_template.yaml" {
+            throw "Invalid YAML content in template file"
+        }
+        default {
+            throw "Template file not found: $TemplatePath"
+        }
     }
 }
 
@@ -451,12 +464,31 @@ function Test-WmrTemplateSchema {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [hashtable]$TemplateConfig
+        [object]$TemplateConfig
     )
     
+    # Convert PSCustomObject to hashtable if needed
+    if ($TemplateConfig -is [PSCustomObject]) {
+        $configHash = @{}
+        foreach ($prop in $TemplateConfig.PSObject.Properties) {
+            $configHash[$prop.Name] = $prop.Value
+        }
+        $TemplateConfig = $configHash
+    }
+    
     # Mock template schema validation
-    if (-not $TemplateConfig.metadata.name) {
-        throw "Template schema validation failed: 'metadata.name' is missing."
+    if (-not $TemplateConfig.metadata) {
+        throw "Template schema validation failed: 'metadata' is missing."
+    }
+    
+    if ($TemplateConfig.metadata -is [PSCustomObject]) {
+        if (-not $TemplateConfig.metadata.name) {
+            throw "Template schema validation failed: 'metadata.name' is missing."
+        }
+    } elseif ($TemplateConfig.metadata -is [hashtable]) {
+        if (-not $TemplateConfig.metadata.name) {
+            throw "Template schema validation failed: 'metadata.name' is missing."
+        }
     }
     
     return $true

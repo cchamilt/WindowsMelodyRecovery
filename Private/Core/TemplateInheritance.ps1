@@ -236,22 +236,26 @@ function Test-WmrMachineSelectors {
         
         switch ($selector.type) {
             "machine_name" {
-                $result = Test-WmrStringComparison -Value $MachineContext.MachineName -Expected $selector.value -Operator $selector.operator -CaseSensitive $selector.case_sensitive
+                $caseSensitive = if ($selector.case_sensitive -ne $null -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                $result = Test-WmrStringComparison -Value $MachineContext.MachineName -Expected $selector.value -Operator $selector.operator -CaseSensitive $caseSensitive
             }
             "hostname_pattern" {
-                $result = Test-WmrStringComparison -Value $MachineContext.MachineName -Expected $selector.value -Operator "matches" -CaseSensitive $selector.case_sensitive
+                $caseSensitive = if ($selector.case_sensitive -ne $null -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                $result = Test-WmrStringComparison -Value $MachineContext.MachineName -Expected $selector.value -Operator "matches" -CaseSensitive $caseSensitive
             }
             "environment_variable" {
                 $envValue = $MachineContext.EnvironmentVariables[$selector.value]
                 if ($envValue) {
-                    $result = Test-WmrStringComparison -Value $envValue -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $selector.case_sensitive
+                    $caseSensitive = if ($selector.case_sensitive -ne $null -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                    $result = Test-WmrStringComparison -Value $envValue -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $caseSensitive
                 }
             }
             "registry_value" {
                 try {
                     $regValue = Get-ItemProperty -Path $selector.path -Name $selector.key_name -ErrorAction SilentlyContinue
                     if ($regValue) {
-                        $result = Test-WmrStringComparison -Value $regValue.$($selector.key_name) -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $selector.case_sensitive
+                        $caseSensitive = if ($selector.case_sensitive -ne $null -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                        $result = Test-WmrStringComparison -Value $regValue.$($selector.key_name) -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $caseSensitive
                     }
                 } catch {
                     Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
@@ -261,7 +265,8 @@ function Test-WmrMachineSelectors {
                 try {
                     $scriptBlock = [ScriptBlock]::Create($selector.script)
                     $scriptResult = & $scriptBlock $MachineContext
-                    $result = Test-WmrStringComparison -Value $scriptResult -Expected $selector.expected_result -Operator $selector.operator -CaseSensitive $selector.case_sensitive
+                    $caseSensitive = if ($selector.case_sensitive -ne $null -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                    $result = Test-WmrStringComparison -Value $scriptResult -Expected $selector.expected_result -Operator $selector.operator -CaseSensitive $caseSensitive
                 } catch {
                     Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
                 }
@@ -516,7 +521,11 @@ function Merge-WmrConfigurationItem {
             if ($NewItem.inheritance_source -eq "machine_specific") {
                 # Machine-specific wins
                 foreach ($prop in $NewItem.PSObject.Properties) {
-                    $mergedItem.$($prop.Name) = $prop.Value
+                    try {
+                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
+                    } catch {
+                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
+                    }
                 }
             }
         }
@@ -527,7 +536,11 @@ function Merge-WmrConfigurationItem {
             } else {
                 # New item wins
                 foreach ($prop in $NewItem.PSObject.Properties) {
-                    $mergedItem.$($prop.Name) = $prop.Value
+                    try {
+                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
+                    } catch {
+                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
+                    }
                 }
             }
         }
@@ -535,7 +548,11 @@ function Merge-WmrConfigurationItem {
             # Merge properties from both items
             foreach ($prop in $NewItem.PSObject.Properties) {
                 if ($prop.Name -notin @("inheritance_source", "inheritance_priority", "conflict_resolution")) {
-                    $mergedItem.$($prop.Name) = $prop.Value
+                    try {
+                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
+                    } catch {
+                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
+                    }
                 }
             }
         }
@@ -543,7 +560,11 @@ function Merge-WmrConfigurationItem {
             # Default to higher priority wins
             if ($newPriority -gt $existingPriority) {
                 foreach ($prop in $NewItem.PSObject.Properties) {
-                    $mergedItem.$($prop.Name) = $prop.Value
+                    try {
+                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
+                    } catch {
+                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
+                    }
                 }
             }
         }

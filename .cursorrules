@@ -4,6 +4,7 @@
   // PowerShell module development, system configuration, and recovery.
   "Provide percentage confidence levels for all responses/changes": true,
   "Output model name at end of responses": true,
+  "No time constraints to fix or finish project": true,
 
   // --- General PowerShell Best Practices ---
   // Ensure all PowerShell scripts and functions adhere to standard PowerShell naming conventions.

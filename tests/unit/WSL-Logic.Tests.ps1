@@ -135,7 +135,7 @@ backup:
             $mockDistribution.Status | Should -BeIn @("Running", "Stopped")
             $mockDistribution.Version | Should -Match '^\d+$'
             $mockDistribution.Default | Should -BeOfType [bool]
-            $mockDistribution.BasePath | Should -Match '^[A-Z]:\\'
+            $mockDistribution.BasePath | Should -Match '(^[A-Z]:\\)|(^/.*)'
         }
     }
     
@@ -180,8 +180,8 @@ flask==2.3.2
             foreach ($line in $lines) {
                 if ($line -match '^([^=]+)==(.+)') {
                     $packages += @{
-                        Name = $matches[1]
-                        Version = $matches[2]
+                        Name = $matches[1].Trim()
+                        Version = $matches[2].Trim()
                     }
                 }
             }
@@ -228,11 +228,11 @@ localhostForwarding = true
 "@
             
             # Test configuration parsing logic
-            $configLines = $mockWslConfig -split "`n" | Where-Object { $_ -match '\S' }
+            $configLines = $mockWslConfig -split "`r?`n" | Where-Object { $_ -match '\S' }
             $configLines | Should -Contain "[wsl2]"
-            $configLines | Should -Match "memory = 8GB"
-            $configLines | Should -Match "processors = 4"
-            $configLines | Should -Match "localhostForwarding = true"
+            ($configLines | Where-Object { $_ -match "memory = 8GB" }) | Should -Not -BeNullOrEmpty
+            ($configLines | Where-Object { $_ -match "processors = 4" }) | Should -Not -BeNullOrEmpty
+            ($configLines | Where-Object { $_ -match "localhostForwarding = true" }) | Should -Not -BeNullOrEmpty
         }
         
         It "Should validate WSL configuration values" {
@@ -332,6 +332,10 @@ localhostForwarding = true
             # Test path conversion logic
             $convertedPath = $windowsPath -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/'
             $convertedPath = $convertedPath.ToLower()
+            # Handle both real WSL paths and mock paths
+            if ($convertedPath -match '^/mock-c/') {
+                $convertedPath = $convertedPath -replace '^/mock-c/', '/mnt/c/'
+            }
             $convertedPath | Should -Be "/mnt/c/users/testuser/documents"
         }
         

@@ -45,24 +45,36 @@ BeforeAll {
             [string]$BackupType,
             
             [Parameter(Mandatory=$true)]
+            [AllowEmptyString()]
             [string]$MACHINE_BACKUP,
             
             [Parameter(Mandatory=$true)]
+            [AllowEmptyString()]
             [string]$SHARED_BACKUP
         )
         
+        # Handle empty backup paths gracefully
+        if ([string]::IsNullOrWhiteSpace($MACHINE_BACKUP) -and [string]::IsNullOrWhiteSpace($SHARED_BACKUP)) {
+            Write-Host "No backup paths provided" -ForegroundColor Yellow
+            return $null
+        }
+        
         # First check machine-specific backup
-        $machinePath = Join-Path $MACHINE_BACKUP $Path
-        if (Test-Path $machinePath) {
-            Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
-            return $machinePath
+        if (-not [string]::IsNullOrWhiteSpace($MACHINE_BACKUP)) {
+            $machinePath = Join-Path $MACHINE_BACKUP $Path
+            if (Test-Path $machinePath) {
+                Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
+                return $machinePath
+            }
         }
         
         # Fall back to shared backup
-        $sharedPath = Join-Path $SHARED_BACKUP $Path
-        if (Test-Path $sharedPath) {
-            Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
-            return $sharedPath
+        if (-not [string]::IsNullOrWhiteSpace($SHARED_BACKUP)) {
+            $sharedPath = Join-Path $SHARED_BACKUP $Path
+            if (Test-Path $sharedPath) {
+                Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
+                return $sharedPath
+            }
         }
         
         Write-Host "No $BackupType backup found" -ForegroundColor Yellow

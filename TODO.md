@@ -22,3 +22,4 @@
 - Network drive backup
 - Azure Blob storage
 - server features - services, iis configuration, files/directories
+- document and support administrative privelege management with Windows' new sudo inline option https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
