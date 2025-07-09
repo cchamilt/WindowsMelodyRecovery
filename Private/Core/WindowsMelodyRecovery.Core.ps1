@@ -469,25 +469,27 @@ function Test-WSLRepositories {
         [string]$WorkDirectory = "/home/\$(whoami)/work/repos"
     )
     
-    $repoCheckScript = @"
+    $repoCheckScript = @'
 #!/bin/bash
 set -e
 
-WORK_DIR="$WorkDirectory"
+WORK_DIR="$workDirLinux"
 
-if [ ! -d "\$WORK_DIR" ]; then
-    echo "Work directory not found: \$WORK_DIR"
+echo "Checking for git repositories in: $WORK_DIR"
+
+if [ ! -d "$WORK_DIR" ]; then
+    echo "Work directory does not exist: $WORK_DIR"
     exit 0
 fi
 
-echo "Checking git repositories in \$WORK_DIR..."
+echo "Checking git repositories in $WORK_DIR..."
 
-find "\$WORK_DIR" -name ".git" -type d | while read gitdir; do
-    repo_dir=\$(dirname "\$gitdir")
-    repo_name=\$(basename "\$repo_dir")
-    echo "Checking: \$repo_name"
+find "$WORK_DIR" -name ".git" -type d | while read gitdir; do
+    repo_dir=$(dirname "$gitdir")
+    repo_name=$(basename "$repo_dir")
+    echo "Checking: $repo_name"
     
-    cd "\$repo_dir"
+    cd "$repo_dir"
     
     # Check for uncommitted changes
     if ! git diff --quiet; then
@@ -495,29 +497,29 @@ find "\$WORK_DIR" -name ".git" -type d | while read gitdir; do
     fi
     
     # Check for untracked files
-    if [ -n "\$(git ls-files --others --exclude-standard)" ]; then
+    if [ -n "$(git ls-files --others --exclude-standard)" ]; then
         echo "  ⚠️  Untracked files found"
     fi
     
     # Check if ahead/behind remote
     if git remote -v | grep -q origin; then
         git fetch origin 2>/dev/null || true
-        current_branch=\$(git branch --show-current)
-        if [ -n "\$current_branch" ]; then
-            local_commit=\$(git rev-parse HEAD)
-            remote_commit=\$(git rev-parse origin/\$current_branch 2>/dev/null || echo "")
+        current_branch=$(git branch --show-current)
+        if [ -n "$current_branch" ]; then
+            local_commit=$(git rev-parse HEAD)
+            remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null || echo "")
             
-            if [ "\$local_commit" != "\$remote_commit" ] && [ -n "\$remote_commit" ]; then
+            if [ "$local_commit" != "$remote_commit" ] && [ -n "$remote_commit" ]; then
                 echo "  ⚠️  Out of sync with remote"
             fi
         fi
     fi
     
-    echo "  ✅ \$repo_name checked"
+    echo "  ✅ $repo_name checked"
 done
 
 echo "Repository check completed!"
-"@
+'@
 
     try {
         Invoke-WSLScript -ScriptContent $repoCheckScript
@@ -560,7 +562,7 @@ function Setup-WSLChezmoi {
     }
     
     try {
-        $chezmoiSetupScript = @"
+        $chezmoiSetupScript = @'
 #!/bin/bash
 set -e
 
@@ -574,12 +576,12 @@ else
     echo "📦 Installing chezmoi..."
     
     # Install chezmoi using the official installer
-    sh -c "\$(curl -fsLS get.chezmoi.io)" -- -b "\$HOME/bin"
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/bin"
     
     # Add to PATH if not already there
-    if ! grep -q 'export PATH="\$HOME/bin:\$PATH"' ~/.bashrc; then
-        echo 'export PATH="\$HOME/bin:\$PATH"' >> ~/.bashrc
-        export PATH="\$HOME/bin:\$PATH"
+    if ! grep -q 'export PATH="$HOME/bin:$PATH"' ~/.bashrc; then
+        echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+        export PATH="$HOME/bin:$PATH"
     fi
     
     echo "✅ chezmoi installed successfully"
@@ -589,7 +591,7 @@ fi
 if [ -n "$GitRepository" ] && [ "$InitializeRepo" = "True" ]; then
     echo "🔧 Initializing chezmoi with repository: $GitRepository"
     
-    if [ ! -d "\$HOME/.local/share/chezmoi" ]; then
+    if [ ! -d "$HOME/.local/share/chezmoi" ]; then
         chezmoi init "$GitRepository"
         echo "✅ chezmoi initialized with repository"
     else
@@ -603,7 +605,7 @@ if [ -n "$GitRepository" ] && [ "$InitializeRepo" = "True" ]; then
 else
     echo "🔧 Initializing empty chezmoi repository..."
     
-    if [ ! -d "\$HOME/.local/share/chezmoi" ]; then
+    if [ ! -d "$HOME/.local/share/chezmoi" ]; then
         chezmoi init
         echo "✅ chezmoi initialized (empty repository)"
         echo "💡 Add files with: chezmoi add ~/.bashrc"
@@ -626,7 +628,7 @@ alias cme='chezmoi edit'
 alias cms='chezmoi status'
 alias cmd='chezmoi diff'
 alias cmu='chezmoi update'
-alias cmcd='cd \$(chezmoi source-path)'
+alias cmcd='cd $(chezmoi source-path)'
 EOF
     echo "✅ chezmoi aliases added to ~/.bashrc"
 else
@@ -645,7 +647,7 @@ echo "  chezmoi cd                # Go to source directory"
 echo ""
 echo "🔗 Useful aliases (restart shell or source ~/.bashrc):"
 echo "  cm, cma, cme, cms, cmd, cmu, cmcd"
-"@
+'@
 
         $params = @{
             ScriptContent = $chezmoiSetupScript
@@ -693,13 +695,13 @@ function Backup-WSLChezmoi {
         $chezmoiBackupPath = $BackupPath + "/chezmoi"
         $chezmoiBackupPathLinux = $chezmoiBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
         
-        $chezmoiBackupScript = @"
+        $chezmoiBackupScript = @'
 #!/bin/bash
 set -e
 
 BACKUP_DIR="$chezmoiBackupPathLinux"
 
-echo "🏠 Backing up chezmoi configuration to: \$BACKUP_DIR"
+echo "🏠 Backing up chezmoi configuration to: $BACKUP_DIR"
 
 # Check if chezmoi is installed
 if ! command -v chezmoi &> /dev/null; then
@@ -708,45 +710,45 @@ if ! command -v chezmoi &> /dev/null; then
 fi
 
 # Create backup directory
-mkdir -p "\$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR"
 
 # Check if chezmoi is initialized
-if [ ! -d "\$HOME/.local/share/chezmoi" ]; then
+if [ ! -d "$HOME/.local/share/chezmoi" ]; then
     echo "ℹ️  chezmoi not initialized, skipping backup"
     exit 0
 fi
 
 echo "📦 Backing up chezmoi source directory..."
 # Backup the entire chezmoi source directory
-rsync -av "\$HOME/.local/share/chezmoi/" "\$BACKUP_DIR/source/"
+rsync -av "$HOME/.local/share/chezmoi/" "$BACKUP_DIR/source/"
 
 # Backup chezmoi configuration
-if [ -f "\$HOME/.config/chezmoi/chezmoi.toml" ]; then
-    mkdir -p "\$BACKUP_DIR/config"
-    cp "\$HOME/.config/chezmoi/chezmoi.toml" "\$BACKUP_DIR/config/"
+if [ -f "$HOME/.config/chezmoi/chezmoi.toml" ]; then
+    mkdir -p "$BACKUP_DIR/config"
+    cp "$HOME/.config/chezmoi/chezmoi.toml" "$BACKUP_DIR/config/"
     echo "✅ chezmoi configuration backed up"
 fi
 
 # Create a list of managed files
 echo "📋 Creating list of managed files..."
-chezmoi managed > "\$BACKUP_DIR/managed-files.txt" 2>/dev/null || echo "Could not list managed files"
+chezmoi managed > "$BACKUP_DIR/managed-files.txt" 2>/dev/null || echo "Could not list managed files"
 
 # Create status report
 echo "📊 Creating status report..."
-chezmoi status > "\$BACKUP_DIR/status.txt" 2>/dev/null || echo "Could not get status"
+chezmoi status > "$BACKUP_DIR/status.txt" 2>/dev/null || echo "Could not get status"
 
 # Get chezmoi data info
 echo "ℹ️  Creating chezmoi info..."
-cat > "\$BACKUP_DIR/info.txt" << EOF
+cat > "$BACKUP_DIR/info.txt" << EOF
 Chezmoi Backup Information
-Generated: \$(date)
-User: \$(whoami)
-Chezmoi Version: \$(chezmoi --version 2>/dev/null || echo "unknown")
-Source Path: \$(chezmoi source-path 2>/dev/null || echo "unknown")
+Generated: $(date)
+User: $(whoami)
+Chezmoi Version: $(chezmoi --version 2>/dev/null || echo "unknown")
+Source Path: $(chezmoi source-path 2>/dev/null || echo "unknown")
 EOF
 
 echo "✅ chezmoi backup completed!"
-"@
+'@
 
         Invoke-WSLScript -ScriptContent $chezmoiBackupScript
         Write-Host "✅ chezmoi backup completed" -ForegroundColor Green
@@ -789,16 +791,16 @@ function Restore-WSLChezmoi {
         $chezmoiBackupPath = $BackupPath + "/chezmoi"
         $chezmoiBackupPathLinux = $chezmoiBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
         
-        $chezmoiRestoreScript = @"
+        $chezmoiRestoreScript = @'
 #!/bin/bash
 set -e
 
 BACKUP_DIR="$chezmoiBackupPathLinux"
 
-echo "🏠 Restoring chezmoi configuration from: \$BACKUP_DIR"
+echo "🏠 Restoring chezmoi configuration from: $BACKUP_DIR"
 
 # Check if backup exists
-if [ ! -d "\$BACKUP_DIR" ]; then
+if [ ! -d "$BACKUP_DIR" ]; then
     echo "ℹ️  No chezmoi backup found, skipping restore"
     exit 0
 fi
@@ -806,48 +808,48 @@ fi
 # Install chezmoi if not present
 if ! command -v chezmoi &> /dev/null; then
     echo "📦 Installing chezmoi..."
-    sh -c "\$(curl -fsLS get.chezmoi.io)" -- -b "\$HOME/bin"
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/bin"
     
     # Add to PATH
-    if ! grep -q 'export PATH="\$HOME/bin:\$PATH"' ~/.bashrc; then
-        echo 'export PATH="\$HOME/bin:\$PATH"' >> ~/.bashrc
+    if ! grep -q 'export PATH="$HOME/bin:$PATH"' ~/.bashrc; then
+        echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
     fi
-    export PATH="\$HOME/bin:\$PATH"
+    export PATH="$HOME/bin:$PATH"
     echo "✅ chezmoi installed"
 fi
 
 # Restore chezmoi source directory
-if [ -d "\$BACKUP_DIR/source" ]; then
+if [ -d "$BACKUP_DIR/source" ]; then
     echo "📦 Restoring chezmoi source directory..."
-    mkdir -p "\$HOME/.local/share"
-    rsync -av "\$BACKUP_DIR/source/" "\$HOME/.local/share/chezmoi/"
+    mkdir -p "$HOME/.local/share"
+    rsync -av "$BACKUP_DIR/source/" "$HOME/.local/share/chezmoi/"
     echo "✅ chezmoi source directory restored"
 fi
 
 # Restore chezmoi configuration
-if [ -f "\$BACKUP_DIR/config/chezmoi.toml" ]; then
+if [ -f "$BACKUP_DIR/config/chezmoi.toml" ]; then
     echo "🔧 Restoring chezmoi configuration..."
-    mkdir -p "\$HOME/.config/chezmoi"
-    cp "\$BACKUP_DIR/config/chezmoi.toml" "\$HOME/.config/chezmoi/"
+    mkdir -p "$HOME/.config/chezmoi"
+    cp "$BACKUP_DIR/config/chezmoi.toml" "$HOME/.config/chezmoi/"
     echo "✅ chezmoi configuration restored"
 fi
 
 # Apply dotfiles if source directory exists
-if [ -d "\$HOME/.local/share/chezmoi" ]; then
+if [ -d "$HOME/.local/share/chezmoi" ]; then
     echo "📋 Applying dotfiles..."
     chezmoi apply
     echo "✅ Dotfiles applied"
 fi
 
 # Show status
-if command -v chezmoi &> /dev/null && [ -d "\$HOME/.local/share/chezmoi" ]; then
+if command -v chezmoi &> /dev/null && [ -d "$HOME/.local/share/chezmoi" ]; then
     echo ""
     echo "📊 chezmoi status:"
     chezmoi status || echo "Could not get status"
 fi
 
 echo "✅ chezmoi restore completed!"
-"@
+'@
 
         Invoke-WSLScript -ScriptContent $chezmoiRestoreScript
         Write-Host "✅ chezmoi restore completed" -ForegroundColor Green

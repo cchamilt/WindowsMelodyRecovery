@@ -200,7 +200,7 @@ function Initialize-WindowsMelodyRecovery {
                 for ($i=0; $i -lt $possiblePaths.Count; $i++) {
                     Write-Host "[$i] $($possiblePaths[$i].FullName)"
                 }
-                Write-Host "[C] Custom location"
+                Write-Host "`[C`] Custom location"
 
                 do {
                     $selection = Read-Host "`nSelect OneDrive location [0-$($possiblePaths.Count-1)] or [C]"
@@ -303,7 +303,7 @@ function Initialize-WindowsMelodyRecovery {
     $script:Config.IsInitialized = $true
     
     Write-Host "`nConfiguration saved to: $configFile" -ForegroundColor Green
-    Write-Host "Module configuration updated in memory" -ForegroundColor Green
+    Write-Host 'Module configuration updated in memory' -ForegroundColor Green
     
     return $config
 }

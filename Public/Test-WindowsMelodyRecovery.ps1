@@ -184,7 +184,9 @@ function Test-WindowsMelodyRecovery {
 
     if ($results.Warnings.Count -gt 0) {
         Write-Host "`nWarnings:" -ForegroundColor Yellow
-        $results.Warnings | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
+        foreach ($warning in $results.Warnings) {
+            Write-Host "  - $warning" -ForegroundColor Yellow
+        }
     }
 
     # Return overall status
