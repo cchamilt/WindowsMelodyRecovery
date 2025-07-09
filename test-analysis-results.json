@@ -1,0 +1,1536 @@
+{
+  "Recommendations": {
+    "ImmediateActions": [
+      "Fix 6 Docker-compatible tests",
+      "Move 44 Windows-only tests to separate directory",
+      "Target: 195 tests in Docker environment (100% pass rate)",
+      "Target: 44 tests in Windows CI/CD environment"
+    ],
+    "NextSteps": [
+      "Create enhanced Docker mocking for function availability issues",
+      "Implement comprehensive path conversion system",
+      "Develop Windows-only test safety measures",
+      "Set up dual GitHub Actions workflows"
+    ]
+  },
+  "Analysis": {
+    "FailedTests": 129,
+    "TotalTests": 318,
+    "CategorySummary": {
+      "ScheduledTasks": {
+        "Count": 1,
+        "TargetEnvironment": "Windows-Only",
+        "Tests": [
+          "Should handle scheduled task operations logic without admin privileges"
+        ],
+        "Priority": "Medium"
+      },
+      "EncryptionEdgeCases": {
+        "Count": 0,
+        "TargetEnvironment": "Docker-Fixable",
+        "Tests": [],
+        "Priority": "Low"
+      },
+      "PathIssues": {
+        "Count": 6,
+        "TargetEnvironment": "Docker-Fixable",
+        "Tests": [
+          "Should validate existing valid files",
+          "Should detect invalid JSON content",
+          "Should detect empty files",
+          "Should detect non-existent files",
+          "Should handle multiple files with mixed results",
+          "Should skip accessibility checks when disabled"
+        ],
+        "Priority": "High"
+      },
+      "RegistryOperations": {
+        "Count": 14,
+        "TargetEnvironment": "Windows-Only",
+        "Tests": [
+          "Should handle HKLM registry operations logic without admin privileges",
+          "Should handle registry access errors gracefully",
+          "Should require admin for protected registry paths",
+          "Should detect admin requirements from HKLM registry operations",
+          "Should detect safe operations from HKCU registry operations",
+          "should correctly handle winreg:// HKLM paths",
+          "should correctly handle winreg:// HKCU paths",
+          "Should validate registry path checking logic",
+          "Should handle different registry hives correctly",
+          "Should validate registry value checking logic",
+          "Should handle different registry hive paths correctly",
+          "Should validate registry path format",
+          "Should be able to access Windows registry",
+          "Should handle registry state operations"
+        ],
+        "Priority": "High"
+      },
+      "WindowsPrincipal": {
+        "Count": 29,
+        "TargetEnvironment": "Windows-Only",
+        "Tests": [
+          "Should validate admin requirements for Windows features backup",
+          "Should validate admin prerequisites in template processing",
+          "Should pass admin prerequisites when admin privileges are available",
+          "Should handle Windows Optional Features logic without admin privileges",
+          "Should handle Windows Capabilities logic without admin privileges",
+          "Should handle service operations logic without admin privileges",
+          "Should simulate admin privilege escalation scenarios",
+          "Should handle ThrowIfNotAdmin parameter when not admin",
+          "Should not throw when admin privileges are available",
+          "Should detect 'Already Elevated' when running as admin",
+          "Should detect 'No Elevation Available' when cannot elevate",
+          "Should return false on non-Windows systems",
+          "Should require admin for HKLM write operations",
+          "Should not require admin for HKLM read operations",
+          "Should not require admin for HKCU operations",
+          "Should require admin for system directory writes",
+          "Should not require admin for system directory reads",
+          "Should not require admin for user directory operations",
+          "Should require admin for service modifications",
+          "Should not require admin for service reads",
+          "Should require admin for scheduled task modifications",
+          "Should not require admin for scheduled task reads",
+          "Should always require admin for Windows features",
+          "Should always require admin for Windows capabilities",
+          "Should detect admin requirements from prerequisites",
+          "Should detect admin requirements from Windows features",
+          "Should execute main operation when admin privileges are available",
+          "Should execute fallback operation when admin privileges are not available",
+          "Should handle NoPrompt parameter when elevation is needed"
+        ],
+        "Priority": "High"
+      },
+      "FileSystemSpecific": {
+        "Count": 0,
+        "TargetEnvironment": "Docker-Fixable",
+        "Tests": [],
+        "Priority": "High"
+      },
+      "WindowsFeatures": {
+        "Count": 0,
+        "TargetEnvironment": "Windows-Only",
+        "Tests": [],
+        "Priority": "Medium"
+      },
+      "ConfigurationValidation": {
+        "Count": 0,
+        "TargetEnvironment": "Docker-Fixable",
+        "Tests": [],
+        "Priority": "Medium"
+      },
+      "FunctionNotFound": {
+        "Count": 0,
+        "TargetEnvironment": "Docker-Fixable",
+        "Tests": [],
+        "Priority": "High"
+      },
+      "MockingIssues": {
+        "Count": 0,
+        "TargetEnvironment": "Docker-Fixable",
+        "Tests": [],
+        "Priority": "Medium"
+      }
+    },
+    "PassedTests": 189,
+    "FailureAnalysis": [
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Backup-WindowsFeatures",
+        "TestName": "Should validate admin requirements for Windows features backup"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Test-WmrPrerequisites",
+        "TestName": "Should validate admin prerequisites in template processing"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Test-WmrPrerequisites",
+        "TestName": "Should pass admin prerequisites when admin privileges are available"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Get-WindowsOptionalFeature",
+        "TestName": "Should handle Windows Optional Features logic without admin privileges"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Get-WindowsCapability",
+        "TestName": "Should handle Windows Capabilities logic without admin privileges"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Set-Service",
+        "TestName": "Should handle service operations logic without admin privileges"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Set-RegistryValue",
+        "TestName": "Should handle HKLM registry operations logic without admin privileges"
+      },
+      {
+        "Priority": "Medium",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "ScheduledTasks"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Register-ScheduledTask",
+        "TestName": "Should handle scheduled task operations logic without admin privileges"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges-Logic.Tests.ps1",
+        "ErrorMessage": "Could not find Command Test-ElevationCapability",
+        "TestName": "Should simulate admin privilege escalation scenarios"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should return privilege information object with required properties"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should detect Windows platform correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should include process ID"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "Expected an exception with message like 'Administrative privileges are required' to be thrown, but the message was 'A parameter cannot be found that matches parameter name 'ThrowIfNotAdmin'.'. from /workspace/tests/unit/AdministrativePrivileges.Tests.ps1:64 char:48\n    + …           { Test-WmrAdministrativePrivileges -ThrowIfNotAdmin } | Sho …\n    +                                                ~~~~~~~~~~~~~~~~",
+        "TestName": "Should handle ThrowIfNotAdmin parameter when not admin"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "Expected no exception to be thrown, but an exception \"A parameter cannot be found that matches parameter name 'ThrowIfNotAdmin'.\" was thrown from /workspace/tests/unit/AdministrativePrivileges.Tests.ps1:73 char:48\n    + …           { Test-WmrAdministrativePrivileges -ThrowIfNotAdmin } | Sho …\n    +                                                ~~~~~~~~~~~~~~~~.",
+        "TestName": "Should not throw when admin privileges are available"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should detect 'Already Elevated' when running as admin"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should detect 'UAC Available' when can elevate"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should detect 'No Elevation Available' when cannot elevate"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'Quiet'.",
+        "TestName": "Should handle privilege detection errors gracefully"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "Could not find Command Test-WmrElevationCapability",
+        "TestName": "Should return false on non-Windows systems"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrElevationCapability' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should handle registry access errors gracefully"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should require admin for HKLM write operations"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should not require admin for HKLM read operations"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should not require admin for HKCU operations"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should require admin for protected registry paths"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should require admin for system directory writes"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should not require admin for system directory reads"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should not require admin for user directory operations"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should require admin for service modifications"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should not require admin for service reads"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should require admin for scheduled task modifications"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should not require admin for scheduled task reads"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should always require admin for Windows features"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "The term 'Test-WmrAdminRequiredOperation' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.",
+        "TestName": "Should always require admin for Windows capabilities"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'TemplateConfig'.",
+        "TestName": "Should detect admin requirements from prerequisites"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'TemplateConfig'.",
+        "TestName": "Should detect admin requirements from HKLM registry operations"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'TemplateConfig'.",
+        "TestName": "Should detect safe operations from HKCU registry operations"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'TemplateConfig'.",
+        "TestName": "Should detect admin requirements from Windows features"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'TemplateConfig'.",
+        "TestName": "Should detect mixed requirements and set appropriate flags"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ScriptBlock'.",
+        "TestName": "Should execute main operation when admin privileges are available"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ScriptBlock'.",
+        "TestName": "Should execute fallback operation when admin privileges are not available"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ScriptBlock'.",
+        "TestName": "Should fail gracefully when no fallback is available"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ScriptBlock'.",
+        "TestName": "Should handle User-level operations regardless of privileges"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ScriptBlock'.",
+        "TestName": "Should handle main operation errors and try fallback"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ScriptBlock'.",
+        "TestName": "Should handle both main and fallback operation errors"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "Parameter set cannot be resolved using the specified named parameters. One or more parameters issued cannot be used together or an insufficient number of parameters were provided.",
+        "TestName": "Should handle WhatIf parameter correctly"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "WindowsPrincipal"
+        ],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "Elevation required but NoPrompt specified",
+        "TestName": "Should handle NoPrompt parameter when elevation is needed"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "AdministrativePrivileges.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ArgumentList'.",
+        "TestName": "Should pass arguments to script block correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Expected $true, but got $false.",
+        "TestName": "Should validate successful configuration merging"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Expected $true, but got $false.",
+        "TestName": "Should apply custom merging rules"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'ConfigurationHierarchy' because it is an empty array.",
+        "TestName": "Should handle empty hierarchy"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Docker-Fixable",
+        "RecommendedAction": "Fix for Docker compatibility with enhanced mocking",
+        "Categories": [
+          "PathIssues"
+        ],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'Path' because it is null.",
+        "TestName": "Should validate existing valid files"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Docker-Fixable",
+        "RecommendedAction": "Fix for Docker compatibility with enhanced mocking",
+        "Categories": [
+          "PathIssues"
+        ],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'Path' because it is null.",
+        "TestName": "Should detect invalid JSON content"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Docker-Fixable",
+        "RecommendedAction": "Fix for Docker compatibility with enhanced mocking",
+        "Categories": [
+          "PathIssues"
+        ],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'Path' because it is null.",
+        "TestName": "Should detect empty files"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Docker-Fixable",
+        "RecommendedAction": "Fix for Docker compatibility with enhanced mocking",
+        "Categories": [
+          "PathIssues"
+        ],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'Path' because it is null.",
+        "TestName": "Should detect non-existent files"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Docker-Fixable",
+        "RecommendedAction": "Fix for Docker compatibility with enhanced mocking",
+        "Categories": [
+          "PathIssues"
+        ],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'Path' because it is null.",
+        "TestName": "Should handle multiple files with mixed results"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Docker-Fixable",
+        "RecommendedAction": "Fix for Docker compatibility with enhanced mocking",
+        "Categories": [
+          "PathIssues"
+        ],
+        "TestFile": "ConfigurationValidation.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'Path' because it is null.",
+        "TestName": "Should skip accessibility checks when disabled"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "EncryptionWorkflow.Tests.ps1",
+        "ErrorMessage": "Expected an exception with message like '*Encryption passphrase cannot be empty*' to be thrown, but no exception was thrown.",
+        "TestName": "Should handle empty passphrase gracefully"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "EncryptionWorkflow.Tests.ps1",
+        "ErrorMessage": "Expected an exception with message like '*Encryption passphrase cannot be empty*' to be thrown, but no exception was thrown.",
+        "TestName": "Should validate passphrase strength requirements"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "FileState-Logic.Tests.ps1",
+        "ErrorMessage": "Expected Set-Content to be called at least 1 times, but was called 0 times",
+        "TestName": "Should use destination path when provided"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "FileState-Logic.Tests.ps1",
+        "ErrorMessage": "Expected Set-Content to be called at least 1 times, but was called 0 times",
+        "TestName": "Should fall back to original path when no destination provided"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "module-tests-Logic.Tests.ps1",
+        "ErrorMessage": "Expected regular expression '[regex]::Escape' to match '/mock-c/MockTestDir/Config', because /mock-c/MockTestDir, but it did not match.",
+        "TestName": "Should test configuration directory structure logic"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'File', but got $null.",
+        "TestName": "should correctly expand environment variables for Windows paths"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'File', but got $null.",
+        "TestName": "should correctly handle file:// URIs"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'Registry', but got $null.",
+        "TestName": "should correctly handle winreg:// HKLM paths"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'Registry', but got $null.",
+        "TestName": "should correctly handle winreg:// HKCU paths"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'WSL', but got $null.",
+        "TestName": "should correctly handle wsl:/// paths (default distribution)"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'WSL', but got $null.",
+        "TestName": "should correctly handle wsl://WSLVM/ paths (specific distribution)"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "PathUtilities.Tests.ps1",
+        "ErrorMessage": "Expected 'File', but got $null.",
+        "TestName": "should return original path for unrecognized URIs as File type"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate script prerequisites correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle script execution failure correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate script output matching logic"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate registry path checking logic"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle different registry hives correctly"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate registry value checking logic"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate application checking logic"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle missing applications correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate prerequisite structure correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle invalid prerequisite types"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate on_missing values"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle null or empty prerequisites gracefully"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle malformed prerequisite structures"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should determine execution order correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should handle prerequisite dependencies correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Prerequisites-Logic.Tests.ps1",
+        "ErrorMessage": null,
+        "TestName": "Should validate different output formats correctly"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "RegistryState-Logic.Tests.ps1",
+        "ErrorMessage": "Expected regular expression '^HK[CLRU][MU]?:' to match 'HKCR:\\Test', but it did not match.",
+        "TestName": "Should handle different registry hive paths correctly"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "RegistryState-Logic.Tests.ps1",
+        "ErrorMessage": "Expected regular expression '^HK[CLRU][MU]?:' to match 'HKCR:\\TestClass', but it did not match.",
+        "TestName": "Should validate registry path format"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "SharedConfiguration-Logic.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'MACHINE_BACKUP' because it is an empty string.",
+        "TestName": "Should handle empty or null paths gracefully"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Expected 'merge', but got $null.",
+        "TestName": "Should return default configuration when no template configuration exists"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Expected 'override', but got $null.",
+        "TestName": "Should merge template configuration with defaults"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Expected a value, but got $null or empty.",
+        "TestName": "Should collect basic machine context information"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Expected a value, but got $null or empty.",
+        "TestName": "Should include hardware and software information"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineSelectors'.",
+        "TestName": "Should match machine name selector"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineSelectors'.",
+        "TestName": "Should not match incorrect machine name"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineSelectors'.",
+        "TestName": "Should match hostname pattern selector"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineSelectors'.",
+        "TestName": "Should match environment variable selector"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Parameter cannot be processed because the parameter name 'Value' is ambiguous. Possible matches include: -Value1 -Value2.",
+        "TestName": "Should perform case-insensitive equals comparison"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Parameter cannot be processed because the parameter name 'Value' is ambiguous. Possible matches include: -Value1 -Value2.",
+        "TestName": "Should perform case-sensitive equals comparison"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Parameter cannot be processed because the parameter name 'Value' is ambiguous. Possible matches include: -Value1 -Value2.",
+        "TestName": "Should perform contains comparison"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Parameter cannot be processed because the parameter name 'Value' is ambiguous. Possible matches include: -Value1 -Value2.",
+        "TestName": "Should perform regex matches comparison"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineSpecificConfigs'.",
+        "TestName": "Should return configurations that match machine selectors"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineSpecificConfigs'.",
+        "TestName": "Should return configurations sorted by priority"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'InheritanceConfig'.",
+        "TestName": "Should merge shared configuration into resolved configuration"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'InheritanceConfig'.",
+        "TestName": "Should merge machine-specific configuration with deep merge strategy"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineContext'.",
+        "TestName": "Should apply inheritance rules to matching sections"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ResolvedConfig'.",
+        "TestName": "Should return true when rule has no conditions"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ResolvedConfig'.",
+        "TestName": "Should check inheritance tags condition"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineContext'.",
+        "TestName": "Should apply conditional sections when conditions are met"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ConditionalSection'.",
+        "TestName": "Should evaluate custom script conditions"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ConditionalSection'.",
+        "TestName": "Should evaluate machine name conditions"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'ConditionalSection'.",
+        "TestName": "Should handle condition failures with skip action"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Expected an exception with message like '*Duplicate names found*' to be thrown, but no exception was thrown.",
+        "TestName": "Should detect duplicate names in strict validation"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Expected an exception with message like '*Missing required 'name' property*' to be thrown, but no exception was thrown.",
+        "TestName": "Should detect missing required properties"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineContext'.",
+        "TestName": "Should resolve template inheritance for basic template without inheritance features"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineContext'.",
+        "TestName": "Should resolve template inheritance for template with all inheritance features"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "Cannot process argument transformation on parameter 'TemplateConfig'. Cannot convert value \"@{configuration=; metadata=; machine_specific=System.Object[]; conditional_sections=System.Object[]; shared=; inheritance_rules=System.Object[]}\" to type \"System.Collections.Hashtable\". Error: \"Cannot convert the \"@{configuration=; metadata=; machine_specific=System.Object[]; conditional_sections=System.Object[]; shared=; inheritance_rules=System.Object[]}\" value of type \"System.Management.Automation.PSCustomObject\" to type \"System.Collections.Hashtable\".\"",
+        "TestName": "Should handle template with no applicable machine-specific configurations"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateInheritance.Tests.ps1",
+        "ErrorMessage": "A parameter cannot be found that matches parameter name 'MachineContext'.",
+        "TestName": "Should handle conflicting configurations with machine precedence"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateModule-Logic.Tests.ps1",
+        "ErrorMessage": "Template file not found: valid_template.yaml",
+        "TestName": "should parse valid YAML template configuration correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateModule-Logic.Tests.ps1",
+        "ErrorMessage": "Expected no exception to be thrown, but an exception \"Cannot process argument transformation on parameter 'TemplateConfig'. Cannot convert value \"@{metadata=; prerequisites=System.Object[]}\" to type \"System.Collections.Hashtable\". Error: \"Cannot convert the \"@{metadata=; prerequisites=System.Object[]}\" value of type \"System.Management.Automation.PSCustomObject\" to type \"System.Collections.Hashtable\".\"\" was thrown from /workspace/tests/unit/TemplateModule-Logic.Tests.ps1:98 char:54\n    + …         { Test-WmrTemplateSchema -TemplateConfig $validConfig } | Sho …\n    +                                                    ~~~~~~~~~~~~.",
+        "TestName": "should validate template configuration with required metadata"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateModule-Logic.Tests.ps1",
+        "ErrorMessage": "Expected an exception with message like 'Template schema validation failed: 'metadata.name' is missing.' to be thrown, but the message was 'Cannot process argument transformation on parameter 'TemplateConfig'. Cannot convert value \"@{metadata=; prerequisites=System.Object[]}\" to type \"System.Collections.Hashtable\". Error: \"Cannot convert the \"@{metadata=; prerequisites=System.Object[]}\" value of type \"System.Management.Automation.PSCustomObject\" to type \"System.Collections.Hashtable\".\"'. from /workspace/tests/unit/TemplateModule-Logic.Tests.ps1:110 char:54\n    + …       { Test-WmrTemplateSchema -TemplateConfig $invalidConfig } | Sho …\n    +                                                  ~~~~~~~~~~~~~~",
+        "TestName": "should reject template configuration missing required metadata.name"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "TemplateModule-Logic.Tests.ps1",
+        "ErrorMessage": "Expected regular expression '^[A-Z]:\\\\.*template\\.yaml$' to match '/mock-c/Templates/custom/template.yaml', but it did not match.",
+        "TestName": "should handle absolute template paths correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Windows-Only.Tests.ps1",
+        "ErrorMessage": "Expected a value, but got $null or empty.",
+        "TestName": "Should be able to check for scheduled tasks on Windows"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "Windows-Only.Tests.ps1",
+        "ErrorMessage": "Expected a value, but got $null or empty.",
+        "TestName": "Should be able to access Windows registry"
+      },
+      {
+        "Priority": "High",
+        "TargetEnvironment": "Windows-Only",
+        "RecommendedAction": "Move to tests/windows-only/ directory for CI/CD-only execution",
+        "Categories": [
+          "RegistryOperations"
+        ],
+        "TestFile": "Windows-Only.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'StateFilesDirectory' because it is an empty string.",
+        "TestName": "Should handle registry state operations"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Windows-Only.Tests.ps1",
+        "ErrorMessage": "Cannot bind argument to parameter 'StateFilesDirectory' because it is an empty string.",
+        "TestName": "Should handle Windows file paths correctly"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "Windows-Only.Tests.ps1",
+        "ErrorMessage": "Expected an exception to be thrown, but no exception was thrown.",
+        "TestName": "Should handle Windows system directory access"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "WSL-Logic.Tests.ps1",
+        "ErrorMessage": "Expected regular expression '^[A-Z]:\\\\' to match '/mock-c//Users//TestUser//AppData//Local//Packages//CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc//LocalState', but it did not match.",
+        "TestName": "Should validate distribution configuration"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "WSL-Logic.Tests.ps1",
+        "ErrorMessage": "Expected strings to be the same, but they were different.\nExpected length: 6\nActual length:   7\nStrings differ at index 6.\nExpected: '2.28.1'\nBut was:  '2.28.1\\r'\n           ------^",
+        "TestName": "Should parse PIP package list"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "WSL-Logic.Tests.ps1",
+        "ErrorMessage": "Expected '[wsl2]' to be found in collection @('[wsl2]\r', 'kernelCommandLine = cgroup_enable=1 cgroup_memory=1 cgroup_v2=1 swapaccount=1\r', 'memory = 8GB\r', 'processors = 4\r', 'swap = 2GB\r', 'localhostForwarding = true'), but it was not found.",
+        "TestName": "Should parse WSL configuration file"
+      },
+      {
+        "Priority": "Unknown",
+        "TargetEnvironment": "Unknown",
+        "RecommendedAction": "Requires manual analysis to determine proper environment",
+        "Categories": [],
+        "TestFile": "WSL-Logic.Tests.ps1",
+        "ErrorMessage": "Expected strings to be the same, but they were different.\nExpected length: 31\nActual length:   32\nStrings differ at index 2.\nExpected: '/mnt/c/users/testuser/documents'\nBut was:  '/mock-c/users/testuser/documents'\n           --^",
+        "TestName": "Should convert Windows paths to WSL paths"
+      }
+    ]
+  },
+  "Timestamp": "2025-07-09 07:05:15",
+  "MigrationPlan": {
+    "Summary": {
+      "CurrentPassed": 189,
+      "WindowsTargetTests": 44,
+      "TotalAnalyzed": 318,
+      "CurrentFailed": 129,
+      "DockerTargetTests": 195
+    },
+    "DockerFixable": {
+      "TotalTests": 6,
+      "Files": [],
+      "Categories": {
+        "EncryptionEdgeCases": {
+          "Count": 0,
+          "TargetEnvironment": "Docker-Fixable",
+          "Tests": [],
+          "Priority": "Low"
+        },
+        "PathIssues": {
+          "Count": 6,
+          "TargetEnvironment": "Docker-Fixable",
+          "Tests": [
+            "Should validate existing valid files",
+            "Should detect invalid JSON content",
+            "Should detect empty files",
+            "Should detect non-existent files",
+            "Should handle multiple files with mixed results",
+            "Should skip accessibility checks when disabled"
+          ],
+          "Priority": "High"
+        },
+        "ConfigurationValidation": {
+          "Count": 0,
+          "TargetEnvironment": "Docker-Fixable",
+          "Tests": [],
+          "Priority": "Medium"
+        },
+        "MockingIssues": {
+          "Count": 0,
+          "TargetEnvironment": "Docker-Fixable",
+          "Tests": [],
+          "Priority": "Medium"
+        },
+        "FunctionNotFound": {
+          "Count": 0,
+          "TargetEnvironment": "Docker-Fixable",
+          "Tests": [],
+          "Priority": "High"
+        },
+        "FileSystemSpecific": {
+          "Count": 0,
+          "TargetEnvironment": "Docker-Fixable",
+          "Tests": [],
+          "Priority": "High"
+        }
+      }
+    },
+    "WindowsOnly": {
+      "TotalTests": 44,
+      "Files": [],
+      "Categories": {
+        "ScheduledTasks": {
+          "Count": 1,
+          "TargetEnvironment": "Windows-Only",
+          "Tests": [
+            "Should handle scheduled task operations logic without admin privileges"
+          ],
+          "Priority": "Medium"
+        },
+        "WindowsFeatures": {
+          "Count": 0,
+          "TargetEnvironment": "Windows-Only",
+          "Tests": [],
+          "Priority": "Medium"
+        },
+        "WindowsPrincipal": {
+          "Count": 29,
+          "TargetEnvironment": "Windows-Only",
+          "Tests": [
+            "Should validate admin requirements for Windows features backup",
+            "Should validate admin prerequisites in template processing",
+            "Should pass admin prerequisites when admin privileges are available",
+            "Should handle Windows Optional Features logic without admin privileges",
+            "Should handle Windows Capabilities logic without admin privileges",
+            "Should handle service operations logic without admin privileges",
+            "Should simulate admin privilege escalation scenarios",
+            "Should handle ThrowIfNotAdmin parameter when not admin",
+            "Should not throw when admin privileges are available",
+            "Should detect 'Already Elevated' when running as admin",
+            "Should detect 'No Elevation Available' when cannot elevate",
+            "Should return false on non-Windows systems",
+            "Should require admin for HKLM write operations",
+            "Should not require admin for HKLM read operations",
+            "Should not require admin for HKCU operations",
+            "Should require admin for system directory writes",
+            "Should not require admin for system directory reads",
+            "Should not require admin for user directory operations",
+            "Should require admin for service modifications",
+            "Should not require admin for service reads",
+            "Should require admin for scheduled task modifications",
+            "Should not require admin for scheduled task reads",
+            "Should always require admin for Windows features",
+            "Should always require admin for Windows capabilities",
+            "Should detect admin requirements from prerequisites",
+            "Should detect admin requirements from Windows features",
+            "Should execute main operation when admin privileges are available",
+            "Should execute fallback operation when admin privileges are not available",
+            "Should handle NoPrompt parameter when elevation is needed"
+          ],
+          "Priority": "High"
+        },
+        "RegistryOperations": {
+          "Count": 14,
+          "TargetEnvironment": "Windows-Only",
+          "Tests": [
+            "Should handle HKLM registry operations logic without admin privileges",
+            "Should handle registry access errors gracefully",
+            "Should require admin for protected registry paths",
+            "Should detect admin requirements from HKLM registry operations",
+            "Should detect safe operations from HKCU registry operations",
+            "should correctly handle winreg:// HKLM paths",
+            "should correctly handle winreg:// HKCU paths",
+            "Should validate registry path checking logic",
+            "Should handle different registry hives correctly",
+            "Should validate registry value checking logic",
+            "Should handle different registry hive paths correctly",
+            "Should validate registry path format",
+            "Should be able to access Windows registry",
+            "Should handle registry state operations"
+          ],
+          "Priority": "High"
+        }
+      }
+    }
+  }
+}

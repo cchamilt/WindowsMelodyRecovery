@@ -445,8 +445,15 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
     Context "Test-ConfigurationFilePaths Function" {
         
         BeforeEach {
-            # Create temporary test files
-            $script:TempDir = Join-Path $env:TEMP "ConfigValidationTests"
+            # Create temporary test files - handle Docker environment properly
+            $tempPath = if ($env:TEMP) { $env:TEMP } elseif ($env:TMP) { $env:TMP } else { "/tmp" }
+            $script:TempDir = Join-Path $tempPath "ConfigValidationTests"
+            
+            # Ensure TempDir is not null and create directory
+            if ([string]::IsNullOrEmpty($script:TempDir)) {
+                $script:TempDir = "/tmp/ConfigValidationTests"
+            }
+            
             New-Item -ItemType Directory -Path $script:TempDir -Force | Out-Null
             
             $script:ValidJsonFile = Join-Path $script:TempDir "valid.json"

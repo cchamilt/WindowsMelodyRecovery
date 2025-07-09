@@ -76,6 +76,7 @@
         
         # Utility functions
         'Import-PrivateScripts',
+        'Convert-WmrPath',
         
         # Encryption functions
         'Protect-WmrData',

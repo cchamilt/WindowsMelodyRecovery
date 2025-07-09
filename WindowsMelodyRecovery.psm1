@@ -63,6 +63,7 @@ Import-Module (Join-Path $PSScriptRoot 'Private/Core/WindowsMelodyRecovery.Templ
 . (Join-Path $PSScriptRoot 'Private/Core/AdministrativePrivileges.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/ConfigurationValidation.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/TemplateInheritance.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/PathUtilities.ps1')
 
 # Define core functions first
 function Get-WindowsMelodyRecovery {
