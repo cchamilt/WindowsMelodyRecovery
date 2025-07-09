@@ -22,6 +22,9 @@ BeforeAll {
     # Import the module
     Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
     
+    # Dot-source AdministrativePrivileges.ps1 to ensure all functions are available
+    . (Join-Path (Split-Path (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1")) "Private\Core\AdministrativePrivileges.ps1")
+    
     # Import test utilities
     . "$PSScriptRoot/../utilities/Test-Utilities.ps1"
 }

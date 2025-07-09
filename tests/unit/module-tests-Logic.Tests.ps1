@@ -203,7 +203,7 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
             # Test path construction logic
             foreach ($dir in $expectedDirs) {
                 $dir | Should -Not -BeNullOrEmpty
-                $dir | Should -Match [regex]::Escape($TestTempDir)
+                $dir | Should -Match ([regex]::Escape($TestTempDir))
             }
         }
         

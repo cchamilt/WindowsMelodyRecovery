@@ -543,7 +543,17 @@ function Test-ConfigurationInheritance {
         }
         
         # Generate summary warnings
-        $totalOverrides = ($result.InheritanceAnalysis.OverrideHistory | Measure-Object -Property OverriddenKeys -Sum).Sum
+        $totalOverrides = 0
+        foreach ($override in $result.InheritanceAnalysis.OverrideHistory) {
+            if ($override.OverriddenKeys) {
+                if ($override.OverriddenKeys -is [array]) {
+                    $totalOverrides += $override.OverriddenKeys.Count
+                } else {
+                    $totalOverrides += 1
+                }
+            }
+        }
+        
         if ($totalOverrides -gt 0) {
             $result.Warnings += "Total of $totalOverrides key overrides occurred during inheritance"
         }

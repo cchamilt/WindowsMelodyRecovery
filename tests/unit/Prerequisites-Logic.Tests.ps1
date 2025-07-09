@@ -36,8 +36,8 @@ BeforeAll {
     Mock Remove-Item { }
     Mock Invoke-Expression { return "Script Ran Successfully" }
     Mock Get-ItemProperty { return @{ TestValue = "MockedValue" } }
-    Mock Test-RegistryPath { return $true } -ParameterFilter { $Path -like "*exists*" }
-    Mock Test-RegistryPath { return $false } -ParameterFilter { $Path -like "*missing*" }
+    Mock Test-WmrRegistryPath { return $true } -ParameterFilter { $Path -like "*exists*" }
+    Mock Test-WmrRegistryPath { return $false } -ParameterFilter { $Path -like "*missing*" }
 }
 
 Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
@@ -125,7 +125,7 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
             )
             
             foreach ($hive in $registryHives) {
-                $hive | Should -Match "^HK[CLRU][MU]?:"
+                $hive | Should -Match "^HK(LM|CU|CR|U):"
             }
         }
         

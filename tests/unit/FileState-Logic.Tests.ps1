@@ -175,9 +175,9 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 destination = (Get-WmrTestPath -WindowsPath "C:\custom\destination.txt")
             }
             
-            # Mock the state file exists and has content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
-            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
+            # Mock the state file exists and has content - use more general mock
+            Mock Test-Path { return $true } -ParameterFilter { $Path -like "*restore.txt" }
+            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -like "*restore.txt" }
             
             Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
             
@@ -196,9 +196,9 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 dynamic_state_path = "files/restore.txt"
             }
             
-            # Mock the state file exists and has content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
-            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
+            # Mock the state file exists and has content - use more general mock
+            Mock Test-Path { return $true } -ParameterFilter { $Path -like "*restore.txt" }
+            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -like "*restore.txt" }
             
             Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
             

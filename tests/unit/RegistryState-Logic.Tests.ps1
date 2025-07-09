@@ -72,7 +72,7 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
             )
             
             foreach ($hive in $registryHives) {
-                $hive | Should -Match "^HK[CLRU][MU]?:"
+                $hive | Should -Match "^HK(LM|CU|CR|U):"
             }
         }
         
@@ -241,11 +241,11 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
             )
             
             foreach ($path in $validPaths) {
-                $path | Should -Match "^HK[CLRU][MU]?:"
+                $path | Should -Match "^HK(LM|CU|CR|U):"
             }
             
             foreach ($path in $invalidPaths) {
-                $path | Should -Not -Match "^HK[CLRU][MU]?:"
+                $path | Should -Not -Match "^HK(LM|CU|CR|U):"
             }
         }
     }

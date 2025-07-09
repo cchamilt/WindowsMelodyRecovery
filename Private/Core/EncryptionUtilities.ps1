@@ -51,6 +51,11 @@ function Get-WmrEncryptionKey {
             throw "Encryption passphrase cannot be empty"
         }
     }
+    
+    # Validate that the provided passphrase is not empty
+    if ($Passphrase.Length -eq 0) {
+        throw "Encryption passphrase cannot be empty"
+    }
 
     # Generate salt if not provided
     if (-not $Salt) {
