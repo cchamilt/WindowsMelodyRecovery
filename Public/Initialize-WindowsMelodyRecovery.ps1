@@ -179,20 +179,21 @@ function Initialize-WindowsMelodyRecovery {
             "/tmp/mock-cloud/OneDrive"  # Alternative mock path
         )
 
-        $possiblePaths = $onedrivePaths | 
-            ForEach-Object { 
-                Write-Host "Checking OneDrive path: $_" -ForegroundColor Gray
-                $item = Get-Item -Path $_ -ErrorAction SilentlyContinue
-                if ($item) {
-                    Write-Host "  ✓ Found: $($item.FullName)" -ForegroundColor Green
-                } else {
-                    Write-Host "  ✗ Not found: $_" -ForegroundColor Red
-                }
-                $item
-            } |
-            Where-Object { $_ }
+        $possiblePaths = @()
+        foreach ($path in $onedrivePaths) {
+            Write-Host "Checking OneDrive path: $path" -ForegroundColor Gray
+            $item = Get-Item -Path $path -ErrorAction SilentlyContinue
+            if ($item) {
+                Write-Host "  Found: $($item.FullName)" -ForegroundColor Green
+                $possiblePaths += $item
+            } else {
+                Write-Host "  Not found: $path" -ForegroundColor Red
+            }
+        }
         
-        Write-Host "Found $($possiblePaths.Count) OneDrive paths: $($possiblePaths.FullName -join ', ')" -ForegroundColor Cyan
+        $pathCount = $possiblePaths.Count
+        $pathList = $possiblePaths.FullName -join ', '
+        Write-Host "Found $pathCount OneDrive paths: $pathList" -ForegroundColor Cyan
 
         if ($possiblePaths.Count -gt 0) {
             if (-not $NoPrompt) {
@@ -302,8 +303,9 @@ function Initialize-WindowsMelodyRecovery {
     # Mark module as initialized
     $script:Config.IsInitialized = $true
     
-    Write-Host "`nConfiguration saved to: $configFile" -ForegroundColor Green
-    Write-Host 'Module configuration updated in memory' -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Configuration saved to: $configFile" -ForegroundColor Green
+    Write-Host "Module configuration updated in memory" -ForegroundColor Green
     
     return $config
 }

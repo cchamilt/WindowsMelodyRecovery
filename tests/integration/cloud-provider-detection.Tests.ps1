@@ -41,7 +41,7 @@ Describe "Cloud Provider Detection and Path Resolution Tests" {
             $providerPath = Join-Path $script:MockCloudRoot $provider
             if (-not (Test-Path $providerPath)) {
                 New-Item -Path $providerPath -ItemType Directory -Force | Out-Null
-                New-Item -Path (Join-Path $providerPath "WindowsMissingRecovery") -ItemType Directory -Force | Out-Null
+                New-Item -Path (Join-Path $providerPath "WindowsMelodyRecovery") -ItemType Directory -Force | Out-Null
             }
         }
     }

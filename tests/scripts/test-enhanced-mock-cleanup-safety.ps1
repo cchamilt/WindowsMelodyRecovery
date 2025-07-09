@@ -34,8 +34,8 @@ try {
     
     # List some key static files to verify they exist
     $keyStaticFiles = @(
-        "cloud\OneDrive\WindowsMissingRecovery\cloud-provider-info.json"
-        "cloud\GoogleDrive\WindowsMissingRecovery\cloud-provider-info.json"
+        "cloud\OneDrive\WindowsMelodyRecovery\cloud-provider-info.json"
+        "cloud\GoogleDrive\WindowsMelodyRecovery\cloud-provider-info.json"
         "cloud\cloud-provider-detection.ps1"
         "steam\config.vdf"
         "epic\config.json"

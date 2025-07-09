@@ -20,7 +20,7 @@ function Get-MockCloudProviders {
     # OneDrive Detection
     $oneDrivePath = Join-Path $mockCloudRoot "OneDrive"
     if (Test-Path $oneDrivePath) {
-        $oneDriveInfo = Get-Content (Join-Path $oneDrivePath "WindowsMissingRecovery\cloud-provider-info.json") | ConvertFrom-Json
+        $oneDriveInfo = Get-Content (Join-Path $oneDrivePath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         $syncStatus = Get-Content (Join-Path $oneDrivePath ".sync_status") -Raw
         
         $providers += @{
@@ -41,7 +41,7 @@ function Get-MockCloudProviders {
     # Google Drive Detection
     $googleDrivePath = Join-Path $mockCloudRoot "GoogleDrive"
     if (Test-Path $googleDrivePath) {
-        $googleDriveInfo = Get-Content (Join-Path $googleDrivePath "WindowsMissingRecovery\cloud-provider-info.json") | ConvertFrom-Json
+        $googleDriveInfo = Get-Content (Join-Path $googleDrivePath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         $syncStatus = Get-Content (Join-Path $googleDrivePath ".sync_status") -Raw
         
         $providers += @{
@@ -62,7 +62,7 @@ function Get-MockCloudProviders {
     # Dropbox Detection
     $dropboxPath = Join-Path $mockCloudRoot "Dropbox"
     if (Test-Path $dropboxPath) {
-        $dropboxInfo = Get-Content (Join-Path $dropboxPath "WindowsMissingRecovery\cloud-provider-info.json") | ConvertFrom-Json
+        $dropboxInfo = Get-Content (Join-Path $dropboxPath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         $syncStatus = Get-Content (Join-Path $dropboxPath ".sync_status") -Raw
         
         $providers += @{
@@ -83,7 +83,7 @@ function Get-MockCloudProviders {
     # Box Detection
     $boxPath = Join-Path $mockCloudRoot "Box"
     if (Test-Path $boxPath) {
-        $boxInfo = Get-Content (Join-Path $boxPath "WindowsMissingRecovery\cloud-provider-info.json") | ConvertFrom-Json
+        $boxInfo = Get-Content (Join-Path $boxPath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         
         $providers += @{
             Name = "Box"
@@ -103,7 +103,7 @@ function Get-MockCloudProviders {
     # Custom Storage Detection
     $customPath = Join-Path $mockCloudRoot "Custom"
     if (Test-Path $customPath) {
-        $customInfo = Get-Content (Join-Path $customPath "WindowsMissingRecovery\cloud-provider-info.json") | ConvertFrom-Json
+        $customInfo = Get-Content (Join-Path $customPath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         
         $providers += @{
             Name = "Custom"

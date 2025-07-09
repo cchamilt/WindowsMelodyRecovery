@@ -229,70 +229,78 @@ function Show-WindowsMelodyRecoveryStatus {
     
     $status = Get-WindowsMelodyRecoveryStatus -Detailed:$Detailed
     
-    Write-Host "`n" + "=" * 60 -ForegroundColor Cyan
+    $separator = "=" * 60
+    Write-Host ""
+    Write-Host $separator -ForegroundColor Cyan
     Write-Host "Windows Melody Recovery - Module Status Report" -ForegroundColor Cyan
-    Write-Host "=" * 60 -ForegroundColor Cyan
+    Write-Host $separator -ForegroundColor Cyan
     
     # Module Information
-    Write-Host "`n📦 Module Information:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Module Information:" -ForegroundColor Yellow
     if ($status.ModuleInfo.Loaded) {
-        Write-Host "  ✓ Module loaded successfully" -ForegroundColor Green
+        Write-Host "  Module loaded successfully" -ForegroundColor Green
         Write-Host "  Name: $($status.ModuleInfo.Name)" -ForegroundColor White
         Write-Host "  Version: $($status.ModuleInfo.Version)" -ForegroundColor White
         Write-Host "  Path: $($status.ModuleInfo.Path)" -ForegroundColor Gray
     } else {
-        Write-Host "  ✗ Module not loaded" -ForegroundColor Red
+        Write-Host "  Module not loaded" -ForegroundColor Red
     }
     
     # Initialization Status
-    Write-Host "`n🚀 Initialization Status:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Initialization Status:" -ForegroundColor Yellow
     if ($status.Initialization.Initialized) {
-        Write-Host "  ✓ Module initialized successfully" -ForegroundColor Green
+        Write-Host "  Module initialized successfully" -ForegroundColor Green
         Write-Host "  Loaded Components: $($status.Initialization.LoadedComponents.Count)" -ForegroundColor White
         if ($status.Initialization.LoadedComponents.Count -gt 0) {
             Write-Host "  Components: $($status.Initialization.LoadedComponents -join ', ')" -ForegroundColor Gray
         }
     } else {
-        Write-Host "  ✗ Module not initialized" -ForegroundColor Red
+        Write-Host "  Module not initialized" -ForegroundColor Red
     }
     
     # Configuration
-    Write-Host "`n⚙️  Configuration:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Configuration:" -ForegroundColor Yellow
     if ($status.Configuration.IsInitialized) {
-        Write-Host "  ✓ Configuration loaded" -ForegroundColor Green
+        Write-Host "  Configuration loaded" -ForegroundColor Green
         Write-Host "  Backup Root: $($status.Configuration.BackupRoot)" -ForegroundColor White
         Write-Host "  Machine Name: $($status.Configuration.MachineName)" -ForegroundColor White
         Write-Host "  Cloud Provider: $($status.Configuration.CloudProvider)" -ForegroundColor White
         Write-Host "  Last Configured: $($status.Configuration.LastConfigured)" -ForegroundColor Gray
     } else {
-        Write-Host "  ⚠ Configuration not initialized" -ForegroundColor Yellow
+        Write-Host "  Configuration not initialized" -ForegroundColor Yellow
     }
     
     # Functions
-    Write-Host "`n🔧 Functions:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Functions:" -ForegroundColor Yellow
     Write-Host "  Available: $($status.Functions.Available.Count)/$($status.Functions.Available.Count + $status.Functions.Missing.Count)" -ForegroundColor White
     if ($status.Functions.Available.Count -gt 0) {
         Write-Host "  Loaded: $($status.Functions.Available -join ', ')" -ForegroundColor Green
     }
     if ($status.Functions.Missing.Count -gt 0) {
-        Write-Host "  Missing: $($status.Functions.Melody -join ', ')" -ForegroundColor Red
+        Write-Host "  Missing: $($status.Functions.Missing -join ', ')" -ForegroundColor Red
     }
     
     # Dependencies
-    Write-Host "`n📋 Dependencies:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Dependencies:" -ForegroundColor Yellow
     if ($status.Dependencies.Pester) {
-        Write-Host "  ✓ Pester module available" -ForegroundColor Green
+        Write-Host "  Pester module available" -ForegroundColor Green
     } else {
-        Write-Host "  ✗ Pester module not found" -ForegroundColor Red
+        Write-Host "  Pester module not found" -ForegroundColor Red
     }
     if ($status.Dependencies.PowerShellVersion) {
-        Write-Host "  ✓ PowerShell version compatible" -ForegroundColor Green
+        Write-Host "  PowerShell version compatible" -ForegroundColor Green
     } else {
-        Write-Host "  ⚠ PowerShell 5.1+ recommended" -ForegroundColor Yellow
+        Write-Host "  PowerShell 5.1+ recommended" -ForegroundColor Yellow
     }
     
     # Environment
-    Write-Host "`n💻 Environment:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Environment:" -ForegroundColor Yellow
     Write-Host "  PowerShell: $($status.Environment.PowerShellVersion)" -ForegroundColor White
     Write-Host "  OS: $($status.Environment.OS)" -ForegroundColor White
     Write-Host "  Platform: $($status.Environment.Platform)" -ForegroundColor White
@@ -301,7 +309,8 @@ function Show-WindowsMelodyRecoveryStatus {
     
     # Detailed Configuration
     if ($Detailed -and $status.Configuration.Detailed) {
-        Write-Host "`n📊 Detailed Configuration:" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Detailed Configuration:" -ForegroundColor Yellow
         
         # Email Settings
         Write-Host "  Email Settings:" -ForegroundColor Cyan
@@ -326,21 +335,24 @@ function Show-WindowsMelodyRecoveryStatus {
     
     # Errors and Warnings
     if ($status.Initialization.Errors.Count -gt 0) {
-        Write-Host "`n❌ Errors:" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Errors:" -ForegroundColor Red
         foreach ($errorMessage in $status.Initialization.Errors) {
-            Write-Host "  • $errorMessage" -ForegroundColor Red
+            Write-Host "  $errorMessage" -ForegroundColor Red
         }
     }
     
     # Summary
-    Write-Host "`n" + "=" * 60 -ForegroundColor Cyan
+    $separator = "=" * 60
+    Write-Host ""
+    Write-Host $separator -ForegroundColor Cyan
     if ($status.Initialization.Initialized -and $status.Functions.Missing.Count -eq 0) {
-        Write-Host "✅ Module is ready for use!" -ForegroundColor Green
+        Write-Host "Module is ready for use!" -ForegroundColor Green
     } elseif ($status.Initialization.Initialized) {
-        Write-Host "⚠️  Module is initialized but some functions are missing" -ForegroundColor Yellow
+        Write-Host "Module is initialized but some functions are missing" -ForegroundColor Yellow
     } else {
-        Write-Host "❌ Module needs initialization" -ForegroundColor Red
+        Write-Host "Module needs initialization" -ForegroundColor Red
     }
-    Write-Host "=" * 60 -ForegroundColor Cyan
+    Write-Host $separator -ForegroundColor Cyan
     Write-Host ""
 } 
