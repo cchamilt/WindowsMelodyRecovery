@@ -189,11 +189,12 @@ This document outlines a structured approach to resolving all testing issues, im
 
 ### Phase 7: Feature Development Testing (Week 7-8)
 
-#### Task 7.1: BitLocker and Windows Backup Testing
+#### Task 7.1: BitLocker and Windows Backup Setup scripts
 - **Objective**: Test system backup and security features
 - **Actions**:
-  - Test BitLocker setup and configuration
-  - Test Windows backup service configuration
+  - Setup for BitLocker checking and configuration
+  - Setup Windows backup service and validate configuration
+  - Make tests to insure setup scripts and initialization work
   - Validate system backup and restore workflows
   - Test backup verification and integrity checking
 
