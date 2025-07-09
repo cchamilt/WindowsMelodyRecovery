@@ -1,0 +1,387 @@
+metadata:
+  name: "Windows Defender Settings"
+  description: "Backup and restore Windows Defender configuration including real-time protection, scan settings, exclusions, and security policies"
+  author: "Windows Melody Recovery"
+  version: "1.0.0"
+  category: "Security"
+  tags: ["windows-defender", "antivirus", "security", "malware-protection"]
+
+prerequisites:
+  - type: script
+    name: "Windows Defender Available"
+    inline_script: |
+      try {
+          Get-Command Get-MpPreference -ErrorAction Stop | Out-Null
+          Write-Output "Windows Defender available"
+      } catch {
+          Write-Output "Windows Defender not available"
+      }
+    expected_output: "Windows Defender available"
+    on_missing: warn
+
+  - type: script
+    name: "Administrative Privileges Check"
+    inline_script: |
+      try {
+          $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          
+          if ($isAdmin) {
+              Write-Output "Administrative privileges confirmed"
+          } else {
+              Write-Output "Administrative privileges recommended for full Defender backup"
+          }
+      } catch {
+          Write-Output "Unable to verify administrative privileges"
+      }
+    expected_output: "Administrative privileges confirmed"
+    on_missing: warn
+
+registry:
+  # Windows Defender Core Settings
+  - name: "Windows Defender Main Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_main.json"
+
+  - name: "Windows Defender Features"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_features.json"
+
+  - name: "Windows Defender Real-Time Protection"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_realtime.json"
+
+  - name: "Windows Defender Scans"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Scans'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_scans.json"
+
+  - name: "Windows Defender Signature Updates"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_signatures.json"
+
+  - name: "Windows Defender Spynet"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Spynet'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_spynet.json"
+
+  - name: "Windows Defender Threats"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Threats'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_threats.json"
+
+  - name: "Windows Defender UX Configuration"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\UX Configuration'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_ux.json"
+
+  # Windows Security Center
+  - name: "Security Center Settings"
+    path: 'HKLM:\SOFTWARE\Microsoft\Security Center'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/security_center.json"
+
+  - name: "Security Center Notifications"
+    path: 'HKLM:\SOFTWARE\Microsoft\Security Center\Notifications'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/security_center_notifications.json"
+
+  - name: "Security Center Svc"
+    path: 'HKLM:\SOFTWARE\Microsoft\Security Center\Svc'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/security_center_svc.json"
+
+  # Windows Defender Policies
+  - name: "Windows Defender Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_policies.json"
+
+  - name: "Windows Defender Real-Time Protection Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_realtime_policies.json"
+
+  - name: "Windows Defender Scan Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Scan'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_scan_policies.json"
+
+  - name: "Windows Defender Signature Update Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_signature_policies.json"
+
+  - name: "Windows Defender Spynet Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_spynet_policies.json"
+
+  - name: "Windows Defender Threats and Protections Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Threats and Protection'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_threats_policies.json"
+
+  - name: "Windows Defender UX Configuration Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\UX Configuration'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_ux_policies.json"
+
+  # Windows Defender Advanced Threat Protection
+  - name: "Windows Defender ATP"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Advanced Threat Protection'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_atp.json"
+
+  # Windows Defender Exploit Guard
+  - name: "Windows Defender Exploit Guard"
+    path: 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_exploit_guard.json"
+
+  - name: "Windows Defender Exploit Guard Policies"
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/defender_exploit_guard_policies.json"
+
+  # User-specific Windows Defender settings
+  - name: "User Windows Defender Settings"
+    path: 'HKCU:\Software\Microsoft\Windows Defender'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/user_defender.json"
+
+  # Windows Security App Settings
+  - name: "Windows Security App Settings"
+    path: 'HKCU:\Software\Microsoft\Windows Security Health'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windows_security_health.json"
+
+  - name: "Windows Security Notifications"
+    path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/security_notifications.json"
+
+  # Windows Defender Service Configuration
+  - name: "Windows Defender Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/windefend_service.json"
+
+  - name: "Windows Defender Antivirus Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\WdNisSvc'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/wdnissvc_service.json"
+
+  - name: "Windows Defender Filter Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\WdFilter'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/wdfilter_service.json"
+
+  - name: "Windows Defender Boot Service"
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Services\WdBoot'
+    type: key
+    action: sync
+    dynamic_state_path: "registry/wdboot_service.json"
+
+applications:
+  - name: "Windows Defender Preferences"
+    type: custom
+    dynamic_state_path: "applications/defender_preferences.json"
+    discovery_command: |
+      try {
+          $preferences = Get-MpPreference -ErrorAction Stop
+          return $preferences
+      } catch {
+          Write-Verbose "Unable to retrieve Windows Defender preferences: $_"
+          return $null
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      try {
+          if ($DiscoveryOutput) {
+              $applications += @{
+                  Name = "Windows Defender Preferences"
+                  Version = "Current"
+                  Type = "Security Configuration"
+                  Preferences = $DiscoveryOutput | ConvertTo-Json -Depth 10
+              }
+          }
+      } catch {
+          Write-Verbose "Error parsing Windows Defender preferences: $_"
+      }
+      
+      return $applications
+    install_script: |
+      param($AppListJson)
+      $apps = $AppListJson | ConvertFrom-Json
+      
+      foreach ($app in $apps) {
+          if ($app.Name -eq "Windows Defender Preferences" -and $app.Preferences) {
+              try {
+                  Write-Host "Restoring Windows Defender preferences..." -ForegroundColor Yellow
+                  
+                  $preferences = $app.Preferences | ConvertFrom-Json
+                  
+                  # Note: This would require careful implementation to restore specific preferences
+                  # For now, we'll just log what would be restored
+                  Write-Host "  Would restore $($preferences.Count) preference settings" -ForegroundColor Green
+                  Write-Host "  Real-time protection, scan settings, exclusions, etc." -ForegroundColor Green
+                  
+              } catch {
+                  Write-Warning "Failed to restore Windows Defender preferences: $($_.Exception.Message)"
+              }
+          }
+      }
+
+  - name: "Windows Defender Exclusions"
+    type: custom
+    dynamic_state_path: "applications/defender_exclusions.json"
+    discovery_command: |
+      try {
+          $exclusions = @{
+              PathExclusions = (Get-MpPreference).ExclusionPath
+              ExtensionExclusions = (Get-MpPreference).ExclusionExtension
+              ProcessExclusions = (Get-MpPreference).ExclusionProcess
+          }
+          return $exclusions
+      } catch {
+          Write-Verbose "Unable to retrieve Windows Defender exclusions: $_"
+          return $null
+      }
+    parse_script: |
+      param($DiscoveryOutput)
+      $applications = @()
+      
+      try {
+          if ($DiscoveryOutput) {
+              $applications += @{
+                  Name = "Windows Defender Exclusions"
+                  Version = "Current"
+                  Type = "Security Exclusions"
+                  PathExclusions = $DiscoveryOutput.PathExclusions
+                  ExtensionExclusions = $DiscoveryOutput.ExtensionExclusions
+                  ProcessExclusions = $DiscoveryOutput.ProcessExclusions
+              }
+          }
+      } catch {
+          Write-Verbose "Error parsing Windows Defender exclusions: $_"
+      }
+      
+      return $applications
+    install_script: |
+      param($AppListJson)
+      $apps = $AppListJson | ConvertFrom-Json
+      
+      foreach ($app in $apps) {
+          if ($app.Name -eq "Windows Defender Exclusions") {
+              try {
+                  Write-Host "Restoring Windows Defender exclusions..." -ForegroundColor Yellow
+                  
+                  # Restore path exclusions
+                  if ($app.PathExclusions) {
+                      foreach ($path in $app.PathExclusions) {
+                          if ($path -and (Test-Path $path)) {
+                              Add-MpPreference -ExclusionPath $path -ErrorAction SilentlyContinue
+                              Write-Host "  Restored path exclusion: $path" -ForegroundColor Green
+                          }
+                      }
+                  }
+                  
+                  # Restore extension exclusions
+                  if ($app.ExtensionExclusions) {
+                      foreach ($ext in $app.ExtensionExclusions) {
+                          if ($ext) {
+                              Add-MpPreference -ExclusionExtension $ext -ErrorAction SilentlyContinue
+                              Write-Host "  Restored extension exclusion: $ext" -ForegroundColor Green
+                          }
+                      }
+                  }
+                  
+                  # Restore process exclusions
+                  if ($app.ProcessExclusions) {
+                      foreach ($process in $app.ProcessExclusions) {
+                          if ($process) {
+                              Add-MpPreference -ExclusionProcess $process -ErrorAction SilentlyContinue
+                              Write-Host "  Restored process exclusion: $process" -ForegroundColor Green
+                          }
+                      }
+                  }
+                  
+              } catch {
+                  Write-Warning "Failed to restore Windows Defender exclusions: $($_.Exception.Message)"
+              }
+          }
+      }
+
+stages:
+  post_update:
+    - name: "Windows Defender Configuration Check"
+      type: script
+      inline_script: |
+        try {
+            Write-Host "Verifying Windows Defender configuration..." -ForegroundColor Yellow
+            
+            # Check if Windows Defender is running
+            $defenderStatus = Get-Service "WinDefend" -ErrorAction SilentlyContinue
+            if ($defenderStatus -and $defenderStatus.Status -eq "Running") {
+                Write-Host "  Windows Defender service is running" -ForegroundColor Green
+            } else {
+                Write-Host "  Windows Defender service is not running" -ForegroundColor Red
+            }
+            
+            # Check real-time protection status
+            try {
+                $rtpStatus = (Get-MpPreference).DisableRealtimeMonitoring
+                if (-not $rtpStatus) {
+                    Write-Host "  Real-time protection is enabled" -ForegroundColor Green
+                } else {
+                    Write-Host "  Real-time protection is disabled" -ForegroundColor Yellow
+                }
+            } catch {
+                Write-Host "  Unable to check real-time protection status" -ForegroundColor Yellow
+            }
+            
+            Write-Host "Windows Defender configuration check completed" -ForegroundColor Green
+            
+        } catch {
+            Write-Warning "Failed to verify Windows Defender configuration: $($_.Exception.Message)"
+        }
+
+  cleanup:
+    - name: "Windows Defender Cleanup"
+      type: script
+      inline_script: |
+        Write-Host "Windows Defender template cleanup completed" -ForegroundColor Green 
