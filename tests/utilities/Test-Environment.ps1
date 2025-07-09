@@ -19,7 +19,7 @@ $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 # Define test directories
 $script:TestDirectories = @{
     TestRestore = Join-Path $script:ModuleRoot "test-restore"
-    TestBackup = Join-Path $script:ModuleRoot "test-backup" 
+            TestBackup = Join-Path $script:ModuleRoot "test-backups" 
     Temp = Join-Path $script:ModuleRoot "Temp"
     MockData = Join-Path $script:ModuleRoot "tests\mock-data"
 }
@@ -283,7 +283,7 @@ function Test-SafeTestPath {
     }
     
     # Must be within test directories
-    $testDirs = @("test-restore", "test-backup", "Temp", "tests\mock-data")
+    $testDirs = @("test-restore", "test-backups", "Temp", "tests\mock-data")
     $isInTestDir = $false
     
     foreach ($testDir in $testDirs) {

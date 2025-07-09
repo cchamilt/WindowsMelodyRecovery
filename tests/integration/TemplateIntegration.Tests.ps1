@@ -18,7 +18,7 @@ Describe "Template Integration Tests" {
         $script:WingetAppsTemplatePath = Join-Path $script:ProjectPath "Templates\System\winget-apps.yaml"
         $script:BackupBaseDir = Join-Path $script:ProjectPath "test-backups\integration"
         $script:RestoreBaseDir = Join-Path $script:ProjectPath "test-restore\integration"
-        $script:TempInstalledAppsDir = Join-Path $script:ProjectPath "InstalledAppsSimulation"
+        $script:TempInstalledAppsDir = Join-Path $script:ProjectPath "Temp\InstalledAppsSimulation"
 
         # Clean up previous test runs
         Remove-Item -Path $script:BackupBaseDir -Recurse -Force -ErrorAction SilentlyContinue
