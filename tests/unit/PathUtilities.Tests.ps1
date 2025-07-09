@@ -17,10 +17,10 @@ Describe "Convert-WmrPath" {
 
     It "should correctly expand environment variables for Windows paths" {
         $env:TEST_VAR = "TestFolder"
-        $path = (Get-WmrTestPath -WindowsPath "C:\Users\$env:USERNAME\$env:TEST_VAR\file.txt")
-        $result = Convert-WmrPath -Path $path
+        $windowsPath = "C:\Users\$env:USERNAME\$env:TEST_VAR\file.txt"
+        $result = Convert-WmrPath -Path $windowsPath
         $result.PathType | Should -Be "File"
-        $result.Path | Should -Be (Join-Path (Get-WmrTestPath -WindowsPath "C:\Users") $env:USERNAME "TestFolder\file.txt")
+        $result.Path | Should -Be $windowsPath
         Remove-Item Env:TEST_VAR
     }
 
@@ -28,7 +28,7 @@ Describe "Convert-WmrPath" {
         $path = "file://C:/Program Files/App/app.exe"
         $result = Convert-WmrPath -Path $path
         $result.PathType | Should -Be "File"
-        $result.Path | Should -Be (Get-WmrTestPath -WindowsPath "C:\Program Files\App\app.exe")
+        $result.Path | Should -Be "C:\Program Files\App\app.exe"
     }
 
     It "should correctly handle winreg:// HKLM paths" {

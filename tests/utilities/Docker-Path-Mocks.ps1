@@ -208,36 +208,8 @@ function Get-WmrModulePath {
 }
 
 # Mock Windows-specific path utilities
-function Convert-WmrPath {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [string]$Path
-    )
-    
-    # Mock path conversion for different URI schemes
-    if ($Path.StartsWith('file://')) {
-        return @{
-            Type = 'File'
-            Path = $Path.Substring(7)
-        }
-    } elseif ($Path.StartsWith('winreg://')) {
-        return @{
-            Type = 'Registry'
-            Path = $Path.Replace('winreg://', '')
-        }
-    } elseif ($Path.StartsWith('wsl://')) {
-        return @{
-            Type = 'WSL'
-            Path = $Path.Replace('wsl://', '')
-        }
-    } else {
-        return @{
-            Type = 'File'
-            Path = Convert-WmrPathForDocker -Path $Path
-        }
-    }
-}
+# Note: Convert-WmrPath is now handled by the real implementation in PathUtilities.ps1
+# which properly handles Docker environments
 
 # Mock template inheritance functions
 function Get-WmrInheritanceConfiguration {

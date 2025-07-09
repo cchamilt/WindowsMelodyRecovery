@@ -22,7 +22,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PowerShell modules for testing
-# Create the modules directory first
 RUN mkdir -p /usr/local/share/powershell/Modules
 
 # Install PowerShell modules with proper error handling
@@ -33,7 +32,7 @@ RUN pwsh -Command " \
     Install-Module -Name ImportExcel -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     "
 
-# Verify installations
+# Verify PowerShell modules installation
 RUN pwsh -Command " \
     Write-Host 'Verifying PowerShell modules installation...'; \
     \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel; \
@@ -50,37 +49,40 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && apt-get install -y docker-ce-cli && rm -rf /var/lib/apt/lists/*
 
-# Create test directories
+# Create test result directories
 RUN mkdir -p /test-results/unit && \
     mkdir -p /test-results/integration && \
+    mkdir -p /test-results/file-operations && \
     mkdir -p /test-results/coverage && \
     mkdir -p /test-results/reports
 
-# Set up PowerShell profile for testing - copy only the profile script
+# Set up PowerShell profile for testing environment
 RUN mkdir -p /root/.config/powershell
 COPY tests/mock-scripts/TestRunner.PowerShell_profile.ps1 /root/.config/powershell/Microsoft.PowerShell_profile.ps1
 
-# Copy mock executables and make them available in PATH
+# Copy and set up mock Windows executables for PATH
 COPY tests/mock-scripts/windows/ /usr/local/bin/mock-windows/
 RUN chmod +x /usr/local/bin/mock-windows/* && \
     ln -sf /usr/local/bin/mock-windows/wsl.sh /usr/local/bin/wsl && \
     ln -sf /usr/local/bin/mock-windows/winget.sh /usr/local/bin/winget && \
     ln -sf /usr/local/bin/mock-windows/reg.sh /usr/local/bin/reg
 
-# Copy only the core test scripts needed for orchestration
-COPY tests/scripts/run-tests.ps1 /tests/
-COPY tests/scripts/test-orchestrator.ps1 /tests/
-COPY tests/scripts/generate-reports.ps1 /tests/
-COPY tests/scripts/health-check.ps1 /usr/local/bin/
+# Copy essential test utilities that are needed for bootstrap
+# Note: Most test files are mounted at runtime via docker-compose volumes
+COPY tests/utilities/Docker-Test-Bootstrap.ps1 /usr/local/share/powershell/Modules/
+COPY tests/utilities/Docker-Path-Mocks.ps1 /usr/local/share/powershell/Modules/
 
-# Set permissions
-RUN chmod +x /tests/*.ps1 && chmod +x /usr/local/bin/health-check.ps1
+# Copy the health check script for container readiness
+COPY tests/scripts/health-check.ps1 /usr/local/bin/
+RUN chmod +x /usr/local/bin/health-check.ps1
 
 # Set working directory to where the project will be mounted
 WORKDIR /workspace
 
-# Note: The project files are now mounted read-only at runtime via docker-compose
-# This means code changes are immediately available without rebuilding containers!
+# Set environment variables for Docker testing
+ENV DOCKER_TEST=true
+ENV CONTAINER=true
+ENV PESTER_OUTPUT_PATH=/test-results
 
-# Default command - just keep container running for test execution
+# Default command - keep container running for test execution
 CMD ["tail", "-f", "/dev/null"] 
