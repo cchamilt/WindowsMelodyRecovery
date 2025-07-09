@@ -13,6 +13,32 @@ BeforeAll {
     
     # Import dependencies
     . (Join-Path $script:ModuleRoot "Private\Core\WindowsMelodyRecovery.Initialization.ps1")
+    
+    # Mock or define Merge-Configurations if not available
+    if (-not (Get-Command Merge-Configurations -ErrorAction SilentlyContinue)) {
+        function Merge-Configurations {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory=$true)]
+                [hashtable]$Base,
+                
+                [Parameter(Mandatory=$true)]
+                [hashtable]$Override
+            )
+            
+            $merged = $Base.Clone()
+            
+            foreach ($key in $Override.Keys) {
+                if ($Override[$key] -is [hashtable] -and $merged[$key] -is [hashtable]) {
+                    $merged[$key] = Merge-Configurations -Base $merged[$key] -Override $Override[$key]
+                } else {
+                    $merged[$key] = $Override[$key]
+                }
+            }
+            
+            return $merged
+        }
+    }
 }
 
 Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configuration", "Validation" {
@@ -464,7 +490,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             # Create test files
             @{ test = "value" } | ConvertTo-Json | Out-File $script:ValidJsonFile -Encoding UTF8
             "{ invalid json" | Out-File $script:InvalidJsonFile -Encoding UTF8
-            "" | Out-File $script:EmptyFile -Encoding UTF8
+            # Create truly empty file with 0 bytes
+            New-Item -ItemType File -Path $script:EmptyFile -Force | Out-Null
         }
         
         AfterEach {

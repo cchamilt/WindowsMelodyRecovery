@@ -170,31 +170,136 @@ function Test-ConfigurationConsistency {
     return $result
 }
 
+# Helper function to compare hashtables for deep equality
+function Compare-Hashtables {
+    param(
+        [hashtable]$Table1,
+        [hashtable]$Table2
+    )
+    
+    if ($Table1.Count -ne $Table2.Count) {
+        return $false
+    }
+    
+    foreach ($key in $Table1.Keys) {
+        if (-not $Table2.ContainsKey($key)) {
+            return $false
+        }
+        
+        $val1 = $Table1[$key]
+        $val2 = $Table2[$key]
+        
+        if ($val1 -is [hashtable] -and $val2 -is [hashtable]) {
+            if (-not (Compare-Hashtables -Table1 $val1 -Table2 $val2)) {
+                return $false
+            }
+        } elseif ($val1 -is [array] -and $val2 -is [array]) {
+            # Compare arrays by content
+            if ($val1.Count -ne $val2.Count) {
+                return $false
+            }
+            for ($i = 0; $i -lt $val1.Count; $i++) {
+                if ($val1[$i] -ne $val2[$i]) {
+                    return $false
+                }
+            }
+        } elseif ($val1 -ne $val2) {
+            return $false
+        }
+    }
+    
+    return $true
+}
+
+# Helper function to check if a merged key was properly handled
+function Test-MergedKeyHandling {
+    param(
+        [string]$Key,
+        [hashtable]$BaseConfig,
+        [hashtable]$OverrideConfig,
+        [hashtable]$MergedConfig
+    )
+    
+    $inBase = $BaseConfig.ContainsKey($Key)
+    $inOverride = $OverrideConfig.ContainsKey($Key)
+    $inMerged = $MergedConfig.ContainsKey($Key)
+    
+    if ($inOverride -and $inBase) {
+        # Key exists in both - check if it was properly merged
+        if ($OverrideConfig[$Key] -is [hashtable] -and $BaseConfig[$Key] -is [hashtable]) {
+            # For nested hashtables, check if override values are present and base values are preserved where not overridden
+            $mergedValue = $MergedConfig[$Key]
+            
+            # Check that all override values are present
+            foreach ($overrideKey in $OverrideConfig[$Key].Keys) {
+                if (-not $mergedValue.ContainsKey($overrideKey) -or $mergedValue[$overrideKey] -ne $OverrideConfig[$Key][$overrideKey]) {
+                    return $false
+                }
+            }
+            
+            # Check that non-overridden base values are preserved
+            foreach ($baseKey in $BaseConfig[$Key].Keys) {
+                if (-not $OverrideConfig[$Key].ContainsKey($baseKey)) {
+                    if (-not $mergedValue.ContainsKey($baseKey) -or $mergedValue[$baseKey] -ne $BaseConfig[$Key][$baseKey]) {
+                        return $false
+                    }
+                }
+            }
+            
+            return $true
+        } else {
+            # For non-hashtable values, should be exact override
+            if ($OverrideConfig[$Key] -is [array] -and $MergedConfig[$Key] -is [array]) {
+                # Compare arrays by content
+                if ($OverrideConfig[$Key].Count -ne $MergedConfig[$Key].Count) {
+                    return $false
+                }
+                for ($i = 0; $i -lt $OverrideConfig[$Key].Count; $i++) {
+                    if ($OverrideConfig[$Key][$i] -ne $MergedConfig[$Key][$i]) {
+                        return $false
+                    }
+                }
+                return $true
+            } else {
+                return $MergedConfig[$Key] -eq $OverrideConfig[$Key]
+            }
+        }
+    } elseif ($inOverride -and -not $inBase) {
+        # Key only in override - should be added
+        return $inMerged -and (Compare-Hashtables -Table1 @{$Key = $MergedConfig[$Key]} -Table2 @{$Key = $OverrideConfig[$Key]})
+    } elseif ($inBase -and -not $inOverride) {
+        # Key only in base - should be preserved
+        return $inMerged -and (Compare-Hashtables -Table1 @{$Key = $MergedConfig[$Key]} -Table2 @{$Key = $BaseConfig[$Key]})
+    }
+    
+    return $false
+}
+
 <#
 .SYNOPSIS
-    Validates shared configuration merging operations.
+    Validates shared configuration merging behavior.
 
 .DESCRIPTION
-    Ensures that shared configuration merging follows proper inheritance rules
-    and produces consistent results across different scenarios.
+    Tests that shared configuration merging follows expected patterns and
+    produces correct results when machine-specific overrides are applied.
 
 .PARAMETER BaseConfig
-    The base (shared) configuration to merge from.
+    The base (shared) configuration hashtable.
 
 .PARAMETER OverrideConfig
-    The override (machine-specific) configuration to merge.
+    The override (machine-specific) configuration hashtable.
 
 .PARAMETER ExpectedKeys
-    Array of keys that should be present in the merged result.
+    Array of keys that must be present in the merged configuration.
 
 .PARAMETER MergingRules
-    Custom rules for how specific keys should be merged.
+    Custom rules to validate specific merging behaviors.
 
 .EXAMPLE
-    $result = Validate-SharedConfigurationMerging -BaseConfig $sharedConfig -OverrideConfig $machineConfig -ExpectedKeys @('BackupRoot', 'CloudProvider')
+    $result = Validate-SharedConfigurationMerging -BaseConfig $shared -OverrideConfig $machine
     
 .OUTPUTS
-    Returns a validation result with merging analysis and recommendations.
+    Returns a validation result with merging analysis and the merged configuration.
 #>
 function Validate-SharedConfigurationMerging {
     [CmdletBinding()]
@@ -221,19 +326,19 @@ function Validate-SharedConfigurationMerging {
             OverriddenKeys = @()
             PreservedKeys = @()
             AddedKeys = @()
-            MissingExpectedKeys = @()
             UnexpectedBehavior = @()
+            MissingExpectedKeys = @()
         }
     }
     
     Write-Verbose "Starting shared configuration merging validation..."
     
     try {
-        # Perform the merge operation
+        # Perform the merge
         $mergedConfig = Merge-Configurations -Base $BaseConfig -Override $OverrideConfig
         $result.MergedConfig = $mergedConfig
         
-        # Analyze merging results
+        # Analyze all keys from both configurations
         $allKeys = @($BaseConfig.Keys) + @($OverrideConfig.Keys) | Sort-Object -Unique
         
         foreach ($key in $allKeys) {
@@ -242,8 +347,8 @@ function Validate-SharedConfigurationMerging {
             $inMerged = $mergedConfig.ContainsKey($key)
             
             if ($inOverride -and $inBase) {
-                # Key exists in both - should be overridden
-                if ($mergedConfig[$key] -eq $OverrideConfig[$key]) {
+                # Key exists in both - should be overridden/merged
+                if (Test-MergedKeyHandling -Key $key -BaseConfig $BaseConfig -OverrideConfig $OverrideConfig -MergedConfig $mergedConfig) {
                     $result.MergingAnalysis.OverriddenKeys += $key
                 } else {
                     $result.Errors += "Key '$key' was not properly overridden during merge"
@@ -258,7 +363,7 @@ function Validate-SharedConfigurationMerging {
             }
             elseif ($inOverride -and -not $inBase) {
                 # Key only in override - should be added
-                if ($inMerged -and $mergedConfig[$key] -eq $OverrideConfig[$key]) {
+                if ($inMerged -and (Compare-Hashtables -Table1 @{$key = $mergedConfig[$key]} -Table2 @{$key = $OverrideConfig[$key]})) {
                     $result.MergingAnalysis.AddedKeys += $key
                 } else {
                     $result.Errors += "Key '$key' from override configuration was not properly added during merge"
@@ -267,7 +372,7 @@ function Validate-SharedConfigurationMerging {
             }
             elseif ($inBase -and -not $inOverride) {
                 # Key only in base - should be preserved
-                if ($inMerged -and $mergedConfig[$key] -eq $BaseConfig[$key]) {
+                if ($inMerged -and (Compare-Hashtables -Table1 @{$key = $mergedConfig[$key]} -Table2 @{$key = $BaseConfig[$key]})) {
                     $result.MergingAnalysis.PreservedKeys += $key
                 } else {
                     $result.Errors += "Key '$key' from base configuration was not properly preserved during merge"
@@ -351,6 +456,7 @@ function Test-ConfigurationInheritance {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [hashtable[]]$ConfigurationHierarchy,
         
         [Parameter(Mandatory = $false)]

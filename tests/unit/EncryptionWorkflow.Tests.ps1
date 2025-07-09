@@ -108,7 +108,11 @@ Describe 'Encryption Workflow Tests' {
             
             # Act & Assert
             foreach ($weak in $weakPasswords) {
+                # Clear cache before each test to ensure clean state
+                Clear-WmrEncryptionCache
+                
                 if ($weak -eq "") {
+                    # Create a truly empty SecureString
                     $secureWeak = New-Object System.Security.SecureString
                 } else {
                     $secureWeak = New-TestSecureString -PlainText $weak
