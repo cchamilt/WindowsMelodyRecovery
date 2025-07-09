@@ -14,6 +14,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -76,8 +79,8 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*machine*priority*" }
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*shared*priority*" }
             
-            $machineBackup = "C:\MockMachine"
-            $sharedBackup = "C:\MockShared"
+            $machineBackup = (Get-WmrTestPath -WindowsPath "C:\MockMachine")
+            $sharedBackup = (Get-WmrTestPath -WindowsPath "C:\MockShared")
             $expectedMachinePath = Join-Path $machineBackup "priority-test.json"
             
             $result = Test-BackupPath -Path "priority-test.json" -BackupType "Test" -MACHINE_BACKUP $machineBackup -SHARED_BACKUP $sharedBackup
@@ -89,8 +92,8 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
             Mock Test-Path { return $false } -ParameterFilter { $Path -like "*machine*fallback*" }
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*shared*fallback*" }
             
-            $machineBackup = "C:\MockMachine"
-            $sharedBackup = "C:\MockShared"
+            $machineBackup = (Get-WmrTestPath -WindowsPath "C:\MockMachine")
+            $sharedBackup = (Get-WmrTestPath -WindowsPath "C:\MockShared")
             $expectedSharedPath = Join-Path $sharedBackup "fallback-test.json"
             
             $result = Test-BackupPath -Path "fallback-test.json" -BackupType "Test" -MACHINE_BACKUP $machineBackup -SHARED_BACKUP $sharedBackup
@@ -101,7 +104,7 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
             # Mock Test-Path to return false for both locations
             Mock Test-Path { return $false } -ParameterFilter { $Path -like "*nonexistent*" }
             
-            $result = Test-BackupPath -Path "nonexistent-test.json" -BackupType "Test" -MACHINE_BACKUP "C:\MockMachine" -SHARED_BACKUP "C:\MockShared"
+            $result = Test-BackupPath -Path "nonexistent-test.json" -BackupType "Test" -MACHINE_BACKUP (Get-WmrTestPath -WindowsPath "C:\MockMachine") -SHARED_BACKUP (Get-WmrTestPath -WindowsPath "C:\MockShared")
             $result | Should -Be $null
         }
     }
@@ -110,8 +113,8 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
         
         It "Should handle different file types correctly" {
             $testFiles = @("config.json", "settings.yaml", "data.xml", "backup.csv")
-            $machineBackup = "C:\MockMachine"
-            $sharedBackup = "C:\MockShared"
+            $machineBackup = (Get-WmrTestPath -WindowsPath "C:\MockMachine")
+            $sharedBackup = (Get-WmrTestPath -WindowsPath "C:\MockShared")
             
             foreach ($file in $testFiles) {
                 # Mock Test-Path to return false for machine, true for shared for each file
@@ -127,8 +130,8 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
         It "Should handle subdirectory paths correctly" {
             $subDir = "component\subcomponent"
             $testFile = Join-Path $subDir "config.json"
-            $machineBackup = "C:\MockMachine"
-            $sharedBackup = "C:\MockShared"
+            $machineBackup = (Get-WmrTestPath -WindowsPath "C:\MockMachine")
+            $sharedBackup = (Get-WmrTestPath -WindowsPath "C:\MockShared")
             $expectedMachinePath = Join-Path $machineBackup $testFile
             
             # Mock Test-Path to return true for machine subdirectory
@@ -142,27 +145,27 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
     Context "Path Construction Logic" {
         
         It "Should construct correct machine backup paths" {
-            $machineBackup = "C:\TestMachine"
+            $machineBackup = (Get-WmrTestPath -WindowsPath "C:\TestMachine")
             $relativePath = "apps\winget.json"
             $expectedPath = Join-Path $machineBackup $relativePath
             
-            $expectedPath | Should -Be "C:\TestMachine\apps\winget.json"
+            $expectedPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\TestMachine\apps\winget.json")
         }
         
         It "Should construct correct shared backup paths" {
-            $sharedBackup = "C:\TestShared"
+            $sharedBackup = (Get-WmrTestPath -WindowsPath "C:\TestShared")
             $relativePath = "registry\display.json"
             $expectedPath = Join-Path $sharedBackup $relativePath
             
-            $expectedPath | Should -Be "C:\TestShared\registry\display.json"
+            $expectedPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\TestShared\registry\display.json")
         }
         
         It "Should handle complex nested paths" {
-            $basePath = "C:\Backup"
+            $basePath = (Get-WmrTestPath -WindowsPath "C:\Backup")
             $nestedPath = "level1\level2\level3\config.json"
             $fullPath = Join-Path $basePath $nestedPath
             
-            $fullPath | Should -Be "C:\Backup\level1\level2\level3\config.json"
+            $fullPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\Backup\level1\level2\level3\config.json")
         }
     }
     
@@ -215,8 +218,8 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
         
         It "Should handle special characters in filenames" {
             $specialFiles = @("config with spaces.json", "config-with-dashes.json", "config_with_underscores.json")
-            $machineBackup = "C:\MockMachine"
-            $sharedBackup = "C:\MockShared"
+            $machineBackup = (Get-WmrTestPath -WindowsPath "C:\MockMachine")
+            $sharedBackup = (Get-WmrTestPath -WindowsPath "C:\MockShared")
             
             foreach ($file in $specialFiles) {
                 # Mock Test-Path to return true for shared location
@@ -237,7 +240,7 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
                 Source = "Machine"
                 Priority = 1
                 BackupType = "System"
-                Path = "C:\Config\system.json"
+                Path = (Get-WmrTestPath -WindowsPath "C:\Config\system.json")
             }
             
             # Validate required properties exist
@@ -265,3 +268,4 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
         }
     }
 } 
+

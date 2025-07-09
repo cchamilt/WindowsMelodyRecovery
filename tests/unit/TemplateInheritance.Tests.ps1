@@ -16,6 +16,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module
     Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
     
@@ -35,7 +38,7 @@ BeforeAll {
         files = @(
             @{
                 name = "Basic File"
-                path = "C:\Test\basic.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\Test\basic.txt")
                 type = "file"
                 action = "sync"
                 dynamic_state_path = "files/basic.txt"
@@ -63,7 +66,7 @@ BeforeAll {
             files = @(
                 @{
                     name = "Shared File"
-                    path = "C:\Shared\config.txt"
+                    path = (Get-WmrTestPath -WindowsPath "C:\Shared\config.txt")
                     type = "file"
                     action = "sync"
                     dynamic_state_path = "shared/files/config.txt"
@@ -99,7 +102,7 @@ BeforeAll {
                 files = @(
                     @{
                         name = "Machine File"
-                        path = "C:\Machine\config.txt"
+                        path = (Get-WmrTestPath -WindowsPath "C:\Machine\config.txt")
                         type = "file"
                         action = "sync"
                         dynamic_state_path = "machine/files/config.txt"
@@ -154,7 +157,7 @@ BeforeAll {
                 files = @(
                     @{
                         name = "High Resolution File"
-                        path = "C:\HighRes\display.txt"
+                        path = (Get-WmrTestPath -WindowsPath "C:\HighRes\display.txt")
                         type = "file"
                         action = "sync"
                         dynamic_state_path = "conditional/files/display.txt"
@@ -168,14 +171,14 @@ BeforeAll {
     $script:TestMachineContext = @{
         MachineName = "TEST-MACHINE"
         UserName = "TestUser"
-        UserProfile = "C:\Users\TestUser"
+        UserProfile = (Get-WmrTestPath -WindowsPath "C:\Users\TestUser")
         OSVersion = "10.0.19041.0"
         Architecture = "AMD64"
         Domain = "WORKGROUP"
         EnvironmentVariables = @{
             COMPUTERNAME = "TEST-MACHINE"
             USERNAME = "TestUser"
-            USERPROFILE = "C:\Users\TestUser"
+            USERPROFILE = (Get-WmrTestPath -WindowsPath "C:\Users\TestUser")
         }
         HardwareInfo = @{
             Processors = @(@{ Name = "Intel Core i7"; NumberOfCores = 4 })
@@ -379,7 +382,7 @@ Describe "Configuration Merging" {
                 files = @(
                     @{
                         name = "Existing File"
-                        path = "C:\Existing\file.txt"
+                        path = (Get-WmrTestPath -WindowsPath "C:\Existing\file.txt")
                         inheritance_source = "shared"
                         inheritance_priority = 50
                     }
@@ -544,7 +547,7 @@ Describe "Configuration Validation" {
                 files = @(
                     @{
                         name = "Test File"
-                        path = "C:\Test\file.txt"
+                        path = (Get-WmrTestPath -WindowsPath "C:\Test\file.txt")
                         type = "file"
                         action = "sync"
                     }
@@ -561,8 +564,8 @@ Describe "Configuration Validation" {
         It "Should detect duplicate names in strict validation" {
             $resolvedConfig = @{
                 files = @(
-                    @{ name = "Duplicate"; path = "C:\Test1\file.txt" },
-                    @{ name = "Duplicate"; path = "C:\Test2\file.txt" }
+                    @{ name = "Duplicate"; path = (Get-WmrTestPath -WindowsPath "C:\Test1\file.txt") },
+                    @{ name = "Duplicate"; path = (Get-WmrTestPath -WindowsPath "C:\Test2\file.txt") }
                 )
             }
             
@@ -572,7 +575,7 @@ Describe "Configuration Validation" {
         It "Should detect missing required properties" {
             $resolvedConfig = @{
                 files = @(
-                    @{ path = "C:\Test\file.txt" }  # Missing name
+                    @{ path = (Get-WmrTestPath -WindowsPath "C:\Test\file.txt") }  # Missing name
                 )
             }
             
@@ -637,7 +640,7 @@ Describe "Full Template Inheritance Resolution" {
                     files = @(
                         @{
                             name = "Conflict File"
-                            path = "C:\Shared\file.txt"
+                            path = (Get-WmrTestPath -WindowsPath "C:\Shared\file.txt")
                             inheritance_tags = @("config")
                             inheritance_priority = 50
                         }
@@ -649,7 +652,7 @@ Describe "Full Template Inheritance Resolution" {
                         files = @(
                             @{
                                 name = "Conflict File"
-                                path = "C:\Machine\file.txt"
+                                path = (Get-WmrTestPath -WindowsPath "C:\Machine\file.txt")
                                 inheritance_tags = @("config")
                                 inheritance_priority = 90
                                 conflict_resolution = "machine_wins"
@@ -662,7 +665,7 @@ Describe "Full Template Inheritance Resolution" {
             $result = Resolve-WmrTemplateInheritance -TemplateConfig $template -MachineContext $script:TestMachineContext
             
             $result.files.Count | Should -Be 1
-            $result.files[0].path | Should -Be "C:\Machine\file.txt"  # Machine should win
+            $result.files[0].path | Should -Be (Get-WmrTestPath -WindowsPath "C:\Machine\file.txt")  # Machine should win
         }
     }
 }
@@ -673,3 +676,4 @@ AfterAll {
         # Clean up test data if needed
     }
 } 
+

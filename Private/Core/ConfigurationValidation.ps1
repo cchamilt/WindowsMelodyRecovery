@@ -708,4 +708,4 @@ function Test-ConfigurationFilePaths {
 }
 
 # Export functions for module use
-Export-ModuleMember -Function Test-ConfigurationConsistency, Validate-SharedConfigurationMerging, Test-ConfigurationInheritance, Test-ConfigurationFilePaths 
+# Functions are available when dot-sourced

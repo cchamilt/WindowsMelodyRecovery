@@ -1,4 +1,7 @@
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import required modules and functions
     $script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     
@@ -18,7 +21,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         
         It "Should validate consistent configurations successfully" {
             $machineConfig = @{
-                BackupRoot = "C:\MachineBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
                 EmailSettings = @{
                     FromAddress = "machine@example.com"
@@ -27,7 +30,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             }
             
             $sharedConfig = @{
-                BackupRoot = "C:\SharedBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
                 EmailSettings = @{
                     FromAddress = "shared@example.com"
@@ -45,12 +48,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         
         It "Should detect missing required keys" {
             $machineConfig = @{
-                BackupRoot = "C:\MachineBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 # Missing CloudProvider
             }
             
             $sharedConfig = @{
-                BackupRoot = "C:\SharedBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 # Missing CloudProvider
             }
             
@@ -64,12 +67,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         
         It "Should detect type mismatches" {
             $machineConfig = @{
-                BackupRoot = "C:\MachineBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 RetentionDays = 30  # Integer
             }
             
             $sharedConfig = @{
-                BackupRoot = "C:\SharedBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 RetentionDays = @("30", "60")  # Array - incompatible type
             }
             
@@ -111,12 +114,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         
         It "Should apply custom validation rules" {
             $machineConfig = @{
-                BackupRoot = "C:\MachineBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
             }
             
             $sharedConfig = @{
-                BackupRoot = "C:\SharedBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
             }
             
@@ -161,7 +164,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         
         It "Should validate successful configuration merging" {
             $baseConfig = @{
-                BackupRoot = "C:\SharedBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
                 EmailSettings = @{
                     FromAddress = "shared@example.com"
@@ -172,7 +175,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             }
             
             $overrideConfig = @{
-                BackupRoot = "C:\MachineBackups"
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 EmailSettings = @{
                     FromAddress = "machine@example.com"
                     SmtpPort = 465
@@ -192,7 +195,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             $result.MergingAnalysis.PreservedKeys | Should -Contain "CloudProvider"
             
             # Verify merged values
-            $result.MergedConfig.BackupRoot | Should -Be "C:\MachineBackups"  # Override
+            $result.MergedConfig.BackupRoot | Should -Be (Get-WmrTestPath -WindowsPath "C:\MachineBackups")  # Override
             $result.MergedConfig.CloudProvider | Should -Be "GoogleDrive"    # Preserved
             $result.MergedConfig.EmailSettings.FromAddress | Should -Be "machine@example.com"  # Override
             $result.MergedConfig.EmailSettings.SmtpServer | Should -Be "smtp.gmail.com"        # Preserved
@@ -553,3 +556,4 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         }
     }
 } 
+

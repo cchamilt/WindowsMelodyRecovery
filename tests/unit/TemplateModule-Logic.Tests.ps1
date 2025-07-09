@@ -14,6 +14,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -238,7 +241,7 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         }
 
         It "should handle absolute template paths correctly" {
-            $absolutePath = "C:\Templates\custom\template.yaml"
+            $absolutePath = (Get-WmrTestPath -WindowsPath "C:\Templates\custom\template.yaml")
             
             # Test that absolute paths are preserved
             $absolutePath | Should -Match "^[A-Z]:\\.*template\.yaml$"
@@ -317,3 +320,4 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         }
     }
 } 
+

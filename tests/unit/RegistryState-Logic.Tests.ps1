@@ -14,6 +14,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -231,7 +234,7 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
             )
             
             $invalidPaths = @(
-                "C:\Software\Test",
+                (Get-WmrTestPath -WindowsPath "C:\Software\Test"),
                 "HKEY_LOCAL_MACHINE\Software\Test",
                 "Registry::HKEY_CURRENT_USER\Software\Test",
                 ""
@@ -304,11 +307,11 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
         }
         
         It "Should handle state file path construction" {
-            $stateDirectory = "C:\Test\States"
+            $stateDirectory = (Get-WmrTestPath -WindowsPath "C:\Test\States")
             $keyName = "TestKey"
             $expectedPath = Join-Path $stateDirectory "registry_$keyName.json"
             
-            $expectedPath | Should -Be "C:\Test\States\registry_TestKey.json"
+            $expectedPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\Test\States\registry_TestKey.json")
         }
         
         It "Should validate state file content structure" {
@@ -422,3 +425,4 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
         }
     }
 } 
+

@@ -16,6 +16,9 @@
 Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
     
     BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
         # Import test environment utilities
         . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
         
@@ -53,33 +56,33 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should validate required file configuration properties" {
             $validConfig = [PSCustomObject]@{
                 name = "Test File"
-                path = "C:\test\file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/test.txt"
             }
             
             # Test that valid config doesn't throw
-            { Get-WmrFileState -FileConfig $validConfig -StateFilesDirectory "C:\test" } | Should -Not -Throw
+            { Get-WmrFileState -FileConfig $validConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") } | Should -Not -Throw
         }
         
         It "Should handle missing path gracefully" {
             $configWithMissingPath = [PSCustomObject]@{
                 name = "Missing File"
-                path = "C:\test\missing_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\missing_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/missing.txt"
             }
             
-            $result = Get-WmrFileState -FileConfig $configWithMissingPath -StateFilesDirectory "C:\test"
+            $result = Get-WmrFileState -FileConfig $configWithMissingPath -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test")
             $result | Should -BeNull
         }
         
         It "Should determine encryption requirement correctly" {
             $encryptedConfig = [PSCustomObject]@{
                 name = "Encrypted File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/encrypted.txt"
@@ -88,7 +91,7 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
             
             # Need to provide passphrase for encryption to work
             $passphrase = ConvertTo-SecureString "test" -AsPlainText -Force
-            $result = Get-WmrFileState -FileConfig $encryptedConfig -StateFilesDirectory "C:\test" -Passphrase $passphrase
+            $result = Get-WmrFileState -FileConfig $encryptedConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase $passphrase
             $result.Encrypted | Should -Be $true
         }
     }
@@ -98,26 +101,26 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should correctly identify file type" {
             $fileConfig = [PSCustomObject]@{
                 name = "Test File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/test.txt"
             }
             
-            $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory "C:\test"
+            $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test")
             $result.Type | Should -Be "file"
         }
         
         It "Should correctly identify directory type" {
             $dirConfig = [PSCustomObject]@{
                 name = "Test Directory"
-                path = "C:\test\exists_dir"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_dir")
                 type = "directory"
                 action = "backup"
                 dynamic_state_path = "dirs/test.json"
             }
             
-            $result = Get-WmrFileState -FileConfig $dirConfig -StateFilesDirectory "C:\test"
+            $result = Get-WmrFileState -FileConfig $dirConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test")
             $result.Type | Should -Be "directory"
         }
     }
@@ -127,31 +130,31 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should generate correct state file path" {
             $config = [PSCustomObject]@{
                 name = "Test File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "custom/path/file.txt"
             }
             
             # The function should use the dynamic_state_path correctly
-            Get-WmrFileState -FileConfig $config -StateFilesDirectory "C:\StateDir"
+            Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
             
             # Verify Set-Content was called with the correct path
             Should -Invoke Set-Content -ParameterFilter { 
-                $Path -eq "C:\StateDir\custom\path\file.txt" 
+                $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\custom\path\file.txt") 
             }
         }
         
         It "Should handle nested directory paths in dynamic_state_path" {
             $config = [PSCustomObject]@{
                 name = "Nested File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "level1/level2/level3/nested.txt"
             }
             
-            Get-WmrFileState -FileConfig $config -StateFilesDirectory "C:\StateDir"
+            Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
             
             # Should create parent directories
             Should -Invoke New-Item -ParameterFilter { 
@@ -165,43 +168,43 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should use destination path when provided" {
             $config = [PSCustomObject]@{
                 name = "Restore File"
-                path = "C:\original\path.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\original\path.txt")
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/restore.txt"
-                destination = "C:\custom\destination.txt"
+                destination = (Get-WmrTestPath -WindowsPath "C:\custom\destination.txt")
             }
             
             # Mock the state file exists and has content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
-            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
+            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
             
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\StateDir"
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
             
             # Should restore to destination, not original path
             Should -Invoke Set-Content -ParameterFilter { 
-                $Path -eq "C:\custom\destination.txt"
+                $Path -eq (Get-WmrTestPath -WindowsPath "C:\custom\destination.txt")
             }
         }
         
         It "Should fall back to original path when no destination provided" {
             $config = [PSCustomObject]@{
                 name = "Restore File"
-                path = "C:\original\exists_path.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\original\exists_path.txt")
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/restore.txt"
             }
             
             # Mock the state file exists and has content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
-            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq "C:\StateDir\files\restore.txt" }
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
+            Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\StateDir\files\restore.txt") }
             
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\StateDir"
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
             
             # Should restore to original path
             Should -Invoke Set-Content -ParameterFilter { 
-                $Path -eq "C:\original\exists_path.txt"
+                $Path -eq (Get-WmrTestPath -WindowsPath "C:\original\exists_path.txt")
             }
         }
     }
@@ -211,14 +214,14 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should apply encryption when encrypt flag is true" {
             $config = [PSCustomObject]@{
                 name = "Encrypted File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/encrypted.txt"
                 encrypt = $true
             }
             
-            $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory "C:\test" -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
+            $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
             
             # Should call encryption function
             Should -Invoke Protect-WmrData
@@ -228,14 +231,14 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should skip encryption when encrypt flag is false" {
             $config = [PSCustomObject]@{
                 name = "Plain File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/plain.txt"
                 encrypt = $false
             }
             
-            $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory "C:\test"
+            $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test")
             
             # Should not call encryption function
             Should -Not -Invoke Protect-WmrData
@@ -245,7 +248,7 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should apply decryption during restore when encrypt flag is true" {
             $config = [PSCustomObject]@{
                 name = "Decrypt File"
-                path = "C:\test\restore.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\restore.txt")
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/encrypted.txt"
@@ -253,10 +256,10 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
             }
             
             # Mock the encrypted state file exists and has encrypted content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "C:\test\files\encrypted.txt" }
-            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq "C:\test\files\encrypted.txt" }
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\test\files\encrypted.txt") }
+            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\test\files\encrypted.txt") }
             
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\test" -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
             
             # Should call decryption function
             Should -Invoke Unprotect-WmrData
@@ -268,7 +271,7 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should handle missing state file gracefully" {
             $config = [PSCustomObject]@{
                 name = "Missing State"
-                path = "C:\test\restore.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\restore.txt")
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/missing_state.txt"
@@ -276,22 +279,23 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
             
             Mock Test-Path { return $false }
             
-            { Set-WmrFileState -FileConfig $config -StateFilesDirectory "C:\test" } | Should -Not -Throw
+            { Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") } | Should -Not -Throw
         }
         
         It "Should validate state directory exists" {
             $config = [PSCustomObject]@{
                 name = "Test File"
-                path = "C:\test\exists_file.txt"
+                path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
                 type = "file"
                 action = "backup"
                 dynamic_state_path = "files/test.txt"
             }
             
             # Should check if state directory exists and create if needed
-            Get-WmrFileState -FileConfig $config -StateFilesDirectory "C:\NewStateDir"
+            Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\NewStateDir")
             
             Should -Invoke New-Item -ParameterFilter { $ItemType -eq "Directory" }
         }
     }
 } 
+

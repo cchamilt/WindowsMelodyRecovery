@@ -1,6 +1,9 @@
 # tests/unit/PathUtilities.Tests.ps1
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -14,10 +17,10 @@ Describe "Convert-WmrPath" {
 
     It "should correctly expand environment variables for Windows paths" {
         $env:TEST_VAR = "TestFolder"
-        $path = "C:\Users\$env:USERNAME\$env:TEST_VAR\file.txt"
+        $path = (Get-WmrTestPath -WindowsPath "C:\Users\$env:USERNAME\$env:TEST_VAR\file.txt")
         $result = Convert-WmrPath -Path $path
         $result.PathType | Should -Be "File"
-        $result.Path | Should -Be (Join-Path "C:\Users" $env:USERNAME "TestFolder\file.txt")
+        $result.Path | Should -Be (Join-Path (Get-WmrTestPath -WindowsPath "C:\Users") $env:USERNAME "TestFolder\file.txt")
         Remove-Item Env:TEST_VAR
     }
 
@@ -25,7 +28,7 @@ Describe "Convert-WmrPath" {
         $path = "file://C:/Program Files/App/app.exe"
         $result = Convert-WmrPath -Path $path
         $result.PathType | Should -Be "File"
-        $result.Path | Should -Be "C:\Program Files\App\app.exe"
+        $result.Path | Should -Be (Get-WmrTestPath -WindowsPath "C:\Program Files\App\app.exe")
     }
 
     It "should correctly handle winreg:// HKLM paths" {
@@ -67,3 +70,4 @@ Describe "Convert-WmrPath" {
         $result.Path | Should -Be "customuri://something/data"
     }
 } 
+

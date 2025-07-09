@@ -13,6 +13,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -124,7 +127,7 @@ backup:
                 Status = "Running"
                 Version = "2"
                 Default = $true
-                BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState"
+                BasePath = (Get-WmrTestPath -WindowsPath "C:\\Users\\TestUser\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState")
             }
             
             # Test configuration validation logic
@@ -323,7 +326,7 @@ localhostForwarding = true
     Context "WSL Path Processing" {
         It "Should convert Windows paths to WSL paths" {
             # Mock path conversion logic
-            $windowsPath = "C:\Users\TestUser\Documents"
+            $windowsPath = (Get-WmrTestPath -WindowsPath "C:\Users\TestUser\Documents")
             $expectedWslPath = "/mnt/c/Users/TestUser/Documents"
             
             # Test path conversion logic
@@ -349,3 +352,4 @@ localhostForwarding = true
         }
     }
 } 
+

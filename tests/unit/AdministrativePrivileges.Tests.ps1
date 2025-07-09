@@ -16,6 +16,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module
     Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
     
@@ -196,9 +199,9 @@ Describe "Test-WmrAdminRequiredOperation Function" {
     Context "File Operations" {
         It "Should require admin for system directory writes" {
             $systemPaths = @(
-                "C:\Windows\test.txt",
-                "C:\Program Files\test.txt",
-                "C:\Program Files (x86)\test.txt"
+                (Get-WmrTestPath -WindowsPath "C:\Windows\test.txt"),
+                (Get-WmrTestPath -WindowsPath "C:\Program Files\test.txt"),
+                (Get-WmrTestPath -WindowsPath "C:\Program Files (x86)\test.txt")
             )
             
             foreach ($path in $systemPaths) {
@@ -208,7 +211,7 @@ Describe "Test-WmrAdminRequiredOperation Function" {
         }
         
         It "Should not require admin for system directory reads" {
-            $result = Test-WmrAdminRequiredOperation -OperationType "File" -Path "C:\Windows\test.txt" -Action "Read"
+            $result = Test-WmrAdminRequiredOperation -OperationType "File" -Path (Get-WmrTestPath -WindowsPath "C:\Windows\test.txt") -Action "Read"
             $result | Should -Be $false
         }
         
@@ -505,3 +508,4 @@ Describe "Invoke-WmrWithElevation Function" {
 AfterAll {
     # Clean up any test resources
 } 
+

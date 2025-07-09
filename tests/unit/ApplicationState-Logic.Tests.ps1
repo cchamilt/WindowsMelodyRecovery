@@ -112,7 +112,7 @@ Package A           App.PackageA          1.2.3
                 uninstall_script = "dummy"
             }
 
-            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir")
+            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir"))
 
             # Verify the function was called and Set-Content was invoked
             Should -Invoke Set-Content -Times 1
@@ -137,7 +137,7 @@ Package A           App.PackageA          1.2.3
                 uninstall_script = "dummy"
             }
 
-            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir")
+            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir"))
 
             # Should handle empty output gracefully
             Should -Invoke Invoke-Expression -Times 1
@@ -158,7 +158,7 @@ Package A           App.PackageA          1.2.3
                 install_script = "dummy"
             }
 
-            { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
             Should -Invoke Invoke-Expression -Times 1
         }
     }
@@ -183,7 +183,7 @@ Package A           App.PackageA          1.2.3
                 install_script = $script:CommonInstallScript
             }
 
-            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
             Should -Invoke Get-Content -Times 1
         }
 
@@ -200,7 +200,7 @@ Package A           App.PackageA          1.2.3
                 install_script = $script:CommonInstallScript
             }
 
-            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
             Should -Invoke Test-Path -Times 1
         }
     }
@@ -226,7 +226,7 @@ Package A           App.PackageA          1.2.3
                 uninstall_script = $script:CommonUninstallScript
             }
 
-            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
             Should -Invoke Get-Content -Times 1
         }
 
@@ -244,7 +244,7 @@ Package A           App.PackageA          1.2.3
                 # uninstall_script is intentionally missing
             }
 
-            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
         }
     }
 
@@ -261,7 +261,7 @@ Package A           App.PackageA          1.2.3
                 uninstall_script = "dummy"
             }
 
-            { Get-WmrApplicationState -AppConfig $validConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Get-WmrApplicationState -AppConfig $validConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
         }
 
         It "should handle missing required properties gracefully" {
@@ -271,7 +271,7 @@ Package A           App.PackageA          1.2.3
                 # Missing dynamic_state_path, discovery_command, parse_script, install_script
             }
 
-            { Get-WmrApplicationState -AppConfig $incompleteConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
+            { Get-WmrApplicationState -AppConfig $incompleteConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
         }
     }
 

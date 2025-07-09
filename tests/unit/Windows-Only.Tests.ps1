@@ -9,6 +9,9 @@
 #>
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Only run these tests on Windows
     if (-not $IsWindows) {
         Write-Warning "Skipping Windows-only tests on non-Windows platform"
@@ -37,6 +40,9 @@ BeforeAll {
 
 Describe "Windows-Only Functionality" -Tag "WindowsOnly" {
     BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
         if (-not $IsWindows) {
             Write-Warning "Skipping Windows-only tests on non-Windows platform"
             return
@@ -101,7 +107,7 @@ Describe "Windows-Only Functionality" -Tag "WindowsOnly" {
     Context "Windows File System Operations" {
         It "Should handle Windows file paths correctly" {
             # Test Windows-specific path handling with proper mock parameters
-            $testPath = "C:\Windows\System32\notepad.exe"
+            $testPath = (Get-WmrTestPath -WindowsPath "C:\Windows\System32\notepad.exe")
             $mockFileConfig = @{
                 name = "TestFile"
                 path = $testPath
@@ -119,7 +125,7 @@ Describe "Windows-Only Functionality" -Tag "WindowsOnly" {
     Context "Windows Installation and Configuration" {
         It "Should handle Windows system directory access" {
             # Test initialization in Windows system directories
-            $systemPath = "C:\Windows\System32"
+            $systemPath = (Get-WmrTestPath -WindowsPath "C:\Windows\System32")
             { Initialize-WindowsMelodyRecovery -InstallPath $systemPath -NoPrompt -ErrorAction Stop } | Should -Throw
         }
         
@@ -135,7 +141,7 @@ Describe "Windows-Only Functionality" -Tag "WindowsOnly" {
         
         It "Should properly validate Windows installation paths" {
             # Test real Windows path validation
-            $invalidPath = "C:\Invalid\Path\That\Does\Not\Exist"
+            $invalidPath = (Get-WmrTestPath -WindowsPath "C:\Invalid\Path\That\Does\Not\Exist")
             { Initialize-WindowsMelodyRecovery -InstallPath $invalidPath -NoPrompt -ErrorAction Stop } | Should -Throw
         }
         
@@ -152,3 +158,4 @@ if (-not $IsWindows) {
     Write-Warning "All Windows-only tests skipped on non-Windows platform"
     return
 } 
+

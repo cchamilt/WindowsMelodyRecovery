@@ -1,6 +1,9 @@
 # tests/unit/EncryptionUtilities.Tests.ps1
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -19,6 +22,9 @@ BeforeAll {
 
 Describe 'EncryptionUtilities' {
     BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
         $script:TestPassword = "TestP@ssw0rd!"
         $script:TestSecureString = New-TestSecureString -PlainText $TestPassword
         $script:TestSalt = New-Object byte[] 32

@@ -3,6 +3,9 @@
 # File operations moved to tests/file-operations/module-tests-FileOperations.Tests.ps1
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
     # Import the module using standardized pattern
     $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
     try {
@@ -16,7 +19,7 @@ BeforeAll {
     $TestModulePath = "/workspace/WindowsMelodyRecovery.psm1"
     $TestManifestPath = "/workspace/WindowsMelodyRecovery.psd1"
     $TestInstallScriptPath = "/workspace/Install-Module.ps1"
-    $TestTempDir = "C:\MockTestDir"
+    $TestTempDir = (Get-WmrTestPath -WindowsPath "C:\MockTestDir")
     
     # Mock environment variables for testing
     $env:WMR_CONFIG_PATH = $TestTempDir
@@ -329,7 +332,7 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
         It "Should test invalid parameter handling" {
             # Test parameter validation logic
             { Backup-WindowsMelodyRecovery -BackupPath "" -ErrorAction Stop } | Should -Throw
-            { Restore-WindowsMelodyRecovery -BackupPath "C:\NonExistent\Path" -ErrorAction Stop } | Should -Throw
+            { Restore-WindowsMelodyRecovery -BackupPath (Get-WmrTestPath -WindowsPath "C:\NonExistent\Path") -ErrorAction Stop } | Should -Throw
         }
         
         It "Should test dependency handling logic" {
@@ -355,3 +358,4 @@ AfterAll {
     Remove-Variable -Name env:COMPUTERNAME -ErrorAction SilentlyContinue
     Remove-Variable -Name env:USERPROFILE -ErrorAction SilentlyContinue
 } 
+
