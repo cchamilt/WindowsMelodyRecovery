@@ -1,19 +1,10 @@
-# tests/unit/ApplicationState-Logic.Tests.ps1
-
-<#
-.SYNOPSIS
-    Pure Unit Tests for ApplicationState Logic
-
-.DESCRIPTION
-    Tests the ApplicationState functions' logic without any actual file operations.
-    Uses mock data and tests the decision-making logic only.
-
-.NOTES
-    These are pure unit tests - no file system operations!
-    File operation tests are in tests/file-operations/ApplicationState-FileOperations.Tests.ps1
-#>
+# ApplicationState Logic Tests
+# Tests the core logic of ApplicationState.ps1 functions without file operations
 
 BeforeAll {
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -121,7 +112,7 @@ Package A           App.PackageA          1.2.3
                 uninstall_script = "dummy"
             }
 
-            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir"
+            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir")
 
             # Verify the function was called and Set-Content was invoked
             Should -Invoke Set-Content -Times 1
@@ -146,7 +137,7 @@ Package A           App.PackageA          1.2.3
                 uninstall_script = "dummy"
             }
 
-            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir"
+            $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir")
 
             # Should handle empty output gracefully
             Should -Invoke Invoke-Expression -Times 1
@@ -167,7 +158,7 @@ Package A           App.PackageA          1.2.3
                 install_script = "dummy"
             }
 
-            { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
             Should -Invoke Invoke-Expression -Times 1
         }
     }
@@ -175,10 +166,13 @@ Package A           App.PackageA          1.2.3
     Context "Application Installation Logic" {
 
         It "should process install script correctly" {
+            # Mock Test-Path to return true for the state file
+            Mock Test-Path { return $true } -ParameterFilter { $Path -like "*install_list.json" }
+            
             # Mock Get-Content to return app list JSON
             Mock Get-Content {
                 return '[{"Name":"TestApp1","Id":"Test.App1","Version":"1.0.0"},{"Name":"TestApp2","Id":"Test.App2","Version":"2.0.0"}]'
-            }
+            } -ParameterFilter { $Path -like "*install_list.json" }
 
             $appConfig = @{
                 name = "Install Test Apps"
@@ -189,7 +183,7 @@ Package A           App.PackageA          1.2.3
                 install_script = $script:CommonInstallScript
             }
 
-            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
             Should -Invoke Get-Content -Times 1
         }
 
@@ -200,13 +194,13 @@ Package A           App.PackageA          1.2.3
             $appConfig = @{
                 name = "Missing State Install"
                 type = "custom"
-                dynamic_state_path = "apps/non_existent_install.json"
+                dynamic_state_path = "apps/non_existent_list.json"
                 discovery_command = "dummy"
                 parse_script = "dummy"
                 install_script = $script:CommonInstallScript
             }
 
-            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
             Should -Invoke Test-Path -Times 1
         }
     }
@@ -214,10 +208,13 @@ Package A           App.PackageA          1.2.3
     Context "Application Uninstallation Logic" {
 
         It "should process uninstall script correctly" {
+            # Mock Test-Path to return true for the state file
+            Mock Test-Path { return $true } -ParameterFilter { $Path -like "*uninstall_list.json" }
+            
             # Mock Get-Content to return app list JSON
             Mock Get-Content {
-                return '[{"Name":"AppToUninstall","Id":"App.Uninstall","Version":"1.0.0"}]'
-            }
+                return '[{"Name":"TestApp1","Id":"Test.App1","Version":"1.0.0"},{"Name":"TestApp2","Id":"Test.App2","Version":"2.0.0"}]'
+            } -ParameterFilter { $Path -like "*uninstall_list.json" }
 
             $appConfig = @{
                 name = "App to Uninstall"
@@ -225,26 +222,29 @@ Package A           App.PackageA          1.2.3
                 dynamic_state_path = "apps/uninstall_list.json"
                 discovery_command = "dummy"
                 parse_script = "dummy"
-                install_script = $script:CommonInstallScript
+                install_script = "dummy"
                 uninstall_script = $script:CommonUninstallScript
             }
 
-            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
             Should -Invoke Get-Content -Times 1
         }
 
         It "should handle missing uninstall script gracefully" {
+            # Mock Test-Path to return true for the state file
+            Mock Test-Path { return $true } -ParameterFilter { $Path -like "*no_uninstall_list.json" }
+            
             $appConfig = @{
                 name = "No Uninstall Script"
                 type = "custom"
-                dynamic_state_path = "apps/no_uninstall.json"
+                dynamic_state_path = "apps/no_uninstall_list.json"
                 discovery_command = "dummy"
                 parse_script = "dummy"
                 install_script = "dummy"
                 # uninstall_script is intentionally missing
             }
 
-            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
         }
     }
 
@@ -254,24 +254,24 @@ Package A           App.PackageA          1.2.3
             $validConfig = @{
                 name = "Valid App Config"
                 type = "winget"
-                dynamic_state_path = "apps/valid.json"
+                dynamic_state_path = "apps/valid_config.json"
                 discovery_command = "winget list"
                 parse_script = $script:CommonParseScript
                 install_script = "dummy"
+                uninstall_script = "dummy"
             }
 
-            { Get-WmrApplicationState -AppConfig $validConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Get-WmrApplicationState -AppConfig $validConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
         }
 
         It "should handle missing required properties gracefully" {
             $incompleteConfig = @{
                 name = "Incomplete Config"
                 type = "winget"
-                # missing dynamic_state_path, discovery_command, etc.
+                # Missing dynamic_state_path, discovery_command, parse_script, install_script
             }
 
-            # Should handle gracefully without throwing
-            { Get-WmrApplicationState -AppConfig $incompleteConfig -StateFilesDirectory "C:\MockStateDir" } | Should -Not -Throw
+            { Get-WmrApplicationState -AppConfig $incompleteConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\MockStateDir") } | Should -Not -Throw
         }
     }
 

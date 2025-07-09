@@ -7,17 +7,26 @@ if ($script:EnvironmentLoaded) {
 }
 
 # Default locations - all based on environment variables, nothing hardcoded
-$DEFAULT_USER_PROFILE = $env:USERPROFILE
+$DEFAULT_USER_PROFILE = if ($env:USERPROFILE) { $env:USERPROFILE } else { $env:HOME }
+if (-not $DEFAULT_USER_PROFILE) {
+    $DEFAULT_USER_PROFILE = "/tmp"
+    Write-Warning "Could not determine user profile directory, using /tmp"
+}
+
 $DEFAULT_WINDOWS_CONFIG_PATH = Join-Path $DEFAULT_USER_PROFILE "Scripts\WindowsConfig"
 $DEFAULT_CONFIG_FILE = Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "windows.env"
 
 # Check for OneDrive presence generically
 $DEFAULT_ONEDRIVE_PATHS = @(
     # Check standard OneDrive paths without specific organization names
-    (Join-Path $DEFAULT_USER_PROFILE "OneDrive"),
-    # Look for any OneDrive folders (personal or business) without hardcoding org names
-    (Get-ChildItem -Path $DEFAULT_USER_PROFILE -Directory -Filter "OneDrive*" | Select-Object -First 1 -ExpandProperty FullName)
+    (Join-Path $DEFAULT_USER_PROFILE "OneDrive")
 )
+
+# Look for any OneDrive folders (personal or business) without hardcoding org names
+$oneDriveFolder = Get-ChildItem -Path $DEFAULT_USER_PROFILE -Directory -Filter "OneDrive*" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+if ($oneDriveFolder) {
+    $DEFAULT_ONEDRIVE_PATHS += $oneDriveFolder
+}
 
 # Machine name handling
 $MACHINE_NAME = $env:COMPUTERNAME
