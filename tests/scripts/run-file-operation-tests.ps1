@@ -140,14 +140,29 @@ foreach ($dir in $safeDirs) {
 }
 
 foreach ($dir in $safeDirs) {
-    # Updated safety check to allow C:\WMR-* paths
+    # STRICT SAFETY CHECK: Only allow project paths or temp paths - NEVER C:\ root paths
     $isProjectPath = $dir.StartsWith($projectRoot)
-    $isWMRTestPath = $dir.StartsWith("C:\WMR-")
+    $isUserTempPath = $script:IsCICDEnvironment -and (
+        ($IsWindows -and $dir.Contains($env:TEMP) -and $dir.Contains("WindowsMelodyRecovery-Tests")) -or
+        (-not $IsWindows -and $dir.StartsWith('/tmp/') -and $dir.Contains("WindowsMelodyRecovery-Tests"))
+    )
     
-    if (-not ($isProjectPath -or $isWMRTestPath)) {
-        Write-Error "SAFETY VIOLATION: Directory '$dir' is not within the project root '$projectRoot' or WMR test paths!"
+    # CRITICAL: Check for dangerous C:\ root paths
+    if ($dir.StartsWith("C:\") -and -not ($dir.StartsWith($projectRoot))) {
+        Write-Error "🚨 SAFETY VIOLATION: Directory '$dir' attempts to write to C:\ root!"
+        Write-Error "🚨 This is NEVER allowed and indicates a serious path resolution bug!"
+        Write-Error "🚨 Project root: '$projectRoot'"
+        Write-Error "🚨 All test operations must be within project temp directories or user temp in CI/CD!"
         return
     }
+    
+    if (-not ($isProjectPath -or $isUserTempPath)) {
+        Write-Error "SAFETY VIOLATION: Directory '$dir' is not within safe test paths!"
+        Write-Error "  • Project root: '$projectRoot'"
+        Write-Error "  • User temp (CI/CD only): $($script:IsCICDEnvironment)"
+        return
+    }
+    
     if (-not (Test-Path $dir)) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' does not exist after initialization!"
         return

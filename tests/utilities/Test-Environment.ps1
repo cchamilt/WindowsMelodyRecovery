@@ -10,6 +10,10 @@
     - CI/CD environments
     
     Auto-detects environment and loads appropriate mocks and utilities.
+    
+    Test File Management:
+    - Local Dev & Docker: Uses project root Temp directory for isolation
+    - CI/CD: Uses user temp directory in AppData for better cleanup
 
 .NOTES
     This script replaces the fragmented Docker-Test-Bootstrap.ps1 approach
@@ -21,29 +25,144 @@ $script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER 
 $script:IsWindowsEnvironment = $IsWindows
 $script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
 
-# Get module root directory
-$script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+# Robust module root detection
+function Find-ModuleRoot {
+    <#
+    .SYNOPSIS
+        Finds the module root directory using multiple detection methods.
+    
+    .DESCRIPTION
+        Searches for the module root by looking for the module manifest file,
+        working upward from the current script location or working directory.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $moduleManifestName = "WindowsMelodyRecovery.psd1"
+    $searchPaths = @()
+    
+    # Method 1: Try from script location (if available)
+    if ($PSScriptRoot) {
+        $searchPaths += $PSScriptRoot
+        $searchPaths += Split-Path -Parent $PSScriptRoot  # tests/
+        $searchPaths += Split-Path -Parent (Split-Path -Parent $PSScriptRoot)  # module root
+    }
+    
+    # Method 2: Try from current working directory
+    $searchPaths += Get-Location
+    $searchPaths += Split-Path -Parent (Get-Location)
+    
+    # Method 3: Try common relative paths
+    $searchPaths += Join-Path (Get-Location) ".."
+    $searchPaths += Join-Path (Get-Location) "../.."
+    
+    # Search each path and work upward
+    foreach ($startPath in $searchPaths) {
+        if (-not $startPath -or -not (Test-Path $startPath)) {
+            continue
+        }
+        
+        $currentPath = Resolve-Path $startPath -ErrorAction SilentlyContinue
+        if (-not $currentPath) {
+            continue
+        }
+        
+        # Search upward from current path
+        $searchDepth = 0
+        while ($currentPath -and $searchDepth -lt 10) {
+            $manifestPath = Join-Path $currentPath $moduleManifestName
+            
+            if (Test-Path $manifestPath) {
+                Write-Verbose "Found module root via manifest: $currentPath"
+                return $currentPath.ToString()
+            }
+            
+            # Also check for other identifying files/directories
+            $identifyingPaths = @(
+                Join-Path $currentPath "Public"
+                Join-Path $currentPath "Private" 
+                Join-Path $currentPath "tests"
+                Join-Path $currentPath "Templates"
+            )
+            
+            $identifyingPathsFound = 0
+            foreach ($identifyingPath in $identifyingPaths) {
+                if (Test-Path $identifyingPath) {
+                    $identifyingPathsFound++
+                }
+            }
+            
+            # If we found 3 or more identifying paths, this is likely the module root
+            if ($identifyingPathsFound -ge 3) {
+                Write-Verbose "Found module root via structure: $currentPath"
+                return $currentPath.ToString()
+            }
+            
+            $parentPath = Split-Path -Parent $currentPath
+            if ($parentPath -eq $currentPath) {
+                break  # Reached filesystem root
+            }
+            $currentPath = $parentPath
+            $searchDepth++
+        }
+    }
+    
+    # Final fallback: use current directory
+    $fallbackPath = Get-Location
+    Write-Warning "Could not find module root, using current directory: $fallbackPath"
+    return $fallbackPath.ToString()
+}
+
+# Get module root directory with robust detection
+$script:ModuleRoot = Find-ModuleRoot
+Write-Verbose "Module root detected: $script:ModuleRoot"
 
 # Define test directories based on environment
-if ($script:IsDockerEnvironment) {
+if ($script:IsCICDEnvironment) {
+    # CI/CD environments: Use user temp directory for better cleanup
+    $userTempPath = if ($script:IsWindowsEnvironment) {
+        Join-Path $env:TEMP "WindowsMelodyRecovery-Tests"
+    } else {
+        Join-Path "/tmp" "WindowsMelodyRecovery-Tests"
+    }
+    
     $script:TestDirectories = @{
-        TestRestore = '/tmp/wmr-test-restore'
-        TestBackup = '/tmp/wmr-test-backup'
-        Temp = '/tmp/wmr-temp'
+        TestRestore = Join-Path $userTempPath "test-restore"
+        TestBackup = Join-Path $userTempPath "test-backup"
+        Temp = Join-Path $userTempPath "temp"
         MockData = Join-Path $script:ModuleRoot "tests/mock-data"
     }
-} else {
+    
+    Write-Verbose "🏗️ CI/CD environment detected, using user temp directory: $userTempPath"
+} elseif ($script:IsDockerEnvironment) {
+    # Docker environments: Use project root Temp directory for consistency
+    $projectTempPath = Join-Path $script:ModuleRoot "Temp"
+    
     $script:TestDirectories = @{
-        TestRestore = Join-Path $script:ModuleRoot "test-restore"
-        TestBackup = Join-Path $script:ModuleRoot "test-backups" 
-        Temp = Join-Path $script:ModuleRoot "Temp"
+        TestRestore = Join-Path $projectTempPath "test-restore"
+        TestBackup = Join-Path $projectTempPath "test-backup"
+        Temp = Join-Path $projectTempPath "temp"
+        MockData = Join-Path $script:ModuleRoot "tests/mock-data"
+    }
+    
+    Write-Verbose "🐳 Docker environment detected, using project temp directory: $projectTempPath"
+} else {
+    # Local development: Use project root Temp directory for isolation
+    $projectTempPath = Join-Path $script:ModuleRoot "Temp"
+    
+    $script:TestDirectories = @{
+        TestRestore = Join-Path $projectTempPath "test-restore"
+        TestBackup = Join-Path $projectTempPath "test-backup"
+        Temp = Join-Path $projectTempPath "temp"
         MockData = Join-Path $script:ModuleRoot "tests\mock-data"
     }
+    
+    Write-Verbose "🪟 Local development environment detected, using project temp directory: $projectTempPath"
 }
 
 # Load environment-specific mocks and utilities
 if ($script:IsDockerEnvironment) {
-    Write-Verbose "🐳 Docker environment detected, loading Docker-specific mocks"
+    Write-Verbose "🐳 Loading Docker-specific mocks"
     
     # Load Docker-specific mocks
     $dockerMockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
@@ -56,9 +175,9 @@ if ($script:IsDockerEnvironment) {
     
     # Set up Docker-specific environment variables
     $env:WMR_DOCKER_TEST = 'true'
-    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? '/tmp/wmr-test-backup'
-    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? '/tmp/wmr-test-logs'
-    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? '/tmp/wmr-test-state'
+    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? $script:TestDirectories.TestBackup
+    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? (Join-Path $script:TestDirectories.Temp "logs")
+    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? $script:TestDirectories.TestRestore
     
     # Mock Windows-specific environment variables for cross-platform compatibility
     $env:USERPROFILE = $env:USERPROFILE ?? '/mock-c/Users/TestUser'
@@ -72,7 +191,7 @@ if ($script:IsDockerEnvironment) {
     $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
     
 } else {
-    Write-Verbose "🪟 Windows environment detected, loading Windows-compatible mocks"
+    Write-Verbose "🪟 Loading Windows-compatible mocks"
     
     # Load Windows-compatible versions of Docker mocks for consistency
     # This ensures unit tests work the same way locally as in Docker
@@ -86,19 +205,21 @@ if ($script:IsDockerEnvironment) {
     
     # Set up Windows-specific environment variables
     $env:WMR_DOCKER_TEST = 'false'
-    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? (Join-Path $script:ModuleRoot "test-backups")
+    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? $script:TestDirectories.TestBackup
     $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? (Join-Path $script:ModuleRoot "logs")
-    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? (Join-Path $script:ModuleRoot "test-restore")
+    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? $script:TestDirectories.TestRestore
 }
 
 # Environment information output
 Write-Host "🧪 Test environment loaded" -ForegroundColor Green
 Write-Host "Available commands: Test-Environment, Start-TestRun, Install-TestModule" -ForegroundColor Gray
 
-if ($script:IsDockerEnvironment) {
-    Write-Host "🐳 Docker test environment initialized with comprehensive mocks" -ForegroundColor Cyan
+if ($script:IsCICDEnvironment) {
+    Write-Host "🏗️ CI/CD test environment initialized with user temp directory" -ForegroundColor Yellow
+} elseif ($script:IsDockerEnvironment) {
+    Write-Host "🐳 Docker test environment initialized with project temp directory" -ForegroundColor Cyan
 } else {
-    Write-Host "🪟 Windows test environment initialized with Docker-compatible mocks" -ForegroundColor Cyan
+    Write-Host "🪟 Local development test environment initialized with project temp directory" -ForegroundColor Cyan
 }
 
 function Initialize-TestEnvironment {
@@ -189,6 +310,7 @@ function Remove-TestEnvironment {
     
     .DESCRIPTION
         Cleans up test directories with appropriate safety checks for each environment.
+        Handles different temp directory locations based on environment type.
     
     .EXAMPLE
         Remove-TestEnvironment
@@ -208,14 +330,29 @@ function Remove-TestEnvironment {
         }
         
         # Environment-specific safety checks
-        if ($script:IsDockerEnvironment) {
-            if (-not ($dirPath.StartsWith('/tmp/') -or $dirPath.Contains('wmr-test'))) {
-                Write-Warning "Skipping non-test path in Docker: $dirPath"
+        if ($script:IsCICDEnvironment) {
+            # CI/CD: Allow user temp directory paths
+            $isUserTempPath = $false
+            if ($script:IsWindowsEnvironment) {
+                $isUserTempPath = $dirPath.Contains($env:TEMP) -and $dirPath.Contains("WindowsMelodyRecovery-Tests")
+            } else {
+                $isUserTempPath = $dirPath.StartsWith('/tmp/') -and $dirPath.Contains("WindowsMelodyRecovery-Tests")
+            }
+            
+            if (-not $isUserTempPath) {
+                Write-Warning "Skipping non-user-temp path in CI/CD: $dirPath"
+                continue
+            }
+        } elseif ($script:IsDockerEnvironment) {
+            # Docker: Allow project temp paths
+            if (-not ($dirPath.Contains("WindowsMelodyRecovery") -and $dirPath.Contains("Temp"))) {
+                Write-Warning "Skipping non-project-temp path in Docker: $dirPath"
                 continue
             }
         } else {
-            if (-not $dirPath.Contains("WindowsMelodyRecovery")) {
-                Write-Warning "Skipping path outside project: $dirPath"
+            # Local dev: Allow project temp paths only
+            if (-not ($dirPath.Contains("WindowsMelodyRecovery") -and $dirPath.Contains("Temp"))) {
+                Write-Warning "Skipping non-project-temp path in local dev: $dirPath"
                 continue
             }
         }
@@ -273,7 +410,10 @@ function Test-SafeTestPath {
     
     .DESCRIPTION
         Ensures paths are within appropriate test directories to prevent
-        accidental deletion of important files. Works across environments.
+        accidental deletion of important files. Works across all environments
+        with different temp directory strategies.
+        
+        CRITICAL: This function prevents any writes to C:\ root directories!
     
     .PARAMETER Path
         Path to validate.
@@ -289,40 +429,70 @@ function Test-SafeTestPath {
     
     # Basic safety checks
     if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 5) {
+        Write-Warning "Test-SafeTestPath: Path is null, empty, or too short: '$Path'"
         return $false
     }
     
-    # Environment-specific safety validation
-    if ($script:IsDockerEnvironment) {
-        # Docker environment: must be in /tmp/ or contain wmr-test
-        $dockerSafeDirs = @('/tmp/', 'wmr-test', 'mock-data')
-        $isInDockerSafeDir = $false
-        
-        foreach ($safeDir in $dockerSafeDirs) {
-            if ($Path.Contains($safeDir)) {
-                $isInDockerSafeDir = $true
-                break
-            }
-        }
-        
-        return $isInDockerSafeDir
-    } else {
-        # Windows environment: must be within project and test directories
-        if (-not $Path.Contains("WindowsMelodyRecovery")) {
+    # CRITICAL: Prevent ANY C:\ root writes outside of project
+    if ($Path.StartsWith("C:\") -and -not ($Path.StartsWith($script:ModuleRoot))) {
+        Write-Error "🚨 CRITICAL SAFETY VIOLATION: Attempted C:\ root write blocked!"
+        Write-Error "🚨 Path: '$Path'"
+        Write-Error "🚨 Module Root: '$script:ModuleRoot'"
+        Write-Error "🚨 This indicates a serious path resolution bug!"
+        return $false
+    }
+    
+    # CRITICAL: Block any obvious dangerous patterns
+    $dangerousPaths = @(
+        "C:\Windows",
+        "C:\Program Files", 
+        "C:\Program Files (x86)",
+        "C:\Users\$env:USERNAME\Desktop",
+        "C:\Users\$env:USERNAME\Documents",
+        "C:\ProgramData"
+    )
+    
+    foreach ($dangerousPath in $dangerousPaths) {
+        if ($Path.StartsWith($dangerousPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Error "🚨 CRITICAL SAFETY VIOLATION: Attempted write to dangerous system path blocked!"
+            Write-Error "🚨 Path: '$Path'"
+            Write-Error "🚨 Dangerous pattern: '$dangerousPath'"
             return $false
         }
-        
-        $testDirs = @("test-restore", "test-backups", "Temp", "tests\mock-data", "tests/mock-data")
-        $isInTestDir = $false
-        
-        foreach ($testDir in $testDirs) {
-            if ($Path.Contains($testDir)) {
-                $isInTestDir = $true
-                break
+    }
+    
+    # Environment-specific safety validation
+    if ($script:IsCICDEnvironment) {
+        # CI/CD environment: must be in user temp directory
+        if ($script:IsWindowsEnvironment) {
+            # Windows CI/CD: must be in user temp and contain our test identifier
+            $isValid = $Path.Contains($env:TEMP) -and $Path.Contains("WindowsMelodyRecovery-Tests")
+            if (-not $isValid) {
+                Write-Verbose "Test-SafeTestPath: CI/CD Windows path not in user temp: '$Path'"
             }
+            return $isValid
+        } else {
+            # Linux CI/CD: must be in /tmp/ and contain our test identifier
+            $isValid = $Path.StartsWith('/tmp/') -and $Path.Contains("WindowsMelodyRecovery-Tests")
+            if (-not $isValid) {
+                Write-Verbose "Test-SafeTestPath: CI/CD Linux path not in /tmp: '$Path'"
+            }
+            return $isValid
         }
-        
-        return $isInTestDir
+    } elseif ($script:IsDockerEnvironment) {
+        # Docker environment: must be in project temp directory
+        $isValid = $Path.Contains("WindowsMelodyRecovery") -and $Path.Contains("Temp")
+        if (-not $isValid) {
+            Write-Verbose "Test-SafeTestPath: Docker path not in project temp: '$Path'"
+        }
+        return $isValid
+    } else {
+        # Local development: must be in project temp directory
+        $isValid = $Path.Contains("WindowsMelodyRecovery") -and $Path.Contains("Temp")
+        if (-not $isValid) {
+            Write-Verbose "Test-SafeTestPath: Local dev path not in project temp: '$Path'"
+        }
+        return $isValid
     }
 }
 
@@ -333,6 +503,7 @@ $script:TestEnvironmentInfo = @{
     IsCICD = $script:IsCICDEnvironment
     ModuleRoot = $script:ModuleRoot
     TestDirectories = $script:TestDirectories
+    TempStrategy = if ($script:IsCICDEnvironment) { "UserTemp" } else { "ProjectTemp" }
 }
 
 # Note: Docker-Path-Mocks.ps1 functions are already loaded above
