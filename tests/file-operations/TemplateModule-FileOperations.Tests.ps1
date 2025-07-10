@@ -14,42 +14,54 @@
 #>
 
 BeforeAll {
-    # Create a dummy template file for testing
-    $tempTemplateContent = @"
+    # Import Docker test bootstrap for mock functions
+    if (Test-Path "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1") {
+        . "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1"
+    }
+    
+    # Import the module using standardized pattern
+    $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+    try {
+        Import-Module $ModulePath -Force -ErrorAction Stop
+    }
+    catch {
+        throw "Failed to import module from $ModulePath : $($_.Exception.Message)"
+    }
+}
+
+Describe "TemplateModule File Operations" -Tag "FileOperations", "Safe" {
+    
+    BeforeAll {
+        # Set up test template path in Docker-safe location
+        $script:TempTemplatePath = "/workspace/Temp/test_template.yaml"
+        $script:TempTemplateDir = "/workspace/Temp"
+        
+        # Ensure Temp directory exists
+        if (-not (Test-Path $script:TempTemplateDir)) {
+            New-Item -Path $script:TempTemplateDir -ItemType Directory -Force | Out-Null
+        }
+        
+        # Create a basic test template file
+        $basicTemplateContent = @"
 metadata:
   name: Test Template
-  description: A test template for unit testing.
+  description: Test template for file operations
   version: "1.0"
 prerequisites:
   - type: script
     name: Dummy Prereq
-    inline_script: "Write-Output 'Hello'"
-    expected_output: "Hello"
+    inline_script: "Write-Output 'test'"
+    expected_output: "test"
     on_missing: warn
 "@
-    $script:TempTemplatePath = Join-Path $PSScriptRoot "..\..\Temp\test_template.yaml"
-    $script:TempTemplateDir = Split-Path -Path $script:TempTemplatePath
-    if (-not (Test-Path $script:TempTemplateDir -PathType Container)) {
-        New-Item -ItemType Directory -Path $script:TempTemplateDir -Force | Out-Null
+        $basicTemplateContent | Out-File -FilePath $script:TempTemplatePath -Encoding UTF8 -Force
     }
-    $tempTemplateContent | Set-Content -Path $script:TempTemplatePath -Encoding Utf8
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+    AfterAll {
+        # Clean up the dummy template file
+        Remove-Item -Path $script:TempTemplatePath -Force -ErrorAction SilentlyContinue
+        # Optionally remove the Temp directory if empty or if it was created by the test
     }
-}
-
-AfterAll {
-    # Clean up the dummy template file
-    Remove-Item -Path $script:TempTemplatePath -Force -ErrorAction SilentlyContinue
-    # Optionally remove the Temp directory if empty or if it was created by the test
-}
-
-Describe "TemplateModule File Operations" -Tag "FileOperations" {
 
     Context "Template File Reading and Writing" {
 

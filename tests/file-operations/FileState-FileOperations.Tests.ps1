@@ -104,7 +104,10 @@ Describe "Get-WmrFileState - File Type" {
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
         $result | Should -Not -BeNull
         $result.Name | Should -Be "Test File"
-        $result.Path | Should -Be $testFilePath
+        # Normalize path separators for cross-platform compatibility
+        $expectedPath = $testFilePath -replace '\\', '/'
+        $actualPath = $result.Path -replace '\\', '/'
+        $actualPath | Should -Be $expectedPath
         $result.Type | Should -Be "file"
         $result.Content | Should -Not -BeNullOrEmpty
         $result.Checksum | Should -Not -BeNullOrEmpty

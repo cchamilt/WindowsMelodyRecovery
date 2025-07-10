@@ -17,10 +17,12 @@ BeforeAll {
     # Import test environment utilities
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
     
+    # Initialize test environment to ensure directories exist
+    $script:TestEnvironment = Initialize-TestEnvironment
+    
     # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
-    $script:TestBackupDir = $script:TestPaths.BackupDir
-    $script:TestStateDir = Join-Path $script:TestPaths.Temp "RegistryStateTests"
+    $script:TestBackupDir = $script:TestEnvironment.TestBackup
+    $script:TestRestoreDir = $script:TestEnvironment.TestRestore
     
     # Import the module with standardized pattern
     try {
@@ -33,9 +35,9 @@ BeforeAll {
     # Dot-source RegistryState.ps1 to ensure all functions are available
     . (Join-Path (Split-Path $ModulePath) "Private\Core\RegistryState.ps1")
     
-    # Ensure test directories exist
-    @($script:TestBackupDir, $script:TestStateDir) | ForEach-Object {
-        if (-not (Test-Path $_)) {
+    # Ensure test directories exist with null checks
+    @($script:TestBackupDir, $script:TestRestoreDir) | ForEach-Object {
+        if ($_ -and -not (Test-Path $_)) {
             New-Item -ItemType Directory -Path $_ -Force | Out-Null
         }
     }
@@ -49,7 +51,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
     Context "State File Creation and Management" {
         
         It "Should create registry state files with proper structure" {
-            $stateFilePath = Join-Path $script:TestStateDir "registry_test.json"
+            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_test.json"
             $stateData = @{
                 KeyName = "TestKey"
                 Value = "TestValue"
@@ -77,7 +79,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
         }
         
         It "Should handle encrypted state files" {
-            $encryptedStateFile = Join-Path $script:TestStateDir "registry_encrypted.json"
+            $encryptedStateFile = Join-Path $script:TestEnvironment.TestState "registry_encrypted.json"
             $encryptedStateData = @{
                 KeyName = "EncryptedKey"
                 EncryptedValue = "MockEncryptedData123"
@@ -105,7 +107,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
         }
         
         It "Should create state files with UTF-8 encoding" {
-            $utf8StateFile = Join-Path $script:TestStateDir "registry_utf8.json"
+            $utf8StateFile = Join-Path $script:TestEnvironment.TestState "registry_utf8.json"
             $utf8StateData = @{
                 KeyName = "UTF8Key"
                 Value = "UTF-8 测试 with émojis 🚀"
@@ -223,7 +225,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
         
         It "Should backup registry value to state file" {
             $testKeyPath = "$script:TestRegistryPath\BackupTest"
-            $stateFilePath = Join-Path $script:TestStateDir "registry_backup_test.json"
+            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_backup_test.json"
             
             try {
                 # Create test registry key with value
@@ -263,7 +265,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
         
         It "Should restore registry value from state file" {
             $testKeyPath = "$script:TestRegistryPath\RestoreTest"
-            $stateFilePath = Join-Path $script:TestStateDir "registry_restore_test.json"
+            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_restore_test.json"
             
             try {
                 # Create state file with restoration data
@@ -303,7 +305,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
         
         It "Should handle backup and restore of entire registry keys" {
             $testKeyPath = "$script:TestRegistryPath\EntireKeyTest"
-            $stateFilePath = Join-Path $script:TestStateDir "registry_entire_key.json"
+            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_entire_key.json"
             
             try {
                 # Create test registry key with multiple values
@@ -353,7 +355,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
     Context "Error Handling and Edge Cases" {
         
         It "Should handle corrupted state files gracefully" {
-            $corruptedStateFile = Join-Path $script:TestStateDir "corrupted_state.json"
+            $corruptedStateFile = Join-Path $script:TestEnvironment.TestState "corrupted_state.json"
             $corruptedContent = '{ "KeyName": "Test", "Value": "Data"'  # Missing closing brace
             
             try {
@@ -407,7 +409,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
         
         It "Should handle large registry values" {
             $testKeyPath = "$script:TestRegistryPath\LargeValueTest"
-            $stateFilePath = Join-Path $script:TestStateDir "registry_large_value.json"
+            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_large_value.json"
             
             try {
                 # Create large string value
@@ -461,7 +463,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
             try {
                 # Create multiple state files
                 foreach ($fileName in $stateFiles) {
-                    $filePath = Join-Path $script:TestStateDir $fileName
+                    $filePath = Join-Path $script:TestEnvironment.TestState $fileName
                     $stateData = @{
                         KeyName = $fileName.Replace("registry_", "").Replace(".json", "")
                         Value = "TestValue_$fileName"
@@ -474,7 +476,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
                 
                 # Verify all files created
                 foreach ($fileName in $stateFiles) {
-                    $filePath = Join-Path $script:TestStateDir $fileName
+                    $filePath = Join-Path $script:TestEnvironment.TestState $fileName
                     Test-Path $filePath | Should -Be $true
                     
                     $content = Get-Content $filePath -Raw | ConvertFrom-Json
@@ -485,7 +487,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
             } finally {
                 # Clean up all state files
                 foreach ($fileName in $stateFiles) {
-                    $filePath = Join-Path $script:TestStateDir $fileName
+                    $filePath = Join-Path $script:TestEnvironment.TestState $fileName
                     Remove-Item $filePath -Force -ErrorAction SilentlyContinue
                 }
             }
@@ -495,8 +497,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations" {
 
 AfterAll {
     # Final cleanup of test directories and registry keys
-    if (Test-Path $script:TestStateDir) {
-        Get-ChildItem $script:TestStateDir -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+    if (Test-Path $script:TestEnvironment.TestState) {
+        Get-ChildItem $script:TestEnvironment.TestState -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
     }
     
     # Clean up test registry keys

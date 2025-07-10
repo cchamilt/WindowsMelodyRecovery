@@ -3,6 +3,11 @@
 # Logic tests moved to tests/unit/module-tests-Logic.Tests.ps1
 
 BeforeAll {
+    # Import Docker test bootstrap for mock functions
+    if (Test-Path "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1") {
+        . "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1"
+    }
+    
     # Import the module using standardized pattern
     $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
     try {
@@ -13,13 +18,19 @@ BeforeAll {
     }
     
     # Set up test environment with real paths in safe test directories
-    $TestModulePath = Get-WmrModulePath
+    $TestModulePath = if (Get-Command Get-WmrModulePath -ErrorAction SilentlyContinue) {
+        Get-WmrModulePath
+    } else {
+        "/workspace"
+    }
     $TestManifestPath = (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1").Path
     $TestInstallScriptPath = (Resolve-Path "$PSScriptRoot/../../Install-Module.ps1").Path
     
     # Create temporary test directory in safe location
-    $TestTempDir = Join-Path $TestDrive "WindowsMelodyRecovery-FileOps"
-    New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
+    $TestTempDir = Join-Path "/workspace/Temp" "WindowsMelodyRecovery-FileOps"
+    if (-not (Test-Path $TestTempDir)) {
+        New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
+    }
     
     # Set up test environment variables
     $env:WMR_CONFIG_PATH = $TestTempDir

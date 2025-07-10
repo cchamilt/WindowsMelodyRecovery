@@ -431,8 +431,8 @@ backup:
             # Verify chezmoi backup
             Test-Path $configFile | Should -Be $true
             $configContent = Get-Content $configFile -Raw
-            $configContent | Should -Match "email = \"test@example.com\""
-            $configContent | Should -Match "name = \"Test User\""
+            $configContent | Should -Match 'email = "test@example.com"'
+            $configContent | Should -Match 'name = "Test User"'
         }
         
         It "Should backup chezmoi source directory structure" {

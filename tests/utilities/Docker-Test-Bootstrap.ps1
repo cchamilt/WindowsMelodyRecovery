@@ -586,6 +586,74 @@ if ($script:IsDockerEnvironment) {
         }
     }
     
+    # Mock Read-WmrTemplateConfig for template operations
+    if (-not (Get-Command Read-WmrTemplateConfig -ErrorAction SilentlyContinue)) {
+        function Read-WmrTemplateConfig {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory=$true)]
+                [string]$TemplatePath
+            )
+            
+            if (-not (Test-Path $TemplatePath)) {
+                throw "Template file not found: $TemplatePath"
+            }
+            
+            try {
+                $content = Get-Content $TemplatePath -Raw -Encoding UTF8
+                if ($TemplatePath -like "*.yaml" -or $TemplatePath -like "*.yml") {
+                    # Mock YAML parsing
+                    $yamlContent = @{
+                        metadata = @{
+                            name = "Mock Template"
+                            version = "1.0.0"
+                            description = "Mock template for testing"
+                        }
+                        files = @(
+                            @{
+                                name = "Mock File"
+                                path = "/mock/path/file.txt"
+                                action = "sync"
+                            }
+                        )
+                    }
+                    return $yamlContent
+                } else {
+                    return ($content | ConvertFrom-Json)
+                }
+            } catch {
+                throw "Failed to parse template file: $($_.Exception.Message)"
+            }
+        }
+    }
+    
+    # Mock Get-WmrModulePath for module operations
+    if (-not (Get-Command Get-WmrModulePath -ErrorAction SilentlyContinue)) {
+        function Get-WmrModulePath {
+            [CmdletBinding()]
+            param()
+            
+            # Return the actual module file path
+            return "/workspace/WindowsMelodyRecovery.psm1"
+        }
+    }
+    
+    # Mock additional path utilities
+    if (-not (Get-Command Get-WmrTestPath -ErrorAction SilentlyContinue)) {
+        function Get-WmrTestPath {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory=$true)]
+                [string]$WindowsPath
+            )
+            
+            # Convert Windows paths to Linux paths for Docker
+            $linuxPath = $WindowsPath -replace '\\', '/'
+            $linuxPath = $linuxPath -replace '^C:', '/workspace'
+            return $linuxPath
+        }
+    }
+    
     Write-Host "🐳 Docker test environment initialized with comprehensive mocks" -ForegroundColor Cyan
 } else {
     Write-Verbose "Native Windows environment detected, using standard functionality"

@@ -17,10 +17,12 @@ BeforeAll {
     # Import test environment utilities
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
     
+    # Initialize test environment to ensure directories exist
+    $script:TestEnvironment = Initialize-TestEnvironment
+    
     # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
-    $script:TestBackupDir = $script:TestPaths.BackupDir
-    $script:TestRestoreDir = $script:TestPaths.RestoreDir
+    $script:TestBackupDir = $script:TestEnvironment.TestBackup
+    $script:TestRestoreDir = $script:TestEnvironment.TestRestore
     
     # Import the module with standardized pattern
     try {
@@ -33,9 +35,9 @@ BeforeAll {
     # Dot-source Prerequisites.ps1 to ensure all functions are available
     . (Join-Path (Split-Path $ModulePath) "Private\Core\Prerequisites.ps1")
     
-    # Ensure test directories exist
+    # Ensure test directories exist with null checks
     @($script:TestBackupDir, $script:TestRestoreDir) | ForEach-Object {
-        if (-not (Test-Path $_)) {
+        if ($_ -and -not (Test-Path $_)) {
             New-Item -ItemType Directory -Path $_ -Force | Out-Null
         }
     }
@@ -126,8 +128,15 @@ try {
     }
     
     Context "Registry Test Key Creation and Cleanup" {
+        BeforeAll {
+            # Skip registry tests in Docker/Linux environment
+            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true")) {
+                Write-Warning "Registry tests skipped in non-Windows environment"
+                return
+            }
+        }
         
-        It "Should create and clean up test registry keys" {
+        It "Should create and clean up test registry keys" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true")) {
             $testKeyPath = "HKCU:\Software\WindowsMelodyRecovery\Test"
             
             try {

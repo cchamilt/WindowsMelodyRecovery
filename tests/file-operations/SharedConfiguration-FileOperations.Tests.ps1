@@ -269,7 +269,9 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 
                 $content = Get-Content $result -Raw | ConvertFrom-Json
                 $content.Source | Should -Be "Shared"
-                $content.LargeData.PSObject.Properties.Count | Should -Be 100
+                # Fix: Get the actual count of properties, not the array representation
+                $propertyCount = ($content.LargeData.PSObject.Properties | Measure-Object).Count
+                $propertyCount | Should -Be 100
             } finally {
                 Remove-Item $largeConfigFile -Force -ErrorAction SilentlyContinue
             }
