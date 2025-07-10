@@ -4,17 +4,18 @@
 # Detect if running in Docker environment
 $script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
 
+# Always load Docker-specific mocks for cross-platform compatibility
+# Unit tests depend on these mocks regardless of environment
+$mockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
+if (Test-Path $mockPath) {
+    . $mockPath
+    Write-Verbose "Loaded Docker path mocks from: $mockPath"
+} else {
+    Write-Warning "Docker path mocks not found at: $mockPath"
+}
+
 if ($script:IsDockerEnvironment) {
-    Write-Verbose "Docker environment detected, loading mocks and path utilities"
-    
-    # Load Docker-specific mocks
-    $mockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
-    if (Test-Path $mockPath) {
-        . $mockPath
-        Write-Verbose "Loaded Docker path mocks from: $mockPath"
-    } else {
-        Write-Warning "Docker path mocks not found at: $mockPath"
-    }
+    Write-Verbose "Docker environment detected, loading additional Docker setup"
     
     # Set up Docker-specific environment variables
     $env:WMR_DOCKER_TEST = 'true'

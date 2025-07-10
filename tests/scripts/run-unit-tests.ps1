@@ -5,8 +5,10 @@
     Run Unit Tests for Windows Melody Recovery
 
 .DESCRIPTION
-    Runs unit tests using the same environment setup as the successful Docker tests.
-    Uses standardized test directories and mock data.
+    Runs unit tests using the unified Test-Environment.ps1 that works across:
+    - Docker containers (Linux/cross-platform)
+    - Windows local development
+    - CI/CD environments
 
 .PARAMETER TestName
     Specific test file to run (without .Tests.ps1 extension). If not specified, runs all unit tests.
@@ -30,20 +32,15 @@ param(
 # Set execution policy for current process to allow unsigned scripts
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-# Import the working test environment utilities (same as Docker tests)
+# Import the unified test environment (works for both Docker and Windows)
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Host "🧪 Running Unit Tests for Windows Melody Recovery" -ForegroundColor Cyan
 
-# Show environment information
-if ($IsWindows) {
-    Write-Host "Environment: Windows (all tests will run)" -ForegroundColor Green
-} else {
-    Write-Host "Environment: Non-Windows (Windows-only tests will be skipped)" -ForegroundColor Yellow
-}
+# Show environment information (auto-detected by Test-Environment.ps1)
 Write-Host ""
 
-# Initialize test environment using the working system
+# Initialize test environment using the unified system
 Write-Host "🧹 Initializing test environment..." -ForegroundColor Yellow
 $testEnvironment = Initialize-TestEnvironment -Force
 Write-Host "✅ Test environment ready" -ForegroundColor Green

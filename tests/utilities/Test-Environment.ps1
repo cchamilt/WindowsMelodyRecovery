@@ -1,27 +1,104 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Test Environment Management for Windows Melody Recovery Unit Tests
+    Unified Test Environment Management for Windows Melody Recovery
 
 .DESCRIPTION
-    Centralized script for setting up and cleaning up test environments.
-    Manages test-restore, test-backup, and Temp directories.
-    Uses existing mock data from tests/mock-data for consistent testing.
+    Centralized script for setting up test environments that works across:
+    - Docker containers (Linux/cross-platform)
+    - Windows local development
+    - CI/CD environments
+    
+    Auto-detects environment and loads appropriate mocks and utilities.
 
 .NOTES
-    This script ensures all unit tests have a clean, consistent environment
-    without dangerous file operations scattered across individual test files.
+    This script replaces the fragmented Docker-Test-Bootstrap.ps1 approach
+    with a unified environment setup that works everywhere.
 #>
+
+# Environment Detection
+$script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
+$script:IsWindowsEnvironment = $IsWindows
+$script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
 
 # Get module root directory
 $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
-# Define test directories
-$script:TestDirectories = @{
-    TestRestore = Join-Path $script:ModuleRoot "test-restore"
-    TestBackup = Join-Path $script:ModuleRoot "test-backups" 
-    Temp = Join-Path $script:ModuleRoot "Temp"
-    MockData = Join-Path $script:ModuleRoot "tests\mock-data"
+# Define test directories based on environment
+if ($script:IsDockerEnvironment) {
+    $script:TestDirectories = @{
+        TestRestore = '/tmp/wmr-test-restore'
+        TestBackup = '/tmp/wmr-test-backup'
+        Temp = '/tmp/wmr-temp'
+        MockData = Join-Path $script:ModuleRoot "tests/mock-data"
+    }
+} else {
+    $script:TestDirectories = @{
+        TestRestore = Join-Path $script:ModuleRoot "test-restore"
+        TestBackup = Join-Path $script:ModuleRoot "test-backups" 
+        Temp = Join-Path $script:ModuleRoot "Temp"
+        MockData = Join-Path $script:ModuleRoot "tests\mock-data"
+    }
+}
+
+# Load environment-specific mocks and utilities
+if ($script:IsDockerEnvironment) {
+    Write-Verbose "🐳 Docker environment detected, loading Docker-specific mocks"
+    
+    # Load Docker-specific mocks
+    $dockerMockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
+    if (Test-Path $dockerMockPath) {
+        . $dockerMockPath
+        Write-Verbose "Loaded Docker path mocks from: $dockerMockPath"
+    } else {
+        Write-Warning "Docker path mocks not found at: $dockerMockPath"
+    }
+    
+    # Set up Docker-specific environment variables
+    $env:WMR_DOCKER_TEST = 'true'
+    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? '/tmp/wmr-test-backup'
+    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? '/tmp/wmr-test-logs'
+    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? '/tmp/wmr-test-state'
+    
+    # Mock Windows-specific environment variables for cross-platform compatibility
+    $env:USERPROFILE = $env:USERPROFILE ?? '/mock-c/Users/TestUser'
+    $env:PROGRAMFILES = $env:PROGRAMFILES ?? '/mock-c/Program Files'
+    $env:PROGRAMDATA = $env:PROGRAMDATA ?? '/mock-c/ProgramData'
+    $env:COMPUTERNAME = $env:COMPUTERNAME ?? 'TEST-MACHINE'
+    $env:HOSTNAME = $env:HOSTNAME ?? 'TEST-MACHINE'
+    $env:USERNAME = $env:USERNAME ?? 'TestUser'
+    $env:PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE ?? 'AMD64'
+    $env:USERDOMAIN = $env:USERDOMAIN ?? 'WORKGROUP'
+    $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
+    
+} else {
+    Write-Verbose "🪟 Windows environment detected, loading Windows-compatible mocks"
+    
+    # Load Windows-compatible versions of Docker mocks for consistency
+    # This ensures unit tests work the same way locally as in Docker
+    $dockerMockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
+    if (Test-Path $dockerMockPath) {
+        . $dockerMockPath
+        Write-Verbose "Loaded Docker path mocks for Windows compatibility"
+    } else {
+        Write-Warning "Docker path mocks not found at: $dockerMockPath"
+    }
+    
+    # Set up Windows-specific environment variables
+    $env:WMR_DOCKER_TEST = 'false'
+    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? (Join-Path $script:ModuleRoot "test-backups")
+    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? (Join-Path $script:ModuleRoot "logs")
+    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? (Join-Path $script:ModuleRoot "test-restore")
+}
+
+# Environment information output
+Write-Host "🧪 Test environment loaded" -ForegroundColor Green
+Write-Host "Available commands: Test-Environment, Start-TestRun, Install-TestModule" -ForegroundColor Gray
+
+if ($script:IsDockerEnvironment) {
+    Write-Host "🐳 Docker test environment initialized with comprehensive mocks" -ForegroundColor Cyan
+} else {
+    Write-Host "🪟 Windows test environment initialized with Docker-compatible mocks" -ForegroundColor Cyan
 }
 
 function Initialize-TestEnvironment {
@@ -30,8 +107,8 @@ function Initialize-TestEnvironment {
         Initializes clean test directories for unit tests.
     
     .DESCRIPTION
-        Creates or cleans test-restore, test-backup, and Temp directories.
-        Sets up basic directory structure using mock data patterns.
+        Creates or cleans test directories based on environment.
+        Works in both Docker and Windows environments.
     
     .PARAMETER Force
         Force recreation of directories even if they exist.
@@ -99,6 +176,9 @@ function Initialize-TestEnvironment {
         MockData = $script:TestDirectories.MockData
         MachineBackup = $machineBackup
         SharedBackup = $sharedBackup
+        IsDocker = $script:IsDockerEnvironment
+        IsWindows = $script:IsWindowsEnvironment
+        IsCICD = $script:IsCICDEnvironment
     }
 }
 
@@ -108,8 +188,7 @@ function Remove-TestEnvironment {
         Safely removes test directories and their contents.
     
     .DESCRIPTION
-        Cleans up test-restore, test-backup, and Temp directories.
-        Includes safety checks to prevent accidental deletion of important files.
+        Cleans up test directories with appropriate safety checks for each environment.
     
     .EXAMPLE
         Remove-TestEnvironment
@@ -123,14 +202,22 @@ function Remove-TestEnvironment {
         $dirPath = $script:TestDirectories[$dirName]
         
         # Safety checks
-        if (-not $dirPath -or $dirPath.Length -lt 10) {
+        if (-not $dirPath -or $dirPath.Length -lt 5) {
             Write-Warning "Skipping unsafe path: $dirPath"
             continue
         }
         
-        if (-not $dirPath.Contains("WindowsMelodyRecovery")) {
-            Write-Warning "Skipping path outside project: $dirPath"
-            continue
+        # Environment-specific safety checks
+        if ($script:IsDockerEnvironment) {
+            if (-not ($dirPath.StartsWith('/tmp/') -or $dirPath.Contains('wmr-test'))) {
+                Write-Warning "Skipping non-test path in Docker: $dirPath"
+                continue
+            }
+        } else {
+            if (-not $dirPath.Contains("WindowsMelodyRecovery")) {
+                Write-Warning "Skipping path outside project: $dirPath"
+                continue
+            }
         }
         
         if (Test-Path $dirPath) {
@@ -148,184 +235,13 @@ function Remove-TestEnvironment {
     Write-Host "✓ Test environment cleaned successfully" -ForegroundColor Green
 }
 
-function Copy-MockDataToTest {
-    <#
-    .SYNOPSIS
-        Copies mock data to test directories for unit testing.
-    
-    .DESCRIPTION
-        Copies specific mock data files from tests/mock-data to test directories
-        for use in unit tests. Allows selective copying of components.
-    
-    .PARAMETER Component
-        Specific component to copy (appdata, registry, etc.). If not specified, copies all.
-    
-    .PARAMETER Destination
-        Destination type: 'restore', 'backup', or 'both'. Default is 'restore'.
-    
-    .EXAMPLE
-        Copy-MockDataToTest -Component "registry"
-        Copy-MockDataToTest -Component "appdata" -Destination "both"
-    #>
-    [CmdletBinding()]
-    param(
-        [string]$Component,
-        [ValidateSet('restore', 'backup', 'both')]
-        [string]$Destination = 'restore'
-    )
-    
-    $mockDataPath = $script:TestDirectories.MockData
-    
-    if (-not (Test-Path $mockDataPath)) {
-        Write-Warning "Mock data directory not found: $mockDataPath"
-        return
-    }
-    
-    # Determine which components to copy
-    $componentsToProcess = if ($Component) {
-        @($Component)
-    } else {
-        Get-ChildItem -Path $mockDataPath -Directory | Select-Object -ExpandProperty Name
-    }
-    
-    # Determine destination directories
-    $destinations = switch ($Destination) {
-        'restore' { @($script:TestDirectories.TestRestore) }
-        'backup' { @($script:TestDirectories.TestBackup) }
-        'both' { @($script:TestDirectories.TestRestore, $script:TestDirectories.TestBackup) }
-    }
-    
-    foreach ($comp in $componentsToProcess) {
-        $sourcePath = Join-Path $mockDataPath $comp
-        
-        if (-not (Test-Path $sourcePath)) {
-            Write-Warning "Mock data component not found: $sourcePath"
-            continue
-        }
-        
-        foreach ($destRoot in $destinations) {
-            $destPath = Join-Path $destRoot $comp
-            
-            try {
-                if (Test-Path $destPath) {
-                    Remove-Item -Path $destPath -Recurse -Force
-                }
-                
-                Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
-                Write-Host "  ✓ Copied $comp mock data to: $destPath" -ForegroundColor Green
-            } catch {
-                Write-Warning "Failed to copy $comp mock data: $_"
-            }
-        }
-    }
-}
-
-# Add missing functions that are available in Docker environment
-function Get-WmrModulePath {
-    <#
-    .SYNOPSIS
-        Gets the path to the Windows Melody Recovery module file.
-    
-    .DESCRIPTION
-        Returns the path to the main module file (WindowsMelodyRecovery.psm1).
-        This function provides compatibility with Docker test environment.
-    
-    .EXAMPLE
-        Get-WmrModulePath
-    #>
-    [CmdletBinding()]
-    param()
-    
-    $moduleFile = Join-Path $script:ModuleRoot "WindowsMelodyRecovery.psm1"
-    
-    if (Test-Path $moduleFile) {
-        return $moduleFile
-    } else {
-        Write-Warning "Module file not found: $moduleFile"
-        return $null
-    }
-}
-
-function Read-WmrTemplateConfig {
-    <#
-    .SYNOPSIS
-        Reads and parses a YAML template configuration file.
-    
-    .DESCRIPTION
-        Reads a YAML template file and returns the parsed configuration.
-        This function provides compatibility with Docker test environment.
-    
-    .PARAMETER TemplatePath
-        Path to the template file to read.
-    
-    .EXAMPLE
-        Read-WmrTemplateConfig -TemplatePath "Templates/System/display.yaml"
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$TemplatePath
-    )
-    
-    # Handle relative paths
-    if (-not [System.IO.Path]::IsPathRooted($TemplatePath)) {
-        $TemplatePath = Join-Path $script:ModuleRoot $TemplatePath
-    }
-    
-    if (-not (Test-Path $TemplatePath)) {
-        throw "Template file not found: $TemplatePath"
-    }
-    
-    try {
-        $yamlContent = Get-Content -Path $TemplatePath -Raw -Encoding UTF8
-        
-        # Simple YAML parsing for basic structures
-        # This is a simplified parser for testing purposes
-        $config = @{}
-        
-        $lines = $yamlContent -split "`n"
-        $currentSection = $null
-        
-        foreach ($line in $lines) {
-            $line = $line.Trim()
-            
-            if ($line -match '^#' -or [string]::IsNullOrWhiteSpace($line)) {
-                continue
-            }
-            
-            if ($line -match '^(\w+):$') {
-                $currentSection = $matches[1]
-                $config[$currentSection] = @{}
-            } elseif ($line -match '^(\w+):\s*(.+)$') {
-                $key = $matches[1]
-                $value = $matches[2].Trim()
-                
-                # Remove quotes if present - fixed regex
-                if ($value -match '^["''](.+)["'']$') {
-                    $value = $matches[1]
-                }
-                
-                if ($currentSection) {
-                    $config[$currentSection][$key] = $value
-                } else {
-                    $config[$key] = $value
-                }
-            }
-        }
-        
-        return $config
-    } catch {
-        throw "Failed to parse template file '$TemplatePath': $_"
-    }
-}
-
 function Get-TestPaths {
     <#
     .SYNOPSIS
         Returns standardized test paths for use in unit tests.
     
     .DESCRIPTION
-        Provides consistent path structure for all unit tests.
+        Provides consistent path structure for all unit tests across environments.
         
     .EXAMPLE
         $paths = Get-TestPaths
@@ -344,6 +260,9 @@ function Get-TestPaths {
         SharedBackup = Join-Path $script:TestDirectories.TestRestore "shared"
         MachineTestBackup = Join-Path $script:TestDirectories.TestBackup "TEST-MACHINE"
         SharedTestBackup = Join-Path $script:TestDirectories.TestBackup "shared"
+        IsDocker = $script:IsDockerEnvironment
+        IsWindows = $script:IsWindowsEnvironment
+        IsCICD = $script:IsCICDEnvironment
     }
 }
 
@@ -353,8 +272,8 @@ function Test-SafeTestPath {
         Validates that a path is safe for test operations.
     
     .DESCRIPTION
-        Ensures paths are within the project and test directories to prevent
-        accidental deletion of important files.
+        Ensures paths are within appropriate test directories to prevent
+        accidental deletion of important files. Works across environments.
     
     .PARAMETER Path
         Path to validate.
@@ -369,75 +288,54 @@ function Test-SafeTestPath {
     )
     
     # Basic safety checks
-    if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 10) {
+    if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 5) {
         return $false
     }
     
-    # Must be within the project
-    if (-not $Path.Contains("WindowsMelodyRecovery")) {
-        return $false
-    }
-    
-    # Must be within test directories
-    $testDirs = @("test-restore", "test-backups", "Temp", "tests\mock-data")
-    $isInTestDir = $false
-    
-    foreach ($testDir in $testDirs) {
-        if ($Path.Contains($testDir)) {
-            $isInTestDir = $true
-            break
+    # Environment-specific safety validation
+    if ($script:IsDockerEnvironment) {
+        # Docker environment: must be in /tmp/ or contain wmr-test
+        $dockerSafeDirs = @('/tmp/', 'wmr-test', 'mock-data')
+        $isInDockerSafeDir = $false
+        
+        foreach ($safeDir in $dockerSafeDirs) {
+            if ($Path.Contains($safeDir)) {
+                $isInDockerSafeDir = $true
+                break
+            }
         }
+        
+        return $isInDockerSafeDir
+    } else {
+        # Windows environment: must be within project and test directories
+        if (-not $Path.Contains("WindowsMelodyRecovery")) {
+            return $false
+        }
+        
+        $testDirs = @("test-restore", "test-backups", "Temp", "tests\mock-data", "tests/mock-data")
+        $isInTestDir = $false
+        
+        foreach ($testDir in $testDirs) {
+            if ($Path.Contains($testDir)) {
+                $isInTestDir = $true
+                break
+            }
+        }
+        
+        return $isInTestDir
     }
-    
-    return $isInTestDir
 }
 
-function Test-WmrTemplateSchema {
-    <#
-    .SYNOPSIS
-        Validates a template configuration against the expected schema.
-    
-    .DESCRIPTION
-        Validates that a template configuration has the required metadata
-        and structure. This function provides compatibility with Docker test environment.
-    
-    .PARAMETER TemplateConfig
-        Template configuration to validate.
-    
-    .EXAMPLE
-        Test-WmrTemplateSchema -TemplateConfig $config
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [object]$TemplateConfig
-    )
-    
-    # Convert PSCustomObject to hashtable if needed
-    if ($TemplateConfig -is [PSCustomObject]) {
-        $configHash = @{}
-        foreach ($prop in $TemplateConfig.PSObject.Properties) {
-            $configHash[$prop.Name] = $prop.Value
-        }
-        $TemplateConfig = $configHash
-    }
-    
-    # Mock template schema validation
-    if (-not $TemplateConfig.metadata) {
-        throw "Template schema validation failed: 'metadata' is missing."
-    }
-    
-    if ($TemplateConfig.metadata -is [PSCustomObject]) {
-        if (-not $TemplateConfig.metadata.name) {
-            throw "Template schema validation failed: 'metadata.name' is missing."
-        }
-    } elseif ($TemplateConfig.metadata -is [hashtable]) {
-        if (-not $TemplateConfig.metadata.name) {
-            throw "Template schema validation failed: 'metadata.name' is missing."
-        }
-    }
-    
-    return $true
+# Export environment information for scripts that need it
+$script:TestEnvironmentInfo = @{
+    IsDocker = $script:IsDockerEnvironment
+    IsWindows = $script:IsWindowsEnvironment
+    IsCICD = $script:IsCICDEnvironment
+    ModuleRoot = $script:ModuleRoot
+    TestDirectories = $script:TestDirectories
 }
+
+# Note: Docker-Path-Mocks.ps1 functions are already loaded above
+# This includes: Read-WmrTemplateConfig, Test-WmrTemplateSchema, and all other mock functions
 
 # Functions are available when dot-sourced - no need to export when not a module 

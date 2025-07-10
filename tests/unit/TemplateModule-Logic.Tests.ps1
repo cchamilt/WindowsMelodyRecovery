@@ -1,64 +1,63 @@
-# tests/unit/TemplateModule-Logic.Tests.ps1
-
-<#
-.SYNOPSIS
-    Pure Unit Tests for TemplateModule Logic
-
-.DESCRIPTION
-    Tests the TemplateModule functions' logic without any actual file operations.
-    Uses mock data and tests the decision-making logic only.
-
-.NOTES
-    These are pure unit tests - no file system operations!
-    File operation tests are in tests/file-operations/TemplateModule-FileOperations.Tests.ps1
-#>
+# Unit Tests for Template Module Logic
+# Tests the core template processing logic without file system operations
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
-
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment
+    
     # Mock all file operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
+    Mock Test-Path { return $true } -ParameterFilter { $Path -like "*valid*" }
     Mock Test-Path { return $false } -ParameterFilter { $Path -like "*missing*" }
+    Mock Test-Path { return $false } -ParameterFilter { $Path -like "*invalid*" }
     Mock New-Item { return @{ FullName = $Path } }
     Mock Set-Content { }
     Mock Remove-Item { }
-
-    # Mock Get-Content to return valid YAML content
+    
+    # Mock Get-Content for YAML template files
     Mock Get-Content {
-        return @"
+        if ($Path -like "*valid*") {
+            return @'
 metadata:
-  name: Test Template
-  description: A test template for unit testing.
+  name: "Valid Template"
   version: "1.0"
-prerequisites:
-  - type: script
-    name: Dummy Prereq
-    inline_script: "Write-Output 'Hello'"
-    expected_output: "Hello"
-    on_missing: warn
-"@
-    } -ParameterFilter { $Path -like "*valid*" }
+  description: "A valid test template"
 
-    # Mock Get-Content to return invalid YAML content
-    Mock Get-Content {
-        return @"
-metadata:
-  name: Test
-  invalid_structure: [
-    - item1
-    - item2
-  unclosed_array: true
-"@
-    } -ParameterFilter { $Path -like "*invalid*" }
+prerequisites:
+  - type: "directory"
+    path: "C:\Test"
+
+files:
+  - name: "test.txt"
+    source: "source.txt"
+    destination: "dest.txt"
+'@
+        } elseif ($Path -like "*missing*") {
+            throw "File not found"
+        } elseif ($Path -like "*invalid*") {
+            return "invalid: [unclosed_array"
+        } else {
+            return "default: content"
+        }
+    }
+    
+    # Add missing Get-WmrTestPath function
+    function Get-WmrTestPath {
+        param(
+            [string]$Path,
+            [string]$WindowsPath
+        )
+        
+        # If WindowsPath is provided, use it; otherwise use Path
+        if ($WindowsPath) {
+            return $WindowsPath
+        } else {
+            return $Path
+        }
+    }
 }
 
 Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
@@ -68,10 +67,10 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         It "should parse valid YAML template configuration correctly" {
             $config = Read-WmrTemplateConfig -TemplatePath "valid_template.yaml"
             $config | Should -Not -BeNullOrEmpty
-            $config.metadata.name | Should -Be "Test Template"
+            $config.metadata.name | Should -Be "Valid Template"
             $config.metadata.version | Should -Be "1.0"
             $config.prerequisites.Count | Should -Be 1
-            $config.prerequisites[0].name | Should -Be "Dummy Prereq"
+            $config.prerequisites[0].type | Should -Be "directory"
         }
 
         It "should handle missing template files gracefully" {

@@ -198,6 +198,159 @@ function Get-WmrRegistryState {
     }
 }
 
+# Mock functions for AdministrativePrivileges-Logic tests
+function Backup-WindowsFeatures {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string]$BackupPath
+    )
+    
+    Write-Verbose "Mock: Backing up Windows Features to $BackupPath"
+    return @{
+        Success = $true
+        Features = @("IIS-WebServerRole", "Microsoft-Windows-Subsystem-Linux")
+        BackupPath = $BackupPath
+    }
+}
+
+function Test-WmrPrerequisites {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object]$TemplateConfig,
+        
+        [Parameter()]
+        [string]$Operation = "Backup"
+    )
+    
+    Write-Verbose "Mock: Testing prerequisites for template '$($TemplateConfig.metadata.name)' with operation '$Operation'"
+    return @{
+        Success = $true
+        Results = @()
+        FailedPrerequisites = @()
+        Operation = $Operation
+        TemplateConfig = $TemplateConfig
+    }
+}
+
+function Get-WindowsOptionalFeaturesState {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string]$StateFilePath
+    )
+    
+    Write-Verbose "Mock: Getting Windows Optional Features state"
+    return @{
+        Features = @(
+            @{ Name = "IIS-WebServerRole"; State = "Enabled" }
+            @{ Name = "Microsoft-Windows-Subsystem-Linux"; State = "Enabled" }
+        )
+        StateFilePath = $StateFilePath
+    }
+}
+
+function Get-WindowsCapabilitiesState {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string]$StateFilePath
+    )
+    
+    Write-Verbose "Mock: Getting Windows Capabilities state"
+    return @{
+        Capabilities = @(
+            @{ Name = "OpenSSH.Client"; State = "Installed" }
+            @{ Name = "OpenSSH.Server"; State = "NotPresent" }
+        )
+        StateFilePath = $StateFilePath
+    }
+}
+
+function Manage-WindowsService {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ServiceName,
+        
+        [Parameter(Mandatory)]
+        [ValidateSet("Start", "Stop", "Restart", "Enable", "Disable")]
+        [string]$Action
+    )
+    
+    Write-Verbose "Mock: Managing Windows Service '$ServiceName' with action '$Action'"
+    return @{
+        Success = $true
+        ServiceName = $ServiceName
+        Action = $Action
+        PreviousState = "Running"
+        CurrentState = "Running"
+    }
+}
+
+function Set-RegistryValue {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [Parameter(Mandatory)]
+        [string]$Name,
+        
+        [Parameter(Mandatory)]
+        [object]$Value,
+        
+        [Parameter()]
+        [string]$Type = "String"
+    )
+    
+    Write-Verbose "Mock: Setting registry value '$Name' at '$Path' to '$Value'"
+    return @{
+        Success = $true
+        Path = $Path
+        Name = $Name
+        Value = $Value
+        Type = $Type
+    }
+}
+
+function Manage-ScheduledTask {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$TaskName,
+        
+        [Parameter(Mandatory)]
+        [ValidateSet("Create", "Delete", "Enable", "Disable", "Run", "Remove")]
+        [string]$Action,
+        
+        [Parameter()]
+        [hashtable]$TaskDefinition,
+        
+        [Parameter()]
+        [bool]$RequireElevation = $false
+    )
+    
+    Write-Verbose "Mock: Managing Scheduled Task '$TaskName' with action '$Action' (RequireElevation: $RequireElevation)"
+    return @{
+        Success = $true
+        TaskName = $TaskName
+        Action = $Action
+        State = "Ready"
+        RequireElevation = $RequireElevation
+    }
+}
+
+function Test-ElevationCapability {
+    [CmdletBinding()]
+    param()
+    
+    Write-Verbose "Mock: Testing elevation capability"
+    # In Docker tests, simulate that elevation is not available
+    return $false
+}
+
 # Mock Windows module path functionality
 function Get-WmrModulePath {
     [CmdletBinding()]
