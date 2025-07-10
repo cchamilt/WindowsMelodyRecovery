@@ -41,8 +41,10 @@ param(
     [switch]$Force
 )
 
-# Set execution policy for current process to allow unsigned scripts
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+# Set execution policy for current process to allow unsigned scripts (Windows only)
+if ($IsWindows) {
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+}
 
 # Import the unified test environment utilities
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
@@ -146,6 +148,8 @@ foreach ($dir in $safeDirs) {
         ($IsWindows -and $dir.Contains($env:TEMP) -and $dir.Contains("WindowsMelodyRecovery-Tests")) -or
         (-not $IsWindows -and $dir.StartsWith('/tmp/') -and $dir.Contains("WindowsMelodyRecovery-Tests"))
     )
+    # Docker-specific safety check for workspace paths
+    $isDockerWorkspacePath = $script:IsDockerEnvironment -and $dir.StartsWith('/workspace/') -and $dir.Contains("Temp")
     
     # CRITICAL: Check for dangerous C:\ root paths
     if ($dir.StartsWith("C:\") -and -not ($dir.StartsWith($projectRoot))) {
@@ -156,10 +160,11 @@ foreach ($dir in $safeDirs) {
         return
     }
     
-    if (-not ($isProjectPath -or $isUserTempPath)) {
+    if (-not ($isProjectPath -or $isUserTempPath -or $isDockerWorkspacePath)) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' is not within safe test paths!"
         Write-Error "  • Project root: '$projectRoot'"
         Write-Error "  • User temp (CI/CD only): $($script:IsCICDEnvironment)"
+        Write-Error "  • Docker workspace: $($script:IsDockerEnvironment)"
         return
     }
     

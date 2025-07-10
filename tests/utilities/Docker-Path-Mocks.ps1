@@ -487,7 +487,13 @@ function New-Item {
             }
         }
         
-        # For file system paths, simulate file/directory creation
+        # For file system paths in safe test directories, actually create them
+        if (($Path.StartsWith("/workspace/Temp") -or $Path.StartsWith("/workspace/temp")) -and $ItemType -eq "Directory") {
+            Write-Verbose "Actually creating directory in Docker: '$Path'"
+            return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
+        }
+        
+        # For other file system paths, simulate file/directory creation
         return @{
             FullName = $Path
             Name = Split-Path $Path -Leaf
@@ -503,32 +509,40 @@ function New-Item {
 function Remove-Item {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [Parameter()]
         [string]$Path,
         
         [Parameter()]
         [switch]$Recurse,
         
         [Parameter()]
-        [switch]$Force,
-        
-        [Parameter()]
-        [string]$ErrorAction = "Continue"
+        [switch]$Force
     )
+    
+    # Handle null or empty paths gracefully
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        Write-Verbose "Mock Remove-Item: Ignoring null/empty path"
+        return $null
+    }
     
     # Check if we're in a Docker environment
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
                           (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
     
     if ($isDockerEnvironment) {
-        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force)"
+        # For files in safe test directories, actually remove them
+        if ($Path.StartsWith("/workspace/Temp/") -or $Path.StartsWith("/workspace/temp/")) {
+            Write-Verbose "Actually removing test file in Docker: '$Path'"
+            return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction $ErrorActionPreference
+        }
         
-        # Simulate successful removal
+        # For other paths, simulate removal
+        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force)"
         return $null
     } else {
         # In local environments, use the real Remove-Item for cleanup
         Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force)"
-        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction $ErrorAction
+        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction $ErrorActionPreference
     }
 }
 
@@ -536,7 +550,10 @@ function Test-Path {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$Path
+        [string]$Path,
+        
+        [Parameter()]
+        [string]$PathType
     )
     
     # Handle Docker environment detection without verbose spam
@@ -552,7 +569,11 @@ function Test-Path {
     }
     
     # For file system paths, use original Test-Path with Microsoft.PowerShell.Management module
-    return Microsoft.PowerShell.Management\Test-Path -Path $Path -ErrorAction SilentlyContinue
+    if ($PathType) {
+        return Microsoft.PowerShell.Management\Test-Path -Path $Path -PathType $PathType -ErrorAction SilentlyContinue
+    } else {
+        return Microsoft.PowerShell.Management\Test-Path -Path $Path -ErrorAction SilentlyContinue
+    }
 }
 
 # Mock Windows-specific path utilities

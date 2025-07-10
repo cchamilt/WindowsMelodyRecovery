@@ -356,9 +356,11 @@ function Remove-TestEnvironment {
                 continue
             }
         } elseif ($script:IsDockerEnvironment) {
-            # Docker: Allow project temp paths
-            if (-not ($dirPath.Contains("WindowsMelodyRecovery") -and $dirPath.Contains("Temp"))) {
-                Write-Warning "Skipping non-project-temp path in Docker: $dirPath"
+            # Docker: Allow project temp paths or workspace temp paths
+            $isProjectTemp = $dirPath.Contains("WindowsMelodyRecovery") -and $dirPath.Contains("Temp")
+            $isWorkspaceTemp = $dirPath.StartsWith("/workspace/") -and $dirPath.Contains("Temp")
+            if (-not ($isProjectTemp -or $isWorkspaceTemp)) {
+                Write-Warning "Skipping non-project/workspace-temp path in Docker: $dirPath"
                 continue
             }
         } else {
@@ -369,7 +371,7 @@ function Remove-TestEnvironment {
             }
         }
         
-        if (Test-Path $dirPath) {
+        if ($dirPath -and (Test-Path $dirPath)) {
             try {
                 Remove-Item -Path $dirPath -Recurse -Force -ErrorAction Stop
                 Write-Host "  ✓ Removed $dirName directory: $dirPath" -ForegroundColor Green
@@ -493,10 +495,12 @@ function Test-SafeTestPath {
             return $isValid
         }
     } elseif ($script:IsDockerEnvironment) {
-        # Docker environment: must be in project temp directory
-        $isValid = $Path.Contains("WindowsMelodyRecovery") -and $Path.Contains("Temp")
+        # Docker environment: must be in project temp directory or workspace temp directory
+        $isProjectTemp = $Path.Contains("WindowsMelodyRecovery") -and $Path.Contains("Temp")
+        $isWorkspaceTemp = $Path.StartsWith("/workspace/") -and $Path.Contains("Temp")
+        $isValid = $isProjectTemp -or $isWorkspaceTemp
         if (-not $isValid) {
-            Write-Verbose "Test-SafeTestPath: Docker path not in project temp: '$Path'"
+            Write-Verbose "Test-SafeTestPath: Docker path not in project/workspace temp: '$Path'"
         }
         return $isValid
     } else {

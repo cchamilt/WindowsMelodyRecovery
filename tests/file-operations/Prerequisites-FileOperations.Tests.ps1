@@ -73,7 +73,9 @@ Write-Output "Current directory: `$(Get-Location)"
                 ($result | Where-Object { $_ -match "Current directory:" }) | Should -Not -BeNullOrEmpty
                 
             } finally {
-                Remove-Item $scriptPath -Force -ErrorAction SilentlyContinue
+                if ($scriptPath) {
+                    Remove-Item $scriptPath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
         
@@ -99,7 +101,9 @@ Write-Output "ASCII safe output"
                 $rawContent | Should -Match "UTF-8 test content"
                 
             } finally {
-                Remove-Item $utf8Script -Force -ErrorAction SilentlyContinue
+                if ($utf8Script) {
+                    Remove-Item $utf8Script -Force -ErrorAction SilentlyContinue
+                }
             }
         }
         
@@ -134,7 +138,9 @@ try {
                 $result | Should -Match "PASS:"
                 
             } finally {
-                Remove-Item $validationScript -Force -ErrorAction SilentlyContinue
+                if ($validationScript) {
+                    Remove-Item $validationScript -Force -ErrorAction SilentlyContinue
+                }
             }
         }
     }
@@ -253,7 +259,9 @@ switch (`$Command) {
                 $helpResult | Should -Be "MockApp Help"
                 
             } finally {
-                Remove-Item $mockAppPath -Force -ErrorAction SilentlyContinue
+                if ($mockAppPath) {
+                    Remove-Item $mockAppPath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
         
@@ -292,7 +300,9 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $LASTEXITCODE | Should -Be 1
                 
             } finally {
-                Remove-Item $testAppPath -Force -ErrorAction SilentlyContinue
+                if ($testAppPath) {
+                    Remove-Item $testAppPath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
     }
@@ -331,7 +341,9 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $readConfig.prerequisites[1].type | Should -Be "registry"
                 
             } finally {
-                Remove-Item $configPath -Force -ErrorAction SilentlyContinue
+                if ($configPath) {
+                    Remove-Item $configPath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
         
@@ -366,7 +378,9 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $readConfig.prerequisites.Count | Should -Be 50
                 
             } finally {
-                Remove-Item $largeConfigPath -Force -ErrorAction SilentlyContinue
+                if ($largeConfigPath) {
+                    Remove-Item $largeConfigPath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
     }
@@ -396,7 +410,7 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 
             } finally {
                 # Clean up temporary directory
-                if (Test-Path $tempDir) {
+                if ($tempDir -and (Test-Path $tempDir)) {
                     Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
@@ -410,12 +424,25 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 "Test content" | Out-File $restrictedPath
                 Test-Path $restrictedPath | Should -Be $true
                 
-                # Set as read-only
-                Set-ItemProperty -Path $restrictedPath -Name IsReadOnly -Value $true
-                
-                # Verify read-only status
-                $fileInfo = Get-Item $restrictedPath
-                $fileInfo.IsReadOnly | Should -Be $true
+                # Set as read-only (handle different platforms)
+                if ($IsLinux -or $env:DOCKER_TEST -eq 'true') {
+                    # Linux/Docker: Use chmod to set read-only
+                    & chmod 444 $restrictedPath
+                    # Check if file is read-only by testing write access
+                    $beforeWrite = Get-Content $restrictedPath
+                    try {
+                        "New content" | Out-File $restrictedPath 2>$null
+                        $isReadOnly = (Get-Content $restrictedPath) -eq $beforeWrite
+                    } catch {
+                        $isReadOnly = $true
+                    }
+                    $isReadOnly | Should -Be $true
+                } else {
+                    # Windows: Use Set-ItemProperty
+                    Set-ItemProperty -Path $restrictedPath -Name IsReadOnly -Value $true
+                    $fileInfo = Get-Item $restrictedPath
+                    $fileInfo.IsReadOnly | Should -Be $true
+                }
                 
                 # Should still be able to read
                 $content = Get-Content $restrictedPath
@@ -424,7 +451,11 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
             } finally {
                 # Clean up (remove read-only first)
                 if (Test-Path $restrictedPath) {
-                    Set-ItemProperty -Path $restrictedPath -Name IsReadOnly -Value $false
+                    if ($IsLinux -or $env:DOCKER_TEST -eq 'true') {
+                        & chmod 644 $restrictedPath
+                    } else {
+                        Set-ItemProperty -Path $restrictedPath -Name IsReadOnly -Value $false
+                    }
                     Remove-Item $restrictedPath -Force -ErrorAction SilentlyContinue
                 }
             }
@@ -446,7 +477,9 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 { Get-Content $corruptedConfigPath -Raw | ConvertFrom-Json } | Should -Throw
                 
             } finally {
-                Remove-Item $corruptedConfigPath -Force -ErrorAction SilentlyContinue
+                if ($corruptedConfigPath) {
+                    Remove-Item $corruptedConfigPath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
         
@@ -466,8 +499,14 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
 AfterAll {
     # Final cleanup of test directories
     @($script:TestBackupDir, $script:TestRestoreDir) | ForEach-Object {
-        if (Test-Path $_) {
-            Get-ChildItem $_ -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+        if ($_ -and (Test-Path $_)) {
+            $items = Get-ChildItem $_ -Recurse -ErrorAction SilentlyContinue
+            if ($items) {
+                $itemsToRemove = $items | Where-Object { $_.FullName }
+                if ($itemsToRemove) {
+                    $itemsToRemove | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+                }
+            }
         }
     }
 } 
