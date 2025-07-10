@@ -595,7 +595,8 @@ Describe "Administrative Operations Mock Framework" {
 
 AfterAll {
     # Clean up any test resources
-    if (Test-Path $script:TestDataPath) {
+    if ($script:TestDataPath -and (Test-Path $script:TestDataPath)) {
         # Clean up test data if needed
+        Write-Verbose "Test data path exists: $script:TestDataPath"
     }
 } 

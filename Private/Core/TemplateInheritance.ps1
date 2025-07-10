@@ -111,9 +111,20 @@ function Get-WmrInheritanceConfiguration {
     
     if ($TemplateConfig.configuration) {
         # Merge template configuration with defaults
-        $config = $defaultConfig.Clone()
-        foreach ($key in $TemplateConfig.configuration.PSObject.Properties.Name) {
-            $config[$key] = $TemplateConfig.configuration.$key
+        $config = @{}
+        # First copy defaults
+        foreach ($key in $defaultConfig.Keys) {
+            $config[$key] = $defaultConfig[$key]
+        }
+        # Then override with template values
+        if ($TemplateConfig.configuration -is [hashtable]) {
+            foreach ($key in $TemplateConfig.configuration.Keys) {
+                $config[$key] = $TemplateConfig.configuration[$key]
+            }
+        } else {
+            foreach ($key in $TemplateConfig.configuration.PSObject.Properties.Name) {
+                $config[$key] = $TemplateConfig.configuration.$key
+            }
         }
         return $config
     }
@@ -301,18 +312,49 @@ function Test-WmrStringComparison {
         [bool]$CaseSensitive = $false
     )
     
-    if (-not $CaseSensitive) {
-        $Value = $Value.ToLower()
-        $Expected = $Expected.ToLower()
-    }
-    
     switch ($Operator) {
-        "equals" { return $Value -eq $Expected }
-        "not_equals" { return $Value -ne $Expected }
-        "contains" { return $Value -like "*$Expected*" }
-        "matches" { return $Value -match $Expected }
-        "greater_than" { return $Value -gt $Expected }
-        "less_than" { return $Value -lt $Expected }
+        "equals" { 
+            if ($CaseSensitive) {
+                return $Value -ceq $Expected
+            } else {
+                return $Value -eq $Expected
+            }
+        }
+        "not_equals" { 
+            if ($CaseSensitive) {
+                return $Value -cne $Expected
+            } else {
+                return $Value -ne $Expected
+            }
+        }
+        "contains" { 
+            if ($CaseSensitive) {
+                return $Value -clike "*$Expected*"
+            } else {
+                return $Value -like "*$Expected*"
+            }
+        }
+        "matches" { 
+            if ($CaseSensitive) {
+                return $Value -cmatch $Expected
+            } else {
+                return $Value -match $Expected
+            }
+        }
+        "greater_than" { 
+            if ($CaseSensitive) {
+                return $Value -cgt $Expected
+            } else {
+                return $Value -gt $Expected
+            }
+        }
+        "less_than" { 
+            if ($CaseSensitive) {
+                return $Value -clt $Expected
+            } else {
+                return $Value -lt $Expected
+            }
+        }
         default { 
             Write-Warning "Unknown comparison operator: $Operator"
             return $false 
@@ -1110,24 +1152,24 @@ function Test-WmrRuleItemMatch {
 }
 
 # Export functions for module use
-Export-ModuleMember -Function @(
-    'Resolve-WmrTemplateInheritance',
-    'Get-WmrMachineContext',
-    'Get-WmrInheritanceConfiguration',
-    'Test-WmrResolvedConfiguration',
-    'Get-WmrApplicableMachineConfigurations',
-    'Test-WmrMachineSelectors',
-    'Test-WmrStringComparison',
-    'Merge-WmrSharedConfiguration',
-    'Merge-WmrMachineSpecificConfiguration',
-    'Apply-WmrInheritanceRules',
-    'Test-WmrInheritanceRuleCondition',
-    'Apply-WmrConditionalSections',
-    'Test-WmrConditionalSectionConditions',
-    'Test-WmrStrictConfigurationValidation',
-    'Test-WmrModerateConfigurationValidation',
-    'Test-WmrRelaxedConfigurationValidation',
-    'Merge-WmrRegistryValues',
-    'Test-WmrConfigurationItemValidity',
-    'Test-WmrRuleItemMatch'
-) 
+# Export-ModuleMember -Function @(
+#     'Resolve-WmrTemplateInheritance',
+#     'Get-WmrMachineContext',
+#     'Get-WmrInheritanceConfiguration',
+#     'Test-WmrResolvedConfiguration',
+#     'Get-WmrApplicableMachineConfigurations',
+#     'Test-WmrMachineSelectors',
+#     'Test-WmrStringComparison',
+#     'Merge-WmrSharedConfiguration',
+#     'Merge-WmrMachineSpecificConfiguration',
+#     'Apply-WmrInheritanceRules',
+#     'Test-WmrInheritanceRuleCondition',
+#     'Apply-WmrConditionalSections',
+#     'Test-WmrConditionalSectionConditions',
+#     'Test-WmrStrictConfigurationValidation',
+#     'Test-WmrModerateConfigurationValidation',
+#     'Test-WmrRelaxedConfigurationValidation',
+#     'Merge-WmrRegistryValues',
+#     'Test-WmrConfigurationItemValidity',
+#     'Test-WmrRuleItemMatch'
+# ) 

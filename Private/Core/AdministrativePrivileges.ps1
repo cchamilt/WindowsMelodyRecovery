@@ -327,9 +327,15 @@ function Test-WmrAdminRequiredOperation {
                 "C:\Windows\",
                 "C:\Program Files\",
                 "C:\Program Files (x86)\",
-                "$env:SystemRoot\System32\",
-                "$env:SystemRoot\SysWOW64\"
+                "C:\Windows\System32\",
+                "C:\Windows\SysWOW64\"
             )
+            
+            # Also check environment variable paths
+            if ($env:SystemRoot) {
+                $systemPaths += "$env:SystemRoot\System32\"
+                $systemPaths += "$env:SystemRoot\SysWOW64\"
+            }
             
             if ($Action -in @("Write", "Create", "Delete", "Modify")) {
                 foreach ($systemPath in $systemPaths) {
