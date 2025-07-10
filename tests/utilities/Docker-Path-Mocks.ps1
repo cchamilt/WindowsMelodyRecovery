@@ -351,13 +351,200 @@ function Test-ElevationCapability {
     return $false
 }
 
+# Enhanced registry mocking for file-operations tests
+function New-ItemProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [Parameter(Mandatory)]
+        [string]$Name,
+        
+        [Parameter(Mandatory)]
+        [object]$Value,
+        
+        [Parameter()]
+        [ValidateSet("String", "ExpandString", "Binary", "DWord", "MultiString", "QWord")]
+        [string]$PropertyType = "String",
+        
+        [Parameter()]
+        [switch]$Force
+    )
+    
+    Write-Verbose "Mock: Creating registry property '$Name' at '$Path' with value '$Value' (Type: $PropertyType)"
+    
+    # Return a mock property object
+    return @{
+        PSPath = $Path
+        PSParentPath = Split-Path $Path -Parent
+        PSChildName = $Name
+        PSDrive = ($Path -split ':')[0]
+        PSProvider = "Microsoft.PowerShell.Core\Registry"
+        $Name = $Value
+    }
+}
+
+function Set-ItemProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [Parameter(Mandatory)]
+        [string]$Name,
+        
+        [Parameter(Mandatory)]
+        [object]$Value,
+        
+        [Parameter()]
+        [ValidateSet("String", "ExpandString", "Binary", "DWord", "MultiString", "QWord")]
+        [string]$PropertyType = "String"
+    )
+    
+    Write-Verbose "Mock: Setting registry property '$Name' at '$Path' to '$Value' (Type: $PropertyType)"
+    
+    # Simulate successful registry write
+    return $null
+}
+
+function Get-ItemProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [Parameter()]
+        [string]$Name = "*"
+    )
+    
+    Write-Verbose "Mock: Getting registry property '$Name' from '$Path'"
+    
+    # Return mock registry values based on the path and name
+    $mockValues = @{
+        PSPath = $Path
+        PSParentPath = Split-Path $Path -Parent
+        PSChildName = Split-Path $Path -Leaf
+        PSDrive = ($Path -split ':')[0]
+        PSProvider = "Microsoft.PowerShell.Core\Registry"
+    }
+    
+    # Add specific test values based on common test patterns
+    if ($Name -eq "TestValue" -or $Name -eq "*") {
+        $mockValues.TestValue = "TestData"
+    }
+    if ($Name -eq "StringValue" -or $Name -eq "*") {
+        $mockValues.StringValue = "Test String"
+    }
+    if ($Name -eq "DWordValue" -or $Name -eq "*") {
+        $mockValues.DWordValue = 12345
+    }
+    if ($Name -eq "BinaryValue" -or $Name -eq "*") {
+        $mockValues.BinaryValue = @(1, 2, 3)
+    }
+    if ($Name -eq "Level1Value" -or $Name -eq "*") {
+        $mockValues.Level1Value = "L1"
+    }
+    if ($Name -eq "Level2Value" -or $Name -eq "*") {
+        $mockValues.Level2Value = "L2"
+    }
+    if ($Name -eq "Level3Value" -or $Name -eq "*") {
+        $mockValues.Level3Value = "L3"
+    }
+    
+    return [PSCustomObject]$mockValues
+}
+
+function New-Item {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [Parameter()]
+        [string]$ItemType,
+        
+        [Parameter()]
+        [switch]$Force
+    )
+    
+    Write-Verbose "Mock: Creating new item at '$Path' (Type: $ItemType)"
+    
+    # For registry paths, simulate registry key creation
+    if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
+        return @{
+            PSPath = $Path
+            PSParentPath = Split-Path $Path -Parent
+            PSChildName = Split-Path $Path -Leaf
+            PSDrive = ($Path -split ':')[0]
+            PSProvider = "Microsoft.PowerShell.Core\Registry"
+            Name = Split-Path $Path -Leaf
+        }
+    }
+    
+    # For file system paths, simulate file/directory creation
+    return @{
+        FullName = $Path
+        Name = Split-Path $Path -Leaf
+        Exists = $true
+    }
+}
+
+function Remove-Item {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [Parameter()]
+        [switch]$Recurse,
+        
+        [Parameter()]
+        [switch]$Force,
+        
+        [Parameter()]
+        [string]$ErrorAction = "Continue"
+    )
+    
+    Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force)"
+    
+    # Simulate successful removal
+    return $null
+}
+
+function Test-Path {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+    
+    Write-Verbose "Mock: Testing path '$Path'"
+    
+    # Mock registry paths as existing for test scenarios
+    if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
+        # Simulate registry key existence based on test patterns
+        return $true
+    }
+    
+    # For file system paths, use original Test-Path
+    return Test-Path -Path $Path -ErrorAction SilentlyContinue
+}
+
 # Mock Windows module path functionality
 function Get-WmrModulePath {
     [CmdletBinding()]
     param()
     
-    # Return current workspace path in Docker
-    return "/workspace"
+    # Check if we're actually in Docker or just running mocks locally
+    if ($env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv')) {
+        # Return current workspace path in Docker
+        return "/workspace"
+    } else {
+        # Return Windows project root path to prevent C:\workspace pollution
+        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        return Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
+    }
 }
 
 # Mock Windows-specific path utilities

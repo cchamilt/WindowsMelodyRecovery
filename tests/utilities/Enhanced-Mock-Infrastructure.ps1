@@ -223,7 +223,8 @@ function Initialize-DockerEnvironment {
         )
         
         foreach ($volumePath in $dockerVolumePaths) {
-            if (Test-Path $volumePath) {
+            # Only test Unix-style paths if we're actually on Unix or in Docker
+            if (($IsLinux -or $IsMacOS) -and (Test-Path $volumePath)) {
                 $isDocker = $true
                 $dockerIndicators += "Docker volume mount: $volumePath"
                 break
@@ -237,7 +238,7 @@ function Initialize-DockerEnvironment {
     $script:EnhancedMockConfig.DockerEnvironment.DockerIndicators = $dockerIndicators
     
     if ($isDocker) {
-        # Set default dynamic root if not specified
+        # Set default dynamic root if not specified - only for actual Docker environments
         if (-not $dynamicPaths['DYNAMIC_MOCK_ROOT']) {
             $dynamicPaths['DYNAMIC_MOCK_ROOT'] = '/dynamic-mock-data'
         }
@@ -252,6 +253,8 @@ function Initialize-DockerEnvironment {
     } else {
         Write-Host "🖥️  Local environment detected" -ForegroundColor Green
         Write-Host "   Enhanced mocks DISABLED for safety" -ForegroundColor Yellow
+        # Clear any Unix-style paths that might cause Windows pollution
+        $dynamicPaths.Clear()
     }
 }
 

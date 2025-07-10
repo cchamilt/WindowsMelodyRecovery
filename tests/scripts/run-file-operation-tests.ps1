@@ -7,7 +7,12 @@
 .DESCRIPTION
     Runs tests that perform actual file operations in safe test directories.
     These tests operate ONLY in test-restore, test-backup, and Temp directories.
-    Uses the same environment setup as the successful Docker tests.
+    Uses unified environment setup that works for both Docker and local Windows.
+    
+    CI/CD Detection:
+    - Local Windows: Safe operations only (no destructive registry/system changes)
+    - CI/CD Windows: All operations including destructive tests
+    - Docker: Cross-platform safe operations with mocking
 
 .PARAMETER TestName
     Specific test file to run (without .Tests.ps1 extension). If not specified, runs all file operation tests.
@@ -18,10 +23,13 @@
 .PARAMETER SkipCleanup
     Skip cleanup after tests (useful for debugging).
 
+.PARAMETER Force
+    Force run destructive tests in local Windows environment (use with caution).
+
 .EXAMPLE
     .\run-file-operation-tests.ps1
     .\run-file-operation-tests.ps1 -TestName "FileState-FileOperations"
-    .\run-file-operation-tests.ps1 -SkipCleanup
+    .\run-file-operation-tests.ps1 -Force  # Run destructive tests locally (dangerous!)
 #>
 
 [CmdletBinding()]
@@ -29,28 +37,71 @@ param(
     [string]$TestName,
     [ValidateSet('None', 'Normal', 'Detailed', 'Diagnostic')]
     [string]$OutputFormat = 'Detailed',
-    [switch]$SkipCleanup
+    [switch]$SkipCleanup,
+    [switch]$Force
 )
 
 # Set execution policy for current process to allow unsigned scripts
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-# Import the working test environment utilities (same as Docker tests)
+# Import the unified test environment utilities
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Host "📁 Running File Operation Tests for Windows Melody Recovery" -ForegroundColor Cyan
 
+# Environment Detection and Safety Assessment
+$script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
+$script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+$script:IsWindowsLocal = $IsWindows -and -not $script:IsCICDEnvironment -and -not $script:IsDockerEnvironment
+
 # Show environment information
-if ($IsWindows) {
-    Write-Host "Environment: Windows (all tests will run)" -ForegroundColor Green
+Write-Host "🔍 Environment Detection:" -ForegroundColor Yellow
+Write-Host "  • Platform: $($IsWindows ? 'Windows' : 'Non-Windows')" -ForegroundColor Gray
+Write-Host "  • Docker: $($script:IsDockerEnvironment ? 'Yes' : 'No')" -ForegroundColor Gray
+Write-Host "  • CI/CD: $($script:IsCICDEnvironment ? 'Yes' : 'No')" -ForegroundColor Gray
+Write-Host "  • Local Windows: $($script:IsWindowsLocal ? 'Yes' : 'No')" -ForegroundColor Gray
+
+# Determine test execution mode
+if ($script:IsDockerEnvironment) {
+    Write-Host "🐳 Mode: Docker Cross-Platform (safe operations with mocking)" -ForegroundColor Cyan
+    $script:AllowDestructiveTests = $false
+} elseif ($script:IsCICDEnvironment -and $IsWindows) {
+    Write-Host "🏭 Mode: CI/CD Windows (all operations including destructive)" -ForegroundColor Green
+    $script:AllowDestructiveTests = $true
+} elseif ($script:IsWindowsLocal) {
+    if ($Force) {
+        Write-Host "⚠️  Mode: Local Windows FORCED (destructive tests enabled - USE WITH CAUTION!)" -ForegroundColor Red
+        Write-Host "   This may modify your system registry and files!" -ForegroundColor Red
+        $script:AllowDestructiveTests = $true
+    } else {
+        Write-Host "🏠 Mode: Local Windows Safe (destructive tests will be skipped)" -ForegroundColor Yellow
+        $script:AllowDestructiveTests = $false
+    }
 } else {
-    Write-Host "Environment: Non-Windows (Windows-only tests will be skipped)" -ForegroundColor Yellow
+    Write-Host "🌐 Mode: Non-Windows (Windows-only tests will be skipped)" -ForegroundColor Yellow
+    $script:AllowDestructiveTests = $false
 }
+
+# Set environment variables for tests to use
+$env:WMR_ALLOW_DESTRUCTIVE_TESTS = $script:AllowDestructiveTests.ToString()
+$env:WMR_IS_CICD = $script:IsCICDEnvironment.ToString()
+$env:WMR_IS_DOCKER = $script:IsDockerEnvironment.ToString()
+
 Write-Host ""
 
-# Initialize test environment using the working system
+# Initialize test environment using the unified system
 Write-Host "🧹 Initializing test environment..." -ForegroundColor Yellow
-$testEnvironment = Initialize-TestEnvironment -Force
+$testEnvironment = Initialize-TestEnvironment
+
+# Ensure TestState directory exists for registry and other state tests
+if (-not $testEnvironment.TestState) {
+    $testEnvironment.TestState = Join-Path $testEnvironment.Temp "TestState"
+}
+if (-not (Test-Path $testEnvironment.TestState)) {
+    New-Item -Path $testEnvironment.TestState -ItemType Directory -Force | Out-Null
+    Write-Host "  ✓ Created TestState directory: $($testEnvironment.TestState)" -ForegroundColor Green
+}
+
 Write-Host "✅ Test environment ready" -ForegroundColor Green
 Write-Host ""
 
@@ -78,19 +129,37 @@ $testsToRun = if ($TestName) {
     $availableTests
 }
 
-# Safety check - ensure we're only operating in safe directories
-Write-Host "🔒 Safety Check - Verifying test directories..." -ForegroundColor Yellow
-$safeDirs = @($testEnvironment.TestRestore, $testEnvironment.TestBackup, $testEnvironment.Temp)
+# Enhanced Safety check - ensure we're only operating in safe directories
+Write-Host "🔒 Enhanced Safety Check - Verifying test directories..." -ForegroundColor Yellow
+$safeDirs = @($testEnvironment.TestRestore, $testEnvironment.TestBackup, $testEnvironment.Temp, $testEnvironment.TestState)
+$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+
+Write-Host "Debug: Checking directories:" -ForegroundColor Magenta
 foreach ($dir in $safeDirs) {
-    if (-not $dir.Contains("WindowsMelodyRecovery")) {
-        Write-Error "SAFETY VIOLATION: Directory '$dir' is not in the WindowsMelodyRecovery project!"
+    Write-Host "  • $dir" -ForegroundColor Gray
+}
+
+foreach ($dir in $safeDirs) {
+    # Updated safety check to allow C:\WMR-* paths
+    $isProjectPath = $dir.StartsWith($projectRoot)
+    $isWMRTestPath = $dir.StartsWith("C:\WMR-")
+    
+    if (-not ($isProjectPath -or $isWMRTestPath)) {
+        Write-Error "SAFETY VIOLATION: Directory '$dir' is not within the project root '$projectRoot' or WMR test paths!"
         return
     }
     if (-not (Test-Path $dir)) {
-        Write-Error "SAFETY VIOLATION: Directory '$dir' does not exist!"
+        Write-Error "SAFETY VIOLATION: Directory '$dir' does not exist after initialization!"
         return
     }
 }
+
+# Additional safety for local Windows without CI/CD
+if ($script:IsWindowsLocal -and -not $Force) {
+    Write-Host "🛡️  Local Windows Safety: Destructive tests will be automatically skipped" -ForegroundColor Yellow
+    Write-Host "   (Use -Force to override, but this may modify your system!)" -ForegroundColor Yellow
+}
+
 Write-Host "✅ All test directories are safe" -ForegroundColor Green
 Write-Host ""
 
@@ -113,7 +182,7 @@ foreach ($test in $testsToRun) {
     try {
         $startTime = Get-Date
         
-        # Configure Pester for better output (same as Docker tests)
+        # Configure Pester for better output (unified with unit tests)
         $pesterConfig = @{
             Run = @{
                 Path = $testFile
@@ -172,15 +241,18 @@ if (-not $SkipCleanup) {
     Write-Host "  • $($testEnvironment.TestRestore)" -ForegroundColor Gray
     Write-Host "  • $($testEnvironment.TestBackup)" -ForegroundColor Gray
     Write-Host "  • $($testEnvironment.Temp)" -ForegroundColor Gray
+    Write-Host "  • $($testEnvironment.TestState)" -ForegroundColor Gray
 }
 
-# Summary
+# Enhanced Summary
 Write-Host ""
 Write-Host "📊 File Operation Test Summary:" -ForegroundColor Cyan
 Write-Host "  • Total Passed: $totalPassed" -ForegroundColor Green
 Write-Host "  • Total Failed: $totalFailed" -ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
 Write-Host "  • Total Skipped: $totalSkipped" -ForegroundColor Yellow
 Write-Host "  • Total Time: $([math]::Round($totalTime, 2))s" -ForegroundColor Gray
+Write-Host "  • Environment: $($script:IsDockerEnvironment ? 'Docker' : $script:IsCICDEnvironment ? 'CI/CD' : 'Local')" -ForegroundColor Gray
+Write-Host "  • Destructive Tests: $($script:AllowDestructiveTests ? 'Enabled' : 'Disabled')" -ForegroundColor Gray
 
 if ($totalFailed -eq 0) {
     Write-Host ""

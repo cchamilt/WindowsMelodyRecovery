@@ -8,6 +8,15 @@
     prevent operations outside Docker environments and allow them inside Docker.
 #>
 
+# SAFETY CHECK: Prevent this script from running in local Windows environments
+# This script creates /test-dynamic-* paths which pollute C:\ on Windows
+if ($IsWindows -and -not ($env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv'))) {
+    Write-Host "🚫 This script is designed to run only in Docker environments" -ForegroundColor Red
+    Write-Host "   Running it locally would pollute the C:\ drive with /test-dynamic-* directories" -ForegroundColor Red
+    Write-Host "   Use: docker-compose -f docker-compose.test.yml up test-runner" -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "🔒 Testing Docker Safety Checks" -ForegroundColor Cyan
 Write-Host "===============================" -ForegroundColor Cyan
 
