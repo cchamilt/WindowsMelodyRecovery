@@ -186,3 +186,132 @@ if ($MyInvocation.MyCommand.Path) {  # Check if we're in a script file
         Export-ModuleMember -Function Start-TestWithTimeout, Get-TestTimeout
     } | Import-Module
 } 
+
+# Test Utilities for Windows Melody Recovery Testing
+# General utility functions used across all test environments
+
+function Get-WmrModulePath {
+    <#
+    .SYNOPSIS
+        Gets the appropriate module path for the current environment.
+    
+    .DESCRIPTION
+        Returns the correct module path based on the current environment:
+        - Docker: Returns workspace path
+        - Local: Returns actual module path
+        - CI/CD: Returns appropriate path based on platform
+    #>
+    [CmdletBinding()]
+    param()
+    
+    # Cache the result to avoid repeated environment detection
+    if (-not $script:CachedModulePath) {
+        # Check if we're in a Docker environment
+        $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                              (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+        
+        if ($isDockerEnvironment) {
+            # Return current workspace path in Docker
+            $script:CachedModulePath = "/workspace"
+        } else {
+            # Return Windows project root path
+            $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+            $script:CachedModulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
+        }
+    }
+    
+    return $script:CachedModulePath
+}
+
+function Get-WmrTestPath {
+    <#
+    .SYNOPSIS
+        Converts a Windows path to an appropriate test path for the current environment.
+    
+    .DESCRIPTION
+        Converts Windows paths to test-safe paths based on the current environment:
+        - Docker: Converts to Docker-compatible mock paths
+        - Local: Converts to project temp directory paths
+        - CI/CD: Converts to appropriate temp directory paths
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$WindowsPath
+    )
+    
+    # Check if we're in a Docker environment
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    
+    if ($isDockerEnvironment) {
+        # Use Docker path conversion (function available in Docker-Path-Mocks.ps1)
+        if (Get-Command Convert-WmrPathForDocker -ErrorAction SilentlyContinue) {
+            return Convert-WmrPathForDocker -Path $WindowsPath
+        } else {
+            Write-Warning "Convert-WmrPathForDocker not available in Docker environment"
+            return $WindowsPath
+        }
+    } else {
+        # For local/CI environments, use the ConvertTo-TestEnvironmentPath from PathUtilities
+        # This function should be available from the main module
+        if (Get-Command ConvertTo-TestEnvironmentPath -ErrorAction SilentlyContinue) {
+            return ConvertTo-TestEnvironmentPath -Path $WindowsPath
+        } else {
+            # Fallback: return the original path if the function doesn't exist
+            Write-Warning "ConvertTo-TestEnvironmentPath not available, using original path: $WindowsPath"
+            return $WindowsPath
+        }
+    }
+}
+
+function Test-WmrTestEnvironment {
+    <#
+    .SYNOPSIS
+        Checks if we're currently in a test environment.
+    
+    .DESCRIPTION
+        Determines if the current execution context is a test environment
+        based on various environment indicators.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    # Check for test environment indicators
+    return ($env:WMR_TEST_MODE -eq 'true') -or 
+           ($env:DOCKER_TEST -eq 'true') -or 
+           ($env:PESTER_TEST -eq 'true') -or
+           ((Test-Path variable:PSCommandPath -ErrorAction SilentlyContinue) -and 
+            ($PSCommandPath -like "*test*"))
+}
+
+function Get-WmrTestEnvironmentInfo {
+    <#
+    .SYNOPSIS
+        Gets information about the current test environment.
+    
+    .DESCRIPTION
+        Returns a hashtable with information about the current test environment
+        including platform, environment type, and available features.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    $isCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+    $isWindowsEnvironment = $IsWindows
+    
+    return @{
+        IsDocker = $isDockerEnvironment
+        IsWindows = $isWindowsEnvironment
+        IsCICD = $isCICDEnvironment
+        IsLocalDev = -not $isDockerEnvironment -and -not $isCICDEnvironment
+        Platform = if ($isWindowsEnvironment) { 'Windows' } else { 'Linux' }
+        EnvironmentType = if ($isDockerEnvironment) { 'Docker' } elseif ($isCICDEnvironment) { 'CI/CD' } else { 'Local' }
+        TestMode = Test-WmrTestEnvironment
+        ModulePath = Get-WmrModulePath
+    }
+}
+
+# Functions are available via dot-sourcing - no Export-ModuleMember needed 

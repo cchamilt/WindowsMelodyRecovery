@@ -27,13 +27,25 @@ BeforeAll {
             $path
         }
     } else {
-        "/workspace/WindowsMelodyRecovery.psm1"
+        # Fallback: determine module path based on current environment
+        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
     }
     $TestManifestPath = (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1").Path
     $TestInstallScriptPath = (Resolve-Path "$PSScriptRoot/../../Install-Module.ps1").Path
     
-    # Create temporary test directory in safe location
-    $TestTempDir = Join-Path "/workspace/Temp" "WindowsMelodyRecovery-FileOps"
+    # Create temporary test directory in environment-appropriate safe location
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    
+    if ($isDockerEnvironment) {
+        $TestTempDir = Join-Path "/workspace/Temp" "WindowsMelodyRecovery-FileOps"
+    } else {
+        # Use project Temp directory for local Windows environments
+        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $TestTempDir = Join-Path $moduleRoot "Temp" "WindowsMelodyRecovery-FileOps"
+    }
+    
     if (-not (Test-Path $TestTempDir)) {
         New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
     }

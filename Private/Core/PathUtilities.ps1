@@ -198,10 +198,12 @@ function ConvertTo-TestEnvironmentPath {
     
     # Fallback to safe defaults if environment variables not set
     if (-not $testRestorePath) {
-        if ($env:WMR_DOCKER_TEST -eq 'true') {
+        if ($env:WMR_DOCKER_TEST -eq 'true' -or $env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)) {
             $testRestorePath = "/workspace/Temp/test-restore"
         } else {
-            $testRestorePath = Join-Path $PWD "Temp\test-restore"
+            # Use project root Temp directory for local environments
+            $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+            $testRestorePath = Join-Path $moduleRoot "Temp\test-restore"
         }
     }
     

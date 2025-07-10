@@ -19,30 +19,30 @@ BeforeAll {
         . "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1"
     }
     
-    # Import the module using standardized pattern
-    $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-    try {
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Failed to import module from $ModulePath : $($_.Exception.Message)"
-    }
-}
-
-Describe "TemplateModule File Operations" -Tag "FileOperations", "Safe" {
+    # Import the main module to ensure Template functions are available
+    Import-Module "$PSScriptRoot/../../WindowsMelodyRecovery.psd1" -Force
     
-    BeforeAll {
-        # Set up test template path in Docker-safe location
-        $script:TempTemplatePath = "/workspace/Temp/test_template.yaml"
+    # Set up environment-aware test paths
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    
+    if ($isDockerEnvironment) {
         $script:TempTemplateDir = "/workspace/Temp"
-        
-        # Ensure Temp directory exists
-        if (-not (Test-Path $script:TempTemplateDir)) {
-            New-Item -Path $script:TempTemplateDir -ItemType Directory -Force | Out-Null
-        }
-        
-        # Create a basic test template file
-        $basicTemplateContent = @"
+    } else {
+        # Use project Temp directory for local Windows environments
+        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $script:TempTemplateDir = Join-Path $moduleRoot "Temp"
+    }
+    
+    $script:TempTemplatePath = Join-Path $script:TempTemplateDir "test_template.yaml"
+    
+    # Ensure temp directory exists
+    if (-not (Test-Path $script:TempTemplateDir)) {
+        New-Item -Path $script:TempTemplateDir -ItemType Directory -Force | Out-Null
+    }
+    
+    # Create a basic test template file
+    $basicTemplateContent = @"
 metadata:
   name: Test Template
   description: Test template for file operations
@@ -54,9 +54,11 @@ prerequisites:
     expected_output: "test"
     on_missing: warn
 "@
-        $basicTemplateContent | Out-File -FilePath $script:TempTemplatePath -Encoding UTF8 -Force
-    }
+    $basicTemplateContent | Out-File -FilePath $script:TempTemplatePath -Encoding UTF8 -Force
+}
 
+Describe "TemplateModule File Operations" -Tag "FileOperations", "Safe" {
+    
     AfterAll {
         # Clean up the dummy template file
         Remove-Item -Path $script:TempTemplatePath -Force -ErrorAction SilentlyContinue
@@ -79,7 +81,7 @@ prerequisites:
         }
 
         It "should throw an error if the YAML content is invalid" {
-            $invalidYamlPath = "/workspace/Temp/invalid.yaml"
+            $invalidYamlPath = Join-Path $script:TempTemplateDir "invalid.yaml"
             # Create truly invalid YAML that will cause ConvertFrom-Yaml to fail
             @"
 metadata:
@@ -98,7 +100,7 @@ metadata:
         }
 
         It "should handle UTF-8 encoding correctly in template files" {
-            $utf8TemplatePath = "/workspace/Temp/utf8_template.yaml"
+            $utf8TemplatePath = Join-Path $script:TempTemplateDir "utf8_template.yaml"
             $utf8Content = @"
 metadata:
   name: "UTF-8 测试模板"
@@ -122,8 +124,8 @@ prerequisites: []
 
         It "should handle relative paths correctly" {
             # Create a nested template structure
-            $nestedDir = "/workspace/Temp/system"
-            $nestedTemplatePath = "/workspace/Temp/system/nested_template.yaml"
+            $nestedDir = Join-Path $script:TempTemplateDir "system"
+            $nestedTemplatePath = Join-Path $nestedDir "nested_template.yaml"
             
             if (-not (Test-Path $nestedDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $nestedDir -Force | Out-Null
@@ -157,7 +159,7 @@ prerequisites: []
             $validExtensions = @(".yaml", ".yml")
             
             foreach ($ext in $validExtensions) {
-                $testPath = "/workspace/Temp/test_extension$ext"
+                $testPath = Join-Path $script:TempTemplateDir "test_extension$ext"
                 # Copy content from the main template file
                 Get-Content $script:TempTemplatePath | Set-Content -Path $testPath -Encoding Utf8
 
@@ -173,7 +175,7 @@ prerequisites: []
     Context "Template Schema Validation with File Operations" {
 
         It "should pass validation for a complete template file" {
-            $completeTemplatePath = "/workspace/Temp/complete_template.yaml"
+            $completeTemplatePath = Join-Path $script:TempTemplateDir "complete_template.yaml"
             $completeContent = @"
 metadata:
   name: Complete Template
@@ -216,7 +218,7 @@ applications:
         }
 
         It "should fail validation for template missing required metadata" {
-            $incompleteTemplatePath = "/workspace/Temp/incomplete_template.yaml"
+            $incompleteTemplatePath = Join-Path $script:TempTemplateDir "incomplete_template.yaml"
             $incompleteContent = @"
 metadata:
   description: Missing name
@@ -237,8 +239,8 @@ prerequisites: []
     Context "Template File Backup and Versioning" {
 
         It "should handle template file backup operations" {
-            $backupDir = "/workspace/Temp/template_backups"
-            $backupTemplatePath = "/workspace/Temp/template_backups/test_template_backup.yaml"
+            $backupDir = Join-Path $script:TempTemplateDir "template_backups"
+            $backupTemplatePath = Join-Path $backupDir "test_template_backup.yaml"
             
             if (-not (Test-Path $backupDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
@@ -257,8 +259,8 @@ prerequisites: []
         }
 
         It "should handle template versioning correctly" {
-            $versionDir = "/workspace/Temp/versioned_templates"
-            $versionedTemplatePath = "/workspace/Temp/versioned_templates/template_v1.0.yaml"
+            $versionDir = Join-Path $script:TempTemplateDir "versioned_templates"
+            $versionedTemplatePath = Join-Path $versionDir "template_v1.0.yaml"
             
             if (-not (Test-Path $versionDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $versionDir -Force | Out-Null
@@ -287,7 +289,7 @@ prerequisites: []
     Context "Template File Error Handling" {
 
         It "should handle file permission errors gracefully" {
-            $readOnlyPath = "/workspace/Temp/readonly_template.yaml"
+            $readOnlyPath = Join-Path $script:TempTemplateDir "readonly_template.yaml"
             
             # Create template file first
             Get-Content $script:TempTemplatePath | Set-Content -Path $readOnlyPath -Encoding Utf8
@@ -301,7 +303,7 @@ prerequisites: []
         }
 
         It "should handle corrupted template files gracefully" {
-            $corruptedPath = "/workspace/Temp/corrupted_template.yaml"
+            $corruptedPath = Join-Path $script:TempTemplateDir "corrupted_template.yaml"
             
             # Create a corrupted YAML file
             "corrupted: [unclosed array" | Set-Content -Path $corruptedPath -Encoding Utf8
@@ -314,7 +316,7 @@ prerequisites: []
         }
 
         It "should handle very large template files" {
-            $largeTemplatePath = "/workspace/Temp/large_template.yaml"
+            $largeTemplatePath = Join-Path $script:TempTemplateDir "large_template.yaml"
             
             # Create a large template file
             $largeContent = @"

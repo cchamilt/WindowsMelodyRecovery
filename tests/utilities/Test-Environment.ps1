@@ -20,10 +20,23 @@
     with a unified environment setup that works everywhere.
 #>
 
-# Environment Detection
-$script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
-$script:IsWindowsEnvironment = $IsWindows
-$script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+# Environment Detection - Cache results to prevent repeated calls
+if (-not $script:EnvironmentDetectionCached) {
+    Write-Verbose "🔍 Detecting test environment (one-time detection)..."
+    
+    # Cache environment detection results
+    $script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
+    $script:IsWindowsEnvironment = $IsWindows
+    $script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+    
+    # Mark as cached
+    $script:EnvironmentDetectionCached = $true
+    
+    Write-Verbose "Environment Detection Results:"
+    Write-Verbose "  • Docker: $script:IsDockerEnvironment"
+    Write-Verbose "  • Windows: $script:IsWindowsEnvironment"
+    Write-Verbose "  • CI/CD: $script:IsCICDEnvironment"
+}
 
 # Robust module root detection
 function Find-ModuleRoot {
@@ -117,54 +130,55 @@ function Find-ModuleRoot {
 $script:ModuleRoot = Find-ModuleRoot
 Write-Verbose "Module root detected: $script:ModuleRoot"
 
-# Define test directories based on environment
+# Set up test directories based on environment
 if ($script:IsCICDEnvironment) {
-    # CI/CD environments: Use user temp directory for better cleanup
-    $userTempPath = if ($script:IsWindowsEnvironment) {
-        Join-Path $env:TEMP "WindowsMelodyRecovery-Tests"
-    } else {
-        Join-Path "/tmp" "WindowsMelodyRecovery-Tests"
+    # CI/CD: Use user temp directory for better cleanup
+    $tempBase = if ($IsWindows) { $env:TEMP } else { '/tmp' }
+    $script:TestEnvironment = @{
+        TestRestore = Join-Path $tempBase "WindowsMelodyRecovery-Tests" "test-restore"
+        TestBackup = Join-Path $tempBase "WindowsMelodyRecovery-Tests" "test-backup"
+        Temp = Join-Path $tempBase "WindowsMelodyRecovery-Tests" "temp"
+        TestState = Join-Path $tempBase "WindowsMelodyRecovery-Tests" "test-state"
     }
-    
-    $script:TestDirectories = @{
-        TestRestore = Join-Path $userTempPath "test-restore"
-        TestBackup = Join-Path $userTempPath "test-backup"
-        Temp = Join-Path $userTempPath "temp"
-        MockData = Join-Path $script:ModuleRoot "tests/mock-data"
-    }
-    
-    Write-Verbose "🏗️ CI/CD environment detected, using user temp directory: $userTempPath"
-} elseif ($script:IsDockerEnvironment) {
-    # Docker environments: Use project root Temp directory for consistency
-    $projectTempPath = Join-Path $script:ModuleRoot "Temp"
-    
-    $script:TestDirectories = @{
-        TestRestore = Join-Path $projectTempPath "test-restore"
-        TestBackup = Join-Path $projectTempPath "test-backup"
-        Temp = Join-Path $projectTempPath "temp"
-        MockData = Join-Path $script:ModuleRoot "tests/mock-data"
-    }
-    
-    Write-Verbose "🐳 Docker environment detected, using project temp directory: $projectTempPath"
+    Write-Verbose "🚀 CI/CD environment detected, using temp directory: $tempBase"
 } else {
-    # Local development: Use project root Temp directory for isolation
-    $projectTempPath = Join-Path $script:ModuleRoot "Temp"
+    # Docker & Local Dev: Use project root Temp directory
+    $tempBase = Join-Path $script:ModuleRoot "Temp"
     
-    $script:TestDirectories = @{
-        TestRestore = Join-Path $projectTempPath "test-restore"
-        TestBackup = Join-Path $projectTempPath "test-backup"
-        Temp = Join-Path $projectTempPath "temp"
-        MockData = Join-Path $script:ModuleRoot "tests\mock-data"
+    # Ensure the root Temp directory exists
+    if (-not (Test-Path $tempBase)) {
+        Write-Verbose "Creating root Temp directory: $tempBase"
+        New-Item -Path $tempBase -ItemType Directory -Force | Out-Null
     }
     
-    Write-Verbose "🪟 Local development environment detected, using project temp directory: $projectTempPath"
+    $script:TestEnvironment = @{
+        TestRestore = Join-Path $tempBase "test-restore"
+        TestBackup = Join-Path $tempBase "test-backup"
+        Temp = Join-Path $tempBase "temp"
+        TestState = Join-Path $tempBase "temp" "TestState"
+    }
+    
+    if ($script:IsDockerEnvironment) {
+        Write-Verbose "🐳 Docker environment detected, using project temp directory: $tempBase"
+    } else {
+        Write-Verbose "🪟 Local development environment detected, using project temp directory: $tempBase"
+    }
+}
+
+# Load general test utilities for all environments
+$testUtilitiesPath = Join-Path $PSScriptRoot "Test-Utilities.ps1"
+if (Test-Path $testUtilitiesPath) {
+    . $testUtilitiesPath
+    Write-Verbose "Loaded general test utilities from: $testUtilitiesPath"
+} else {
+    Write-Warning "Test utilities not found at: $testUtilitiesPath"
 }
 
 # Load environment-specific mocks and utilities
 if ($script:IsDockerEnvironment) {
     Write-Verbose "🐳 Loading Docker-specific mocks"
     
-    # Load Docker-specific mocks
+    # Load Docker-specific mocks ONLY in Docker environments
     $dockerMockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
     if (Test-Path $dockerMockPath) {
         . $dockerMockPath
@@ -175,9 +189,9 @@ if ($script:IsDockerEnvironment) {
     
     # Set up Docker-specific environment variables
     $env:WMR_DOCKER_TEST = 'true'
-    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? $script:TestDirectories.TestBackup
-    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? (Join-Path $script:TestDirectories.Temp "logs")
-    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? $script:TestDirectories.TestRestore
+    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? $script:TestEnvironment.TestBackup
+    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? (Join-Path $script:TestEnvironment.Temp "logs")
+    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? $script:TestEnvironment.TestRestore
     
     # Mock Windows-specific environment variables for cross-platform compatibility
     $env:USERPROFILE = $env:USERPROFILE ?? '/mock-c/Users/TestUser'
@@ -191,23 +205,13 @@ if ($script:IsDockerEnvironment) {
     $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
     
 } else {
-    Write-Verbose "🪟 Loading Windows-compatible mocks"
-    
-    # Load Windows-compatible versions of Docker mocks for consistency
-    # This ensures unit tests work the same way locally as in Docker
-    $dockerMockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
-    if (Test-Path $dockerMockPath) {
-        . $dockerMockPath
-        Write-Verbose "Loaded Docker path mocks for Windows compatibility"
-    } else {
-        Write-Warning "Docker path mocks not found at: $dockerMockPath"
-    }
+    Write-Verbose "🪟 Loading Windows native environment (no mocks)"
     
     # Set up Windows-specific environment variables
     $env:WMR_DOCKER_TEST = 'false'
-    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? $script:TestDirectories.TestBackup
+    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? $script:TestEnvironment.TestBackup
     $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? (Join-Path $script:ModuleRoot "logs")
-    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? $script:TestDirectories.TestRestore
+    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? $script:TestEnvironment.TestRestore
 }
 
 # Environment information output
@@ -250,21 +254,26 @@ function Initialize-TestEnvironment {
         Remove-TestEnvironment
     }
     
-    # Create base test directories
-    foreach ($dirName in @('TestRestore', 'TestBackup', 'Temp')) {
-        $dirPath = $script:TestDirectories[$dirName]
+    # Create standard test directories if they don't exist
+    foreach ($dirName in @('TestRestore', 'TestBackup', 'Temp', 'TestState')) {
+        $dirPath = $script:TestEnvironment[$dirName]
+        
+        # Safety checks
+        if (-not (Test-SafeTestPath -Path $dirPath)) {
+            throw "SAFETY VIOLATION: TestState directory path '$dirPath' is not safe for testing!"
+        }
         
         if (-not (Test-Path $dirPath)) {
-            New-Item -ItemType Directory -Path $dirPath -Force | Out-Null
             Write-Host "  ✓ Created $dirName directory: $dirPath" -ForegroundColor Green
+            New-Item -Path $dirPath -ItemType Directory -Force | Out-Null
         } else {
-            Write-Host "  ✓ $dirName directory exists: $dirPath" -ForegroundColor Yellow
+            Write-Host "  ✓ $dirName directory exists: $dirPath" -ForegroundColor Gray
         }
     }
     
     # Create standard backup structure
-    $machineBackup = Join-Path $script:TestDirectories.TestRestore "TEST-MACHINE"
-    $sharedBackup = Join-Path $script:TestDirectories.TestRestore "shared"
+    $machineBackup = Join-Path $script:TestEnvironment.TestRestore "TEST-MACHINE"
+    $sharedBackup = Join-Path $script:TestEnvironment.TestRestore "shared"
     
     foreach ($dir in @($machineBackup, $sharedBackup)) {
         if (-not (Test-Path $dir)) {
@@ -291,12 +300,15 @@ function Initialize-TestEnvironment {
     
     return @{
         ModuleRoot = $script:ModuleRoot
-        TestRestore = $script:TestDirectories.TestRestore
-        TestBackup = $script:TestDirectories.TestBackup
-        Temp = $script:TestDirectories.Temp
-        MockData = $script:TestDirectories.MockData
+        TestRestore = $script:TestEnvironment.TestRestore
+        TestBackup = $script:TestEnvironment.TestBackup
+        Temp = $script:TestEnvironment.Temp
+        TestState = $script:TestEnvironment.TestState
+        MockData = Join-Path $script:ModuleRoot "tests/mock-data"
         MachineBackup = $machineBackup
         SharedBackup = $sharedBackup
+        MachineTestBackup = Join-Path $script:TestEnvironment.TestBackup "TEST-MACHINE"
+        SharedTestBackup = Join-Path $script:TestEnvironment.TestBackup "shared"
         IsDocker = $script:IsDockerEnvironment
         IsWindows = $script:IsWindowsEnvironment
         IsCICD = $script:IsCICDEnvironment
@@ -321,7 +333,7 @@ function Remove-TestEnvironment {
     Write-Host "Cleaning up test environment..." -ForegroundColor Cyan
     
     foreach ($dirName in @('TestRestore', 'TestBackup', 'Temp')) {
-        $dirPath = $script:TestDirectories[$dirName]
+        $dirPath = $script:TestEnvironment[$dirName]
         
         # Safety checks
         if (-not $dirPath -or $dirPath.Length -lt 5) {
@@ -389,14 +401,15 @@ function Get-TestPaths {
     
     return @{
         ModuleRoot = $script:ModuleRoot
-        TestRestore = $script:TestDirectories.TestRestore
-        TestBackup = $script:TestDirectories.TestBackup
-        Temp = $script:TestDirectories.Temp
-        MockData = $script:TestDirectories.MockData
-        MachineBackup = Join-Path $script:TestDirectories.TestRestore "TEST-MACHINE"
-        SharedBackup = Join-Path $script:TestDirectories.TestRestore "shared"
-        MachineTestBackup = Join-Path $script:TestDirectories.TestBackup "TEST-MACHINE"
-        SharedTestBackup = Join-Path $script:TestDirectories.TestBackup "shared"
+        TestRestore = $script:TestEnvironment.TestRestore
+        TestBackup = $script:TestEnvironment.TestBackup
+        Temp = $script:TestEnvironment.Temp
+        TestState = $script:TestEnvironment.TestState
+        MockData = Join-Path $script:ModuleRoot "tests/mock-data"
+        MachineBackup = Join-Path $script:TestEnvironment.TestRestore "TEST-MACHINE"
+        SharedBackup = Join-Path $script:TestEnvironment.TestRestore "shared"
+        MachineTestBackup = Join-Path $script:TestEnvironment.TestBackup "TEST-MACHINE"
+        SharedTestBackup = Join-Path $script:TestEnvironment.TestBackup "shared"
         IsDocker = $script:IsDockerEnvironment
         IsWindows = $script:IsWindowsEnvironment
         IsCICD = $script:IsCICDEnvironment
@@ -502,7 +515,7 @@ $script:TestEnvironmentInfo = @{
     IsWindows = $script:IsWindowsEnvironment
     IsCICD = $script:IsCICDEnvironment
     ModuleRoot = $script:ModuleRoot
-    TestDirectories = $script:TestDirectories
+    TestDirectories = $script:TestEnvironment
     TempStrategy = if ($script:IsCICDEnvironment) { "UserTemp" } else { "ProjectTemp" }
 }
 

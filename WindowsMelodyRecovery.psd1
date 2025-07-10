@@ -87,7 +87,11 @@
         # Core state management functions
         'Get-WmrRegistryState',
         'Get-WmrFileState',
-        'Invoke-WmrTemplate'
+        'Invoke-WmrTemplate',
+        
+        # Template functions
+        'Read-WmrTemplateConfig',
+        'Test-WmrTemplateSchema'
     )
     
     # Cmdlets to export

@@ -18,13 +18,30 @@ if ($TestSuite -eq "WindowsOnly" -and -not $IsWindows) {
 Import-Module Pester -Force -ErrorAction Stop
 Write-Host "✓ Pester imported" -ForegroundColor Green
 
+# Environment detection for path configuration
+$isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                      (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+
+# Set base paths based on environment
+if ($isDockerEnvironment) {
+    $basePath = "/workspace"
+    $testResultsPath = "/workspace/test-results"
+    $tempPath = "/workspace/Temp"
+} else {
+    # Use project root for local Windows environments
+    $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $basePath = $moduleRoot
+    $testResultsPath = Join-Path $moduleRoot "test-results"
+    $tempPath = Join-Path $moduleRoot "Temp"
+}
+
 # Create output directories
 $outputDirs = @(
-    "/workspace/test-results/junit",
-    "/workspace/test-results/coverage", 
-    "/workspace/test-results/reports",
-    "/workspace/test-results/logs",
-    "/workspace/Temp"
+    (Join-Path $testResultsPath "junit"),
+    (Join-Path $testResultsPath "coverage"), 
+    (Join-Path $testResultsPath "reports"),
+    (Join-Path $testResultsPath "logs"),
+    $tempPath
 )
 
 foreach ($dir in $outputDirs) {
@@ -44,7 +61,7 @@ $config.Output.RenderMode = 'Plaintext'
 # Test result configuration
 $config.TestResult.Enabled = $true
 $config.TestResult.OutputFormat = 'NUnitXml'
-$config.TestResult.OutputPath = '/workspace/test-results/junit/test-results.xml'
+$config.TestResult.OutputPath = Join-Path $testResultsPath "junit/test-results.xml"
 
 # Code coverage configuration (disabled for now to avoid issues)
 $config.CodeCoverage.Enabled = $false
@@ -52,87 +69,87 @@ $config.CodeCoverage.Enabled = $false
 # Set test paths based on suite
 switch ($TestSuite) {
     "Installation" {
-        $config.Run.Path = @('/workspace/tests/integration/installation-integration.Tests.ps1')
+        $config.Run.Path = @((Join-Path $basePath "tests/integration/installation-integration.Tests.ps1"))
         Write-Host "🎯 Running Installation Integration Tests" -ForegroundColor Yellow
     }
     "Backup" {
-                $config.Run.Path = @(
-            '/workspace/tests/integration/Backup-Unified.Tests.ps1',
-            '/workspace/tests/integration/Template-Coverage-Validation.Tests.ps1'
+        $config.Run.Path = @(
+            (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/Template-Coverage-Validation.Tests.ps1")
         )
         Write-Host "🎯 Running Backup Tests" -ForegroundColor Yellow
     }
     "WSL" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/wsl-integration.Tests.ps1',
-            '/workspace/tests/integration/wsl-tests.Tests.ps1',
-            '/workspace/tests/integration/wsl-package-management.Tests.ps1',
-            '/workspace/tests/integration/wsl-communication-validation.Tests.ps1',
-            '/workspace/tests/integration/Backup-Unified.Tests.ps1',
-            '/workspace/tests/integration/chezmoi-wsl-integration.Tests.ps1'
+            (Join-Path $basePath "tests/integration/wsl-integration.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/wsl-tests.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/wsl-package-management.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/wsl-communication-validation.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/chezmoi-wsl-integration.Tests.ps1")
         )
         Write-Host "🎯 Running WSL Tests" -ForegroundColor Yellow
     }
     "Gaming" {
-        $config.Run.Path = @('/workspace/tests/integration/Backup-Unified.Tests.ps1')
+        $config.Run.Path = @((Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"))
         Write-Host "🎯 Running Gaming Tests" -ForegroundColor Yellow
     }
     "Cloud" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/Backup-Unified.Tests.ps1',
-            '/workspace/tests/integration/cloud-backup-restore.Tests.ps1',
-            '/workspace/tests/integration/cloud-connectivity.Tests.ps1',
-            '/workspace/tests/integration/cloud-failover.Tests.ps1',
-            '/workspace/tests/integration/cloud-provider-detection.Tests.ps1'
+            (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/cloud-backup-restore.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/cloud-connectivity.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/cloud-failover.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/cloud-provider-detection.Tests.ps1")
         )
         Write-Host "🎯 Running Cloud Tests" -ForegroundColor Yellow
     }
     "Restore" {
-        $config.Run.Path = @('/workspace/tests/integration/restore-system-settings.Tests.ps1')
+        $config.Run.Path = @((Join-Path $basePath "tests/integration/restore-system-settings.Tests.ps1"))
         Write-Host "🎯 Running Restore Tests" -ForegroundColor Yellow
     }
     "FileOperations" {
-        $config.Run.Path = @('/workspace/tests/file-operations/FileState-FileOperations.Tests.ps1')
+        $config.Run.Path = @((Join-Path $basePath "tests/file-operations/FileState-FileOperations.Tests.ps1"))
         Write-Host "🎯 Running File Operations Tests" -ForegroundColor Yellow
     }
     "Chezmoi" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/chezmoi-integration.Tests.ps1',
-            '/workspace/tests/integration/chezmoi-wsl-integration.Tests.ps1'
+            (Join-Path $basePath "tests/integration/chezmoi-integration.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/chezmoi-wsl-integration.Tests.ps1")
         )
         Write-Host "🎯 Running Chezmoi Integration Tests" -ForegroundColor Yellow
     }
     "Template" {
         $config.Run.Path = @(
-            '/workspace/tests/integration/TemplateIntegration.Tests.ps1',
-            '/workspace/tests/integration/Template-Coverage-Validation.Tests.ps1'
+            (Join-Path $basePath "tests/integration/TemplateIntegration.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/Template-Coverage-Validation.Tests.ps1")
         )
         Write-Host "🎯 Running Template Integration Tests" -ForegroundColor Yellow
     }
     "Application" {
         $config.Run.Path = @(
-                    '/workspace/tests/integration/application-backup-restore.Tests.ps1',
-        '/workspace/tests/integration/Backup-Unified.Tests.ps1'
+            (Join-Path $basePath "tests/integration/application-backup-restore.Tests.ps1"),
+            (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1")
         )
         Write-Host "🎯 Running Application Backup/Restore Tests" -ForegroundColor Yellow
     }
     "Pester" {
-        $config.Run.Path = @('/workspace/tests/unit')
+        $config.Run.Path = @((Join-Path $basePath "tests/unit"))
         Write-Host "🎯 Running Unit Tests" -ForegroundColor Yellow
     }
     "WindowsOnly" {
-        $config.Run.Path = @('/workspace/tests/unit/Windows-Only.Tests.ps1')
+        $config.Run.Path = @((Join-Path $basePath "tests/unit/Windows-Only.Tests.ps1"))
         Write-Host "🎯 Running Windows-only Tests" -ForegroundColor Yellow
     }
     "All" {
         if ($IsWindows) {
             # On Windows, include all tests including Windows-only tests
-            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration', '/workspace/tests/file-operations')
+            $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
             Write-Host "🎯 Running All Tests (including Windows-only tests)" -ForegroundColor Yellow
         } else {
             # On non-Windows, exclude Windows-only tests by excluding the specific file
-            $config.Run.Path = @('/workspace/tests/unit', '/workspace/tests/integration', '/workspace/tests/file-operations')
-            $config.Run.ExcludePath = @('/workspace/tests/unit/Windows-Only.Tests.ps1')
+            $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
+            $config.Run.ExcludePath = @((Join-Path $basePath "tests/unit/Windows-Only.Tests.ps1"))
             Write-Host "🎯 Running All Tests (excluding Windows-only tests)" -ForegroundColor Yellow
         }
     }
@@ -176,7 +193,7 @@ try {
     Write-Host "  Duration: $($results.Duration)" -ForegroundColor White
     
     # Save detailed JSON results
-    $jsonPath = '/workspace/test-results/reports/pester-results.json'
+    $jsonPath = Join-Path $testResultsPath "reports/pester-results.json"
     try {
         # Create a simplified results object to avoid serialization issues
         $simplifiedResults = @{
@@ -195,8 +212,8 @@ try {
     }
     
     # Verify files were created
-    if (Test-Path '/workspace/test-results/junit/test-results.xml') {
-        $xmlSize = (Get-Item '/workspace/test-results/junit/test-results.xml').Length
+    if (Test-Path (Join-Path $testResultsPath "junit/test-results.xml")) {
+        $xmlSize = (Get-Item (Join-Path $testResultsPath "junit/test-results.xml")).Length
         Write-Host "💾 JUnit XML created: $xmlSize bytes" -ForegroundColor Green
     } else {
         Write-Host "❌ JUnit XML not created" -ForegroundColor Red

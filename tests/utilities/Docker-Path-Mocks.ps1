@@ -468,25 +468,35 @@ function New-Item {
         [switch]$Force
     )
     
-    Write-Verbose "Mock: Creating new item at '$Path' (Type: $ItemType)"
+    # Check if we're in a Docker environment
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                          (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
     
-    # For registry paths, simulate registry key creation
-    if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
-        return @{
-            PSPath = $Path
-            PSParentPath = Split-Path $Path -Parent
-            PSChildName = Split-Path $Path -Leaf
-            PSDrive = ($Path -split ':')[0]
-            PSProvider = "Microsoft.PowerShell.Core\Registry"
-            Name = Split-Path $Path -Leaf
+    if ($isDockerEnvironment) {
+        Write-Verbose "Mock: Creating new item at '$Path' (Type: $ItemType)"
+        
+        # For registry paths, simulate registry key creation
+        if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
+            return @{
+                PSPath = $Path
+                PSParentPath = Split-Path $Path -Parent
+                PSChildName = Split-Path $Path -Leaf
+                PSDrive = ($Path -split ':')[0]
+                PSProvider = "Microsoft.PowerShell.Core\Registry"
+                Name = Split-Path $Path -Leaf
+            }
         }
-    }
-    
-    # For file system paths, simulate file/directory creation
-    return @{
-        FullName = $Path
-        Name = Split-Path $Path -Leaf
-        Exists = $true
+        
+        # For file system paths, simulate file/directory creation
+        return @{
+            FullName = $Path
+            Name = Split-Path $Path -Leaf
+            Exists = $true
+        }
+    } else {
+        # In local environments, use the real New-Item to actually create directories
+        Write-Verbose "Creating actual directory: '$Path' (Type: $ItemType)"
+        return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
     }
 }
 
@@ -506,10 +516,20 @@ function Remove-Item {
         [string]$ErrorAction = "Continue"
     )
     
-    Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force)"
+    # Check if we're in a Docker environment
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+                          (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
     
-    # Simulate successful removal
-    return $null
+    if ($isDockerEnvironment) {
+        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force)"
+        
+        # Simulate successful removal
+        return $null
+    } else {
+        # In local environments, use the real Remove-Item for cleanup
+        Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force)"
+        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction $ErrorAction
+    }
 }
 
 function Test-Path {
@@ -519,7 +539,11 @@ function Test-Path {
         [string]$Path
     )
     
-    Write-Verbose "Mock: Testing path '$Path'"
+    # Handle Docker environment detection without verbose spam
+    if ($Path -eq '/.dockerenv') {
+        # In Docker tests, simulate Docker environment detection
+        return ($env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true')
+    }
     
     # Mock registry paths as existing for test scenarios
     if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
@@ -527,24 +551,8 @@ function Test-Path {
         return $true
     }
     
-    # For file system paths, use original Test-Path
-    return Test-Path -Path $Path -ErrorAction SilentlyContinue
-}
-
-# Mock Windows module path functionality
-function Get-WmrModulePath {
-    [CmdletBinding()]
-    param()
-    
-    # Check if we're actually in Docker or just running mocks locally
-    if ($env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv')) {
-        # Return current workspace path in Docker
-        return "/workspace"
-    } else {
-        # Return Windows project root path to prevent C:\workspace pollution
-        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        return Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
-    }
+    # For file system paths, use original Test-Path with Microsoft.PowerShell.Management module
+    return Microsoft.PowerShell.Management\Test-Path -Path $Path -ErrorAction SilentlyContinue
 }
 
 # Mock Windows-specific path utilities
