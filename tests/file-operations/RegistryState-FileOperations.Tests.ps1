@@ -215,8 +215,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 # Test different data types (only on Windows)
                 if ($IsWindows) {
                     Set-ItemProperty -Path $testKeyPath -Name "StringValue" -Value "Test String"
-                    Set-ItemProperty -Path $testKeyPath -Name "DWordValue" -Value 12345 -PropertyType DWord
-                    Set-ItemProperty -Path $testKeyPath -Name "BinaryValue" -Value @(0x01, 0x02, 0x03) -PropertyType Binary
+                    Set-ItemProperty -Path $testKeyPath -Name "DWordValue" -Value 12345 -Type DWord
+                    Set-ItemProperty -Path $testKeyPath -Name "BinaryValue" -Value @(0x01, 0x02, 0x03) -Type Binary
                     
                     # Verify values
                     $props = Get-ItemProperty -Path $testKeyPath
@@ -381,7 +381,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 }
                 Set-ItemProperty -Path $testKeyPath -Name "Value1" -Value "Data1"
                 Set-ItemProperty -Path $testKeyPath -Name "Value2" -Value "Data2"
-                Set-ItemProperty -Path $testKeyPath -Name "Value3" -Value 12345 -PropertyType DWord
+                Set-ItemProperty -Path $testKeyPath -Name "Value3" -Value 12345 -Type DWord
                 
                 # Backup entire key
                 $keyProperties = Get-ItemProperty -Path $testKeyPath

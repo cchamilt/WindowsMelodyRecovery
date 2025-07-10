@@ -190,13 +190,13 @@ prerequisites:
     on_missing: warn
 files:
   - name: Test File
-    path: "C:\test\file.txt"
+    path: "C:\\test\\file.txt"
     type: file
     action: backup
     dynamic_state_path: "files/test.txt"
 registry:
   - name: Test Registry
-    path: "HKCU:\Software\Test"
+    path: "HKCU:\\Software\\Test"
     action: backup
     dynamic_state_path: "registry/test.json"
 applications:
