@@ -48,21 +48,29 @@ Describe "Prerequisites File Operations" -Tag "FileOperations" {
     Context "Script File Creation and Execution" {
         
         It "Should create and execute temporary script files" {
-            $scriptPath = Join-Path $script:TestBackupDir "test-script.ps1"
+            $scriptPath = Join-Path $script:TestBackupDir "temp-script.ps1"
             $scriptContent = @"
 Write-Output "Script executed successfully"
-Write-Output "Current directory: `$PWD"
+Write-Output "Current directory: `$(Get-Location)"
 "@
             
             try {
-                # Create script file
+                # Create temporary script
                 $scriptContent | Out-File $scriptPath -Encoding UTF8
                 Test-Path $scriptPath | Should -Be $true
                 
-                # Execute script and capture output
-                $result = & $scriptPath
+                # Execute script and capture output, filtering out test runner banner
+                $allOutput = & pwsh -File $scriptPath 2>&1
+                $result = $allOutput | Where-Object { 
+                    $_ -notlike "*Test Runner*" -and 
+                    $_ -notlike "*Available commands*" -and
+                    $_ -notlike "*🧪*" -and
+                    $_ -and $_.ToString().Trim() -ne ""
+                }
+                
+                # Check that we got the expected outputs
                 $result | Should -Contain "Script executed successfully"
-                $result | Should -Contain "Current directory:"
+                ($result | Where-Object { $_ -match "Current directory:" }) | Should -Not -BeNullOrEmpty
                 
             } finally {
                 Remove-Item $scriptPath -Force -ErrorAction SilentlyContinue
@@ -81,10 +89,10 @@ Write-Output "Émojis: 🚀 ✅ 🔧"
                 $utf8Content | Out-File $utf8Script -Encoding UTF8
                 Test-Path $utf8Script | Should -Be $true
                 
-                # Verify content encoding
-                $readContent = Get-Content $utf8Script -Encoding UTF8
-                $readContent | Should -Contain "UTF-8 测试"
-                $readContent | Should -Contain "Émojis: 🚀 ✅ 🔧"
+                # Execute script and verify UTF-8 output
+                $result = & pwsh -File $utf8Script
+                $result | Should -Contain "UTF-8 测试"
+                $result | Should -Contain "Émojis: 🚀 ✅ 🔧"
                 
             } finally {
                 Remove-Item $utf8Script -Force -ErrorAction SilentlyContinue
@@ -129,14 +137,14 @@ try {
     
     Context "Registry Test Key Creation and Cleanup" {
         BeforeAll {
-            # Skip registry tests in Docker/Linux environment
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true")) {
+            # Skip all registry tests in Docker/Linux environment
+            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
                 Write-Warning "Registry tests skipped in non-Windows environment"
                 return
             }
         }
         
-        It "Should create and clean up test registry keys" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true")) {
+        It "Should create and clean up test registry keys" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
             $testKeyPath = "HKCU:\Software\WindowsMelodyRecovery\Test"
             
             try {
@@ -159,7 +167,7 @@ try {
             }
         }
         
-        It "Should handle registry keys with special characters" {
+        It "Should handle registry keys with special characters" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
             $specialKeyPath = "HKCU:\Software\WindowsMelodyRecovery\Test With Spaces"
             
             try {
@@ -182,7 +190,7 @@ try {
             }
         }
         
-        It "Should handle different registry data types" {
+        It "Should handle different registry data types" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
             $testKeyPath = "HKCU:\Software\WindowsMelodyRecovery\DataTypes"
             
             try {
@@ -191,16 +199,18 @@ try {
                     New-Item -Path $testKeyPath -Force | Out-Null
                 }
                 
-                # Test different data types
-                Set-ItemProperty -Path $testKeyPath -Name "StringValue" -Value "Test String"
-                Set-ItemProperty -Path $testKeyPath -Name "DWordValue" -Value 12345 -PropertyType DWord
-                Set-ItemProperty -Path $testKeyPath -Name "BinaryValue" -Value @(0x01, 0x02, 0x03) -PropertyType Binary
-                
-                # Verify values
-                $props = Get-ItemProperty -Path $testKeyPath
-                $props.StringValue | Should -Be "Test String"
-                $props.DWordValue | Should -Be 12345
-                $props.BinaryValue | Should -Be @(1, 2, 3)
+                # Test different data types (only on Windows)
+                if ($IsWindows) {
+                    Set-ItemProperty -Path $testKeyPath -Name "StringValue" -Value "Test String"
+                    Set-ItemProperty -Path $testKeyPath -Name "DWordValue" -Value 12345 -PropertyType DWord
+                    Set-ItemProperty -Path $testKeyPath -Name "BinaryValue" -Value @(0x01, 0x02, 0x03) -PropertyType Binary
+                    
+                    # Verify values
+                    $props = Get-ItemProperty -Path $testKeyPath
+                    $props.StringValue | Should -Be "Test String"
+                    $props.DWordValue | Should -Be 12345
+                    $props.BinaryValue | Should -Be @(1, 2, 3)
+                }
                 
             } finally {
                 # Clean up

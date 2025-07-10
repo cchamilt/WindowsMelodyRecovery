@@ -602,21 +602,59 @@ if ($script:IsDockerEnvironment) {
             try {
                 $content = Get-Content $TemplatePath -Raw -Encoding UTF8
                 if ($TemplatePath -like "*.yaml" -or $TemplatePath -like "*.yml") {
-                    # Mock YAML parsing
+                    # Simple YAML parsing for test purposes
                     $yamlContent = @{
-                        metadata = @{
-                            name = "Mock Template"
-                            version = "1.0.0"
-                            description = "Mock template for testing"
-                        }
-                        files = @(
-                            @{
-                                name = "Mock File"
-                                path = "/mock/path/file.txt"
-                                action = "sync"
-                            }
-                        )
+                        metadata = @{}
+                        prerequisites = @()
+                        files = @()
+                        registry = @()
+                        applications = @()
                     }
+                    
+                    # Parse basic YAML structure
+                    $lines = $content -split "`n"
+                    $currentSection = $null
+                    $currentItem = $null
+                    
+                    foreach ($line in $lines) {
+                        $line = $line.Trim()
+                        if ($line -match "^metadata:") {
+                            $currentSection = "metadata"
+                        } elseif ($line -match "^prerequisites:") {
+                            $currentSection = "prerequisites"
+                        } elseif ($line -match "^files:") {
+                            $currentSection = "files"
+                        } elseif ($line -match "^registry:") {
+                            $currentSection = "registry"
+                        } elseif ($line -match "^applications:") {
+                            $currentSection = "applications"
+                        } elseif ($line -match "^\s*name:\s*(.+)") {
+                            if ($currentSection -eq "metadata") {
+                                $yamlContent.metadata.name = $matches[1] -replace '"', ''
+                            } elseif ($currentItem) {
+                                $currentItem.name = $matches[1] -replace '"', ''
+                            }
+                        } elseif ($line -match "^\s*version:\s*(.+)") {
+                            if ($currentSection -eq "metadata") {
+                                $yamlContent.metadata.version = $matches[1] -replace '"', ''
+                            }
+                        } elseif ($line -match "^\s*description:\s*(.+)") {
+                            if ($currentSection -eq "metadata") {
+                                $yamlContent.metadata.description = $matches[1] -replace '"', ''
+                            }
+                        } elseif ($line -match "^\s*-\s*type:\s*(.+)") {
+                            $currentItem = @{ type = $matches[1] -replace '"', '' }
+                            if ($currentSection -eq "prerequisites") {
+                                $yamlContent.prerequisites += $currentItem
+                            }
+                        } elseif ($line -match "^\s*-\s*name:\s*(.+)") {
+                            $currentItem = @{ name = $matches[1] -replace '"', '' }
+                            if ($currentSection -eq "files") {
+                                $yamlContent.files += $currentItem
+                            }
+                        }
+                    }
+                    
                     return $yamlContent
                 } else {
                     return ($content | ConvertFrom-Json)
@@ -633,7 +671,7 @@ if ($script:IsDockerEnvironment) {
             [CmdletBinding()]
             param()
             
-            # Return the actual module file path
+            # Return the actual module file path, not the directory
             return "/workspace/WindowsMelodyRecovery.psm1"
         }
     }

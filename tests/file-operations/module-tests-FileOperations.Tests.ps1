@@ -19,9 +19,15 @@ BeforeAll {
     
     # Set up test environment with real paths in safe test directories
     $TestModulePath = if (Get-Command Get-WmrModulePath -ErrorAction SilentlyContinue) {
-        Get-WmrModulePath
+        $path = Get-WmrModulePath
+        # Ensure we get the actual module file, not the directory
+        if (Test-Path $path -PathType Container) {
+            Join-Path $path "WindowsMelodyRecovery.psm1"
+        } else {
+            $path
+        }
     } else {
-        "/workspace"
+        "/workspace/WindowsMelodyRecovery.psm1"
     }
     $TestManifestPath = (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1").Path
     $TestInstallScriptPath = (Resolve-Path "$PSScriptRoot/../../Install-Module.ps1").Path
