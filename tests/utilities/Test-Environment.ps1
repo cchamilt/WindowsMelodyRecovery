@@ -19,7 +19,7 @@ $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 # Define test directories
 $script:TestDirectories = @{
     TestRestore = Join-Path $script:ModuleRoot "test-restore"
-            TestBackup = Join-Path $script:ModuleRoot "test-backups" 
+    TestBackup = Join-Path $script:ModuleRoot "test-backups" 
     Temp = Join-Path $script:ModuleRoot "Temp"
     MockData = Join-Path $script:ModuleRoot "tests\mock-data"
 }
@@ -203,23 +203,119 @@ function Copy-MockDataToTest {
             continue
         }
         
-        foreach ($destBase in $destinations) {
-            $machineDestPath = Join-Path $destBase "TEST-MACHINE\$comp"
-            $sharedDestPath = Join-Path $destBase "shared\$comp"
+        foreach ($destRoot in $destinations) {
+            $destPath = Join-Path $destRoot $comp
             
-            foreach ($destPath in @($machineDestPath, $sharedDestPath)) {
-                try {
-                    if (-not (Test-Path (Split-Path $destPath -Parent))) {
-                        New-Item -ItemType Directory -Path (Split-Path $destPath -Parent) -Force | Out-Null
-                    }
-                    
-                    Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
-                    Write-Host "  ✓ Copied $comp mock data to: $destPath" -ForegroundColor Green
-                } catch {
-                    Write-Warning "Failed to copy $comp to $destPath : $_"
+            try {
+                if (Test-Path $destPath) {
+                    Remove-Item -Path $destPath -Recurse -Force
+                }
+                
+                Copy-Item -Path $sourcePath -Destination $destPath -Recurse -Force
+                Write-Host "  ✓ Copied $comp mock data to: $destPath" -ForegroundColor Green
+            } catch {
+                Write-Warning "Failed to copy $comp mock data: $_"
+            }
+        }
+    }
+}
+
+# Add missing functions that are available in Docker environment
+function Get-WmrModulePath {
+    <#
+    .SYNOPSIS
+        Gets the path to the Windows Melody Recovery module file.
+    
+    .DESCRIPTION
+        Returns the path to the main module file (WindowsMelodyRecovery.psm1).
+        This function provides compatibility with Docker test environment.
+    
+    .EXAMPLE
+        Get-WmrModulePath
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $moduleFile = Join-Path $script:ModuleRoot "WindowsMelodyRecovery.psm1"
+    
+    if (Test-Path $moduleFile) {
+        return $moduleFile
+    } else {
+        Write-Warning "Module file not found: $moduleFile"
+        return $null
+    }
+}
+
+function Read-WmrTemplateConfig {
+    <#
+    .SYNOPSIS
+        Reads and parses a YAML template configuration file.
+    
+    .DESCRIPTION
+        Reads a YAML template file and returns the parsed configuration.
+        This function provides compatibility with Docker test environment.
+    
+    .PARAMETER TemplatePath
+        Path to the template file to read.
+    
+    .EXAMPLE
+        Read-WmrTemplateConfig -TemplatePath "Templates/System/display.yaml"
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TemplatePath
+    )
+    
+    # Handle relative paths
+    if (-not [System.IO.Path]::IsPathRooted($TemplatePath)) {
+        $TemplatePath = Join-Path $script:ModuleRoot $TemplatePath
+    }
+    
+    if (-not (Test-Path $TemplatePath)) {
+        throw "Template file not found: $TemplatePath"
+    }
+    
+    try {
+        $yamlContent = Get-Content -Path $TemplatePath -Raw -Encoding UTF8
+        
+        # Simple YAML parsing for basic structures
+        # This is a simplified parser for testing purposes
+        $config = @{}
+        
+        $lines = $yamlContent -split "`n"
+        $currentSection = $null
+        
+        foreach ($line in $lines) {
+            $line = $line.Trim()
+            
+            if ($line -match '^#' -or [string]::IsNullOrWhiteSpace($line)) {
+                continue
+            }
+            
+            if ($line -match '^(\w+):$') {
+                $currentSection = $matches[1]
+                $config[$currentSection] = @{}
+            } elseif ($line -match '^(\w+):\s*(.+)$') {
+                $key = $matches[1]
+                $value = $matches[2].Trim()
+                
+                # Remove quotes if present - fixed regex
+                if ($value -match '^["''](.+)["'']$') {
+                    $value = $matches[1]
+                }
+                
+                if ($currentSection) {
+                    $config[$currentSection][$key] = $value
+                } else {
+                    $config[$key] = $value
                 }
             }
         }
+        
+        return $config
+    } catch {
+        throw "Failed to parse template file '$TemplatePath': $_"
     }
 }
 
@@ -294,6 +390,54 @@ function Test-SafeTestPath {
     }
     
     return $isInTestDir
+}
+
+function Test-WmrTemplateSchema {
+    <#
+    .SYNOPSIS
+        Validates a template configuration against the expected schema.
+    
+    .DESCRIPTION
+        Validates that a template configuration has the required metadata
+        and structure. This function provides compatibility with Docker test environment.
+    
+    .PARAMETER TemplateConfig
+        Template configuration to validate.
+    
+    .EXAMPLE
+        Test-WmrTemplateSchema -TemplateConfig $config
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object]$TemplateConfig
+    )
+    
+    # Convert PSCustomObject to hashtable if needed
+    if ($TemplateConfig -is [PSCustomObject]) {
+        $configHash = @{}
+        foreach ($prop in $TemplateConfig.PSObject.Properties) {
+            $configHash[$prop.Name] = $prop.Value
+        }
+        $TemplateConfig = $configHash
+    }
+    
+    # Mock template schema validation
+    if (-not $TemplateConfig.metadata) {
+        throw "Template schema validation failed: 'metadata' is missing."
+    }
+    
+    if ($TemplateConfig.metadata -is [PSCustomObject]) {
+        if (-not $TemplateConfig.metadata.name) {
+            throw "Template schema validation failed: 'metadata.name' is missing."
+        }
+    } elseif ($TemplateConfig.metadata -is [hashtable]) {
+        if (-not $TemplateConfig.metadata.name) {
+            throw "Template schema validation failed: 'metadata.name' is missing."
+        }
+    }
+    
+    return $true
 }
 
 # Functions are available when dot-sourced - no need to export when not a module 

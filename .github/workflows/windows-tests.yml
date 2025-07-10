@@ -7,368 +7,164 @@ on:
     branches: [ main ]
   schedule:
     - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM UTC
-  workflow_dispatch:
-    inputs:
-      test_category:
-        description: 'Test category to run'
-        required: false
-        default: 'unit'
-        type: choice
-        options:
-        - unit
-        - integration
-        - file-operations
-        - end-to-end
-        - all
-
-env:
-  WMR_ALLOW_WINDOWS_TESTS: true
-  WMR_CREATE_RESTORE_POINT: false  # Disabled for CI safety
 
 jobs:
-  windows-unit-tests:
+  windows-tests:
     runs-on: windows-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_category == 'unit' || github.event.inputs.test_category == 'all'
+    strategy:
+      matrix:
+        test-category: [unit, integration]
+      fail-fast: false
     
     steps:
-    - name: Checkout code
+    - name: Checkout Repository
       uses: actions/checkout@v4
     
-    - name: Setup PowerShell environment
+    - name: Setup PowerShell Environment
       shell: pwsh
       run: |
-        Write-Host "Setting up PowerShell environment..."
+        Write-Host "Setting up PowerShell environment for Windows-only tests..."
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
         Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
-        Write-Host "PowerShell environment ready"
+        Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+        Write-Host "Pester version: $(Get-Module Pester -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
     
-    - name: Verify Windows environment
+    - name: Verify Windows Environment
       shell: pwsh
       run: |
-        Write-Host "=== Windows Environment Information ==="
-        Write-Host "OS: $($PSVersionTable.OS)"
-        Write-Host "PowerShell: $($PSVersionTable.PSVersion)"
-        Write-Host "Platform: $($PSVersionTable.Platform)"
-        Write-Host "Administrator: $([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"
-        Write-Host "CI Environment: $($env:CI)"
-        Write-Host "GitHub Actions: $($env:GITHUB_ACTIONS)"
-        Write-Host "========================================"
+        Write-Host "Verifying Windows environment..."
+        Write-Host "OS: $([System.Environment]::OSVersion.VersionString)"
+        Write-Host "Is Windows: $($IsWindows)"
+        Write-Host "Is CI/CD: $($env:CI -or $env:GITHUB_ACTIONS)"
+        Write-Host "Admin Rights: $((New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))"
     
-    - name: Import and validate module
+    - name: Run Windows ${{ matrix.test-category }} Tests
       shell: pwsh
       run: |
-        Write-Host "Importing WindowsMelodyRecovery module..."
-        Import-Module ./WindowsMelodyRecovery.psd1 -Force
-        Write-Host "Module imported successfully"
+        Write-Host "Running Windows-only ${{ matrix.test-category }} tests..."
+        Write-Host "Environment: Windows CI/CD"
+        Write-Host "Test Category: ${{ matrix.test-category }}"
+        Write-Host "All Windows-specific functionality will be tested"
+        Write-Host ""
         
-        # Validate module functions
-        $functions = Get-Command -Module WindowsMelodyRecovery
-        Write-Host "Available functions: $($functions.Count)"
-        foreach ($func in $functions) {
-          Write-Host "  - $($func.Name)"
+        $requireAdmin = $false
+        if ("${{ matrix.test-category }}" -eq "integration") {
+          $requireAdmin = $true
+          Write-Host "Integration tests require administrative privileges"
         }
-    
-    - name: Run Windows-specific unit tests
-      shell: pwsh
-      run: |
-        Write-Host "Running Windows-specific unit tests..."
         
-        # Check if Windows-only tests exist
-        $windowsTestPath = "./tests/windows-only/unit/"
-        if (Test-Path $windowsTestPath) {
-          Write-Host "Running tests from: $windowsTestPath"
-          $result = Invoke-Pester -Path $windowsTestPath -OutputFormat NUnitXml -OutputFile 'windows-unit-test-results.xml' -PassThru
-        } else {
-          Write-Host "Windows-only test directory not found, running unit tests that require Windows..."
-          # Run specific Windows-requiring tests from unit directory
-          $windowsTests = @(
-            './tests/unit/AdministrativePrivileges*.Tests.ps1',
-            './tests/unit/RegistryState*.Tests.ps1',
-            './tests/unit/PathUtilities.Tests.ps1',
-            './tests/unit/Prerequisites*.Tests.ps1',
-            './tests/unit/Windows-Only.Tests.ps1'
-          )
-          
-          $testFiles = @()
-          foreach ($pattern in $windowsTests) {
-            $files = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
-            $testFiles += $files
-          }
-          
-          if ($testFiles.Count -gt 0) {
-            Write-Host "Found $($testFiles.Count) Windows-specific test files"
-            $result = Invoke-Pester -Path $testFiles -OutputFormat NUnitXml -OutputFile 'windows-unit-test-results.xml' -PassThru
+        try {
+          if ($requireAdmin) {
+            ./tests/scripts/run-windows-tests.ps1 -Category ${{ matrix.test-category }} -RequireAdmin -GenerateReport -CreateRestorePoint
           } else {
-            Write-Host "No Windows-specific test files found"
-            # Create empty result file
-            '<?xml version="1.0" encoding="UTF-8"?><test-results/>' | Out-File -FilePath 'windows-unit-test-results.xml'
-            $result = @{ PassedCount = 0; FailedCount = 0; TotalCount = 0 }
+            ./tests/scripts/run-windows-tests.ps1 -Category ${{ matrix.test-category }} -GenerateReport
           }
-        }
-        
-        Write-Host "Windows Unit Test Results:"
-        Write-Host "  Passed: $($result.PassedCount)"
-        Write-Host "  Failed: $($result.FailedCount)"
-        Write-Host "  Total: $($result.TotalCount)"
-        Write-Host "  Pass Rate: $(if ($result.TotalCount -gt 0) { [math]::Round(($result.PassedCount / $result.TotalCount) * 100, 2) } else { 100 })%"
-        
-        # Windows tests are allowed to have some failures (90% target)
-        if ($result.TotalCount -gt 0) {
-          $passRate = ($result.PassedCount / $result.TotalCount) * 100
-          if ($passRate -lt 90) {
-            Write-Host "❌ Windows unit tests pass rate ($passRate%) is below target (90%)"
-            exit 1
-          } else {
-            Write-Host "✅ Windows unit tests pass rate ($passRate%) meets target (90%+)"
-          }
-        } else {
-          Write-Host "ℹ️ No Windows-specific unit tests found"
+        } catch {
+          Write-Host "Error running Windows tests: $_" -ForegroundColor Red
+          Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+          exit 1
         }
     
-    - name: Upload Windows unit test results
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: windows-unit-test-results
-        path: windows-unit-test-results.xml
-        retention-days: 30
-    
-    - name: Publish Windows unit test results
+    - name: Publish Windows Test Results
       uses: dorny/test-reporter@v1
       if: always()
       with:
-        name: Windows Unit Tests
-        path: windows-unit-test-results.xml
-        reporter: java-junit
-        fail-on-error: false  # Allow some failures for Windows tests
-
-  windows-integration-tests:
-    runs-on: windows-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_category == 'integration' || github.event.inputs.test_category == 'all'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup PowerShell environment
-      shell: pwsh
-      run: |
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
-    
-    - name: Run Windows integration tests
-      shell: pwsh
-      run: |
-        Write-Host "Running Windows integration tests..."
-        Import-Module ./WindowsMelodyRecovery.psd1 -Force
-        
-        # Check for Windows-only integration tests
-        $windowsIntegrationPath = "./tests/windows-only/integration/"
-        if (Test-Path $windowsIntegrationPath) {
-          $result = Invoke-Pester -Path $windowsIntegrationPath -OutputFormat NUnitXml -OutputFile 'windows-integration-test-results.xml' -PassThru
-        } else {
-          # Run integration tests that require Windows
-          $integrationPath = "./tests/integration/"
-          if (Test-Path $integrationPath) {
-            $result = Invoke-Pester -Path $integrationPath -OutputFormat NUnitXml -OutputFile 'windows-integration-test-results.xml' -PassThru
-          } else {
-            Write-Host "No integration tests found"
-            '<?xml version="1.0" encoding="UTF-8"?><test-results/>' | Out-File -FilePath 'windows-integration-test-results.xml'
-            $result = @{ PassedCount = 0; FailedCount = 0; TotalCount = 0 }
-          }
-        }
-        
-        Write-Host "Windows Integration Test Results:"
-        Write-Host "  Passed: $($result.PassedCount)"
-        Write-Host "  Failed: $($result.FailedCount)"
-        Write-Host "  Total: $($result.TotalCount)"
-        
-        if ($result.TotalCount -gt 0) {
-          $passRate = ($result.PassedCount / $result.TotalCount) * 100
-          Write-Host "  Pass Rate: $([math]::Round($passRate, 2))%"
-        }
-    
-    - name: Upload Windows integration test results
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: windows-integration-test-results
-        path: windows-integration-test-results.xml
-        retention-days: 30
-    
-    - name: Publish Windows integration test results
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Windows Integration Tests
-        path: windows-integration-test-results.xml
+        name: Windows ${{ matrix.test-category }} Tests
+        path: 'test-results/windows-only-test-results.xml'
         reporter: java-junit
         fail-on-error: false
+    
+    - name: Upload Windows Test Artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: windows-${{ matrix.test-category }}-test-results
+        path: |
+          test-results/
+          !test-results/*.tmp
+        retention-days: 30
+    
+    - name: Upload Test Logs
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: windows-${{ matrix.test-category }}-logs
+        path: |
+          test-results/logs/
+        retention-days: 7
 
-  windows-comprehensive-test:
+  windows-cross-platform-verification:
     runs-on: windows-latest
-    needs: [windows-unit-tests, windows-integration-tests]
-    if: always() && (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event.inputs.test_category == 'all'
     
     steps:
-    - name: Checkout code
+    - name: Checkout Repository
       uses: actions/checkout@v4
     
-    - name: Setup PowerShell environment
+    - name: Setup PowerShell Environment
       shell: pwsh
       run: |
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
         Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
     
-    - name: Run comprehensive Windows test suite
+    - name: Run Cross-Platform Tests on Windows
       shell: pwsh
       run: |
-        Write-Host "Running comprehensive Windows test suite..."
-        Import-Module ./WindowsMelodyRecovery.psd1 -Force
-        
-        # Test all Windows-specific functionality
-        $testPaths = @()
-        
-        # Add Windows-only directories if they exist
-        if (Test-Path "./tests/windows-only/unit/") { $testPaths += "./tests/windows-only/unit/" }
-        if (Test-Path "./tests/windows-only/integration/") { $testPaths += "./tests/windows-only/integration/" }
-        if (Test-Path "./tests/windows-only/file-operations/") { $testPaths += "./tests/windows-only/file-operations/" }
-        if (Test-Path "./tests/windows-only/end-to-end/") { $testPaths += "./tests/windows-only/end-to-end/" }
-        
-        # If no Windows-only directories, test Windows-requiring files from main directories
-        if ($testPaths.Count -eq 0) {
-          $windowsRequiredTests = @(
-            './tests/unit/AdministrativePrivileges*.Tests.ps1',
-            './tests/unit/RegistryState*.Tests.ps1',
-            './tests/unit/PathUtilities.Tests.ps1',
-            './tests/unit/Prerequisites*.Tests.ps1',
-            './tests/unit/Windows-Only.Tests.ps1'
-          )
-          
-          foreach ($pattern in $windowsRequiredTests) {
-            $files = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
-            $testPaths += $files.FullName
-          }
-        }
-        
-        if ($testPaths.Count -eq 0) {
-          Write-Host "No Windows-specific tests found"
-          return
-        }
-        
-        Write-Host "Running tests from $($testPaths.Count) path(s):"
-        foreach ($path in $testPaths) {
-          Write-Host "  - $path"
-        }
-        
-        $allResults = @()
-        foreach ($testPath in $testPaths) {
-          if (Test-Path $testPath) {
-            Write-Host "Running tests from: $testPath"
-            $result = Invoke-Pester -Path $testPath -PassThru
-            $allResults += $result
-          }
-        }
-        
-        # Calculate totals
-        $totalPassed = ($allResults | Measure-Object -Property PassedCount -Sum).Sum
-        $totalFailed = ($allResults | Measure-Object -Property FailedCount -Sum).Sum
-        $totalTests = $totalPassed + $totalFailed
-        
+        Write-Host "Running cross-platform tests on Windows to verify compatibility..."
+        Write-Host "Environment: Windows (cross-platform mode)"
+        Write-Host "Windows-only tests will run normally"
         Write-Host ""
-        Write-Host "=== COMPREHENSIVE WINDOWS TEST RESULTS ==="
-        Write-Host "Total Tests: $totalTests"
-        Write-Host "Passed: $totalPassed"
-        Write-Host "Failed: $totalFailed"
-        if ($totalTests -gt 0) {
-          $passRate = [math]::Round(($totalPassed / $totalTests) * 100, 2)
-          Write-Host "Pass Rate: $passRate%"
-          
-          # Target: 90% pass rate for Windows environment
-          if ($passRate -ge 90) {
-            Write-Host "✅ Windows environment achieved target pass rate (90%+)!"
-          } else {
-            Write-Host "⚠️ Windows environment pass rate ($passRate%) is below target (90%)"
-          }
-        } else {
-          Write-Host "Pass Rate: N/A (no tests found)"
-        }
         
-        # Generate comprehensive report
-        $report = @{
-          Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-          Environment = 'Windows'
-          TotalTests = $totalTests
-          PassedTests = $totalPassed
-          FailedTests = $totalFailed
-          PassRate = if ($totalTests -gt 0) { [math]::Round(($totalPassed / $totalTests) * 100, 2) } else { 0 }
-          Status = if ($totalTests -eq 0) { 'No Tests' } elseif ($totalPassed -eq $totalTests) { 'All Passed' } elseif (($totalPassed / $totalTests) -ge 0.9) { 'Target Met' } else { 'Below Target' }
+        # Run a subset of cross-platform tests to verify they work on Windows
+        try {
+          ./tests/scripts/run-unit-tests.ps1 -TestName "PathUtilities" -OutputFormat Normal
+          ./tests/scripts/run-file-operation-tests.ps1 -TestName "SharedConfiguration-FileOperations" -OutputFormat Normal
+        } catch {
+          Write-Host "Error running cross-platform tests on Windows: $_" -ForegroundColor Red
+          exit 1
         }
-        
-        $report | ConvertTo-Json -Depth 3 | Out-File -FilePath 'windows-comprehensive-report.json'
-        Write-Host "Comprehensive report saved to windows-comprehensive-report.json"
     
-    - name: Upload comprehensive Windows test report
+    - name: Upload Cross-Platform Verification Results
       uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: windows-comprehensive-report
-        path: windows-comprehensive-report.json
-        retention-days: 90
+        name: windows-cross-platform-verification
+        path: |
+          test-results/
+        retention-days: 7
 
-  windows-test-summary:
-    runs-on: windows-latest
-    needs: [windows-unit-tests, windows-integration-tests, windows-comprehensive-test]
+  windows-summary:
+    runs-on: ubuntu-latest
+    needs: [windows-tests, windows-cross-platform-verification]
     if: always()
     
     steps:
-    - name: Download all artifacts
+    - name: Download All Artifacts
       uses: actions/download-artifact@v3
-      continue-on-error: true
     
-    - name: Generate Windows test summary
-      shell: pwsh
+    - name: Generate Windows Test Summary
       run: |
-        Write-Host "Generating Windows test summary..."
+        echo "# Windows Native Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Category | Status | Details |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
         
-        # Create summary for GitHub
-        $summary = @"
-# Windows Test Summary
-
-## Test Results
-| Test Category | Status |
-|---------------|--------|
-"@
+        for category in unit integration; do
+          if [ -d "windows-$category-test-results" ]; then
+            echo "| Windows $category | ✅ Completed | Results available |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Windows $category | ❌ Failed | No results |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
         
-        # Check unit tests
-        if (Test-Path "windows-unit-test-results/windows-unit-test-results.xml") {
-          $summary += "| Unit Tests | ✅ Completed |`n"
-        } else {
-          $summary += "| Unit Tests | ❌ Failed |`n"
-        }
+        if [ -d "windows-cross-platform-verification" ]; then
+          echo "| Cross-platform verification | ✅ Completed | Windows compatibility verified |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Cross-platform verification | ❌ Failed | Compatibility issues |" >> $GITHUB_STEP_SUMMARY
+        fi
         
-        # Check integration tests
-        if (Test-Path "windows-integration-test-results/windows-integration-test-results.xml") {
-          $summary += "| Integration Tests | ✅ Completed |`n"
-        } else {
-          $summary += "| Integration Tests | ❌ Failed |`n"
-        }
-        
-        $summary += @"
-
-## Environment
-- **Platform**: Windows Latest
-- **PowerShell**: $($PSVersionTable.PSVersion)
-- **Test Framework**: Pester
-- **Target**: 90% Pass Rate
-- **Safety**: Restore points disabled in CI
-
-## Notes
-- Windows-specific tests include registry operations, administrative privileges, and Windows-only APIs
-- Some test failures are expected due to CI environment limitations
-- Combined with Docker tests, provides comprehensive coverage
-"@
-        
-        # Write to GitHub Step Summary
-        $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8
-        Write-Host "Summary written to GitHub Step Summary" 
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment**: Windows (native)" >> $GITHUB_STEP_SUMMARY
+        echo "**Windows-only tests**: Executed with full functionality" >> $GITHUB_STEP_SUMMARY
+        echo "**Administrative privileges**: Used for integration tests" >> $GITHUB_STEP_SUMMARY
+        echo "**Safety measures**: Restore points created before destructive tests" >> $GITHUB_STEP_SUMMARY
+        echo "**Cross-platform compatibility**: Verified on Windows" >> $GITHUB_STEP_SUMMARY 

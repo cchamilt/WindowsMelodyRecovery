@@ -2,21 +2,21 @@
 
 <#
 .SYNOPSIS
-    Run Clean Unit Tests for Windows Melody Recovery
+    Run Unit Tests for Windows Melody Recovery
 
 .DESCRIPTION
-    Runs unit tests that have been cleaned up to use the centralized test environment.
-    These tests use standardized test directories and mock data.
+    Runs unit tests using the same environment setup as the successful Docker tests.
+    Uses standardized test directories and mock data.
 
 .PARAMETER TestName
-    Specific test file to run (without .Tests.ps1 extension). If not specified, runs all clean tests.
+    Specific test file to run (without .Tests.ps1 extension). If not specified, runs all unit tests.
 
 .PARAMETER OutputFormat
     Pester output format. Default is 'Detailed'.
 
 .EXAMPLE
     .\run-unit-tests.ps1
-    .\run-unit-tests.ps1 -TestName "SharedConfiguration"
+    .\run-unit-tests.ps1 -TestName "ConfigurationValidation"
     .\run-unit-tests.ps1 -OutputFormat "Normal"
 #>
 
@@ -30,24 +30,30 @@ param(
 # Set execution policy for current process to allow unsigned scripts
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-# Import the test environment utilities
-. (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
+# Import the working test environment utilities (same as Docker tests)
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-Write-Host "🧪 Running Clean Unit Tests for Windows Melody Recovery" -ForegroundColor Cyan
+Write-Host "🧪 Running Unit Tests for Windows Melody Recovery" -ForegroundColor Cyan
+
+# Show environment information
+if ($IsWindows) {
+    Write-Host "Environment: Windows (all tests will run)" -ForegroundColor Green
+} else {
+    Write-Host "Environment: Non-Windows (Windows-only tests will be skipped)" -ForegroundColor Yellow
+}
 Write-Host ""
 
-# Reset test environment first
-Write-Host "🧹 Resetting test environment..." -ForegroundColor Yellow
-$testPaths = Initialize-StandardTestEnvironment -TestType "Unit" -Force
+# Initialize test environment using the working system
+Write-Host "🧹 Initializing test environment..." -ForegroundColor Yellow
+$testEnvironment = Initialize-TestEnvironment -Force
 Write-Host "✅ Test environment ready" -ForegroundColor Green
 Write-Host ""
 
-# Discover actual unit test files
+# Get all available unit tests
 $unitTestsPath = Join-Path $PSScriptRoot "..\unit"
-$allTestFiles = Get-ChildItem -Path $unitTestsPath -Filter "*.Tests.ps1" | Select-Object -ExpandProperty BaseName
-
-# Remove .Tests from the names for easier matching
-$availableTests = $allTestFiles | ForEach-Object { $_ -replace '\.Tests$', '' }
+$availableTests = Get-ChildItem -Path $unitTestsPath -Filter "*.Tests.ps1" | ForEach-Object { 
+    $_.BaseName -replace '\.Tests$', '' 
+}
 
 Write-Host "📋 Available unit tests: $($availableTests.Count)" -ForegroundColor Gray
 foreach ($test in $availableTests) {
@@ -70,6 +76,7 @@ $testsToRun = if ($TestName) {
 # Run the tests
 $totalPassed = 0
 $totalFailed = 0
+$totalSkipped = 0
 $totalTime = 0
 
 foreach ($test in $testsToRun) {
@@ -80,12 +87,12 @@ foreach ($test in $testsToRun) {
         continue
     }
     
-    Write-Host "🔍 Running $test tests..." -ForegroundColor Cyan
+    Write-Host "🔍 Running $test unit tests..." -ForegroundColor Cyan
     
     try {
         $startTime = Get-Date
         
-        # Configure Pester for better output
+        # Configure Pester for better output (same as Docker tests)
         $pesterConfig = @{
             Run = @{
                 Path = $testFile
@@ -105,12 +112,18 @@ foreach ($test in $testsToRun) {
         
         $totalPassed += $result.PassedCount
         $totalFailed += $result.FailedCount
+        $totalSkipped += $result.SkippedCount
         $totalTime += $testTime
         
         if ($result.FailedCount -eq 0) {
-            Write-Host "✅ $test tests passed ($($result.PassedCount) tests, $([math]::Round($testTime, 2))s)" -ForegroundColor Green
+            $statusMsg = "✅ $test tests passed ($($result.PassedCount) passed"
+            if ($result.SkippedCount -gt 0) {
+                $statusMsg += ", $($result.SkippedCount) skipped"
+            }
+            $statusMsg += ", $([math]::Round($testTime, 2))s)"
+            Write-Host $statusMsg -ForegroundColor Green
         } else {
-            Write-Host "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $([math]::Round($testTime, 2))s)" -ForegroundColor Red
+            Write-Host "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)" -ForegroundColor Red
             
             # Show failed test details
             if ($result.Failed.Count -gt 0) {
@@ -128,18 +141,25 @@ foreach ($test in $testsToRun) {
     Write-Host ""
 }
 
+# Cleanup
+Write-Host "🧹 Cleaning up test environment..." -ForegroundColor Yellow
+Remove-TestEnvironment
+Write-Host "✅ Cleanup complete" -ForegroundColor Green
+
 # Summary
-Write-Host "📊 Test Summary:" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📊 Unit Test Summary:" -ForegroundColor Cyan
 Write-Host "  • Total Passed: $totalPassed" -ForegroundColor Green
 Write-Host "  • Total Failed: $totalFailed" -ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+Write-Host "  • Total Skipped: $totalSkipped" -ForegroundColor Yellow
 Write-Host "  • Total Time: $([math]::Round($totalTime, 2))s" -ForegroundColor Gray
 
 if ($totalFailed -eq 0) {
     Write-Host ""
-    Write-Host "🎉 All clean unit tests passed!" -ForegroundColor Green
+    Write-Host "🎉 All unit tests passed!" -ForegroundColor Green
     exit 0
 } else {
     Write-Host ""
-    Write-Host "⚠️  Some tests failed. Check the output above for details." -ForegroundColor Yellow
+    Write-Host "⚠️  Some unit tests failed. Check the output above for details." -ForegroundColor Yellow
     exit 1
 } 

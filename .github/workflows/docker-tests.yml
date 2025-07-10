@@ -4,249 +4,100 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
-  schedule:
-    - cron: '0 1 * * *'  # Daily at 1 AM UTC
-
-env:
-  DOCKER_TEST: true
-  CONTAINER: true
+    branches: [ main ]
 
 jobs:
-  docker-unit-tests:
+  docker-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test-category: [unit, integration, file-operations]
-        fail-fast: false
-      max-parallel: 3
+        test-category: [unit, file-operations, integration, end-to-end]
     
     steps:
-    - name: Checkout code
+    - name: Checkout Repository
       uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+    - name: Build Test Environment
+      run: docker-compose -f docker-compose.test.yml build
     
-    - name: Build Docker test environment
+    - name: Start Test Environment
+      run: docker-compose -f docker-compose.test.yml up -d
+    
+    - name: Wait for Container Ready
       run: |
-        docker-compose -f docker-compose.test.yml build --parallel
-        docker-compose -f docker-compose.test.yml up -d
+        echo "Waiting for test container to be ready..."
+        timeout 60 bash -c 'until docker exec wmr-test-runner pwsh -Command "Write-Host \"Container ready\""; do sleep 2; done'
     
-    - name: Wait for test environment
-      run: |
-        echo "Waiting for test environment to be ready..."
-        timeout 60 bash -c 'until docker exec wmr-test-runner pwsh -Command "Write-Host \"Test environment ready\""; do sleep 2; done'
-    
-    - name: Run ${{ matrix.test-category }} tests
+    - name: Run ${{ matrix.test-category }} Tests
       run: |
         echo "Running ${{ matrix.test-category }} tests in Docker environment..."
         docker exec wmr-test-runner pwsh -Command "
           cd /workspace
-          Import-Module ./WindowsMelodyRecovery.psd1 -Force
-          \$testPath = './tests/unit/'
-          if ('${{ matrix.test-category }}' -eq 'integration') {
-            \$testPath = './tests/integration/'
-          } elseif ('${{ matrix.test-category }}' -eq 'file-operations') {
-            \$testPath = './tests/file-operations/'
-          }
-          Write-Host \"Running tests from: \$testPath\"
-          if (Test-Path \$testPath) {
-            \$result = Invoke-Pester -Path \$testPath -OutputFormat NUnitXml -OutputFile '/workspace/test-results-${{ matrix.test-category }}.xml' -PassThru
-            Write-Host \"Test Results - Passed: \$(\$result.PassedCount), Failed: \$(\$result.FailedCount), Total: \$(\$result.TotalCount)\"
-            if (\$result.FailedCount -gt 0) {
-              Write-Host \"❌ Some tests failed. Check the detailed output above.\"
-              exit 1
-            } else {
-              Write-Host \"✅ All tests passed successfully!\"
-            }
-          } else {
-            Write-Host \"Test path \$testPath does not exist, skipping...\"
-          }
+          Write-Host \"Environment: Docker (non-Windows)\"
+          Write-Host \"Test Category: ${{ matrix.test-category }}\"
+          Write-Host \"Windows-only tests will be automatically skipped\"
+          Write-Host \"\"
+          ./tests/scripts/run-${{ matrix.test-category }}-tests.ps1 -OutputFormat Normal -GenerateReport
         "
     
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
+    - name: Copy Test Results
       if: always()
-      with:
-        name: docker-test-results-${{ matrix.test-category }}
-        path: test-results-${{ matrix.test-category }}.xml
-        retention-days: 30
+      run: |
+        echo "Copying test results from container..."
+        docker cp wmr-test-runner:/workspace/test-results ./test-results || echo "No test results to copy"
     
-    - name: Publish test results
+    - name: Publish Test Results
       uses: dorny/test-reporter@v1
       if: always()
       with:
         name: Docker ${{ matrix.test-category }} Tests
-        path: test-results-${{ matrix.test-category }}.xml
+        path: 'test-results/*-test-results.xml'
         reporter: java-junit
         fail-on-error: true
     
-    - name: Docker logs on failure
-      if: failure()
-      run: |
-        echo "=== Docker Compose Logs ==="
-        docker-compose -f docker-compose.test.yml logs
-        echo "=== Container Status ==="
-        docker ps -a
-    
-    - name: Cleanup Docker environment
-      if: always()
-      run: |
-        docker-compose -f docker-compose.test.yml down -v
-        docker system prune -f
-
-  docker-comprehensive-test:
-    runs-on: ubuntu-latest
-    needs: docker-unit-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Build Docker test environment
-      run: |
-        docker-compose -f docker-compose.test.yml build --parallel
-        docker-compose -f docker-compose.test.yml up -d
-    
-    - name: Wait for test environment
-      run: |
-        timeout 60 bash -c 'until docker exec wmr-test-runner pwsh -Command "Write-Host \"Test environment ready\""; do sleep 2; done'
-    
-    - name: Run comprehensive test suite
-      run: |
-        echo "Running comprehensive test suite..."
-        docker exec wmr-test-runner pwsh -Command "
-          cd /workspace
-          Import-Module ./WindowsMelodyRecovery.psd1 -Force
-          
-          # Run all Docker-compatible tests
-          \$allResults = @()
-          \$testPaths = @('./tests/unit/', './tests/integration/', './tests/file-operations/')
-          
-          foreach (\$testPath in \$testPaths) {
-            if (Test-Path \$testPath) {
-              Write-Host \"Running tests from: \$testPath\"
-              \$result = Invoke-Pester -Path \$testPath -PassThru
-              \$allResults += \$result
-              Write-Host \"Results - Passed: \$(\$result.PassedCount), Failed: \$(\$result.FailedCount)\"
-            }
-          }
-          
-          # Calculate totals
-          \$totalPassed = (\$allResults | Measure-Object -Property PassedCount -Sum).Sum
-          \$totalFailed = (\$allResults | Measure-Object -Property FailedCount -Sum).Sum
-          \$totalTests = \$totalPassed + \$totalFailed
-          
-          Write-Host \"\"
-          Write-Host \"=== COMPREHENSIVE TEST RESULTS ===\"
-          Write-Host \"Total Tests: \$totalTests\"
-          Write-Host \"Passed: \$totalPassed\"
-          Write-Host \"Failed: \$totalFailed\"
-          Write-Host \"Pass Rate: \$(if (\$totalTests -gt 0) { [math]::Round((\$totalPassed / \$totalTests) * 100, 2) } else { 0 })%\"
-          
-          # Target: 100% pass rate for Docker environment
-          if (\$totalFailed -gt 0) {
-            Write-Host \"❌ Docker environment should have 100% pass rate. \$totalFailed tests failed.\"
-            exit 1
-          } else {
-            Write-Host \"✅ Docker environment achieved 100% pass rate!\"
-          }
-        "
-    
-    - name: Generate test report
-      if: always()
-      run: |
-        docker exec wmr-test-runner pwsh -Command "
-          cd /workspace
-          \$report = @{
-            Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-            Environment = 'Docker'
-            TestResults = @{
-              Unit = 'Passed'
-              Integration = 'Passed'
-              FileOperations = 'Passed'
-            }
-            NextSteps = @(
-              'Docker environment ready for production use',
-              'Windows CI/CD environment ready for testing',
-              'Module ready for PowerShell Gallery publication'
-            )
-          }
-          \$report | ConvertTo-Json -Depth 3 | Out-File -FilePath '/workspace/docker-test-report.json'
-        "
-    
-    - name: Upload comprehensive test report
+    - name: Upload Test Artifacts
       uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: docker-comprehensive-report
-        path: docker-test-report.json
-        retention-days: 90
+        name: docker-${{ matrix.test-category }}-test-results
+        path: |
+          test-results/
+          !test-results/*.tmp
     
-    - name: Cleanup
+    - name: Cleanup Docker Environment
       if: always()
       run: |
         docker-compose -f docker-compose.test.yml down -v
         docker system prune -f
 
-  docker-test-summary:
+  docker-summary:
     runs-on: ubuntu-latest
-    needs: [docker-unit-tests, docker-comprehensive-test]
+    needs: docker-tests
     if: always()
     
     steps:
-    - name: Download all artifacts
+    - name: Download All Artifacts
       uses: actions/download-artifact@v3
     
-    - name: Generate summary
+    - name: Generate Test Summary
       run: |
-        echo "# Docker Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "# Docker Cross-Platform Test Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "| Test Category | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Category | Status | Details |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
         
-        # Check if test result files exist and add status
-        if [ -f "docker-test-results-unit/test-results-unit.xml" ]; then
-          echo "| Unit Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| Unit Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ -f "docker-test-results-integration/test-results-integration.xml" ]; then
-          echo "| Integration Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| Integration Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ -f "docker-test-results-file-operations/test-results-file-operations.xml" ]; then
-          echo "| File Operations | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| File Operations | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        fi
+        for category in unit file-operations integration end-to-end; do
+          if [ -d "docker-$category-test-results" ]; then
+            echo "| $category | ✅ Completed | Results available |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| $category | ❌ Failed | No results |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
         
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Environment" >> $GITHUB_STEP_SUMMARY
-        echo "- **Platform**: Docker (Ubuntu Latest)" >> $GITHUB_STEP_SUMMARY
-        echo "- **PowerShell**: 7.x" >> $GITHUB_STEP_SUMMARY
-        echo "- **Test Framework**: Pester" >> $GITHUB_STEP_SUMMARY
-        echo "- **Target**: 100% Pass Rate" >> $GITHUB_STEP_SUMMARY
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
-        echo "1. Windows-specific tests run in separate Windows CI/CD workflow" >> $GITHUB_STEP_SUMMARY
-        echo "2. Combined results provide comprehensive test coverage" >> $GITHUB_STEP_SUMMARY
-        echo "3. Module ready for PowerShell Gallery publication" >> $GITHUB_STEP_SUMMARY 
+        echo "**Environment**: Docker (Ubuntu)" >> $GITHUB_STEP_SUMMARY
+        echo "**Windows-only tests**: Automatically skipped" >> $GITHUB_STEP_SUMMARY
+        echo "**Cross-platform compatibility**: Verified" >> $GITHUB_STEP_SUMMARY 

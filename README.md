@@ -31,21 +31,66 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 
 | Test Suite | Status | Coverage |
 |------------|--------|----------|
+| **Docker Cross-Platform** | [![Docker Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml) | Unit, file-ops, integration, e2e |
+| **Windows Native** | [![Windows Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml) | Windows-only functionality |
 | **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml) | Static analysis, style checks |
-| **Unit Tests** | [![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-green)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml) | Core functionality, configuration |
-| **Integration Tests** | [![Integration Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml) | Real Windows + WSL environment |
-| **WSL Testing** | [![WSL Tests](https://img.shields.io/badge/wsl%20tests-real%20ubuntu-blue)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml) | Real Ubuntu 22.04 in WSL 2 |
-| **Package Managers** | [![Package Tests](https://img.shields.io/badge/package%20tests-chocolatey%20%7C%20scoop%20%7C%20winget-orange)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml) | Real package manager testing |
 
-### 🔍 **Test Environment Details**
-- **Real Windows Server 2022** (GitHub Actions runners)
-- **Real WSL 2 + Ubuntu 22.04** (installed during tests)
-- **Real Package Managers** (Chocolatey, Scoop, Winget)
-- **Gaming Platform Simulation** (Steam, Epic, GOG, EA)
-- **Cloud Storage Simulation** (OneDrive, Google Drive, Dropbox)
-- **Comprehensive Reporting** ([View Latest Test Report](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml))
+### 🔍 **Dual CI/CD Testing Architecture**
 
-> 📊 **[View Detailed Test Results](https://github.com/cchamilt/WindowsMelodyRecovery/actions)** | **[Testing Documentation](.github/README.md)**
+#### 🐳 **Docker Cross-Platform Tests** 
+- **Environment**: Ubuntu containers with PowerShell
+- **Coverage**: Unit tests, file operations, integration tests, end-to-end workflows
+- **Windows-only handling**: Automatically skipped with `$IsWindows` detection
+- **Execution**: `run-unit-tests.ps1`, `run-file-operation-tests.ps1`, `run-integration-tests.ps1`, `run-end-to-end-tests.ps1`
+
+#### 🪟 **Windows Native Tests**
+- **Environment**: Windows Server 2022 (GitHub Actions runners)
+- **Coverage**: Windows-only functionality, admin privileges, registry operations
+- **Safety**: CI/CD environment detection, restore points, admin checks
+- **Execution**: `run-windows-tests.ps1` with safety mechanisms
+
+### 🎯 **Test Execution Modes**
+
+#### **Local Development (Cross-Platform)**
+```powershell
+# Run cross-platform tests (Windows-only tests skipped in Docker)
+./tests/scripts/run-unit-tests.ps1
+./tests/scripts/run-file-operation-tests.ps1
+./tests/scripts/run-integration-tests.ps1
+./tests/scripts/run-end-to-end-tests.ps1 -Timeout 30
+
+# Run specific tests
+./tests/scripts/run-unit-tests.ps1 -TestName "ConfigurationValidation"
+./tests/scripts/run-integration-tests.ps1 -TestName "cloud-provider-detection"
+```
+
+#### **Windows CI/CD (Windows-Only)**
+```powershell
+# Run Windows-only tests (CI/CD environment required)
+./tests/scripts/run-windows-tests.ps1 -Category unit
+./tests/scripts/run-windows-tests.ps1 -Category integration -RequireAdmin
+./tests/scripts/run-windows-tests.ps1 -Category all -CreateRestorePoint
+
+# Force execution in development (use with caution)
+./tests/scripts/run-windows-tests.ps1 -Category unit -Force
+```
+
+#### **Docker Environment**
+```powershell
+# Force Docker execution
+./tests/scripts/run-integration-tests.ps1 -UseDocker
+./tests/scripts/run-end-to-end-tests.ps1 -UseDocker -Timeout 30
+```
+
+### 🛡️ **Safety Features**
+
+- **Environment Detection**: Automatic Windows vs non-Windows detection
+- **CI/CD Protection**: Windows-only tests protected from development execution
+- **Admin Privilege Checks**: Ensures proper permissions for destructive tests
+- **Restore Point Creation**: System safety before destructive operations
+- **Test Isolation**: Safe test directories and comprehensive cleanup
+
+> 📊 **[View Detailed Test Results](https://github.com/cchamilt/WindowsMelodyRecovery/actions)** | **[Testing Documentation](docs/CI_CD_TESTING_STRATEGY.md)**
 
 ## 🚀 Quick Start
 
