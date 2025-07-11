@@ -281,7 +281,7 @@ function Get-WindowsCapabilitiesState {
     }
 }
 
-function Manage-WindowsService {
+function Set-WindowsService {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -330,7 +330,7 @@ function Set-RegistryValue {
     }
 }
 
-function Manage-ScheduledTask {
+function Set-ScheduledTask {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(

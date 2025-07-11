@@ -1,6 +1,6 @@
-# Setup-[Feature].ps1 - Template for setup scripts
+# Initialize-[Feature].ps1 - Template for setup scripts
 
-function Setup-[Feature] {
+function Initialize-[Feature] {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -72,11 +72,11 @@ It uses the environment configuration loaded by Import-Environment.
 Skip confirmation prompts and force installation/configuration.
 
 .EXAMPLE
-Setup-[Feature]
+Initialize-[Feature]
 Sets up [Feature] with interactive prompts.
 
 .EXAMPLE
-Setup-[Feature] -Force
+Initialize-[Feature] -Force
 Sets up [Feature] without prompts.
 
 .NOTES

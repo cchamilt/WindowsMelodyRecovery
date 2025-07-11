@@ -105,27 +105,27 @@ function Initialize-MockForTestType {
     if ($TestContext) {
         switch ($TestContext) {
             'ApplicationBackup' {
-                Enhance-ApplicationMockData -Scope $Scope
+                Update-ApplicationMockData -Scope $Scope
             }
             'GamingIntegration' {
-                Enhance-GamingMockData -Scope $Scope
+                Update-GamingMockData -Scope $Scope
             }
             'CloudSync' {
-                Enhance-CloudMockData -Scope $Scope
+                Update-CloudMockData -Scope $Scope
             }
             'WSLManagement' {
-                Enhance-WSLMockData -Scope $Scope
+                Update-WSLMockData -Scope $Scope
             }
             'SystemSettings' {
-                Enhance-SystemSettingsMockData -Scope $Scope
+                Update-SystemSettingsMockData -Scope $Scope
             }
             'CompleteWorkflow' {
                 # Enhance all components for end-to-end testing
-                Enhance-ApplicationMockData -Scope $Scope
-                Enhance-GamingMockData -Scope $Scope
-                Enhance-CloudMockData -Scope $Scope
-                Enhance-WSLMockData -Scope $Scope
-                Enhance-SystemSettingsMockData -Scope $Scope
+                Update-ApplicationMockData -Scope $Scope
+                Update-GamingMockData -Scope $Scope
+                Update-CloudMockData -Scope $Scope
+                Update-WSLMockData -Scope $Scope
+                Update-SystemSettingsMockData -Scope $Scope
             }
         }
     }
@@ -133,7 +133,7 @@ function Initialize-MockForTestType {
     Write-Information -MessageData "✓ Mock data initialized for $TestType/$TestContext" -InformationAction Continue
 }
 
-function Enhance-ApplicationMockData {
+function Update-ApplicationMockData {
     <#
     .SYNOPSIS
         Enhances application mock data with additional realistic details.
@@ -196,7 +196,7 @@ function Enhance-ApplicationMockData {
     Write-Verbose -Message "    ✓ Enhanced application configurations"
 }
 
-function Enhance-GamingMockData {
+function Update-GamingMockData {
     <#
     .SYNOPSIS
         Enhances gaming mock data with detailed game libraries and settings.
@@ -260,7 +260,7 @@ function Enhance-GamingMockData {
     Write-Verbose -Message "    ✓ Enhanced gaming configurations and libraries"
 }
 
-function Enhance-CloudMockData {
+function Update-CloudMockData {
     <#
     .SYNOPSIS
         Enhances cloud mock data with sync status and provider-specific features.
@@ -341,7 +341,7 @@ function Enhance-CloudMockData {
     Write-Verbose -Message "    ✓ Enhanced cloud provider settings and sync logs"
 }
 
-function Enhance-WSLMockData {
+function Update-WSLMockData {
     <#
     .SYNOPSIS
         Enhances WSL mock data with detailed distribution configurations and package lists.
@@ -454,7 +454,7 @@ syntax on
     Write-Verbose -Message "    ✓ Enhanced WSL packages, dotfiles, and configurations"
 }
 
-function Enhance-SystemSettingsMockData {
+function Update-SystemSettingsMockData {
     <#
     .SYNOPSIS
         Enhances system settings mock data with comprehensive Windows configurations.
@@ -623,7 +623,7 @@ function Get-MockDataForTest {
     return $null
 }
 
-function Validate-MockDataIntegrity {
+function Test-MockDataIntegrity {
     <#
     .SYNOPSIS
         Validates the integrity and completeness of mock data.

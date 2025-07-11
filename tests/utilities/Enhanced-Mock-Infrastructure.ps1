@@ -611,10 +611,10 @@ function Initialize-UnitMockData {
     New-Item -Path $unitMockPath -ItemType Directory -Force | Out-Null
 
     # Generate mock configuration objects
-    Generate-MockConfiguration -OutputPath (Join-Path $unitMockPath "configurations") -Scope $Scope
+    New-MockConfiguration -OutputPath (Join-Path $unitMockPath "configurations") -Scope $Scope
 
     # Generate sample template data
-    Generate-MockTemplateData -OutputPath (Join-Path $unitMockPath "templates") -Scope $Scope
+    New-MockTemplateData -OutputPath (Join-Path $unitMockPath "templates") -Scope $Scope
 
     Write-Information -MessageData "  ✓ Unit mock data generated" -InformationAction Continue
 }
@@ -637,22 +637,22 @@ function Initialize-IntegrationMockData {
 
         switch ($component) {
             'applications' {
-                Generate-ApplicationMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
+                New-ApplicationMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
             }
             'system-settings' {
-                Generate-SystemSettingsMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
+                New-SystemSettingsMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
             }
             'gaming' {
-                Generate-GamingMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
+                New-GamingMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
             }
             'cloud' {
-                Generate-CloudMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
+                New-CloudMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
             }
             'wsl' {
-                Generate-WSLMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
+                New-WSLMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
             }
             'registry' {
-                Generate-RegistryMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
+                New-RegistryMockData -OutputPath $componentPath -Scope $Scope -Force:$Force
             }
         }
 
@@ -673,13 +673,13 @@ function Initialize-FileOperationsMockData {
     $fileOpsMockPath = Join-Path $MockRoot "file-operations"
 
     # Generate realistic AppData structure
-    Generate-AppDataStructure -OutputPath (Join-Path $fileOpsMockPath "appdata") -Scope $Scope
+    New-AppDataStructure -OutputPath (Join-Path $fileOpsMockPath "appdata") -Scope $Scope
 
     # Generate Program Files structure
-    Generate-ProgramFilesStructure -OutputPath (Join-Path $fileOpsMockPath "programfiles") -Scope $Scope
+    New-ProgramFilesStructure -OutputPath (Join-Path $fileOpsMockPath "programfiles") -Scope $Scope
 
     # Generate test configuration files
-    Generate-ConfigurationFiles -OutputPath (Join-Path $fileOpsMockPath "configs") -Scope $Scope
+    New-ConfigurationFiles -OutputPath (Join-Path $fileOpsMockPath "configs") -Scope $Scope
 
     Write-Information -MessageData "  ✓ File operations mock data generated" -InformationAction Continue
 }
@@ -697,18 +697,18 @@ function Initialize-EndToEndMockData {
     $e2eMockPath = Join-Path $MockRoot "end-to-end"
 
     # Generate multiple user profiles
-    Generate-UserProfileMockData -OutputPath (Join-Path $e2eMockPath "users") -Scope $Scope
+    New-UserProfileMockData -OutputPath (Join-Path $e2eMockPath "users") -Scope $Scope
 
     # Generate system state data
-    Generate-SystemStateMockData -OutputPath (Join-Path $e2eMockPath "system") -Scope $Scope
+    New-SystemStateMockData -OutputPath (Join-Path $e2eMockPath "system") -Scope $Scope
 
     # Generate network and hardware configurations
-    Generate-HardwareMockData -OutputPath (Join-Path $e2eMockPath "hardware") -Scope $Scope
+    New-HardwareMockData -OutputPath (Join-Path $e2eMockPath "hardware") -Scope $Scope
 
     Write-Information -MessageData "  ✓ End-to-end mock data generated" -InformationAction Continue
 }
 
-function Generate-ApplicationMockData {
+function New-ApplicationMockData {
     <#
     .SYNOPSIS
         Generates realistic application installation and configuration data.
@@ -757,7 +757,7 @@ function Generate-ApplicationMockData {
     Write-Verbose -Message "    ✓ Application mock data: winget, chocolatey, scoop"
 }
 
-function Generate-GamingMockData {
+function New-GamingMockData {
     <#
     .SYNOPSIS
         Generates realistic gaming platform data (Steam, Epic, GOG, EA).
@@ -837,7 +837,7 @@ libraryPath=C:\Program Files (x86)\GOG Galaxy\Games
     Write-Verbose -Message "    ✓ Gaming mock data: Steam, Epic, GOG, EA"
 }
 
-function Generate-SystemSettingsMockData {
+function New-SystemSettingsMockData {
     <#
     .SYNOPSIS
         Generates realistic Windows system settings data.
@@ -886,7 +886,7 @@ function Generate-SystemSettingsMockData {
     Write-Verbose -Message "    ✓ System settings mock data: display, power, network, sound, input"
 }
 
-function Generate-CloudMockData {
+function New-CloudMockData {
     <#
     .SYNOPSIS
         Generates realistic cloud storage provider data.
@@ -930,7 +930,7 @@ function Generate-CloudMockData {
     Write-Verbose -Message "    ✓ Cloud provider mock data: OneDrive, GoogleDrive, Dropbox, Box"
 }
 
-function Generate-WSLMockData {
+function New-WSLMockData {
     <#
     .SYNOPSIS
         Generates realistic WSL distribution and package data.
@@ -1008,7 +1008,7 @@ default=$($distro.DefaultUser)
     Write-Verbose -Message "    ✓ WSL mock data: Ubuntu, Debian, packages, configurations"
 }
 
-function Generate-RegistryMockData {
+function New-RegistryMockData {
     <#
     .SYNOPSIS
         Generates realistic Windows registry data for testing.
@@ -1050,7 +1050,7 @@ function Generate-RegistryMockData {
     Write-Verbose -Message "    ✓ Registry mock data: Explorer, Desktop, Themes, System"
 }
 
-function Generate-AppDataStructure {
+function New-AppDataStructure {
     <#
     .SYNOPSIS
         Generates realistic AppData directory structure with configuration files.
@@ -1082,7 +1082,7 @@ function Generate-AppDataStructure {
     Write-Verbose -Message "    ✓ AppData structure: browser configs, app settings, user data"
 }
 
-function Generate-ProgramFilesStructure {
+function New-ProgramFilesStructure {
     <#
     .SYNOPSIS
         Generates realistic Program Files directory structure.
@@ -1111,7 +1111,7 @@ function Generate-ProgramFilesStructure {
     Write-Verbose -Message "    ✓ Program Files structure: applications, executables, metadata"
 }
 
-function Generate-MockConfiguration {
+function New-MockConfiguration {
     <#
     .SYNOPSIS
         Generates mock configuration objects for unit testing.
@@ -1149,7 +1149,7 @@ function Generate-MockConfiguration {
     $restoreConfig | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $OutputPath "restore-config.json") -Encoding UTF8
 }
 
-function Generate-MockTemplateData {
+function New-MockTemplateData {
     <#
     .SYNOPSIS
         Generates mock template data for template processing tests.
@@ -1309,12 +1309,12 @@ function Reset-EnhancedMockData {
 
         # Regenerate specific component
         switch ($Component) {
-            'applications' { Generate-ApplicationMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
-            'gaming' { Generate-GamingMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
-            'cloud' { Generate-CloudMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
-            'wsl' { Generate-WSLMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
-            'system-settings' { Generate-SystemSettingsMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
-            'registry' { Generate-RegistryMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
+            'applications' { New-ApplicationMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
+            'gaming' { New-GamingMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
+            'cloud' { New-CloudMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
+            'wsl' { New-WSLMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
+            'system-settings' { New-SystemSettingsMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
+            'registry' { New-RegistryMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
         }
 
         Write-Information -MessageData "  ✓ Regenerated $Component mock data" -InformationAction Continue

@@ -448,8 +448,8 @@ if ($script:IsDockerEnvironment) {
         }
     }
 
-    if (-not (Get-Command Manage-WindowsService -ErrorAction SilentlyContinue)) {
-        function Manage-WindowsService {
+    if (-not (Get-Command Set-WindowsService -ErrorAction SilentlyContinue)) {
+        function Set-WindowsService {
             [CmdletBinding()]
             param(
                 [Parameter(Mandatory)]
@@ -489,8 +489,8 @@ if ($script:IsDockerEnvironment) {
         }
     }
 
-    if (-not (Get-Command Manage-ScheduledTask -ErrorAction SilentlyContinue)) {
-        function Manage-ScheduledTask {
+    if (-not (Get-Command Set-ScheduledTask -ErrorAction SilentlyContinue)) {
+        function Set-ScheduledTask {
             [CmdletBinding()]
             param(
                 [Parameter(Mandatory)]
