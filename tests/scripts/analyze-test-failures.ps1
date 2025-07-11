@@ -166,7 +166,7 @@ function Get-TestFailureAnalysis {
     return $testResults
 }
 
-function Generate-MigrationPlan {
+function New-MigrationPlan {
     param(
         [hashtable]$AnalysisResults
     )
@@ -270,7 +270,7 @@ if (-not (Test-Path '/.dockerenv') -and $env:DOCKER_TEST -ne 'true') {
 
 # Run the analysis
 $analysisResults = Get-TestFailureAnalysis -TestDirectory $TestPath
-$migrationPlan = Generate-MigrationPlan -AnalysisResults $analysisResults
+$migrationPlan = New-MigrationPlan -AnalysisResults $analysisResults
 
 # Display summary
 Write-Information -MessageData "`n📊 ANALYSIS SUMMARY" -InformationAction Continue
@@ -310,3 +310,9 @@ Write-Information -MessageData "4. Move Windows -InformationAction Continue-only
 Write-Information -MessageData "5. Implement GitHub Actions dual -InformationAction Continue-environment workflows" -ForegroundColor White
 
 Write-Information -MessageData "`n✅ Analysis completed successfully!" -InformationAction Continue
+
+
+
+
+
+

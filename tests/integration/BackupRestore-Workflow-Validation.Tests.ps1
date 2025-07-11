@@ -7,7 +7,7 @@ BeforeAll {
 
     # Import setup scripts
     . "$PSScriptRoot/../../Private/setup/setup-bitlocker.ps1"
-    . "$PSScriptRoot/../../Private/setup/setup-windowsbackup.ps1"
+    . "$PSScriptRoot/../../Private/setup/Initialize-WindowsBackup.ps1"
 
     # Test environment setup
     $script:TestWorkspace = Join-Path $env:TEMP "WorkflowTest_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
@@ -413,7 +413,7 @@ Describe "System Restore Workflow Validation" {
         }
 
         It "Should restore Windows Backup configuration" {
-            Mock Setup-WindowsBackup {
+            Mock Initialize-WindowsBackup {
                 return @{
                     Success = $true
                     FileHistoryConfigured = $true
@@ -422,7 +422,7 @@ Describe "System Restore Workflow Validation" {
             }
 
             if ($script:IsAdmin) {
-                $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                $result = Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 $result.Success | Should -Be $true
             }
         }
@@ -525,3 +525,8 @@ Describe "End-to-End Backup and Restore Workflow" {
         }
     }
 }
+
+
+
+
+

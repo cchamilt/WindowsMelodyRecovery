@@ -1,4 +1,4 @@
-function Setup-GOGGames {
+function Initialize-GOGGames {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -168,5 +168,14 @@ function Setup-GOGGames {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 

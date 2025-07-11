@@ -1,6 +1,6 @@
 # Setup-Defender.ps1 - Configure Windows Defender settings
 
-function Setup-Defender {
+function Enable-Defender {
     [CmdletBinding()]
     param()
 
@@ -105,6 +105,15 @@ function Setup-Defender {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 

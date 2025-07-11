@@ -1,4 +1,4 @@
-function Setup-KeePassXC {
+function Initialize-KeePassXC {
     [CmdletBinding()]
     param()
 
@@ -43,5 +43,14 @@ function Setup-KeePassXC {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 

@@ -1,4 +1,4 @@
-function Setup-EpicGames {
+function Initialize-EpicGames {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -209,5 +209,14 @@ function Setup-EpicGames {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 

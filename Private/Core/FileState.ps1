@@ -325,3 +325,9 @@ function Set-WmrFileState {
 
     Write-Verbose "File state restored for $($FileConfig.name) to $destinationPath"
 }
+
+
+
+
+
+

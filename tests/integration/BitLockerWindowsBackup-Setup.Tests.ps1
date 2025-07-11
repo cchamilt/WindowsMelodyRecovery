@@ -1,5 +1,5 @@
 # BitLocker and Windows Backup Setup Integration Tests
-# Tests for setup-bitlocker.ps1 and setup-windowsbackup.ps1
+# Tests for setup-bitlocker.ps1 and Initialize-WindowsBackup.ps1
 
 BeforeAll {
     # Import the module
@@ -7,7 +7,7 @@ BeforeAll {
 
     # Import setup scripts
     . "$PSScriptRoot/../../Private/setup/setup-bitlocker.ps1"
-    . "$PSScriptRoot/../../Private/setup/setup-windowsbackup.ps1"
+    . "$PSScriptRoot/../../Private/setup/Initialize-WindowsBackup.ps1"
 
     # Test data setup
     $script:TestBackupLocation = Join-Path $env:TEMP "TestBackup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
@@ -193,27 +193,27 @@ Describe "Windows Backup Setup Script Tests" {
     }
 
     Context "Windows Backup Setup Function Validation" {
-        It "Should have Setup-WindowsBackup function available" {
-            Get-Command Setup-WindowsBackup -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        It "Should have Initialize-WindowsBackup function available" {
+            Get-Command Initialize-WindowsBackup -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
 
         It "Should require administrator privileges" {
             if (-not $script:IsAdmin) {
                 Mock Write-Warning {}
-                $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                $result = Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 $result | Should -Be $false
                 Should -Invoke Write-Warning -Times 1
             }
         }
 
         It "Should accept valid backup frequency values" {
-            { Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Daily' } | Should -Not -Throw
-            { Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Weekly' } | Should -Not -Throw
-            { Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Monthly' } | Should -Not -Throw
+            { Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Daily' } | Should -Not -Throw
+            { Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Weekly' } | Should -Not -Throw
+            { Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Monthly' } | Should -Not -Throw
         }
 
         It "Should reject invalid backup frequency values" {
-            { Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Hourly' } | Should -Throw
+            { Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -BackupFrequency 'Hourly' } | Should -Throw
         }
     }
 
@@ -223,7 +223,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Get-Service -Times 1
             }
         }
@@ -234,7 +234,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Warning {}
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Write-Warning -AtLeast 1
             }
         }
@@ -245,7 +245,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Start-Service -Times 1
             }
         }
@@ -258,7 +258,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
                 Should -Invoke Get-WmiObject -Times 1
             }
         }
@@ -268,7 +268,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Warning {}
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
                 Should -Invoke Write-Warning -AtLeast 1
             }
         }
@@ -280,7 +280,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
                 Should -Invoke New-Item -Times 1
             }
         }
@@ -294,7 +294,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableSystemImageBackup
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableSystemImageBackup
                 Should -Invoke Set-ItemProperty -AtLeast 1
             }
         }
@@ -304,7 +304,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Warning {}
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableSystemImageBackup
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableSystemImageBackup
                 Should -Invoke Write-Warning -AtLeast 1
             }
         }
@@ -322,7 +322,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Register-ScheduledTask -Times 1
             }
         }
@@ -339,7 +339,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Unregister-ScheduledTask -Times 1
             }
         }
@@ -349,7 +349,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Warning {}
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Write-Warning -AtLeast 1
             }
         }
@@ -368,7 +368,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -RetentionDays 7
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation -RetentionDays 7
                 Should -Invoke Register-ScheduledTask -Times 2 # Main backup + cleanup task
             }
         }
@@ -378,7 +378,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Write-Warning {}
 
             if ($script:IsAdmin) {
-                Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Write-Warning -AtLeast 1
             }
         }
@@ -468,7 +468,7 @@ Describe "Setup Scripts Integration Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                $result = Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 $result | Should -Be $false
             }
         }
@@ -492,7 +492,7 @@ Describe "Setup Scripts Integration Tests" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                $result = Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 $result | Should -BeOfType [bool]
             }
         }
@@ -518,10 +518,16 @@ Describe "Setup Scripts Configuration Validation" {
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
-                $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
+                $result = Initialize-WindowsBackup -BackupLocation $script:TestBackupLocation
                 Should -Invoke Write-Host -ParameterFilter { $Object -match "configuration|completed|successfully" }
             }
         }
     }
 }
+
+
+
+
+
+
 

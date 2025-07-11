@@ -37,7 +37,7 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
             # For local testing, we'll check if the function exists
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
 
-            $setupFunction = Get-Command Setup-Chezmoi -ErrorAction SilentlyContinue
+            $setupFunction = Get-Command Initialize-Chezmoi -ErrorAction SilentlyContinue
             $setupFunction | Should -Not -BeNullOrEmpty
         }
 
@@ -45,8 +45,8 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
 
             $functions = @(
-                'Setup-Chezmoi',
-                'Setup-WSLChezmoi'
+                'Initialize-Chezmoi',
+                'Initialize-WSLChezmoi'
             )
 
             foreach ($function in $functions) {
@@ -55,7 +55,7 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
         }
 
         It "Should validate chezmoi installation script syntax" {
-            $chezmoiSetupPath = Join-Path $PSScriptRoot "../../Private/setup/setup-chezmoi.ps1"
+            $chezmoiSetupPath = Join-Path $PSScriptRoot "../../Private/setup/Initialize-Chezmoi.ps1"
             if (Test-Path $chezmoiSetupPath) {
                 { [System.Management.Automation.PSParser]::Tokenize((Get-Content $chezmoiSetupPath -Raw), [ref]$null) } | Should -Not -Throw
             } else {
@@ -288,7 +288,7 @@ echo "Username: {{ .chezmoi.username }}"
             $wslSetupFunctions | Should -Not -BeNullOrEmpty
 
             # Check for specific chezmoi setup function
-            $chezmoiSetupFunction = Get-Command Setup-WSLChezmoi -ErrorAction SilentlyContinue
+            $chezmoiSetupFunction = Get-Command Initialize-WSLChezmoi -ErrorAction SilentlyContinue
             $chezmoiSetupFunction | Should -Not -BeNullOrEmpty
         }
 
@@ -337,7 +337,7 @@ echo "Username: {{ .chezmoi.username }}"
 
             # Test that setup function handles missing WSL
             try {
-                Setup-Chezmoi -ErrorAction Stop
+                Initialize-Chezmoi -ErrorAction Stop
             } catch {
                 $_.Exception.Message | Should -Match "WSL"
             }
@@ -447,3 +447,9 @@ AfterAll {
     # Remove module
     Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
 }
+
+
+
+
+
+

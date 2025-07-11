@@ -413,7 +413,7 @@ Describe "Configuration Merging" {
 }
 
 Describe "Inheritance Rules Application" {
-    Context "Apply-WmrInheritanceRules" {
+    Context "Invoke-WmrInheritanceRules" {
         It "Should apply inheritance rules to matching sections" {
             $resolvedConfig = @{
                 registry = @(
@@ -428,7 +428,7 @@ Describe "Inheritance Rules Application" {
 
             $inheritanceRules = $script:InheritanceTemplate.inheritance_rules
 
-            $result = Apply-WmrInheritanceRules -ResolvedConfig $resolvedConfig -InheritanceRules $inheritanceRules -MachineContext $script:TestMachineContext
+            $result = Invoke-WmrInheritanceRules -ResolvedConfig $resolvedConfig -InheritanceRules $inheritanceRules -MachineContext $script:TestMachineContext
 
             $result.registry | Should -Not -BeNull
             $result.registry.Count | Should -BeGreaterThan 0  # Should have at least some registry items
@@ -475,12 +475,12 @@ Describe "Inheritance Rules Application" {
 }
 
 Describe "Conditional Sections" {
-    Context "Apply-WmrConditionalSections" {
+    Context "Invoke-WmrConditionalSections" {
         It "Should apply conditional sections when conditions are met" {
             $resolvedConfig = @{ metadata = @{ name = "Test" } }
             $conditionalSections = $script:InheritanceTemplate.conditional_sections
 
-            $result = Apply-WmrConditionalSections -ResolvedConfig $resolvedConfig -ConditionalSections $conditionalSections -MachineContext $script:TestMachineContext
+            $result = Invoke-WmrConditionalSections -ResolvedConfig $resolvedConfig -ConditionalSections $conditionalSections -MachineContext $script:TestMachineContext
 
             $result.files | Should -Not -BeNull
             $result.files.Count | Should -Be 1
@@ -683,4 +683,10 @@ AfterAll {
         # Clean up test data if needed
     }
 }
+
+
+
+
+
+
 

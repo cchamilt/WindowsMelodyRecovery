@@ -1,6 +1,6 @@
-# Setup-WindowsBackup.ps1 - Configure Windows Backup service and settings
+# Initialize-WindowsBackup.ps1 - Configure Windows Backup service and settings
 
-function Setup-WindowsBackup {
+function Initialize-WindowsBackup {
     [CmdletBinding()]
     param(
         [string]$BackupLocation,
@@ -355,4 +355,13 @@ function Start-WindowsBackupManual {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 

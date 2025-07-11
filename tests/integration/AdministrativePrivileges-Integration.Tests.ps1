@@ -379,10 +379,10 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             # Test admin-required setup scripts in CI/CD environment
             $setupScripts = @(
                 "setup-defender.ps1",
-                "setup-packagemanagers.ps1",
-                "setup-removebloat.ps1",
-                "setup-restorepoints.ps1",
-                "setup-wsl-fonts.ps1"
+                "Initialize-PackageManagers.ps1",
+                "Remove-Bloat.ps1",
+                "Initialize-RestorePoints.ps1",
+                "Initialize-WSL-fonts.ps1"
             )
 
             foreach ($scriptName in $setupScripts) {
@@ -416,9 +416,9 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             Mock -CommandName "Import-PrivateScripts" -MockWith { }
 
             # Mock setup functions to avoid actual system changes
-            Mock -CommandName "Setup-PackageManagers" -MockWith { return @{ Success = $true } }
+            Mock -CommandName "Initialize-PackageManagers" -MockWith { return @{ Success = $true } }
             Mock -CommandName "Setup-WindowsDefender" -MockWith { return @{ Success = $true } }
-            Mock -CommandName "Setup-RestorePoints" -MockWith { return @{ Success = $true } }
+            Mock -CommandName "Initialize-RestorePoints" -MockWith { return @{ Success = $true } }
 
             # Test the function logic
             $result = Setup-WindowsMelodyRecovery -NoPrompt
@@ -531,3 +531,10 @@ AfterAll {
 
     Write-Information -MessageData "Administrative privilege integration tests completed" -InformationAction Continue
 }
+
+
+
+
+
+
+

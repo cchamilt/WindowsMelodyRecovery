@@ -1,6 +1,6 @@
-# Setup-WSLFonts.ps1 - Install development fonts for WSL
+# Initialize-WSLFonts.ps1 - Install development fonts for WSL
 
-function Setup-WSLFonts {
+function Initialize-WSLFonts {
     [CmdletBinding()]
     param()
 
@@ -179,6 +179,15 @@ function Setup-WSLFonts {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 

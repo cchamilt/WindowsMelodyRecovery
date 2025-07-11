@@ -377,3 +377,9 @@ function Test-WmrEncryption {
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
 # Available functions: Protect-WmrData, Unprotect-WmrData, Get-WmrEncryptionKey, Clear-WmrEncryptionCache, Test-WmrEncryption
+
+
+
+
+
+

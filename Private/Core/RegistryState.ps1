@@ -197,3 +197,9 @@ function Set-WmrRegistryState {
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
 # Available functions: Get-WmrRegistryState, Set-WmrRegistryState
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-function Setup-WSL {
+function Initialize-WSL {
     [CmdletBinding()]
     param()
 
@@ -289,9 +289,9 @@ echo "Usage: check-repos"
                 if ($response -eq 'Y') {
                     $gitRepo = Read-Host "Enter your dotfiles git repository URL (or press Enter to skip)"
                     if ($gitRepo) {
-                        Setup-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
+                        Initialize-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
                     } else {
-                        Setup-WSLChezmoi
+                        Initialize-WSLChezmoi
                     }
                     Write-Information -MessageData "✅ chezmoi setup completed" -InformationAction Continue
                 } else {
@@ -320,4 +320,13 @@ echo "Usage: check-repos"
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 

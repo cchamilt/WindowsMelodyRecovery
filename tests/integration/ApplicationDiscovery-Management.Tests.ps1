@@ -57,16 +57,16 @@ BeforeAll {
     # Create mock available setup scripts
     $script:MockSetupScripts = @(
         @{
-            Name = "setup-packagemanagers"
-            FileName = "setup-packagemanagers.ps1"
+            Name = "Initialize-PackageManagers"
+            FileName = "Initialize-PackageManagers.ps1"
             Description = "Install and configure package managers"
             Category = "System"
             RequiresAdmin = $true
             Dependencies = @()
         },
         @{
-            Name = "setup-wsl"
-            FileName = "setup-wsl.ps1"
+            Name = "Initialize-WSL"
+            FileName = "Initialize-WSL.ps1"
             Description = "Configure Windows Subsystem for Linux"
             Category = "Development"
             RequiresAdmin = $true
@@ -432,7 +432,7 @@ Describe "Configuration Selection Tests" {
         }
 
         It "Should categorize setup scripts correctly" {
-            $category1 = Get-SetupScriptCategory -ScriptName "setup-wsl"
+            $category1 = Get-SetupScriptCategory -ScriptName "Initialize-WSL"
             $category2 = Get-SetupScriptCategory -ScriptName "setup-defender"
             $category3 = Get-SetupScriptCategory -ScriptName "setup-steam-games"
             $category4 = Get-SetupScriptCategory -ScriptName "setup-unknown"
@@ -468,7 +468,7 @@ Describe "Configuration Selection Tests" {
             $profile = New-ConfigurationProfile -ProfileName "Developer" -OutputPath $TestConfigurationProfilesPath -AvailableScripts $script:MockSetupScripts
 
             $profile.categories.Development.enabled | Should -Be $true
-            $profile.setup_scripts | Should -Contain "setup-wsl"
+            $profile.setup_scripts | Should -Contain "Initialize-WSL"
         }
 
         It "Should create gamer profile with appropriate scripts" {
@@ -517,22 +517,22 @@ Describe "Configuration Selection Tests" {
             $selectedScripts = Invoke-AutomaticScriptSelection -AvailableScripts $script:MockSetupScripts
 
             $selectedScripts | Should -Not -BeNullOrEmpty
-            $selectedScripts | Should -Contain "setup-packagemanagers"
-            $selectedScripts | Should -Contain "setup-wsl"
+            $selectedScripts | Should -Contain "Initialize-PackageManagers"
+            $selectedScripts | Should -Contain "Initialize-WSL"
             $selectedScripts | Should -Contain "setup-steam-games"
         }
 
         It "Should handle profile-based script selection" {
             $profile = @{
-                setup_scripts = @("setup-packagemanagers", "setup-wsl")
+                setup_scripts = @("Initialize-PackageManagers", "Initialize-WSL")
             }
 
             $selectedScripts = Get-ProfileScriptSelection -Profile $profile
 
             $selectedScripts | Should -Not -BeNullOrEmpty
             $selectedScripts.Count | Should -Be 2
-            $selectedScripts | Should -Contain "setup-packagemanagers"
-            $selectedScripts | Should -Contain "setup-wsl"
+            $selectedScripts | Should -Contain "Initialize-PackageManagers"
+            $selectedScripts | Should -Contain "Initialize-WSL"
         }
 
         It "Should support WhatIf mode for script selection" {
@@ -548,7 +548,7 @@ Describe "Configuration Selection Tests" {
         It "Should create setup execution plan" {
             $profile = @{
                 metadata = @{ name = "TestProfile" }
-                setup_scripts = @("setup-packagemanagers", "setup-wsl", "setup-steam-games")
+                setup_scripts = @("Initialize-PackageManagers", "Initialize-WSL", "setup-steam-games")
             }
 
             $executionPlan = New-SetupExecutionPlan -Profile $profile -AvailableScripts $script:MockSetupScripts
@@ -565,7 +565,7 @@ Describe "Configuration Selection Tests" {
         It "Should organize scripts by execution phase" {
             $profile = @{
                 metadata = @{ name = "TestProfile" }
-                setup_scripts = @("setup-packagemanagers", "setup-wsl", "setup-steam-games")
+                setup_scripts = @("Initialize-PackageManagers", "Initialize-WSL", "setup-steam-games")
             }
 
             $executionPlan = New-SetupExecutionPlan -Profile $profile -AvailableScripts $script:MockSetupScripts
@@ -738,3 +738,9 @@ AfterAll {
         Remove-Item -Path $TestDrive -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
+
+
+
+
+
+

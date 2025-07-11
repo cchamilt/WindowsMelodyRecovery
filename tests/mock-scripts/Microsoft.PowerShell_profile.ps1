@@ -5,3 +5,9 @@ Write-Information -MessageData "[MOCK PROFILE] Microsoft.PowerShell_profile.ps1 
 function prompt {
     "[MOCK-PS] PS $($executionContext.SessionState.Path.CurrentLocation)> "
 }
+
+
+
+
+
+

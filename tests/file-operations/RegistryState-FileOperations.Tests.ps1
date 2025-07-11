@@ -591,3 +591,9 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
         }
     }
 }
+
+
+
+
+
+

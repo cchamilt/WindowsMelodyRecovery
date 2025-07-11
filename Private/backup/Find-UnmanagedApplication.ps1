@@ -288,3 +288,9 @@ try {
     Write-Error "Unmanaged applications analysis failed: $_"
     return $null
 }
+
+
+
+
+
+

@@ -77,7 +77,7 @@ if (Test-Path $loadEnvPath) {
     Write-Warning "Load environment script not found at: $loadEnvPath"
 }
 
-function Setup-ApplicationDiscovery {
+function Initialize-ApplicationDiscovery {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$false)]
@@ -196,14 +196,14 @@ function Invoke-UnmanagedApplicationDiscovery {
     }
 
     try {
-        # Use existing analyze-unmanaged.ps1 script
-        $analyzeScript = Join-Path $PSScriptRoot "..\backup\analyze-unmanaged.ps1"
+        # Use existing Find-UnmanagedApplication script
+        $analyzeScript = Join-Path $PSScriptRoot "..\backup\Find-UnmanagedApplication.ps1"
         if (Test-Path $analyzeScript) {
             Write-Verbose -Message "Running unmanaged application analysis..."
             $result = & $analyzeScript -WhatIf:$WhatIfPreference
             return $result
         } else {
-            Write-Warning "Analyze-unmanaged script not found at: $analyzeScript"
+            Write-Warning "Find-UnmanagedApplication script not found at: $analyzeScript"
             return @()
         }
     } catch {
@@ -663,4 +663,13 @@ function Test-ApplicationDiscoveryStatus {
 if ($MyInvocation.InvocationName -ne '.') {
     Setup-ApplicationDiscovery -DiscoveryMode $DiscoveryMode -OutputFormat $OutputFormat -UserListPath $UserListPath -CreateUserLists:$CreateUserLists -DocumentInstallation:$DocumentInstallation
 }
+
+
+
+
+
+
+
+
+
 

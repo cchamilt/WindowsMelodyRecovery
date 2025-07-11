@@ -138,3 +138,9 @@ function Set-MockRegistryValue {
 
     Write-Information -MessageData "✓ Set mock registry value: $KeyPath\$ValueName = $Value" -InformationAction Continue
 }
+
+
+
+
+
+

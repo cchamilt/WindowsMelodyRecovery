@@ -1,4 +1,4 @@
-function Setup-CustomProfiles {
+function Initialize-CustomProfiles {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -56,5 +56,14 @@ function Setup-CustomProfiles {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 

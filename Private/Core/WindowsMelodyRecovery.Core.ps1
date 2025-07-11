@@ -530,7 +530,7 @@ echo "Repository check completed!"
     }
 }
 
-function Setup-WSLChezmoi {
+function Initialize-WSLChezmoi {
     <#
     .SYNOPSIS
     Install and configure chezmoi for dotfile management in WSL
@@ -545,7 +545,7 @@ function Setup-WSLChezmoi {
     Whether to initialize chezmoi with the repository
 
     .EXAMPLE
-    Setup-WSLChezmoi -GitRepository "https://github.com/username/dotfiles.git" -InitializeRepo
+    Initialize-WSLChezmoi -GitRepository "https://github.com/username/dotfiles.git" -InitializeRepo
     #>
     [CmdletBinding()]
     param(
@@ -860,4 +860,10 @@ echo "✅ chezmoi restore completed!"
         return $false
     }
 }
+
+
+
+
+
+
 

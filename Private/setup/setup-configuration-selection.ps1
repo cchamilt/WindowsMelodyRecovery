@@ -76,7 +76,7 @@ if (Test-Path $loadEnvPath) {
     Write-Warning "Load environment script not found at: $loadEnvPath"
 }
 
-function Setup-ConfigurationSelection {
+function Initialize-ConfigurationSelection {
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType([System.Boolean])]
     param(
@@ -249,8 +249,8 @@ function Get-SetupScriptCategory {
 
     # Categorize scripts based on naming patterns
     switch -Regex ($ScriptName) {
-        "setup-wsl" { return "Development" }
-        "setup-packagemanagers" { return "System" }
+        "Initialize-WSL" { return "Development" }
+        "Initialize-PackageManagers" { return "System" }
         "setup-customprofiles" { return "System" }
         "setup-defender" { return "Security" }
         "setup-.*-games" { return "Gaming" }
@@ -258,11 +258,11 @@ function Get-SetupScriptCategory {
         "setup-epic" { return "Gaming" }
         "setup-gog" { return "Gaming" }
         "setup-ea" { return "Gaming" }
-        "setup-chezmoi" { return "Development" }
-        "setup-removebloat" { return "System" }
-        "setup-restorepoints" { return "System" }
+        "Initialize-Chezmoi" { return "Development" }
+        "Remove-Bloat" { return "System" }
+        "Initialize-RestorePoints" { return "System" }
         "setup-keepassxc" { return "Security" }
-        "setup-wsl-fonts" { return "Development" }
+        "Initialize-WSL-fonts" { return "Development" }
         default { return "Other" }
     }
 }
@@ -334,27 +334,27 @@ function New-ConfigurationProfile {
         # Set default scripts based on profile type
         switch ($ProfileName) {
             "Developer" {
-                $configProfile.setup_scripts = @("setup-wsl", "setup-packagemanagers", "setup-chezmoi", "setup-customprofiles")
-                $configProfile.script_categories.development = @("setup-wsl", "setup-chezmoi", "setup-wsl-fonts")
-                $configProfile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.setup_scripts = @("Initialize-WSL", "Initialize-PackageManagers", "Initialize-Chezmoi", "setup-customprofiles")
+                $configProfile.script_categories.development = @("Initialize-WSL", "Initialize-Chezmoi", "Initialize-WSL-fonts")
+                $configProfile.script_categories.system = @("Initialize-PackageManagers", "setup-customprofiles")
             }
             "Gamer" {
                 $configProfile.setup_scripts = @("setup-steam-games", "setup-epic-games", "setup-gog-games", "setup-ea-games")
                 $configProfile.script_categories.gaming = @("setup-steam-games", "setup-epic-games", "setup-gog-games", "setup-ea-games")
-                $configProfile.script_categories.system = @("setup-packagemanagers")
+                $configProfile.script_categories.system = @("Initialize-PackageManagers")
             }
             "Security" {
-                $configProfile.setup_scripts = @("setup-defender", "setup-keepassxc", "setup-removebloat")
+                $configProfile.setup_scripts = @("setup-defender", "setup-keepassxc", "Remove-Bloat")
                 $configProfile.script_categories.security = @("setup-defender", "setup-keepassxc")
-                $configProfile.script_categories.system = @("setup-removebloat", "setup-restorepoints")
+                $configProfile.script_categories.system = @("Remove-Bloat", "Initialize-RestorePoints")
             }
             "Minimal" {
-                $configProfile.setup_scripts = @("setup-packagemanagers", "setup-customprofiles")
-                $configProfile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.setup_scripts = @("Initialize-PackageManagers", "setup-customprofiles")
+                $configProfile.script_categories.system = @("Initialize-PackageManagers", "setup-customprofiles")
             }
             "Default" {
-                $configProfile.setup_scripts = @("setup-packagemanagers", "setup-customprofiles", "setup-defender")
-                $configProfile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.setup_scripts = @("Initialize-PackageManagers", "setup-customprofiles", "setup-defender")
+                $configProfile.script_categories.system = @("Initialize-PackageManagers", "setup-customprofiles")
                 $configProfile.script_categories.security = @("setup-defender")
             }
         }
@@ -480,17 +480,17 @@ function Invoke-AutomaticScriptSelection {
         $systemInfo = Get-SystemInformation
 
         # Always include essential system scripts
-        $selectedScripts += "setup-packagemanagers"
+        $selectedScripts += "Initialize-PackageManagers"
         $selectedScripts += "setup-customprofiles"
 
         # Add scripts based on detected software/features
         if ($systemInfo.HasWSL) {
-            $selectedScripts += "setup-wsl"
-            $selectedScripts += "setup-wsl-fonts"
+            $selectedScripts += "Initialize-WSL"
+            $selectedScripts += "Initialize-WSL-fonts"
         }
 
         if ($systemInfo.HasGit) {
-            $selectedScripts += "setup-chezmoi"
+            $selectedScripts += "Initialize-Chezmoi"
         }
 
         if ($systemInfo.HasSteam) {
@@ -768,4 +768,14 @@ function Test-ConfigurationSelectionStatus {
 if ($MyInvocation.InvocationName -ne '.') {
     Setup-ConfigurationSelection -ProfileName $ProfileName -SetupScripts $SetupScripts -ConfigurationMode $ConfigurationMode -OutputPath $OutputPath -CreateProfile:$CreateProfile
 }
+
+
+
+
+
+
+
+
+
+
 

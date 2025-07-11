@@ -1,4 +1,4 @@
-function Setup-SteamGames {
+function Initialize-SteamGames {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -50,5 +50,14 @@ function Setup-SteamGames {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 

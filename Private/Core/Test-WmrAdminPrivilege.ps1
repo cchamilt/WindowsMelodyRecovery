@@ -18,3 +18,8 @@ function Test-WmrAdminPrivilege {
 
     return $false
 }
+
+
+
+
+

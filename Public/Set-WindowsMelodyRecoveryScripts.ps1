@@ -122,3 +122,9 @@ function Set-WindowsMelodyRecoveryScripts {
     Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -InformationAction Continue
     Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Category restore -ScriptName 'Applications' -Enabled `$false" -InformationAction Continue
 }
+
+
+
+
+
+

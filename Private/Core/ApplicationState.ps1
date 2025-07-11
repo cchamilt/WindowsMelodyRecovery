@@ -326,3 +326,9 @@ function Uninstall-WmrApplicationState {
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
 # Available functions: Get-WmrApplicationState, Set-WmrApplicationState, Uninstall-WmrApplicationState
+
+
+
+
+
+

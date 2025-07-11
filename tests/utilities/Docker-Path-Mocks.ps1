@@ -736,7 +736,7 @@ function Merge-WmrMachineSpecificConfiguration {
     return $ResolvedConfig
 }
 
-function Apply-WmrInheritanceRules {
+function Invoke-WmrInheritanceRules {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -766,7 +766,7 @@ function Test-WmrInheritanceRuleCondition {
     return $true
 }
 
-function Apply-WmrConditionalSections {
+function Invoke-WmrConditionalSections {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -965,3 +965,9 @@ function Test-WmrTemplateSchema {
 }
 
 # Functions are available when dot-sourced, no need to export when not in module context
+
+
+
+
+
+

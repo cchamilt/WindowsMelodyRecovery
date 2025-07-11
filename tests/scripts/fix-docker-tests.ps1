@@ -70,7 +70,7 @@ function Fix-PathUsage {
     }
 }
 
-function Fix-ExportModuleMember {
+function Repair-ExportModuleMember {
     param(
         [string]$FilePath
     )
@@ -118,7 +118,7 @@ Write-Information -MessageData "`n🔧 Fixing Export-ModuleMember issues in sour
 foreach ($sourceFile in $sourceFiles) {
     if (Test-Path $sourceFile) {
         Write-Information -MessageData "`n📝 Processing: $sourceFile"  -InformationAction Continue-ForegroundColor White
-        Fix-ExportModuleMember -FilePath $sourceFile
+        Repair-ExportModuleMember -FilePath $sourceFile
     }
 }
 
@@ -126,3 +126,9 @@ Write-Information -MessageData "`n✅ Docker test fixes completed!" -Information
 Write-Information -MessageData "Next steps:" -InformationAction Continue
 Write-Information -MessageData "1. Run tests: docker exec wmr -InformationAction Continue-test-runner pwsh -Command 'cd /workspace && Invoke-Pester -Path ./tests/unit/ -PassThru'" -ForegroundColor White
 Write-Information -MessageData "2. Check results and fix remaining issues"  -InformationAction Continue-ForegroundColor White
+
+
+
+
+
+

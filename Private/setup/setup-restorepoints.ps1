@@ -1,6 +1,6 @@
-# Setup-RestorePoints.ps1 - Configure automatic system restore points
+# Initialize-RestorePoints.ps1 - Configure automatic system restore points
 
-function Setup-RestorePoints {
+function Initialize-RestorePoints {
     [CmdletBinding()]
     param()
 
@@ -99,6 +99,16 @@ function Setup-RestorePoints {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

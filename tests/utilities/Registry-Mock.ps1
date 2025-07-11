@@ -300,3 +300,9 @@ if ($MyInvocation.MyCommand.CommandType -eq "ExternalScript") {
         'Get-MockRegistryState'
     )
 }
+
+
+
+
+
+

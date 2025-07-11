@@ -52,7 +52,7 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         # Step 5: Setup module environment
-        $envResult = Setup-ModuleEnvironment
+        $envResult = Initialize-ModuleEnvironment
         if (-not $envResult.Success) {
             throw "Environment setup failed: $($envResult.Message)"
         }
@@ -65,7 +65,7 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         # Step 7: Setup aliases
-        $aliasResult = Setup-ModuleAliases
+        $aliasResult = Set-ModuleAliases
         if (-not $aliasResult.Success) {
             Write-Warning "Alias setup failed: $($aliasResult.Message)"
             $script:InitializationErrors += $aliasResult.Message
@@ -521,7 +521,7 @@ function Import-PublicFunctions {
     }
 }
 
-function Setup-ModuleEnvironment {
+function Initialize-ModuleEnvironment {
     [CmdletBinding()]
     param()
 
@@ -623,7 +623,7 @@ function Test-ModuleDependencies {
     }
 }
 
-function Setup-ModuleAliases {
+function Set-ModuleAliases {
     [CmdletBinding()]
     param()
 
@@ -686,5 +686,12 @@ function Get-ModuleInitializationStatus {
         Config = $script:Config
     }
 }
+
+
+
+
+
+
+
 
 

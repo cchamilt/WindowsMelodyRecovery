@@ -2,9 +2,9 @@
 # This does some of the same stuff but not all of it.
 # But want to keep copilot and some others
 
-# Setup-RemoveBloat.ps1 - Remove unwanted pre-installed Windows applications and features
+# Remove-Bloat.ps1 - Remove unwanted pre-installed Windows applications and features
 
-function Setup-RemoveBloat {
+function Remove-Bloat {
     [CmdletBinding()]
     param()
 
@@ -500,6 +500,16 @@ function Setup-RemoveBloat {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-function Setup-EAGames {
+function Initialize-EAGames {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -156,5 +156,14 @@ function Setup-EAGames {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 
 

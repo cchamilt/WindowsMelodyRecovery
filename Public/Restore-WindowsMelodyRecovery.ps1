@@ -130,7 +130,7 @@ function Restore-WindowsMelodyRecovery {
                 Write-Information -MessageData "`nRunning final post-restore applications analysis..." -InformationAction Continue
                 try {
                     $modulePath = (Get-Module -Name WindowsMelodyRecovery -ErrorAction SilentlyContinue).Path | Split-Path
-                    $analyzeScript = Join-Path $modulePath "Private\backup\analyze-unmanaged.ps1"
+                    $analyzeScript = Join-Path $modulePath "Private\backup\Find-UnmanagedApplication.ps1"
                     if (Test-Path $analyzeScript) {
                         . $analyzeScript
                         if (Get-Command Compare-PostRestoreApplications -ErrorAction SilentlyContinue) {
@@ -187,3 +187,9 @@ function Restore-WindowsMelodyRecovery {
         BackupPath = $MACHINE_BACKUP # This will be the machine backup path for script-based, or relevant template path for template-based
     }
 }
+
+
+
+
+
+

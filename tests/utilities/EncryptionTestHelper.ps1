@@ -186,3 +186,8 @@ $scriptModule = New-Module -Name EncryptionTestHelper -ScriptBlock {
 
 # Import the module into the current session
 $scriptModule | Import-Module -Force
+
+
+
+
+

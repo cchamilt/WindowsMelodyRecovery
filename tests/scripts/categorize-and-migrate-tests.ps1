@@ -183,7 +183,7 @@ function Move-TestFile {
     return $true
 }
 
-function Create-WindowsOnlyTestSafeguards {
+function New-WindowsOnlyTestSafeguards {
     [CmdletBinding()]
     param([switch]$WhatIf)
 
@@ -237,7 +237,7 @@ AfterAll {
     }
 }
 
-function Create-DockerTestEnhancements {
+function New-DockerTestEnhancements {
     [CmdletBinding()]
     param([switch]$WhatIf)
 
@@ -347,8 +347,8 @@ foreach ($migration in $migrationPlan.WindowsMigrations) {
 
 # Create safeguards and enhancements
 Write-Warning -Message "`n🛡️ Creating test environment safeguards..."
-Create-WindowsOnlyTestSafeguards -WhatIf:$WhatIf
-Create-DockerTestEnhancements -WhatIf:$WhatIf
+New-WindowsOnlyTestSafeguards -WhatIf:$WhatIf
+New-DockerTestEnhancements -WhatIf:$WhatIf
 
 # Export migration report
 Export-MigrationReport -MigrationPlan $migrationPlan
@@ -365,3 +365,9 @@ Write-Information -MessageData "`n✅ Test categorization and migration complete
 if ($WhatIf) {
     Write-Warning -Message "`n⚠️  This was a dry run. Use -WhatIf:`$false to execute the migration."
 }
+
+
+
+
+
+

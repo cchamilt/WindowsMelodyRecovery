@@ -1,4 +1,4 @@
-function Setup-Chezmoi {
+function Initialize-Chezmoi {
     [CmdletBinding()]
     param()
 
@@ -38,17 +38,17 @@ function Setup-Chezmoi {
         if ($gitRepo) {
             Write-Warning -Message "Setting up chezmoi with repository: $gitRepo"
             try {
-                Setup-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
+                Initialize-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
                 Write-Information -MessageData "✅ chezmoi setup completed with repository" -InformationAction Continue
             } catch {
                 Write-Error -Message "❌ Failed to setup chezmoi with repository: $($_.Exception.Message)"
                 Write-Warning -Message "Falling back to empty repository setup..."
-                Setup-WSLChezmoi
+                Initialize-WSLChezmoi
             }
         } else {
             Write-Warning -Message "Setting up empty chezmoi repository..."
             try {
-                Setup-WSLChezmoi
+                Initialize-WSLChezmoi
                 Write-Information -MessageData "✅ chezmoi setup completed (empty repository)" -InformationAction Continue
             } catch {
                 Write-Error -Message "❌ Failed to setup chezmoi: $($_.Exception.Message)"
@@ -82,4 +82,13 @@ function Setup-Chezmoi {
         return $false
     }
 }
+
+
+
+
+
+
+
+
+
 

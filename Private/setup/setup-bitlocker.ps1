@@ -1,6 +1,6 @@
 # Setup-BitLocker.ps1 - Configure BitLocker drive encryption settings
 
-function Setup-BitLocker {
+function Enable-BitLocker {
     [CmdletBinding()]
     param(
         [string]$Drive = $env:SystemDrive,
@@ -251,4 +251,13 @@ function Test-BitLockerStatus {
         return $null
     }
 }
+
+
+
+
+
+
+
+
+
 

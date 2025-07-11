@@ -122,3 +122,9 @@ function Install-WindowsMelodyRecoveryTasks {
 
     Write-Information -MessageData "`nScheduled tasks installation completed." -InformationAction Continue
 }
+
+
+
+
+
+

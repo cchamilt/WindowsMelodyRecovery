@@ -33,14 +33,14 @@ if (Test-Path "/tests/utilities/TestHelper.ps1") {
 Set-Alias -Name "trun" -Value "Invoke-Pester"
 Set-Alias -Name "thealth" -Value "health-check.ps1"
 
-# Mock Setup-Chezmoi function for integration tests
-function Global:Setup-Chezmoi {
+# Mock Initialize-Chezmoi function for integration tests
+function Global:Initialize-Chezmoi {
     param(
         [string]$SourcePath,
         [string]$ConfigPath,
         [switch]$Force
     )
-    Write-Information -MessageData "Mock Setup-Chezmoi completed" -InformationAction Continue
+    Write-Information -MessageData "Mock Initialize-Chezmoi completed" -InformationAction Continue
     return @{ Success = $true; Message = "Chezmoi setup completed" }
 }
 
@@ -222,3 +222,10 @@ function Start-TestRun {
 
 Write-Information -MessageData "🧪 Test Runner environment loaded" -InformationAction Continue
 Write-Information -MessageData "Available commands: Test-Environment, Start-TestRun, Install-TestModule" -InformationAction Continue
+
+
+
+
+
+
+
