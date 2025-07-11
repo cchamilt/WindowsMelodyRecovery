@@ -1,48 +1,40 @@
 @{
-    # General settings
+    # PSScriptAnalyzer configuration for Windows Melody Recovery project
+    # PSGallery-compatible settings for production-quality code
+
     Severity = @('Error', 'Warning', 'Information')
 
-    # Rules to exclude project-wide
-    ExcludeRules = @(
-        # Exclude Write-Host rule for test files and user-facing scripts
-        # These will be handled manually with context-aware fixes
-        'PSAvoidUsingWriteHost',
+    # Enforce all PSGallery standards - no shortcuts
+    ExcludeRules = @()
 
-        # Exclude unused parameter warnings for test files
-        # Test files often have unused parameters for mocking
-        'PSReviewUnusedParameter',
-
-        # Exclude output type warnings for now
-        # These require significant refactoring
-        'PSUseOutputTypeCorrectly',
-
-        # Exclude positional parameter warnings for simple cases
-        'PSAvoidUsingPositionalParameters',
-
-        # Exclude BOM warnings for now
-        'PSUseBOMForUnicodeEncodedFile'
-    )
-
-    # Include these rules only for production code, not tests
-    IncludeRules = @(
-        'PSUseShouldProcessForStateChangingFunctions',
-        'PSUseApprovedVerbs',
-        'PSUseSingularNouns'
-    )
-
-    # Rules to apply only to specific paths
     Rules = @{
-        # Apply strict rules to Public functions
-        PSUseApprovedVerbs = @{
-            Whitelist = @('Backup', 'Restore', 'Sync', 'Test', 'Get', 'Set', 'Remove', 'Install', 'Update', 'Initialize', 'Setup')
+        PSUseCompatibleCmdlets = @{
+            compatibility = @('5.1', '7.0', '7.1', '7.2', '7.3', '7.4')
         }
 
-        # Allow certain nouns for this domain
-        PSUseSingularNouns = @{
-            Whitelist = @('WindowsMelodyRecovery', 'Prerequisites', 'Tasks', 'Scripts', 'Settings')
+        PSPlaceOpenBrace = @{
+            Enable = $true
+            OnSameLine = $true
+            NewLineAfter = $true
+        }
+
+        PSPlaceCloseBrace = @{
+            Enable = $true
+            NewLineAfter = $true
+        }
+
+        PSUseConsistentIndentation = @{
+            Enable = $true
+            IndentationSize = 4
+        }
+
+        PSUseConsistentWhitespace = @{
+            Enable = $true
+            CheckInnerBrace = $true
+            CheckOpenBrace = $true
+            CheckOperator = $true
+            CheckPipe = $true
+            CheckSeparator = $true
         }
     }
-
-    # Custom rule paths can be added here if needed
-    CustomRulePath = @()
 }

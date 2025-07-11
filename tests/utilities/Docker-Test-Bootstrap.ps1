@@ -677,21 +677,7 @@ if ($script:IsDockerEnvironment) {
         }
     }
 
-    # Mock additional path utilities
-    if (-not (Get-Command Get-WmrTestPath -ErrorAction SilentlyContinue)) {
-        function Get-WmrTestPath {
-            [CmdletBinding()]
-            param(
-                [Parameter(Mandatory=$true)]
-                [string]$WindowsPath
-            )
-
-            # Convert Windows paths to Linux paths for Docker
-            $linuxPath = $WindowsPath -replace '\\', '/'
-            $linuxPath = $linuxPath -replace '^C:', '/workspace'
-            return $linuxPath
-        }
-    }
+    # Mock additional path utilities - removed duplicate function definition
 
     Write-Information -MessageData "🐳 Docker test environment initialized with comprehensive mocks" -InformationAction Continue
 } else {
@@ -712,7 +698,10 @@ function Get-WmrTestPath {
     )
 
     if ($script:IsDockerEnvironment) {
-        return Convert-WmrPathForDocker -Path $WindowsPath
+        # Convert Windows paths to Linux paths for Docker (avoid recursion)
+        $linuxPath = $WindowsPath -replace '\\', '/'
+        $linuxPath = $linuxPath -replace '^C:', '/workspace'
+        return $linuxPath
     } else {
         return $WindowsPath
     }

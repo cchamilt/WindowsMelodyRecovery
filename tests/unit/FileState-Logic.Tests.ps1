@@ -30,10 +30,11 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\PathUtilities.ps1")
         . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\EncryptionUtilities.ps1")
 
-        # Mock Convert-WmrPath to return Docker-compatible paths
+        # Mock Convert-WmrPath to return Docker-compatible paths (avoid recursion)
         Mock Convert-WmrPath {
             param($Path)
-            $dockerPath = Get-WmrTestPath -WindowsPath $Path
+            # Direct path conversion without calling Get-WmrTestPath to avoid recursion
+            $dockerPath = $Path -replace '\\', '/' -replace '^C:', '/tmp/test'
             return @{
                 PathType = "File"
                 Type = "File"
@@ -181,21 +182,21 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should use destination path when provided" {
             $config = [PSCustomObject]@{
                 name = "Restore File"
-                path = (Get-WmrTestPath -WindowsPath "C:\original\path.txt")
+                path = "/tmp/test/original/path.txt"  # Direct path to avoid recursion
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/restore.txt"
-                destination = (Get-WmrTestPath -WindowsPath "C:\custom\destination.txt")
+                destination = "/tmp/test/custom/destination.txt"  # Direct path to avoid recursion
             }
 
             # Mock the state file exists and has content - use exact path matching
-            $stateDir = Get-WmrTestPath -WindowsPath "C:\StateDir"
+            $stateDir = "/tmp/test/StateDir"  # Direct path to avoid recursion
             $expectedStatePath = Join-Path $stateDir "files/restore.txt"
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq $expectedStatePath }
             Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq $expectedStatePath }
 
             # Ensure the target directory exists mock
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\custom") }
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/custom" }
 
             Set-WmrFileState -FileConfig $config -StateFilesDirectory $stateDir
 
@@ -208,25 +209,25 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should fall back to original path when no destination provided" {
             $config = [PSCustomObject]@{
                 name = "Restore File"
-                path = (Get-WmrTestPath -WindowsPath "C:\original\exists_path.txt")
+                path = "/tmp/test/original/exists_path.txt"  # Direct path to avoid recursion
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/restore.txt"
             }
 
             # Mock the state file exists and has content - use exact path matching
-            $expectedStatePath = Join-Path (Get-WmrTestPath -WindowsPath "C:\StateDir") "files/restore.txt"
+            $expectedStatePath = "/tmp/test/StateDir/files/restore.txt"  # Direct path to avoid recursion
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq $expectedStatePath }
             Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq $expectedStatePath }
 
             # Ensure the target directory exists mock
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\original") }
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/original" }
 
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\StateDir")
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory "/tmp/test/StateDir"
 
             # Should restore to original path
             Should -Invoke Set-Content -ParameterFilter {
-                $Path -eq (Get-WmrTestPath -WindowsPath "C:\original\exists_path.txt")
+                $Path -eq "/tmp/test/original/exists_path.txt"
             }
         }
     }
@@ -270,7 +271,7 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         It "Should apply decryption during restore when encrypt flag is true" {
             $config = [PSCustomObject]@{
                 name = "Decrypt File"
-                path = (Get-WmrTestPath -WindowsPath "C:\test\restore.txt")
+                path = "/tmp/test/test/restore.txt"  # Direct path to avoid recursion
                 type = "file"
                 action = "restore"
                 dynamic_state_path = "files/encrypted.txt"
@@ -278,10 +279,10 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
             }
 
             # Mock the encrypted state file exists and has encrypted content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\test\files\encrypted.txt") }
-            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq (Get-WmrTestPath -WindowsPath "C:\test\files\encrypted.txt") }
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/test/files/encrypted.txt" }
+            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq "/tmp/test/test/files/encrypted.txt" }
 
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory "/tmp/test/test" -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
 
             # Should call decryption function
             Should -Invoke Unprotect-WmrData

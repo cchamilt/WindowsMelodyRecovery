@@ -61,7 +61,7 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 
 #### **File Operations Tests: 97/97 Passing (100% Success Rate)**
 - **ApplicationState-FileOperations**: 11/11 tests ✅
-- **FileState-FileOperations**: 14/14 tests ✅  
+- **FileState-FileOperations**: 14/14 tests ✅
 - **Prerequisites-FileOperations**: 11/11 tests ✅
 - **RegistryState-FileOperations**: 8/8 tests ✅
 - **SharedConfiguration-FileOperations**: 9/9 tests ✅
@@ -84,7 +84,7 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 
 ### 🔍 **Dual CI/CD Testing Architecture**
 
-#### 🐳 **Docker Cross-Platform Tests** 
+#### 🐳 **Docker Cross-Platform Tests**
 - **Environment**: Ubuntu containers with PowerShell
 - **Coverage**: Unit tests, file operations, integration tests, end-to-end workflows
 - **Windows-only handling**: Automatically skipped with `$IsWindows` detection
@@ -159,35 +159,35 @@ The WindowsMelodyRecovery module provides a robust set of tools for:
 graph TD
     A["🔍 BACKUP: Analyze-UnmanagedApplications"] --> B["Original System State"]
     B --> C["📝 unmanaged-analysis.json<br/>List of unmanaged apps"]
-    
+
     D["💾 BACKUP PROCESS"] --> E["Package Manager Data<br/>(Store, Scoop, Choco, Winget)"]
     D --> F["Game Manager Data<br/>(Steam, Epic, GOG, EA)"]
     D --> G["WSL Environment<br/>(Packages, Config, Dotfiles)"]
     D --> H["Cloud Storage<br/>(OneDrive, Google Drive, Dropbox)"]
     D --> C
-    
+
     I["🔄 RESTORE PROCESS"] --> J["Install Package Managers"]
     I --> K["Install Game Managers"]
     I --> L["Restore WSL Environment"]
     I --> M["Setup chezmoi Dotfiles"]
     I --> N["Install Applications"]
-    
+
     O["🔍 POST-RESTORE: Compare-PostRestoreApplications"] --> P["Load Original Analysis"]
     O --> Q["Scan Current System"]
     O --> R["Compare Original vs Current"]
-    
+
     P --> C
     Q --> S["Current System State<br/>(after restore)"]
-    
+
     R --> T["✅ Successfully Restored<br/>(were unmanaged, now installed)"]
     R --> U["❌ Still Unmanaged<br/>(need manual install)"]
-    
+
     T --> V["📊 restored-apps.json"]
     U --> W["📋 still-unmanaged-apps.json"]
     U --> X["📈 still-unmanaged-apps.csv"]
-    
+
     R --> Y["📈 Post-Restore Analysis<br/>Success Rate: X%"]
-    
+
     style A fill:#e3f2fd
     style O fill:#e8f5e8
     style T fill:#c8e6c9
@@ -529,7 +529,7 @@ We welcome contributions! Here's how to get started:
 ### 🧪 **Testing Your Changes**
 ```powershell
 # Run quick validation locally
-Invoke-ScriptAnalyzer -Path . -Recurse
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSScriptAnalyzerSettings.psd1
 
 # Run unit tests locally
 Invoke-Pester tests/unit/
@@ -580,7 +580,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 <div align="center">
 
-**🏆 Windows Melody Recovery v1.0.0**  
+**🏆 Windows Melody Recovery v1.0.0**
 
 [![Made with PowerShell](https://img.shields.io/badge/Made%20with-PowerShell-blue.svg)](https://microsoft.com/powershell)
 [![Tested on Windows](https://img.shields.io/badge/Tested%20on-Windows%2010%2F11-blue.svg)](https://www.microsoft.com/windows)
