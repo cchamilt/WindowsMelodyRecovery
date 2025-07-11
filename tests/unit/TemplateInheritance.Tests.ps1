@@ -22,22 +22,8 @@ BeforeAll {
     # Import the module
     Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
 
-    # Load TemplateInheritance.ps1 content without Export-ModuleMember
-    $templateInheritancePath = Join-Path (Split-Path (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1")) "Private\Core\TemplateInheritance.ps1"
-    $templateInheritanceLines = Get-Content $templateInheritancePath
-    # Remove the Export-ModuleMember section
-    $filteredLines = @()
-    $skipExport = $false
-    foreach ($line in $templateInheritanceLines) {
-        if ($line -match "^# Export functions for module use" -or $line -match "^Export-ModuleMember") {
-            $skipExport = $true
-        }
-        if (-not $skipExport) {
-            $filteredLines += $line
-        }
-    }
-    $templateInheritanceContent = $filteredLines -join "`n"
-    Invoke-Expression $templateInheritanceContent
+    # TemplateInheritance functions are available from the imported module
+    # No need to dot-source since they're exported from the module
 
     # Import test utilities
     . "$PSScriptRoot/../utilities/Test-Utilities.ps1"

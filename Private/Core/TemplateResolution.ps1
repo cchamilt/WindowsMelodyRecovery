@@ -144,8 +144,4 @@ function Get-WmrInheritanceConfiguration {
     return $defaultConfig
 }
 
-# Export functions for module use
-Export-ModuleMember -Function @(
-    'Resolve-WmrTemplateInheritance',
-    'Get-WmrInheritanceConfiguration'
-)
+# Functions are available when dot-sourced, no need to export when not in module context

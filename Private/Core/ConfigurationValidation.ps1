@@ -224,11 +224,4 @@ function Test-WmrConfigurationItemValidity {
     return $true
 }
 
-# Export functions for module use
-Export-ModuleMember -Function @(
-    'Test-WmrResolvedConfiguration',
-    'Test-WmrStrictConfigurationValidation',
-    'Test-WmrModerateConfigurationValidation',
-    'Test-WmrRelaxedConfigurationValidation',
-    'Test-WmrConfigurationItemValidity'
-)
+# Functions are available when dot-sourced, no need to export when not in module context

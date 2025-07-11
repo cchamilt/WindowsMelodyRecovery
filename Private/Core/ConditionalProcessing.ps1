@@ -324,12 +324,4 @@ function Test-WmrRuleItemMatch {
     return $false
 }
 
-# Export functions for module use
-Export-ModuleMember -Function @(
-    'Apply-WmrInheritanceRule',
-    'Test-WmrInheritanceRuleCondition',
-    'Apply-WmrInheritanceRuleToSection',
-    'Apply-WmrConditionalSection',
-    'Test-WmrConditionalSectionCondition',
-    'Test-WmrRuleItemMatch'
-)
+# Functions are available when dot-sourced, no need to export when not in module context

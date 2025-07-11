@@ -333,11 +333,4 @@ function Merge-WmrRegistryValue {
     return $mergedItems
 }
 
-# Export functions for module use
-Export-ModuleMember -Function @(
-    'Merge-WmrSharedConfiguration',
-    'Merge-WmrMachineSpecificConfiguration',
-    'Merge-WmrConfigurationItem',
-    'Merge-WmrSingleConfigurationItem',
-    'Merge-WmrRegistryValue'
-)
+# Functions are available when dot-sourced, no need to export when not in module context

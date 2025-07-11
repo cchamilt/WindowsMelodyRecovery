@@ -248,10 +248,4 @@ function Test-WmrStringComparison {
     }
 }
 
-# Export functions for module use
-Export-ModuleMember -Function @(
-    'Get-WmrMachineContext',
-    'Get-WmrApplicableMachineConfigurations',
-    'Test-WmrMachineSelector',
-    'Test-WmrStringComparison'
-)
+# Functions are available when dot-sourced, no need to export when not in module context
