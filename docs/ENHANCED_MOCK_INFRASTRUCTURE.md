@@ -9,7 +9,7 @@ The Enhanced Mock Infrastructure provides comprehensive, realistic mock data gen
 ### Core Components
 
 1. **Enhanced-Mock-Infrastructure.ps1** - Core mock data generation engine
-2. **Mock-Integration.ps1** - Integration layer for seamless test compatibility  
+2. **Mock-Integration.ps1** - Integration layer for seamless test compatibility
 3. **Mock-Utilities.ps1** (Enhanced) - Backwards-compatible wrapper functions
 4. **Test-Environment-Standard.ps1** - Standardized test environment integration
 
@@ -151,7 +151,7 @@ Describe "Complete Backup Restore Workflow" {
 - Basic system configurations
 - Single cloud provider
 
-### Standard  
+### Standard
 - Comprehensive data for regular testing
 - 10+ applications per package manager
 - Complete system settings coverage
@@ -174,7 +174,7 @@ Describe "Complete Backup Restore Workflow" {
 ### Built-in Validation
 ```powershell
 # Validate mock data integrity
-$validation = Validate-MockDataIntegrity -TestType "Integration"
+$validation = Test-MockDataIntegrity -TestType "Integration"
 
 if ($validation.Valid) {
     Write-Host "✅ Mock data validation passed"
@@ -193,7 +193,7 @@ if ($validation.Valid) {
 
 ### Generation Speed
 - **Unit Data**: < 1 second
-- **Integration Data**: 2-5 seconds  
+- **Integration Data**: 2-5 seconds
 - **End-to-End Data**: 5-10 seconds
 - **Enterprise Scope**: 10-15 seconds
 
@@ -263,8 +263,8 @@ To take advantage of enhanced features:
    ```powershell
    # Old
    . "$PSScriptRoot\..\utilities\Mock-Utilities.ps1"
-   
-   # New  
+
+   # New
    . "$PSScriptRoot\..\utilities\Enhanced-Mock-Infrastructure.ps1"
    ```
 
@@ -272,7 +272,7 @@ To take advantage of enhanced features:
    ```powershell
    # Old
    Initialize-MockEnvironment -Environment "Docker"
-   
+
    # New
    Initialize-MockForTestType -TestType "Integration" -TestContext "ApplicationBackup"
    ```
@@ -281,7 +281,7 @@ To take advantage of enhanced features:
    ```powershell
    # Old
    $data = Get-Content "$TestDataPath\app.json" | ConvertFrom-Json
-   
+
    # New
    $data = Get-MockDataForTest -TestName "ApplicationBackup" -Component "winget"
    ```
@@ -313,7 +313,7 @@ To take advantage of enhanced features:
 #### Mock Data Not Found
 ```powershell
 # Check if infrastructure is initialized
-$validation = Validate-MockDataIntegrity -TestType "Integration"
+$validation = Test-MockDataIntegrity -TestType "Integration"
 if (-not $validation.Valid) {
     Initialize-EnhancedMockInfrastructure -TestType "Integration" -Force
 }
@@ -334,13 +334,13 @@ Reset-EnhancedMockData -Scope "Minimal"
 Reset-EnhancedMockData -Component "applications" -Scope "Standard"
 
 # Validate after regeneration
-$validation = Validate-MockDataIntegrity -TestType "Integration"
+$validation = Test-MockDataIntegrity -TestType "Integration"
 ```
 
 ### Diagnostic Commands
 ```powershell
 # Check data integrity
-Validate-MockDataIntegrity -TestType "All"
+Test-MockDataIntegrity -TestType "All"
 
 # List available components
 Get-ChildItem (Get-StandardTestPaths).TestMockData

@@ -338,7 +338,7 @@ Describe "Administrative Privilege Logic Tests" {
             }
 
             # Mock function that handles service management
-            Mock -CommandName "Manage-WindowsService" -MockWith {
+            Mock -CommandName "Set-WindowsService" -MockWith {
                 param($ServiceName, $Action)
 
                 try {
@@ -357,7 +357,7 @@ Describe "Administrative Privilege Logic Tests" {
                 }
             }
 
-            $result = Manage-WindowsService -ServiceName "TestService" -Action "Start"
+            $result = Set-WindowsService -ServiceName "TestService" -Action "Start"
             $result.Success | Should -Be $false
             $result.RequiresElevation | Should -Be $true
             $result.Error | Should -Match "Administrator privileges"
@@ -434,7 +434,7 @@ Describe "Administrative Privilege Logic Tests" {
             }
 
             # Mock function that handles scheduled task management
-            Mock -CommandName "Manage-ScheduledTask" -MockWith {
+            Mock -CommandName "Set-ScheduledTask" -MockWith {
                 param($TaskName, $Action, $RequireElevation = $false)
 
                 try {
@@ -462,12 +462,12 @@ Describe "Administrative Privilege Logic Tests" {
             }
 
             # Test elevated task creation (should fail)
-            $result = Manage-ScheduledTask -TaskName "TestTask" -Action "Create" -RequireElevation $true
+            $result = Set-ScheduledTask -TaskName "TestTask" -Action "Create" -RequireElevation $true
             $result.Success | Should -Be $false
             $result.RequiresElevation | Should -Be $true
 
             # Test task removal (should fail)
-            $result = Manage-ScheduledTask -TaskName "TestTask" -Action "Remove"
+            $result = Set-ScheduledTask -TaskName "TestTask" -Action "Remove"
             $result.Success | Should -Be $false
             $result.RequiresElevation | Should -Be $true
         }
