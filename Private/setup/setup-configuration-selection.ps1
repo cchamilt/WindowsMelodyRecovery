@@ -78,6 +78,7 @@ if (Test-Path $loadEnvPath) {
 
 function Setup-ConfigurationSelection {
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory=$false)]
         [string]$ProfileName = "Default",
@@ -133,9 +134,9 @@ function Setup-ConfigurationSelection {
             Write-Information -MessageData "Step 1: Managing configuration profile '$ProfileName'..." -InformationAction Continue
 
             if ($CreateProfile -or -not (Test-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath)) {
-                $profile = New-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath -AvailableScripts $availableScripts
+                $configProfile = New-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath -AvailableScripts $availableScripts
             } else {
-                $profile = Get-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath
+                $configProfile = Get-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath
             }
 
             # Step 2: Configure setup scripts based on mode
@@ -143,28 +144,28 @@ function Setup-ConfigurationSelection {
 
             switch ($ConfigurationMode) {
                 'Interactive' {
-                    $selectedScripts = Invoke-InteractiveScriptSelection -AvailableScripts $availableScripts -CurrentProfile $profile
+                    $selectedScripts = Invoke-InteractiveScriptSelection -AvailableScripts $availableScripts -CurrentProfile $configProfile
                 }
                 'Automatic' {
                     $selectedScripts = Invoke-AutomaticScriptSelection -AvailableScripts $availableScripts
                 }
                 'Profile' {
-                    $selectedScripts = Get-ProfileScriptSelection -Profile $profile
+                    $selectedScripts = Get-ProfileScriptSelection -Profile $configProfile
                 }
             }
 
             # Step 3: Update configuration profile
             if ($selectedScripts) {
                 Write-Information -MessageData "Step 3: Updating configuration profile..." -InformationAction Continue
-                $profile.setup_scripts = $selectedScripts
-                $profile.last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                $configProfile.setup_scripts = $selectedScripts
+                $configProfile.last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
 
-                Save-ConfigurationProfile -Profile $profile -ProfileName $ProfileName -OutputPath $OutputPath
+                Save-ConfigurationProfile -Profile $configProfile -ProfileName $ProfileName -OutputPath $OutputPath
             }
 
             # Step 4: Create execution plan
             Write-Information -MessageData "Step 4: Creating setup execution plan..." -InformationAction Continue
-            $executionPlan = New-SetupExecutionPlan -Profile $profile -AvailableScripts $availableScripts
+            $executionPlan = New-SetupExecutionPlan -Profile $configProfile -AvailableScripts $availableScripts
 
             if ($executionPlan) {
                 $planPath = Join-Path $OutputPath "$ProfileName-execution-plan.json"
@@ -187,6 +188,7 @@ function Setup-ConfigurationSelection {
 
 function Get-AvailableSetupScripts {
     [CmdletBinding()]
+    [OutputType([System.Array])]
     param(
         [Parameter(Mandatory=$true)]
         [string]$SetupPath
@@ -239,6 +241,7 @@ function Get-AvailableSetupScripts {
 
 function Get-SetupScriptCategory {
     [CmdletBinding()]
+    [OutputType([System.String])]
     param(
         [Parameter(Mandatory=$true)]
         [string]$ScriptName
@@ -266,6 +269,7 @@ function Get-SetupScriptCategory {
 
 function Test-ConfigurationProfile {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory=$true)]
         [string]$ProfileName,
@@ -284,6 +288,7 @@ function Test-ConfigurationProfile {
 
 function New-ConfigurationProfile {
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory=$true)]
         [string]$ProfileName,
@@ -301,7 +306,7 @@ function New-ConfigurationProfile {
     }
 
     try {
-        $profile = @{
+        $configProfile = @{
             metadata = @{
                 name = $ProfileName
                 description = "Configuration profile for $ProfileName system setup"
@@ -329,32 +334,32 @@ function New-ConfigurationProfile {
         # Set default scripts based on profile type
         switch ($ProfileName) {
             "Developer" {
-                $profile.setup_scripts = @("setup-wsl", "setup-packagemanagers", "setup-chezmoi", "setup-customprofiles")
-                $profile.script_categories.development = @("setup-wsl", "setup-chezmoi", "setup-wsl-fonts")
-                $profile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.setup_scripts = @("setup-wsl", "setup-packagemanagers", "setup-chezmoi", "setup-customprofiles")
+                $configProfile.script_categories.development = @("setup-wsl", "setup-chezmoi", "setup-wsl-fonts")
+                $configProfile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
             }
             "Gamer" {
-                $profile.setup_scripts = @("setup-steam-games", "setup-epic-games", "setup-gog-games", "setup-ea-games")
-                $profile.script_categories.gaming = @("setup-steam-games", "setup-epic-games", "setup-gog-games", "setup-ea-games")
-                $profile.script_categories.system = @("setup-packagemanagers")
+                $configProfile.setup_scripts = @("setup-steam-games", "setup-epic-games", "setup-gog-games", "setup-ea-games")
+                $configProfile.script_categories.gaming = @("setup-steam-games", "setup-epic-games", "setup-gog-games", "setup-ea-games")
+                $configProfile.script_categories.system = @("setup-packagemanagers")
             }
             "Security" {
-                $profile.setup_scripts = @("setup-defender", "setup-keepassxc", "setup-removebloat")
-                $profile.script_categories.security = @("setup-defender", "setup-keepassxc")
-                $profile.script_categories.system = @("setup-removebloat", "setup-restorepoints")
+                $configProfile.setup_scripts = @("setup-defender", "setup-keepassxc", "setup-removebloat")
+                $configProfile.script_categories.security = @("setup-defender", "setup-keepassxc")
+                $configProfile.script_categories.system = @("setup-removebloat", "setup-restorepoints")
             }
             "Minimal" {
-                $profile.setup_scripts = @("setup-packagemanagers", "setup-customprofiles")
-                $profile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.setup_scripts = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
             }
             "Default" {
-                $profile.setup_scripts = @("setup-packagemanagers", "setup-customprofiles", "setup-defender")
-                $profile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
-                $profile.script_categories.security = @("setup-defender")
+                $configProfile.setup_scripts = @("setup-packagemanagers", "setup-customprofiles", "setup-defender")
+                $configProfile.script_categories.system = @("setup-packagemanagers", "setup-customprofiles")
+                $configProfile.script_categories.security = @("setup-defender")
             }
         }
 
-        return $profile
+        return $configProfile
 
     } catch {
         Write-Warning "Failed to create configuration profile: $_"
@@ -364,6 +369,7 @@ function New-ConfigurationProfile {
 
 function Save-ConfigurationProfile {
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([System.Void])]
     param(
         [Parameter(Mandatory=$true)]
         [hashtable]$Profile,
@@ -375,22 +381,21 @@ function Save-ConfigurationProfile {
         [string]$OutputPath
     )
 
-    if ($WhatIfPreference) {
-        Write-Warning -Message "WhatIf: Would save configuration profile '$ProfileName' to $OutputPath"
-        return
-    }
+    $profilePath = Join-Path $OutputPath "$ProfileName-profile.json"
 
-    try {
-        $profilePath = Join-Path $OutputPath "$ProfileName-profile.json"
-        $Profile | ConvertTo-Json -Depth 10 | Out-File -FilePath $profilePath -Encoding UTF8
-        Write-Information -MessageData "Configuration profile saved: $profilePath" -InformationAction Continue
-    } catch {
-        Write-Warning "Failed to save configuration profile: $_"
+    if ($PSCmdlet.ShouldProcess($profilePath, "Save configuration profile")) {
+        try {
+            $Profile | ConvertTo-Json -Depth 10 | Out-File -FilePath $profilePath -Encoding UTF8
+            Write-Information -MessageData "Configuration profile saved: $profilePath" -InformationAction Continue
+        } catch {
+            Write-Warning "Failed to save configuration profile: $_"
+        }
     }
 }
 
 function Get-ConfigurationProfile {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable], [System.Management.Automation.PSObject])]
     param(
         [Parameter(Mandatory=$true)]
         [string]$ProfileName,
@@ -414,7 +419,8 @@ function Get-ConfigurationProfile {
 }
 
 function Invoke-InteractiveScriptSelection {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
+    [OutputType([System.Array])]
     param(
         [Parameter(Mandatory=$true)]
         [array]$AvailableScripts,
@@ -422,11 +428,6 @@ function Invoke-InteractiveScriptSelection {
         [Parameter(Mandatory=$false)]
         [hashtable]$CurrentProfile = @{}
     )
-
-    if ($WhatIfPreference) {
-        Write-Warning -Message "WhatIf: Would prompt for interactive script selection from $($AvailableScripts.Count) available scripts"
-        return @()
-    }
 
     try {
         $selectedScripts = @()
@@ -449,12 +450,12 @@ function Invoke-InteractiveScriptSelection {
         }
 
         Write-Information -MessageData "Enter script numbers to toggle selection (e.g., 1,3,5) or 'all' for all scripts:" -InformationAction Continue
-        $input = Read-Host
+        $userInput = Read-Host
 
-        if ($input -eq 'all') {
+        if ($userInput -eq 'all') {
             $selectedScripts = $AvailableScripts.Name
         } else {
-            $indices = $input -split ',' | ForEach-Object { [int]$_.Trim() - 1 }
+            $indices = $userInput -split ',' | ForEach-Object { [int]$_.Trim() - 1 }
             $selectedScripts = $AvailableScripts[$indices].Name
         }
 
@@ -467,16 +468,12 @@ function Invoke-InteractiveScriptSelection {
 }
 
 function Invoke-AutomaticScriptSelection {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
+    [OutputType([System.Array])]
     param(
         [Parameter(Mandatory=$true)]
         [array]$AvailableScripts
     )
-
-    if ($WhatIfPreference) {
-        Write-Warning -Message "WhatIf: Would automatically select scripts based on system detection"
-        return @()
-    }
 
     try {
         $selectedScripts = @()
@@ -527,16 +524,12 @@ function Invoke-AutomaticScriptSelection {
 }
 
 function Get-ProfileScriptSelection {
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
+    [OutputType([System.Array])]
     param(
         [Parameter(Mandatory=$true)]
         [hashtable]$Profile
     )
-
-    if ($WhatIfPreference) {
-        Write-Warning -Message "WhatIf: Would get script selection from profile '$($Profile.metadata.name)'"
-        return @()
-    }
 
     try {
         return $Profile.setup_scripts
@@ -548,6 +541,7 @@ function Get-ProfileScriptSelection {
 
 function Get-SystemInformation {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param()
 
     try {
@@ -566,13 +560,19 @@ function Get-SystemInformation {
         try {
             $wslResult = wsl --list --quiet 2>$null
             $systemInfo.HasWSL = $LASTEXITCODE -eq 0
-        } catch { }
+        } catch {
+            # WSL not installed or not available
+            $systemInfo.HasWSL = $false
+        }
 
         # Check for Git
         try {
             git --version 2>$null | Out-Null
             $systemInfo.HasGit = $LASTEXITCODE -eq 0
-        } catch { }
+        } catch {
+            # Git not installed or not available
+            $systemInfo.HasGit = $false
+        }
 
         # Check for Steam
         $steamPath = "${env:ProgramFiles(x86)}\Steam\steam.exe"
@@ -608,6 +608,7 @@ function Get-SystemInformation {
 
 function New-SetupExecutionPlan {
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory=$true)]
         [hashtable]$Profile,
@@ -685,6 +686,7 @@ function New-SetupExecutionPlan {
 
 function Save-ExecutionPlan {
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([System.Void])]
     param(
         [Parameter(Mandatory=$true)]
         [hashtable]$ExecutionPlan,
@@ -693,21 +695,19 @@ function Save-ExecutionPlan {
         [string]$Path
     )
 
-    if ($WhatIfPreference) {
-        Write-Warning -Message "WhatIf: Would save execution plan to $Path"
-        return
-    }
-
-    try {
-        $ExecutionPlan | ConvertTo-Json -Depth 10 | Out-File -FilePath $Path -Encoding UTF8
-        Write-Information -MessageData "Execution plan saved: $Path" -InformationAction Continue
-    } catch {
-        Write-Warning "Failed to save execution plan: $_"
+    if ($PSCmdlet.ShouldProcess($Path, "Save execution plan")) {
+        try {
+            $ExecutionPlan | ConvertTo-Json -Depth 10 | Out-File -FilePath $Path -Encoding UTF8
+            Write-Information -MessageData "Execution plan saved: $Path" -InformationAction Continue
+        } catch {
+            Write-Warning "Failed to save execution plan: $_"
+        }
     }
 }
 
 function Test-ConfigurationSelectionStatus {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory=$false)]
         [string]$OutputPath = $null,

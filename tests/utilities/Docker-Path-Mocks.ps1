@@ -17,6 +17,7 @@ $script:DockerPathMappings = @{
 # Mock Windows Principal functionality for Docker tests
 function Test-WmrAdminPrivilege {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param()
 
     # In Docker tests, simulate non-admin user
@@ -28,6 +29,7 @@ function Test-WmrAdminPrivilege {
 
 function Get-WmrPrivilegeRequirements {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [object]$Template
@@ -53,6 +55,7 @@ function Get-WmrPrivilegeRequirements {
 
 function Test-WmrAdministrativePrivileges {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param()
 
     # Mock administrative privileges check
@@ -61,6 +64,7 @@ function Test-WmrAdministrativePrivileges {
 
 function Invoke-WmrSafeAdminOperation {
     [CmdletBinding()]
+    [OutputType([System.Object])]
     param(
         [Parameter(Mandatory)]
         [ScriptBlock]$MainOperation,
@@ -88,6 +92,7 @@ function Invoke-WmrSafeAdminOperation {
 
 function Invoke-WmrWithElevation {
     [CmdletBinding()]
+    [OutputType([System.Object])]
     param(
         [Parameter(Mandatory)]
         [ScriptBlock]$ScriptBlock,
@@ -120,6 +125,7 @@ function Invoke-WmrWithElevation {
 # Convert Windows paths to Docker-compatible paths
 function Convert-WmrPathForDocker {
     [CmdletBinding()]
+    [OutputType([System.String])]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         [string]$Path
@@ -148,6 +154,7 @@ function Convert-WmrPathForDocker {
 # Mock Join-Path that works cross-platform
 function Join-WmrPath {
     [CmdletBinding()]
+    [OutputType([System.String])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -171,6 +178,7 @@ function Join-WmrPath {
 # Mock Windows registry functionality
 function Test-WmrRegistryPath {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [string]$Path
@@ -182,6 +190,7 @@ function Test-WmrRegistryPath {
 
 function Get-WmrRegistryState {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$RegistryConfig,
@@ -201,6 +210,7 @@ function Get-WmrRegistryState {
 # Mock functions for AdministrativePrivileges-Logic tests
 function Backup-WindowsFeatures {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter()]
         [string]$BackupPath
@@ -216,6 +226,7 @@ function Backup-WindowsFeatures {
 
 function Test-WmrPrerequisites {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [object]$TemplateConfig,
@@ -236,6 +247,7 @@ function Test-WmrPrerequisites {
 
 function Get-WindowsOptionalFeaturesState {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter()]
         [string]$StateFilePath
@@ -253,6 +265,7 @@ function Get-WindowsOptionalFeaturesState {
 
 function Get-WindowsCapabilitiesState {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter()]
         [string]$StateFilePath
@@ -270,6 +283,7 @@ function Get-WindowsCapabilitiesState {
 
 function Manage-WindowsService {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [string]$ServiceName,
@@ -291,6 +305,7 @@ function Manage-WindowsService {
 
 function Set-RegistryValue {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -317,6 +332,7 @@ function Set-RegistryValue {
 
 function Manage-ScheduledTask {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [string]$TaskName,
@@ -344,6 +360,7 @@ function Manage-ScheduledTask {
 
 function Test-ElevationCapability {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param()
 
     Write-Verbose "Mock: Testing elevation capability"
@@ -354,6 +371,7 @@ function Test-ElevationCapability {
 # Enhanced registry mocking for file-operations tests
 function New-ItemProperty {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -387,6 +405,7 @@ function New-ItemProperty {
 
 function Set-ItemProperty {
     [CmdletBinding()]
+    [OutputType([System.Void])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -410,6 +429,7 @@ function Set-ItemProperty {
 
 function Get-ItemProperty {
     [CmdletBinding()]
+    [OutputType([System.Management.Automation.PSCustomObject])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -457,6 +477,7 @@ function Get-ItemProperty {
 
 function New-Item {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable], [System.IO.FileSystemInfo])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -513,6 +534,7 @@ function New-Item {
 
 function Remove-Item {
     [CmdletBinding()]
+    [OutputType([System.Void])]
     param(
         [Parameter()]
         [string]$Path,
@@ -556,6 +578,7 @@ function Remove-Item {
 
 function Test-Path {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [string]$Path,
@@ -591,6 +614,7 @@ function Test-Path {
 # Mock template inheritance functions
 function Get-WmrInheritanceConfiguration {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter()]
         [hashtable]$TemplateConfig = @{}
@@ -608,6 +632,7 @@ function Get-WmrInheritanceConfiguration {
 
 function Get-WmrMachineContext {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param()
 
     return @{
@@ -630,6 +655,7 @@ function Get-WmrMachineContext {
 
 function Test-WmrMachineSelectors {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$Selectors,
@@ -644,6 +670,7 @@ function Test-WmrMachineSelectors {
 
 function Test-WmrStringComparison {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [string]$Value1,
@@ -666,6 +693,7 @@ function Test-WmrStringComparison {
 
 function Get-WmrApplicableMachineConfigurations {
     [CmdletBinding()]
+    [OutputType([System.Array])]
     param(
         [Parameter(Mandatory)]
         [array]$MachineConfigurations,
@@ -680,6 +708,7 @@ function Get-WmrApplicableMachineConfigurations {
 
 function Merge-WmrSharedConfiguration {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
@@ -694,6 +723,7 @@ function Merge-WmrSharedConfiguration {
 
 function Merge-WmrMachineSpecificConfiguration {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
@@ -708,6 +738,7 @@ function Merge-WmrMachineSpecificConfiguration {
 
 function Apply-WmrInheritanceRules {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
@@ -722,6 +753,7 @@ function Apply-WmrInheritanceRules {
 
 function Test-WmrInheritanceRuleCondition {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$Rule,
@@ -736,6 +768,7 @@ function Test-WmrInheritanceRuleCondition {
 
 function Apply-WmrConditionalSections {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
@@ -750,6 +783,7 @@ function Apply-WmrConditionalSections {
 
 function Test-WmrConditionalSectionConditions {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$Condition,
@@ -764,6 +798,7 @@ function Test-WmrConditionalSectionConditions {
 
 function Test-WmrResolvedConfiguration {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
@@ -778,6 +813,7 @@ function Test-WmrResolvedConfiguration {
 
 function Test-WmrStrictConfigurationValidation {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig
@@ -789,6 +825,7 @@ function Test-WmrStrictConfigurationValidation {
 
 function Resolve-WmrTemplateInheritance {
     [CmdletBinding()]
+    [OutputType([System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [hashtable]$TemplateConfig,
@@ -803,6 +840,7 @@ function Resolve-WmrTemplateInheritance {
 
 function Read-WmrTemplateConfig {
     [CmdletBinding()]
+    [OutputType([System.Management.Automation.PSCustomObject], [System.Collections.Hashtable])]
     param(
         [Parameter(Mandatory)]
         [string]$TemplatePath
@@ -893,6 +931,7 @@ function Read-WmrTemplateConfig {
 
 function Test-WmrTemplateSchema {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param(
         [Parameter(Mandatory)]
         [object]$TemplateConfig
