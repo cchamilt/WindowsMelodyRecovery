@@ -59,7 +59,7 @@ jobs:
         fail-on-error: true
     
     - name: Upload Test Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: docker-${{ matrix.test-category }}-test-results
@@ -68,7 +68,7 @@ jobs:
           !test-results/*.tmp
           
     - name: Upload Coverage Reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: docker-${{ matrix.test-category }}-coverage
@@ -89,7 +89,7 @@ jobs:
     
     steps:
     - name: Download All Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
     
     - name: Generate Test Summary
       run: |

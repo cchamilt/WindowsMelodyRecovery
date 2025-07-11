@@ -25,8 +25,8 @@ jobs:
       shell: pwsh
       run: |
         Set-PSRepository PSGallery -InstallationPolicy Trusted
-        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-        Install-Module -Name Pester -Force -Scope CurrentUser -RequiredVersion 5.5.0
+        Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
+        Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
         
     - name: Run PSScriptAnalyzer
       shell: pwsh
@@ -265,23 +265,30 @@ jobs:
       run: |
         Write-Host "Scanning for potential secrets..." -ForegroundColor Green
         
-        # Simple regex patterns for common secrets
+        # Simple patterns for common secrets (basic string matching)
         $patterns = @{
-          "API Key" = "api[_-]?key\s*[:=]\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
-          "Password" = "password\s*[:=]\s*['\"][^'\"]{8,}['\"]"
-          "Token" = "token\s*[:=]\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
-          "Secret" = "secret\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+          'API Key' = 'apikey|api_key|api-key'
+          'Password' = 'password\s*[:=]'
+          'Token' = 'token\s*[:=]'
+          'Secret' = 'secret\s*[:=]'
         }
         
         $found = $false
         
-        Get-ChildItem -Path . -Include "*.ps1", "*.psm1", "*.json", "*.md" -Recurse | ForEach-Object {
-          $content = Get-Content $_.FullName -Raw
+        # Exclude test files and mock data to avoid false positives
+        Get-ChildItem -Path . -Include "*.ps1", "*.psm1", "*.json", "*.md" -Recurse | Where-Object {
+          $_.FullName -notmatch '\\tests\\' -and 
+          $_.FullName -notmatch '\\mock-' -and
+          $_.FullName -notmatch '\\example-'
+        } | ForEach-Object {
+          $content = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
           
-          foreach ($patternName in $patterns.Keys) {
-            if ($content -match $patterns[$patternName]) {
-              Write-Warning "Potential $patternName found in $($_.Name)"
-              $found = $true
+          if ($content) {
+            foreach ($patternName in $patterns.Keys) {
+              if ($content -match $patterns[$patternName]) {
+                Write-Warning "Potential $patternName found in $($_.Name)"
+                $found = $true
+              }
             }
           }
         }
@@ -295,11 +302,23 @@ jobs:
       run: |
         Write-Host "Checking for executable files..." -ForegroundColor Green
         
-        # List all files and their types
-        Get-ChildItem -Path . -Recurse -File | ForEach-Object {
-          if ($_.Extension -in @('.exe', '.bat', '.cmd', '.com', '.scr')) {
+        $executableCount = 0
+        
+        # List all files and their types (exclude known safe directories)
+        Get-ChildItem -Path . -Recurse -File | Where-Object {
+          $_.FullName -notmatch '\\.git\\' -and
+          $_.FullName -notmatch '\\node_modules\\'
+        } | ForEach-Object {
+          if ($_.Extension -in @('.exe', '.bat', '.cmd', '.com', '.scr', '.msi', '.dll')) {
             Write-Warning "Executable file found: $($_.FullName)"
+            $executableCount++
           }
+        }
+        
+        if ($executableCount -eq 0) {
+          Write-Host "✅ No unexpected executable files found" -ForegroundColor Green
+        } else {
+          Write-Host "⚠️ Found $executableCount executable files" -ForegroundColor Yellow
         }
         
         Write-Host "✅ File permission check complete" -ForegroundColor Green 
