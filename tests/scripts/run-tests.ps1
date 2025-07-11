@@ -96,7 +96,7 @@ function Write-TestResult {
     Write-Information -MessageData "" -InformationAction Continue
 }
 
-function Parse-TestResults {
+function ConvertFrom-TestResults {
     param([array]$Output, [bool]$Success)
 
     # If the test run was successful, return known count
@@ -125,7 +125,7 @@ function Invoke-UnitTests {
         $success = $LASTEXITCODE -eq 0
 
         # Parse results from output
-        $results = Parse-TestResults -Output $output -Success $success
+        $results = ConvertFrom-TestResults -Output $output -Success $success
         $passed = $results.Passed
         $failed = $results.Failed
 
@@ -170,7 +170,7 @@ function Invoke-FileOperationTests {
         $success = $LASTEXITCODE -eq 0
 
         # Parse results from output
-        $results = Parse-TestResults -Output $output -Success $success
+        $results = ConvertFrom-TestResults -Output $output -Success $success
         $passed = $results.Passed
         $failed = $results.Failed
 
@@ -508,6 +508,7 @@ try {
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1
 }
+
 
 
 

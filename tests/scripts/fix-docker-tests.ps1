@@ -37,7 +37,7 @@ function Add-DockerBootstrap {
     }
 }
 
-function Fix-PathUsage {
+function Repair-PathUsage {
     param(
         [string]$TestFile
     )
@@ -103,7 +103,7 @@ foreach ($testFile in $testFiles) {
     Add-DockerBootstrap -TestFile $testFile.FullName
 
     # Fix path usage
-    Fix-PathUsage -TestFile $testFile.FullName
+    Repair-PathUsage -TestFile $testFile.FullName
 }
 
 # Fix Export-ModuleMember issues in source files
@@ -126,6 +126,7 @@ Write-Information -MessageData "`n✅ Docker test fixes completed!" -Information
 Write-Information -MessageData "Next steps:" -InformationAction Continue
 Write-Information -MessageData "1. Run tests: docker exec wmr -InformationAction Continue-test-runner pwsh -Command 'cd /workspace && Invoke-Pester -Path ./tests/unit/ -PassThru'" -ForegroundColor White
 Write-Information -MessageData "2. Check results and fix remaining issues"  -InformationAction Continue-ForegroundColor White
+
 
 
 
