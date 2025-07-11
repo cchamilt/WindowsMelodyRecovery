@@ -77,9 +77,9 @@ function Get-TestFailureAnalysis {
     param(
         [string]$TestDirectory
     )
-    
+
     Write-Host "🔍 Analyzing test failures in: $TestDirectory" -ForegroundColor Cyan
-    
+
     # Run tests and capture detailed failure information
     $testResults = @{
         TotalTests = 0
@@ -88,7 +88,7 @@ function Get-TestFailureAnalysis {
         FailureAnalysis = @()
         CategorySummary = @{}
     }
-    
+
     # Initialize category counters
     foreach ($category in $TestCategories.Keys) {
         $testResults.CategorySummary[$category] = @{
@@ -98,21 +98,21 @@ function Get-TestFailureAnalysis {
             Priority = $TestCategories[$category].Priority
         }
     }
-    
+
     # Get all test files
     $testFiles = Get-ChildItem -Path $TestDirectory -Filter "*.Tests.ps1" -Recurse
-    
+
     foreach ($testFile in $testFiles) {
         Write-Host "📝 Analyzing: $($testFile.Name)" -ForegroundColor Yellow
-        
+
         try {
             # Run individual test file to get specific failures
             $result = Invoke-Pester -Path $testFile.FullName -PassThru -Show None
-            
+
             $testResults.TotalTests += $result.TotalCount
             $testResults.PassedTests += $result.PassedCount
             $testResults.FailedTests += $result.FailedCount
-            
+
             # Analyze each failed test
             foreach ($failedTest in $result.Failed) {
                 $failureInfo = @{
@@ -124,28 +124,28 @@ function Get-TestFailureAnalysis {
                     TargetEnvironment = "Unknown"
                     Priority = "Unknown"
                 }
-                
+
                 # Categorize the failure
                 $categorized = $false
                 foreach ($categoryName in $TestCategories.Keys) {
                     $category = $TestCategories[$categoryName]
-                    
+
                     foreach ($keyword in $category.Keywords) {
                         if ($failureInfo.ErrorMessage -match $keyword -or $failureInfo.TestName -match $keyword) {
                             $failureInfo.Categories += $categoryName
                             $failureInfo.TargetEnvironment = $category.TargetEnvironment
                             $failureInfo.Priority = $category.Priority
-                            
+
                             $testResults.CategorySummary[$categoryName].Count++
                             $testResults.CategorySummary[$categoryName].Tests += $failureInfo.TestName
-                            
+
                             $categorized = $true
                             break
                         }
                     }
                     if ($categorized) { break }
                 }
-                
+
                 # Generate recommended action
                 if ($failureInfo.TargetEnvironment -eq "Windows-Only") {
                     $failureInfo.RecommendedAction = "Move to tests/windows-only/ directory for CI/CD-only execution"
@@ -154,15 +154,15 @@ function Get-TestFailureAnalysis {
                 } else {
                     $failureInfo.RecommendedAction = "Requires manual analysis to determine proper environment"
                 }
-                
+
                 $testResults.FailureAnalysis += $failureInfo
             }
-            
+
         } catch {
             Write-Warning "Failed to analyze $($testFile.Name): $($_.Exception.Message)"
         }
     }
-    
+
     return $testResults
 }
 
@@ -170,7 +170,7 @@ function Generate-MigrationPlan {
     param(
         [hashtable]$AnalysisResults
     )
-    
+
     $migrationPlan = @{
         DockerFixable = @{
             TotalTests = 0
@@ -190,11 +190,11 @@ function Generate-MigrationPlan {
             WindowsTargetTests = 0
         }
     }
-    
+
     # Group by target environment
     foreach ($category in $AnalysisResults.CategorySummary.Keys) {
         $categoryData = $AnalysisResults.CategorySummary[$category]
-        
+
         if ($categoryData.TargetEnvironment -eq "Docker-Fixable") {
             $migrationPlan.DockerFixable.Categories[$category] = $categoryData
             $migrationPlan.DockerFixable.TotalTests += $categoryData.Count
@@ -203,10 +203,10 @@ function Generate-MigrationPlan {
             $migrationPlan.WindowsOnly.TotalTests += $categoryData.Count
         }
     }
-    
+
     $migrationPlan.Summary.DockerTargetTests = $AnalysisResults.PassedTests + $migrationPlan.DockerFixable.TotalTests
     $migrationPlan.Summary.WindowsTargetTests = $migrationPlan.WindowsOnly.TotalTests
-    
+
     return $migrationPlan
 }
 
@@ -216,7 +216,7 @@ function Export-AnalysisResults {
         [hashtable]$MigrationPlan,
         [string]$OutputFile
     )
-    
+
     $exportData = @{
         Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         Analysis = $AnalysisResults
@@ -236,7 +236,7 @@ function Export-AnalysisResults {
             )
         }
     }
-    
+
     $exportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $OutputFile -Encoding UTF8
     Write-Host "✅ Analysis results exported to: $OutputFile" -ForegroundColor Green
 }
@@ -247,7 +247,7 @@ Write-Host "🚀 Starting comprehensive test failure analysis..." -ForegroundCol
 # Ensure we're in Docker environment for consistent testing
 if (-not (Test-Path '/.dockerenv') -and $env:DOCKER_TEST -ne 'true') {
     Write-Host "⚠️  Running analysis in Docker environment for consistency..." -ForegroundColor Yellow
-    
+
     # Check if Docker containers are running
     try {
         $containerStatus = docker exec wmr-test-runner pwsh -Command "Write-Host 'Docker environment ready'"
@@ -256,13 +256,13 @@ if (-not (Test-Path '/.dockerenv') -and $env:DOCKER_TEST -ne 'true') {
             docker-compose -f docker-compose.test.yml up -d
             Start-Sleep -Seconds 10
         }
-        
+
         # Run analysis in Docker
         docker exec wmr-test-runner pwsh -Command "cd /workspace && pwsh -File 'tests/scripts/analyze-test-failures.ps1' -OutputPath '/workspace/$OutputPath'"
-        
+
         Write-Host "✅ Analysis completed in Docker environment" -ForegroundColor Green
         return
-        
+
     } catch {
         Write-Warning "Failed to run in Docker, proceeding with local analysis: $($_.Exception.Message)"
     }
@@ -309,4 +309,4 @@ Write-Host "3. Fix Docker-compatible tests for 100% pass rate" -ForegroundColor 
 Write-Host "4. Move Windows-only tests to separate directory" -ForegroundColor White
 Write-Host "5. Implement GitHub Actions dual-environment workflows" -ForegroundColor White
 
-Write-Host "`n✅ Analysis completed successfully!" -ForegroundColor Green 
+Write-Host "`n✅ Analysis completed successfully!" -ForegroundColor Green

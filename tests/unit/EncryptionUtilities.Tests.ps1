@@ -11,11 +11,11 @@ BeforeAll {
     } catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
-    
+
     # Create and import the test helper module
     $helperPath = Join-Path $PSScriptRoot "../utilities/EncryptionTestHelper.ps1"
     . $helperPath
-    
+
     # Set up test environment
     $script:TestDataPath = [string](New-TestTempDirectory)
 }
@@ -34,90 +34,90 @@ Describe 'EncryptionUtilities' {
         $script:TestKey = New-TestEncryptionKey -Password $TestPassword -Salt $TestSalt
         $script:TestInitializationVector = New-TestInitializationVector
     }
-    
+
     Context 'Protect-WmrData' {
         It 'Should encrypt string data correctly' {
             # Arrange
             $plainText = "Sensitive test data"
-            
+
             # Act
             $encryptedData = Protect-WmrData -Data $plainText -Passphrase $TestSecureString
-            
+
             # Assert
             $encryptedData | Should -Not -BeNullOrEmpty
             $encryptedData | Should -Not -Be $plainText
             $encryptedData.GetType().Name | Should -Be 'String'
         }
-        
+
         It 'Should handle empty strings' {
             # Act & Assert
             { Protect-WmrData -Data "" -Passphrase $TestSecureString } | Should -Not -Throw
         }
-        
+
         It 'Should throw on null data' {
             # Act & Assert
-            { Protect-WmrData -Data $null -Passphrase $TestSecureString } | 
+            { Protect-WmrData -Data $null -Passphrase $TestSecureString } |
                 Should -Throw -ExpectedMessage "*Cannot validate argument on parameter 'Data'. The argument is null*"
         }
-        
+
         It 'Should throw on null password' {
             # Act & Assert
-            { Protect-WmrData -Data "test" -Passphrase $null } | 
+            { Protect-WmrData -Data "test" -Passphrase $null } |
                 Should -Throw -ExpectedMessage "*Cannot validate argument on parameter 'Passphrase'. The argument is null*"
         }
     }
-    
+
     Context 'Unprotect-WmrData' {
         It 'Should decrypt data correctly' {
             # Arrange
             $plainText = "Test data for decryption"
             $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText $plainText
             $encodedData = [Convert]::ToBase64String($encryptedData)
-            
+
             # Act
             $decryptedData = Unprotect-WmrData -EncodedData $encodedData -Passphrase $TestSecureString
-            
+
             # Assert
             $decryptedData | Should -Not -BeNullOrEmpty
             $decryptedData | Should -Be $plainText
         }
-        
+
         It 'Should handle empty encrypted data' {
             # Arrange
             $emptyEncrypted = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText ""
             $encodedEmpty = [Convert]::ToBase64String($emptyEncrypted)
-            
+
             # Act
             $decrypted = Unprotect-WmrData -EncodedData $encodedEmpty -Passphrase $TestSecureString
-            
+
             # Assert
             $decrypted | Should -Be ""
         }
-        
+
         It 'Should throw on corrupted data' {
             # Arrange
             $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText "Test"
             $corruptedData = $encryptedData[0..($encryptedData.Length-2)]  # Remove last byte
             $encodedCorrupted = [Convert]::ToBase64String($corruptedData)
-            
+
             # Act & Assert
-            { Unprotect-WmrData -EncodedData $encodedCorrupted -Passphrase $TestSecureString } | 
+            { Unprotect-WmrData -EncodedData $encodedCorrupted -Passphrase $TestSecureString } |
                 Should -Throw -ExpectedMessage "*Decryption failed*"
         }
-        
+
         It 'Should throw on incorrect password' {
             # Arrange
             $plainText = "Test data"
             $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText $plainText
             $encodedData = [Convert]::ToBase64String($encryptedData)
             $wrongPassword = New-TestSecureString -PlainText "WrongP@ssw0rd!"
-            
+
             # Act & Assert
-            { Unprotect-WmrData -EncodedData $encodedData -Passphrase $wrongPassword } | 
+            { Unprotect-WmrData -EncodedData $encodedData -Passphrase $wrongPassword } |
                 Should -Throw -ExpectedMessage "*Decryption failed*"
         }
     }
-    
+
     Context 'End-to-End Encryption' {
         It 'Should successfully encrypt and decrypt data' {
             # Arrange
@@ -129,17 +129,17 @@ Describe 'EncryptionUtilities' {
                     'Key' = 'Value'
                 }
             } | ConvertTo-Json
-            
+
             # Act
             # First encrypt with a known salt
             $salt = New-Object byte[] 32
             for ($i = 0; $i -lt 32; $i++) {
                 $salt[$i] = $i
             }
-            
+
             # Get the key info with our known salt
             $keyInfo = Get-WmrEncryptionKey -Passphrase $TestSecureString -Salt $salt
-            
+
             # Create AES provider
             $aes = [System.Security.Cryptography.AesCryptoServiceProvider]::new()
             $aes.KeySize = 256
@@ -148,54 +148,54 @@ Describe 'EncryptionUtilities' {
             $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
             $aes.Key = $keyInfo.Key
             $aes.GenerateIV()
-            
+
             # Encrypt the data
             $encryptor = $aes.CreateEncryptor()
             $dataBytes = [System.Text.Encoding]::UTF8.GetBytes($testData)
             $encryptedBytes = $encryptor.TransformFinalBlock($dataBytes, 0, $dataBytes.Length)
-            
+
             # Combine salt + IV + encrypted data
             $combinedData = New-Object byte[] ($salt.Length + $aes.IV.Length + $encryptedBytes.Length)
             [Array]::Copy($salt, 0, $combinedData, 0, $salt.Length)
             [Array]::Copy($aes.IV, 0, $combinedData, $salt.Length, $aes.IV.Length)
             [Array]::Copy($encryptedBytes, 0, $combinedData, $salt.Length + $aes.IV.Length, $encryptedBytes.Length)
-            
+
             # Convert to Base64
             $encrypted = [System.Convert]::ToBase64String($combinedData)
-            
+
             # Clean up
             $encryptor.Dispose()
             $aes.Dispose()
-            
+
             # Now decrypt
             $decrypted = Unprotect-WmrData -EncodedData $encrypted -Passphrase $TestSecureString
-            
+
             # Assert
             $decrypted | Should -Be $testData
             ($decrypted | ConvertFrom-Json).String | Should -Be "Test string"
             ($decrypted | ConvertFrom-Json).Number | Should -Be 42
         }
-        
+
         It 'Should handle special characters correctly' {
             # Arrange
             $specialChars = "!@#$%^&*()_+-=[]{}|;:',.<>?`~"
-            
+
             # Act
             $encrypted = Protect-WmrData -Data $specialChars -Passphrase $TestSecureString
             $decrypted = Unprotect-WmrData -EncodedData $encrypted -Passphrase $TestSecureString
-            
+
             # Assert
             $decrypted | Should -Be $specialChars
         }
-        
+
         It 'Should handle Unicode characters' {
             # Arrange
             $unicodeText = "Hello 世界 🌍"
-            
+
             # Act
             $encrypted = Protect-WmrData -Data $unicodeText -Passphrase $TestSecureString
             $decrypted = Unprotect-WmrData -EncodedData $encrypted -Passphrase $TestSecureString
-            
+
             # Assert
             $decrypted | Should -Be $unicodeText
         }
@@ -207,4 +207,4 @@ AfterAll {
     if ($script:TestDataPath) {
         Remove-TestTempDirectory -Path $script:TestDataPath
     }
-} 
+}

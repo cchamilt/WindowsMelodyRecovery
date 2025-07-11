@@ -38,7 +38,7 @@ function Invoke-WmrTemplate {
         . (Join-Path $PSScriptRoot "RegistryState.ps1")
         . (Join-Path $PSScriptRoot "ApplicationState.ps1")
         . (Join-Path $PSScriptRoot "EncryptionUtilities.ps1")
-        
+
         # Import the actual PowerShell module
         Import-Module (Join-Path $PSScriptRoot "WindowsMelodyRecovery.Template.psm1") -Force
     } catch {
@@ -50,22 +50,22 @@ function Invoke-WmrTemplate {
     try {
         $templateConfig = Read-WmrTemplateConfig -TemplatePath $TemplatePath
         Test-WmrTemplateSchema -TemplateConfig $templateConfig
-        
+
         # Check if template uses inheritance features
         $usesInheritance = $templateConfig.shared -or $templateConfig.machine_specific -or $templateConfig.inheritance_rules -or $templateConfig.conditional_sections
-        
+
         if ($usesInheritance) {
             Write-Host "Template uses inheritance features - resolving configuration..." -ForegroundColor Yellow
-            
+
             # Import inheritance processing module
             . (Join-Path $PSScriptRoot "TemplateInheritance.ps1")
-            
+
             # Get machine context for inheritance resolution
             $machineContext = Get-WmrMachineContext
-            
+
             # Resolve template inheritance
             $templateConfig = Resolve-WmrTemplateInheritance -TemplateConfig $templateConfig -MachineContext $machineContext
-            
+
             Write-Host "Template inheritance resolved successfully" -ForegroundColor Green
         }
     } catch {
@@ -76,7 +76,7 @@ function Invoke-WmrTemplate {
     # Extract template name from path and create scoped directory
     $templateName = [System.IO.Path]::GetFileNameWithoutExtension($TemplatePath)
     $templateStateDirectory = Join-Path $StateFilesDirectory $templateName
-    
+
     # Ensure the template's scoped state directory exists
     if (-not (Test-Path $templateStateDirectory -PathType Container)) {
         New-Item -ItemType Directory -Path $templateStateDirectory -Force | Out-Null
@@ -217,4 +217,4 @@ function Invoke-WmrStageItem {
 }
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
-# Available functions: Invoke-WmrTemplate, Invoke-WmrStageItem 
+# Available functions: Invoke-WmrTemplate, Invoke-WmrStageItem

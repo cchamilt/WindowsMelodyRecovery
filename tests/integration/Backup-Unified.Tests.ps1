@@ -22,7 +22,7 @@ File has potential violations but uses safe patterns (mocking, test directories)
     - backup-gaming.Tests.ps1 (gaming platforms backup)
     - backup-cloud.Tests.ps1 (cloud integration backup)
     - backup-system-settings.Tests.ps1 (system settings backup)
-    
+
     Uses the template-based approach for consistent backup operations.
 
 .NOTES
@@ -38,39 +38,39 @@ BeforeAll {
     } catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
-    
+
     # Setup unified test environment
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
     $script:TestBackupRoot = Join-Path $tempPath "WMR-Unified-Backup-Tests"
     $script:TestCloudPath = Join-Path $script:TestBackupRoot "cloud-providers"
     $script:TestMockPath = Join-Path $script:TestBackupRoot "mock-data"
-    
+
     # Create test directories
     @($script:TestBackupRoot, $script:TestCloudPath, $script:TestMockPath) | ForEach-Object {
         if (-not (Test-Path $_)) {
             New-Item -Path $_ -ItemType Directory -Force | Out-Null
         }
     }
-    
+
     # Set test mode environment
     $env:WMR_TEST_MODE = "true"
     $env:WMR_BACKUP_ROOT = $script:TestBackupRoot
-    
+
     # Get module paths
     $script:ModuleRoot = Split-Path (Get-Module WindowsMelodyRecovery).Path -Parent
     $script:TemplatesPath = Join-Path $script:ModuleRoot "Templates\System"
-    
+
     # Import required functions
     . (Join-Path $script:ModuleRoot "Private\Core\InvokeWmrTemplate.ps1")
-    
+
     # Create mock data for all backup types
     Initialize-MockData
-    
+
     function Initialize-MockData {
         # Create mock application data
         $appDataPath = Join-Path $script:TestMockPath "applications"
         New-Item -Path $appDataPath -ItemType Directory -Force | Out-Null
-        
+
         $mockApps = @{
             "VSCode" = @{
                 "settings.json" = '{"theme":"dark","fontSize":14}'
@@ -85,25 +85,25 @@ BeforeAll {
                 "places.sqlite" = "SQLite database mock"
             }
         }
-        
+
         foreach ($app in $mockApps.Keys) {
             $appDir = Join-Path $appDataPath $app
             New-Item -Path $appDir -ItemType Directory -Force | Out-Null
-            
+
             foreach ($file in $mockApps[$app].Keys) {
                 $filePath = Join-Path $appDir $file
                 $mockApps[$app][$file] | Out-File -FilePath $filePath -Encoding UTF8
             }
         }
-        
+
         # Create mock gaming data
         $gamingDataPath = Join-Path $script:TestMockPath "gaming"
         New-Item -Path $gamingDataPath -ItemType Directory -Force | Out-Null
-        
+
         # Steam mock data
         $steamPath = Join-Path $gamingDataPath "steam"
         New-Item -Path $steamPath -ItemType Directory -Force | Out-Null
-        
+
         @{
             "config.vdf" = 'Steam Configuration File'
             "loginusers.vdf" = 'Steam Login Users'
@@ -112,21 +112,21 @@ BeforeAll {
                 $_.Value | Out-File -FilePath (Join-Path $steamPath $_.Key) -Encoding ASCII
             }
         }
-        
+
         # Epic Games mock data
         $epicPath = Join-Path $gamingDataPath "epic"
         New-Item -Path $epicPath -ItemType Directory -Force | Out-Null
-        
+
         @{
             "Launcher" = @{
                 "VaultCache" = '{"Fortnite":{"AppName":"Fortnite","InstallLocation":"C:\\Epic\\Fortnite"}}'
             }
         } | ConvertTo-Json -Depth 3 | Out-File -FilePath (Join-Path $epicPath "launcher-config.json") -Encoding UTF8
-        
+
         # Create mock system settings data
         $systemPath = Join-Path $script:TestMockPath "system-settings"
         New-Item -Path $systemPath -ItemType Directory -Force | Out-Null
-        
+
         @{
             "display.json" = @{
                 Resolution = "1920x1080"
@@ -148,12 +148,12 @@ BeforeAll {
                 $_.Value | ConvertTo-Json -Depth 2 | Out-File -FilePath (Join-Path $systemPath $_.Key) -Encoding UTF8
             }
         }
-        
+
         # Create mock cloud provider directories
         @("OneDrive", "GoogleDrive", "Dropbox", "Box") | ForEach-Object {
             $cloudDir = Join-Path $script:TestCloudPath $_
             New-Item -Path $cloudDir -ItemType Directory -Force | Out-Null
-            
+
             # Create WindowsMelodyRecovery folder in each
             $wmrDir = Join-Path $cloudDir "WindowsMelodyRecovery"
             New-Item -Path $wmrDir -ItemType Directory -Force | Out-Null
@@ -162,13 +162,13 @@ BeforeAll {
 }
 
 Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
-    
+
     Context "Template-Based Backup Infrastructure" {
-        
+
         It "Should have access to backup templates" {
             $requiredTemplates = @(
                 "applications.yaml",
-                "system-settings.yaml", 
+                "system-settings.yaml",
                 "gamemanagers.yaml",
                 "wsl.yaml",
                 "display.yaml",
@@ -177,7 +177,7 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 "browsers.yaml",
                 "powershell.yaml"
             )
-            
+
             $availableTemplates = @()
             foreach ($template in $requiredTemplates) {
                 $templatePath = Join-Path $script:TemplatesPath $template
@@ -185,62 +185,62 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     $availableTemplates += $template
                 }
             }
-            
+
             # Most templates should be available
             $availableTemplates.Count | Should -BeGreaterThan 5
             Write-Host "Available templates: $($availableTemplates -join ', ')" -ForegroundColor Green
-            
+
             # Verify all 32 templates exist
             $allTemplates = Get-ChildItem -Path $script:TemplatesPath -Filter "*.yaml"
             $allTemplates.Count | Should -Be 32
             Write-Host "Total templates found: $($allTemplates.Count)" -ForegroundColor Cyan
         }
-        
+
         It "Should create backup directory structure" {
             Test-Path $script:TestBackupRoot | Should -Be $true
             Test-Path $script:TestCloudPath | Should -Be $true
             Test-Path $script:TestMockPath | Should -Be $true
         }
-        
+
         It "Should have mock data available for testing" {
             # Verify mock data exists
             $mockAppsPath = Join-Path $script:TestMockPath "applications"
             $mockGamingPath = Join-Path $script:TestMockPath "gaming"
             $mockSystemPath = Join-Path $script:TestMockPath "system-settings"
-            
+
             Test-Path $mockAppsPath | Should -Be $true
             Test-Path $mockGamingPath | Should -Be $true
             Test-Path $mockSystemPath | Should -Be $true
-            
+
             # Verify specific mock files
             Test-Path (Join-Path $mockAppsPath "VSCode\settings.json") | Should -Be $true
             Test-Path (Join-Path $mockGamingPath "steam\config.vdf") | Should -Be $true
             Test-Path (Join-Path $mockSystemPath "display.json") | Should -Be $true
         }
     }
-    
+
     Context "System Settings Backup" {
-        
+
         It "Should backup system settings using template" {
             $templatePath = Join-Path $script:TemplatesPath "system-settings.yaml"
-            
+
             if (-not (Test-Path $templatePath)) {
                 Set-ItResult -Skipped -Because "system-settings.yaml template not found"
                 return
             }
-            
+
             $backupPath = Join-Path $script:TestBackupRoot "system-settings"
-            
+
             # Execute template-based backup
             { Invoke-WmrTemplate -TemplatePath $templatePath -Operation "Backup" -StateFilesDirectory $backupPath } | Should -Not -Throw
-            
+
             # Verify backup directory created
             Test-Path $backupPath | Should -Be $true
         }
-        
+
         It "Should backup registry settings" {
             $backupPath = Join-Path $script:TestBackupRoot "system-settings"
-            
+
             if (Test-Path $backupPath) {
                 # Create mock registry backup file
                 $registryBackup = Join-Path $backupPath "registry_display.json"
@@ -253,20 +253,20 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     }
                     Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json -Depth 3 | Out-File $registryBackup -Encoding UTF8
-                
+
                 Test-Path $registryBackup | Should -Be $true
-                
+
                 # Verify registry backup content
                 $content = Get-Content $registryBackup | ConvertFrom-Json
                 $content.KeyName | Should -Be "display"
                 $content.Values | Should -Not -BeNullOrEmpty
             }
         }
-        
+
         It "Should backup user preferences and settings" {
             $backupPath = Join-Path $script:TestBackupRoot "system-settings"
             $preferencesFile = Join-Path $backupPath "user-preferences.json"
-            
+
             # Create user preferences backup
             @{
                 Theme = "Dark"
@@ -283,9 +283,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     Advertising = $false
                 }
             } | ConvertTo-Json -Depth 3 | Out-File $preferencesFile -Encoding UTF8
-            
+
             Test-Path $preferencesFile | Should -Be $true
-            
+
             # Verify preferences content
             $prefs = Get-Content $preferencesFile | ConvertFrom-Json
             $prefs.Theme | Should -Be "Dark"
@@ -293,34 +293,34 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $prefs.Privacy | Should -Not -BeNullOrEmpty
         }
     }
-    
+
     Context "Applications Backup" {
-        
+
         It "Should backup applications using template" {
             $templatePath = Join-Path $script:TemplatesPath "applications.yaml"
-            
+
             if (-not (Test-Path $templatePath)) {
                 Set-ItResult -Skipped -Because "applications.yaml template not found"
                 return
             }
-            
+
             $backupPath = Join-Path $script:TestBackupRoot "applications"
-            
+
             # Execute template-based backup
             { Invoke-WmrTemplate -TemplatePath $templatePath -Operation "Backup" -StateFilesDirectory $backupPath } | Should -Not -Throw
-            
+
             # Verify backup directory created
             Test-Path $backupPath | Should -Be $true
         }
-        
+
         It "Should backup application configurations" {
             $backupPath = Join-Path $script:TestBackupRoot "applications"
             $configsPath = Join-Path $backupPath "configs"
-            
+
             if (-not (Test-Path $configsPath)) {
                 New-Item -Path $configsPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create application configuration backups
             $appConfigs = @{
                 "VSCode" = @{
@@ -360,22 +360,22 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     )
                 }
             }
-            
+
             foreach ($app in $appConfigs.Keys) {
                 $appConfigFile = Join-Path $configsPath "$app-config.json"
                 $appConfigs[$app] | ConvertTo-Json -Depth 3 | Out-File $appConfigFile -Encoding UTF8
                 Test-Path $appConfigFile | Should -Be $true
             }
-            
+
             # Verify configuration files
             $configFiles = Get-ChildItem $configsPath -Filter "*.json"
             $configFiles.Count | Should -Be 3
         }
-        
+
         It "Should backup installed applications list" {
             $backupPath = Join-Path $script:TestBackupRoot "applications"
             $installedAppsFile = Join-Path $backupPath "installed-applications.json"
-            
+
             # Create installed applications list
             $installedApps = @(
                 @{
@@ -415,21 +415,21 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     PackageId = "7zip.7zip"
                 }
             )
-            
+
             $installedApps | ConvertTo-Json -Depth 3 | Out-File $installedAppsFile -Encoding UTF8
             Test-Path $installedAppsFile | Should -Be $true
-            
+
             # Verify installed apps content
             $apps = Get-Content $installedAppsFile | ConvertFrom-Json
             $apps.Count | Should -Be 4
             $apps[0].Name | Should -Be "Visual Studio Code"
             $apps | Where-Object { $_.PackageManager -eq "winget" } | Should -HaveCount 4
         }
-        
+
         It "Should create applications backup manifest" {
             $backupPath = Join-Path $script:TestBackupRoot "applications"
             $manifestFile = Join-Path $backupPath "backup-manifest.json"
-            
+
             @{
                 BackupType = "Applications"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
@@ -445,9 +445,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     PackageManagers = @("winget", "chocolatey", "scoop")
                 }
             } | ConvertTo-Json -Depth 4 | Out-File $manifestFile -Encoding UTF8
-            
+
             Test-Path $manifestFile | Should -Be $true
-            
+
             # Verify manifest content
             $manifest = Get-Content $manifestFile | ConvertFrom-Json
             $manifest.BackupType | Should -Be "Applications"
@@ -455,34 +455,34 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $manifest.Summary.TotalApplications | Should -Be 4
         }
     }
-    
+
     Context "Gaming Platforms Backup" {
-        
+
         It "Should backup gaming platforms using template" {
             $templatePath = Join-Path $script:TemplatesPath "gamemanagers.yaml"
-            
+
             if (-not (Test-Path $templatePath)) {
                 Set-ItResult -Skipped -Because "gamemanagers.yaml template not found"
                 return
             }
-            
+
             $backupPath = Join-Path $script:TestBackupRoot "gaming"
-            
+
             # Execute template-based backup
             { Invoke-WmrTemplate -TemplatePath $templatePath -Operation "Backup" -StateFilesDirectory $backupPath } | Should -Not -Throw
-            
+
             # Verify backup directory created
             Test-Path $backupPath | Should -Be $true
         }
-        
+
         It "Should backup Steam configuration and library" {
             $backupPath = Join-Path $script:TestBackupRoot "gaming"
             $steamPath = Join-Path $backupPath "steam"
-            
+
             if (-not (Test-Path $steamPath)) {
                 New-Item -Path $steamPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create Steam backup data
             $steamData = @{
                 "config.vdf" = @"
@@ -530,13 +530,13 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 }
 "@
             }
-            
+
             foreach ($file in $steamData.Keys) {
                 $filePath = Join-Path $steamPath $file
                 $steamData[$file] | Out-File $filePath -Encoding ASCII
                 Test-Path $filePath | Should -Be $true
             }
-            
+
             # Create games library backup
             $gamesFile = Join-Path $steamPath "games-library.json"
             @{
@@ -564,18 +564,18 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 )
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $gamesFile -Encoding UTF8
-            
+
             Test-Path $gamesFile | Should -Be $true
         }
-        
+
         It "Should backup Epic Games Store configuration" {
             $backupPath = Join-Path $script:TestBackupRoot "gaming"
             $epicPath = Join-Path $backupPath "epic"
-            
+
             if (-not (Test-Path $epicPath)) {
                 New-Item -Path $epicPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create Epic Games backup data
             $epicConfig = Join-Path $epicPath "launcher-config.json"
             @{
@@ -608,24 +608,24 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 )
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $epicConfig -Encoding UTF8
-            
+
             Test-Path $epicConfig | Should -Be $true
-            
+
             # Verify Epic config content
             $config = Get-Content $epicConfig | ConvertFrom-Json
             $config.InstalledGames.Count | Should -Be 2
             $config.LauncherSettings.InstallLocation | Should -Be "C:\Program Files\Epic Games"
         }
-        
+
         It "Should backup GOG Galaxy and EA Desktop configurations" {
             $backupPath = Join-Path $script:TestBackupRoot "gaming"
-            
+
             # GOG Galaxy backup
             $gogPath = Join-Path $backupPath "gog"
             if (-not (Test-Path $gogPath)) {
                 New-Item -Path $gogPath -ItemType Directory -Force | Out-Null
             }
-            
+
             $gogConfig = Join-Path $gogPath "galaxy-config.json"
             @{
                 Settings = @{
@@ -643,13 +643,13 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 )
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $gogConfig -Encoding UTF8
-            
+
             # EA Desktop backup
             $eaPath = Join-Path $backupPath "ea"
             if (-not (Test-Path $eaPath)) {
                 New-Item -Path $eaPath -ItemType Directory -Force | Out-Null
             }
-            
+
             $eaConfig = Join-Path $eaPath "ea-desktop-config.json"
             @{
                 Settings = @{
@@ -667,15 +667,15 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 )
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $eaConfig -Encoding UTF8
-            
+
             Test-Path $gogConfig | Should -Be $true
             Test-Path $eaConfig | Should -Be $true
         }
-        
+
         It "Should create gaming platforms backup manifest" {
             $backupPath = Join-Path $script:TestBackupRoot "gaming"
             $manifestFile = Join-Path $backupPath "gaming-manifest.json"
-            
+
             @{
                 BackupType = "GamingPlatforms"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
@@ -712,9 +712,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     TotalLibraryPaths = 5
                 }
             } | ConvertTo-Json -Depth 4 | Out-File $manifestFile -Encoding UTF8
-            
+
             Test-Path $manifestFile | Should -Be $true
-            
+
             # Verify manifest
             $manifest = Get-Content $manifestFile | ConvertFrom-Json
             $manifest.BackupType | Should -Be "GamingPlatforms"
@@ -722,12 +722,12 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $manifest.Summary.TotalGames | Should -Be 6
         }
     }
-    
+
     Context "Cloud Integration Backup" {
-        
+
         It "Should detect and backup to cloud providers" {
             $cloudProvidersFile = Join-Path $script:TestBackupRoot "cloud-providers.json"
-            
+
             # Create cloud provider detection results
             $providers = @{
                 OneDrive = @{
@@ -759,23 +759,23 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     UsedSpace = "N/A"
                 }
             }
-            
+
             $providers | ConvertTo-Json -Depth 3 | Out-File $cloudProvidersFile -Encoding UTF8
             Test-Path $cloudProvidersFile | Should -Be $true
-            
+
             # Verify provider detection
             $detectedProviders = Get-Content $cloudProvidersFile | ConvertFrom-Json
             $availableProviders = $detectedProviders.PSObject.Properties | Where-Object { $_.Value.Available -eq $true }
             $availableProviders.Count | Should -Be 3
         }
-        
+
         It "Should backup to OneDrive" {
             $oneDrivePath = Join-Path $script:TestCloudPath "OneDrive\WindowsMelodyRecovery"
-            
+
             if (-not (Test-Path $oneDrivePath)) {
                 New-Item -Path $oneDrivePath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create OneDrive backup structure
             $oneDriveBackup = @{
                 "system-settings" = @{
@@ -798,20 +798,20 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     }
                 }
             }
-            
+
             foreach ($category in $oneDriveBackup.Keys) {
                 $categoryPath = Join-Path $oneDrivePath $category
                 if (-not (Test-Path $categoryPath)) {
                     New-Item -Path $categoryPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 foreach ($file in $oneDriveBackup[$category].Keys) {
                     $filePath = Join-Path $categoryPath $file
                     $oneDriveBackup[$category][$file] | ConvertTo-Json -Depth 3 | Out-File $filePath -Encoding UTF8
                     Test-Path $filePath | Should -Be $true
                 }
             }
-            
+
             # Create OneDrive backup manifest
             $manifestFile = Join-Path $oneDrivePath "backup-manifest.json"
             @{
@@ -822,20 +822,20 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 Categories = @("system-settings", "applications")
                 SyncStatus = "Complete"
             } | ConvertTo-Json -Depth 3 | Out-File $manifestFile -Encoding UTF8
-            
+
             Test-Path $manifestFile | Should -Be $true
         }
-        
+
         It "Should backup to multiple cloud providers simultaneously" {
             $cloudProviders = @("GoogleDrive", "Dropbox")
-            
+
             foreach ($provider in $cloudProviders) {
                 $providerPath = Join-Path $script:TestCloudPath "$provider\WindowsMelodyRecovery"
-                
+
                 if (-not (Test-Path $providerPath)) {
                     New-Item -Path $providerPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 # Create provider-specific backup
                 $backupData = @{
                     Provider = $provider
@@ -844,11 +844,11 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     Categories = @("gaming", "applications")
                     SyncMethod = if ($provider -eq "GoogleDrive") { "Incremental" } else { "Full" }
                 }
-                
+
                 $manifestFile = Join-Path $providerPath "backup-manifest.json"
                 $backupData | ConvertTo-Json -Depth 3 | Out-File $manifestFile -Encoding UTF8
                 Test-Path $manifestFile | Should -Be $true
-                
+
                 # Verify provider-specific content
                 $manifest = Get-Content $manifestFile | ConvertFrom-Json
                 $manifest.Provider | Should -Be $provider
@@ -857,33 +857,33 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             }
         }
     }
-    
+
     Context "WSL Backup" -Skip:(-not $env:WMR_WSL_DISTRO) {
-        
+
         It "Should backup WSL using template" {
             $templatePath = Join-Path $script:TemplatesPath "wsl.yaml"
-            
+
             if (-not (Test-Path $templatePath)) {
                 Set-ItResult -Skipped -Because "wsl.yaml template not found"
                 return
             }
-            
+
             $backupPath = Join-Path $script:TestBackupRoot "wsl"
-            
+
             # Execute template-based backup
             { Invoke-WmrTemplate -TemplatePath $templatePath -Operation "Backup" -StateFilesDirectory $backupPath } | Should -Not -Throw
-            
+
             # Verify backup directory created
             Test-Path $backupPath | Should -Be $true
         }
-        
+
         It "Should backup WSL distributions and configurations" {
             $backupPath = Join-Path $script:TestBackupRoot "wsl"
-            
+
             if (-not (Test-Path $backupPath)) {
                 New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create WSL backup data
             $wslConfig = Join-Path $backupPath "wsl-config.json"
             @{
@@ -907,22 +907,22 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 WSLVersion = "2"
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $wslConfig -Encoding UTF8
-            
+
             Test-Path $wslConfig | Should -Be $true
-            
+
             # Create dotfiles backup
             $dotfilesPath = Join-Path $backupPath "dotfiles"
             if (-not (Test-Path $dotfilesPath)) {
                 New-Item -Path $dotfilesPath -ItemType Directory -Force | Out-Null
             }
-            
+
             $dotfiles = @{
                 ".bashrc" = "# Bash configuration"
                 ".vimrc" = "# Vim configuration"
                 ".gitconfig" = "[user]\n    name = Test User\n    email = test@example.com"
                 ".ssh/config" = "Host github.com\n    HostName github.com\n    User git"
             }
-            
+
             foreach ($file in $dotfiles.Keys) {
                 $filePath = Join-Path $dotfilesPath $file
                 $fileDir = Split-Path $filePath -Parent
@@ -934,16 +934,16 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             }
         }
     }
-    
+
     Context "Comprehensive Backup Validation" {
-        
+
         It "Should create master backup manifest" {
             $masterManifest = Join-Path $script:TestBackupRoot "master-backup-manifest.json"
-            
+
             # Collect all backup categories
             $backupCategories = @()
             $totalSize = 0
-            
+
             @("system-settings", "applications", "gaming", "wsl") | ForEach-Object {
                 $categoryPath = Join-Path $script:TestBackupRoot $_
                 if (Test-Path $categoryPath) {
@@ -958,7 +958,7 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     $totalSize += $categorySize
                 }
             }
-            
+
             @{
                 BackupType = "MasterBackup"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
@@ -979,9 +979,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     ModuleVersion = "1.0.0"
                 }
             } | ConvertTo-Json -Depth 4 | Out-File $masterManifest -Encoding UTF8
-            
+
             Test-Path $masterManifest | Should -Be $true
-            
+
             # Verify master manifest
             $manifest = Get-Content $masterManifest | ConvertFrom-Json
             $manifest.BackupType | Should -Be "MasterBackup"
@@ -989,21 +989,21 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $manifest.Summary.CloudProviders | Should -Contain "OneDrive"
             $manifest.Metadata.ComputerName | Should -Not -BeNullOrEmpty
         }
-        
+
         It "Should validate backup integrity across all categories" {
             $masterManifest = Join-Path $script:TestBackupRoot "master-backup-manifest.json"
-            
+
             if (Test-Path $masterManifest) {
                 $manifest = Get-Content $masterManifest | ConvertFrom-Json
-                
+
                 foreach ($category in $manifest.Categories) {
                     $categoryPath = Join-Path $script:TestBackupRoot $category.Path
                     Test-Path $categoryPath | Should -Be $true
-                    
+
                     # Verify file count matches manifest
                     $actualFileCount = (Get-ChildItem $categoryPath -Recurse -File).Count
                     $actualFileCount | Should -BeGreaterOrEqual 0
-                    
+
                     # Verify category has some content
                     if ($actualFileCount -gt 0) {
                         $category.Status | Should -Be "Complete"
@@ -1011,15 +1011,15 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 }
             }
         }
-        
+
         It "Should verify cloud backup synchronization" {
             $cloudProviders = @("OneDrive", "GoogleDrive", "Dropbox")
             $syncedProviders = 0
-            
+
             foreach ($provider in $cloudProviders) {
                 $providerPath = Join-Path $script:TestCloudPath "$provider\WindowsMelodyRecovery"
                 $manifestPath = Join-Path $providerPath "backup-manifest.json"
-                
+
                 if (Test-Path $manifestPath) {
                     $manifest = Get-Content $manifestPath | ConvertFrom-Json
                     if ($manifest.SyncStatus -eq "Complete" -or $manifest.Provider -eq $provider) {
@@ -1027,7 +1027,7 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                     }
                 }
             }
-            
+
             # At least one cloud provider should be synced
             $syncedProviders | Should -BeGreaterThan 0
             Write-Host "Successfully synced to $syncedProviders cloud providers" -ForegroundColor Green
@@ -1042,12 +1042,12 @@ AfterAll {
             Remove-Item $script:TestBackupRoot -Recurse -Force -ErrorAction SilentlyContinue
             Write-Host "Cleaned up test backup directory: $script:TestBackupRoot" -ForegroundColor Yellow
         }
-        
+
         # Reset environment variables
         Remove-Item Env:WMR_TEST_MODE -ErrorAction SilentlyContinue
         Remove-Item Env:WMR_BACKUP_ROOT -ErrorAction SilentlyContinue
-        
+
     } catch {
         Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"
     }
-} 
+}

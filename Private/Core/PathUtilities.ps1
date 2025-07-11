@@ -12,10 +12,10 @@ function Convert-WmrPath {
         $normalizedPath = $Path.Substring(7).Replace('/', '\')
         # Expand environment variables in the path
         $normalizedPath = [System.Environment]::ExpandEnvironmentVariables($normalizedPath)
-        
+
         # Apply test environment redirection AFTER normalization
         $normalizedPath = ConvertTo-TestEnvironmentPath -Path $normalizedPath
-        
+
         return @{
             PathType = "File"
             Type = "File"  # For backwards compatibility
@@ -40,7 +40,7 @@ function Convert-WmrPath {
     }
     elseif ($Path.StartsWith('wsl://')) {
         $wslPath = $Path.Replace('wsl://', '')
-        
+
         # Handle empty path after wsl://
         if ([string]::IsNullOrEmpty($wslPath)) {
             return @{
@@ -52,11 +52,11 @@ function Convert-WmrPath {
                 IsResolved = $true
             }
         }
-        
+
         # Extract distribution name if present
         $distribution = ""
         $linuxPath = ""
-        
+
         # Handle wsl:/// (triple slash) - default distribution
         if ($wslPath.StartsWith('/')) {
             $distribution = ""
@@ -73,13 +73,13 @@ function Convert-WmrPath {
                 $linuxPath = "/"
             }
         }
-        
+
         # Replace $user with Windows username and handle empty user case
         $linuxPath = $linuxPath.Replace('$user', $env:USERNAME)
-        
+
         # Handle case where $user was expanded to empty string by PowerShell, causing double slashes
         $linuxPath = $linuxPath -replace '//', "/$env:USERNAME/"
-        
+
         return @{
             PathType = "WSL"
             Type = "WSL"  # For backwards compatibility
@@ -92,18 +92,18 @@ function Convert-WmrPath {
 
     # Handle regular paths
     $normalizedPath = $Path.Replace('/', '\').TrimEnd('\')
-    
+
     # Expand environment variables
     $normalizedPath = [System.Environment]::ExpandEnvironmentVariables($normalizedPath)
-    
+
     # Apply test environment redirection for file paths BEFORE path type determination
     if (-not ($normalizedPath -match '^HK')) {  # Don't redirect registry paths
         $normalizedPath = ConvertTo-TestEnvironmentPath -Path $normalizedPath
     }
-    
+
     # Determine path type based on prefix
     $pathType = "Unknown"
-    
+
     if ($normalizedPath -match '^HK(EY_)?(LOCAL_MACHINE|LM)\\') {
         $pathType = "Registry"
         $normalizedPath = $normalizedPath -replace '^HK(EY_)?LOCAL_MACHINE\\', 'HKLM:\'
@@ -168,16 +168,16 @@ function ConvertTo-TestEnvironmentPath {
     <#
     .SYNOPSIS
         Redirects dangerous system paths to safe test directories when in test environments.
-    
+
     .DESCRIPTION
         This function prevents accidental writes to system directories by redirecting
         paths to appropriate test directories when running in test mode.
-        
+
         CRITICAL: This function prevents writes to C:\ root directories during testing!
-    
+
     .PARAMETER Path
         The path to potentially redirect.
-    
+
     .RETURNS
         Safe test path if in test environment, original path otherwise.
     #>
@@ -186,16 +186,16 @@ function ConvertTo-TestEnvironmentPath {
         [Parameter(Mandatory=$true)]
         [string]$Path
     )
-    
+
     # Only redirect if we're in a test environment
     if (-not ($env:WMR_TEST_MODE -eq 'true' -or $env:PESTER_OUTPUT_PATH -or $env:WMR_DOCKER_TEST -eq 'true')) {
         return $Path
     }
-    
+
     # Get test directories from environment if available
     $testRestorePath = $env:WMR_STATE_PATH
     $testBackupPath = $env:WMR_BACKUP_PATH
-    
+
     # Fallback to safe defaults if environment variables not set
     if (-not $testRestorePath) {
         if ($env:WMR_DOCKER_TEST -eq 'true' -or $env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)) {
@@ -206,9 +206,9 @@ function ConvertTo-TestEnvironmentPath {
             $testRestorePath = Join-Path $moduleRoot "Temp\test-restore"
         }
     }
-    
+
     Write-Verbose "ConvertTo-TestEnvironmentPath: Processing path '$Path'"
-    
+
     # Define path mappings for test environment redirection
     $pathMappings = @{
         'C:\Program Files (x86)\Steam' = Join-Path $testRestorePath "TEST-MACHINE\programfiles\steam"
@@ -219,10 +219,10 @@ function ConvertTo-TestEnvironmentPath {
         'C:\Windows' = Join-Path $testRestorePath "TEST-MACHINE\windows"
         'C:\Users' = Join-Path $testRestorePath "TEST-MACHINE\users"
     }
-    
+
     # Check for matching path mappings (longest first for specificity)
     $sortedMappings = $pathMappings.GetEnumerator() | Sort-Object { $_.Key.Length } -Descending
-    
+
     foreach ($mapping in $sortedMappings) {
         if ($Path.StartsWith($mapping.Key, [System.StringComparison]::OrdinalIgnoreCase)) {
             $redirectedPath = $Path.Replace($mapping.Key, $mapping.Value)
@@ -230,7 +230,7 @@ function ConvertTo-TestEnvironmentPath {
             return $redirectedPath
         }
     }
-    
+
     # If it's any other C:\ path (except if it's already in our project), redirect to mock area
     if ($Path.StartsWith("C:\") -and -not $Path.Contains("WindowsMelodyRecovery")) {
         $relativePath = $Path.Substring(3)  # Remove "C:\"
@@ -238,7 +238,7 @@ function ConvertTo-TestEnvironmentPath {
         Write-Verbose "ConvertTo-TestEnvironmentPath: Generic C:\ redirection '$Path' -> '$redirectedPath'"
         return $redirectedPath
     }
-    
+
     # If it starts with environment variables that resolve to C:\, redirect those too
     if ($Path.StartsWith($env:USERPROFILE) -and $env:USERPROFILE.StartsWith("C:\") -and -not $Path.Contains("WindowsMelodyRecovery")) {
         $relativePath = $Path.Substring($env:USERPROFILE.Length).TrimStart('\')
@@ -246,8 +246,8 @@ function ConvertTo-TestEnvironmentPath {
         Write-Verbose "ConvertTo-TestEnvironmentPath: USERPROFILE redirection '$Path' -> '$redirectedPath'"
         return $redirectedPath
     }
-    
+
     # Return original path if no redirection needed
     Write-Verbose "ConvertTo-TestEnvironmentPath: No redirection needed for '$Path'"
     return $Path
-} 
+}

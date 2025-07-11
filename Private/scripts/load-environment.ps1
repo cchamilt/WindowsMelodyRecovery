@@ -41,7 +41,7 @@ function Import-EnvFile {
         [Parameter(Mandatory=$true)]
         [string]$Path
     )
-    
+
     if (Test-Path $Path) {
         Get-Content $Path | ForEach-Object {
             if (-not [string]::IsNullOrWhiteSpace($_) -and -not $_.StartsWith("#")) {
@@ -67,13 +67,13 @@ if ($configLoaded) {
     # Check required variables
     $requiredVars = @("BACKUP_ROOT", "CLOUD_PROVIDER")
     $missingVars = @()
-    
+
     foreach ($var in $requiredVars) {
         if (-not (Get-Item "env:$var" -ErrorAction SilentlyContinue)) {
             $missingVars += $var
         }
     }
-    
+
     if ($missingVars.Count -gt 0) {
         Write-Warning "Missing required variables in configuration: $($missingVars -join ', ')"
         Write-Host "Please update your configuration file: $DEFAULT_CONFIG_FILE" -ForegroundColor Yellow
@@ -89,7 +89,7 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
 } else {
     # Try generic OneDrive paths without hardcoding organization names
     $foundOneDrive = $false
-    
+
     foreach ($path in $DEFAULT_ONEDRIVE_PATHS) {
         if ($path -and (Test-Path $path)) {
             $BACKUP_ROOT = $path
@@ -98,7 +98,7 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
             break
         }
     }
-    
+
     if (-not $foundOneDrive) {
         $BACKUP_ROOT = $DEFAULT_USER_PROFILE
         Write-Warning "OneDrive not found, using profile directory for backup: $BACKUP_ROOT\WindowsMelodyRecovery\$MACHINE_NAME"
@@ -106,10 +106,10 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
 }
 
 # Export variables to be used by other scripts
-$WINDOWS_MELODY_RECOVERY_PATH = if ($env:WINDOWS_MELODY_RECOVERY_PATH) { 
-    $env:WINDOWS_MELODY_RECOVERY_PATH 
-} else { 
-    Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "WindowsMelodyRecovery" 
+$WINDOWS_MELODY_RECOVERY_PATH = if ($env:WINDOWS_MELODY_RECOVERY_PATH) {
+    $env:WINDOWS_MELODY_RECOVERY_PATH
+} else {
+    Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "WindowsMelodyRecovery"
 }
 
 $CLOUD_PROVIDER = if ($env:CLOUD_PROVIDER) { $env:CLOUD_PROVIDER } else { $null }
@@ -124,4 +124,4 @@ $env:CLOUD_PROVIDER = $CLOUD_PROVIDER
 $script:EnvironmentLoaded = $true
 
 # Return success/failure
-return $configLoaded 
+return $configLoaded

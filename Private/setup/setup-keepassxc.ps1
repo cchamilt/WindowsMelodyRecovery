@@ -42,4 +42,4 @@ function Setup-KeePassXC {
         Write-Host "Failed to setup KeePassXC: $_" -ForegroundColor Red
         return $false
     }
-} 
+}

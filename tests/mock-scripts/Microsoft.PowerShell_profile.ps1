@@ -4,4 +4,4 @@ Write-Host "[MOCK PROFILE] Microsoft.PowerShell_profile.ps1 loaded." -Foreground
 # Set a custom prompt
 function prompt {
     "[MOCK-PS] PS $($executionContext.SessionState.Path.CurrentLocation)> "
-} 
+}

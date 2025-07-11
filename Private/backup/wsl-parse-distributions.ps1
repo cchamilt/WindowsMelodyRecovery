@@ -10,10 +10,10 @@ param(
 
 try {
     $wslData = $DiscoveryOutput | ConvertFrom-Json
-    
+
     # Create array format expected by ApplicationState
     $applications = @()
-    
+
     # Add WSL system as an "application"
     $wslSystemApp = @{
         Name = "WSL System"
@@ -25,9 +25,9 @@ try {
             RunningDistributions = ($wslData.Distributions | Where-Object { $_.State -eq "Running" }).Count
         }
     }
-    
+
     $applications += $wslSystemApp
-    
+
     # Add each distribution as an "application"
     foreach ($distro in $wslData.Distributions) {
         $distroApp = @{
@@ -42,7 +42,7 @@ try {
         }
         $applications += $distroApp
     }
-    
+
     if ($applications.Count -eq 0) {
         Write-Output "[]"
     } else {
@@ -51,4 +51,4 @@ try {
 } catch {
     Write-Error "Failed to parse WSL distribution data: $($_.Exception.Message)"
     Write-Output "[]"
-} 
+}

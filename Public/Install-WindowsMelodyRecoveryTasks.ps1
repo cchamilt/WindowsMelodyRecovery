@@ -94,14 +94,14 @@ function Install-WindowsMelodyRecoveryTasks {
 
         # Create task trigger
         $trigger = switch ($task.Trigger) {
-            "Daily" { 
-                New-ScheduledTaskTrigger -Daily -At $task.StartTime 
+            "Daily" {
+                New-ScheduledTaskTrigger -Daily -At $task.StartTime
             }
-            "Weekly" { 
-                New-ScheduledTaskTrigger -Weekly -DaysOfWeek $task.DaysOfWeek -At $task.StartTime 
+            "Weekly" {
+                New-ScheduledTaskTrigger -Weekly -DaysOfWeek $task.DaysOfWeek -At $task.StartTime
             }
-            default { 
-                throw "Unsupported trigger type: $($task.Trigger)" 
+            default {
+                throw "Unsupported trigger type: $($task.Trigger)"
             }
         }
 

@@ -2,7 +2,7 @@
 param(
     [ValidateSet("Installation", "Backup", "WSL", "Gaming", "Cloud", "Restore", "Pester", "WindowsOnly", "FileOperations", "Chezmoi", "Template", "Application", "All")]
     [string]$TestSuite = "Installation",
-    
+
     [switch]$GenerateReport
 )
 
@@ -19,7 +19,7 @@ Import-Module Pester -Force -ErrorAction Stop
 Write-Host "✓ Pester imported" -ForegroundColor Green
 
 # Environment detection for path configuration
-$isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+$isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
                       (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
 # Set base paths based on environment
@@ -38,7 +38,7 @@ if ($isDockerEnvironment) {
 # Create output directories
 $outputDirs = @(
     (Join-Path $testResultsPath "junit"),
-    (Join-Path $testResultsPath "coverage"), 
+    (Join-Path $testResultsPath "coverage"),
     (Join-Path $testResultsPath "reports"),
     (Join-Path $testResultsPath "logs"),
     $tempPath
@@ -190,16 +190,16 @@ Write-Host "🚀 Executing Pester tests..." -ForegroundColor Cyan
 
 try {
     $results = Invoke-Pester -Configuration $config
-    
+
     # Display results
-    Write-Host "" 
+    Write-Host ""
     Write-Host "📊 Test Results Summary:" -ForegroundColor Yellow
     Write-Host "  Total Tests: $($results.TotalCount)" -ForegroundColor White
     Write-Host "  Passed: $($results.PassedCount)" -ForegroundColor Green
     Write-Host "  Failed: $($results.FailedCount)" -ForegroundColor $(if ($results.FailedCount -gt 0) { "Red" } else { "Green" })
     Write-Host "  Skipped: $($results.SkippedCount)" -ForegroundColor Yellow
     Write-Host "  Duration: $($results.Duration)" -ForegroundColor White
-    
+
     # Save detailed JSON results
     $jsonPath = Join-Path $testResultsPath "reports/pester-results.json"
     try {
@@ -218,7 +218,7 @@ try {
     } catch {
         Write-Host "⚠️ Warning: Could not save JSON results: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    
+
     # Verify files were created
     if (Test-Path (Join-Path $testResultsPath "junit/test-results.xml")) {
         $xmlSize = (Get-Item (Join-Path $testResultsPath "junit/test-results.xml")).Length
@@ -226,13 +226,13 @@ try {
     } else {
         Write-Host "❌ JUnit XML not created" -ForegroundColor Red
     }
-    
+
     # Generate additional report if requested
     if ($GenerateReport) {
         Write-Host "📋 Generating additional reports..." -ForegroundColor Cyan
         # Add HTML report generation here if needed
     }
-    
+
     # Return appropriate exit code
     if ($results.FailedCount -gt 0) {
         Write-Host "❌ Some tests failed!" -ForegroundColor Red
@@ -241,9 +241,9 @@ try {
         Write-Host "✅ All tests passed!" -ForegroundColor Green
         exit 0
     }
-    
+
 } catch {
     Write-Host "❌ Test execution failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1
-} 
+}

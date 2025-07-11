@@ -21,7 +21,7 @@
             GlobalTimeout = 7200  # 2 hours total test run
         }
     }
-    
+
     CodeCoverage = @{
         Enabled = $true
         Path = @(
@@ -39,37 +39,37 @@
         OutputFormat = 'JaCoCo'
         CoveragePercentTarget = 80
     }
-    
+
     Output = @{
         Verbosity = 'Detailed'
         RenderMode = 'Console'
         StackTraceVerbosity = 'Full'
         CIFormat = 'Auto'
     }
-    
+
     TestResult = @{
         Enabled = $true
         OutputPath = 'test-results/pester/test-results.xml'
         OutputFormat = 'NUnitXml'
         TestSuiteName = 'WindowsMelodyRecovery'
     }
-    
+
     Should = @{
         ErrorAction = 'Continue'
         MaxConsecutiveFailures = 3  # Stop after 3 consecutive failures in a describe block
     }
-    
+
     Filter = @{
         Tag = @()
         ExcludeTag = @('Slow', 'Integration')
         Line = $null
         ExcludeLine = $null
     }
-    
+
     Debug = @{
         ShowNavigationMarkers = $true
         WriteDebugMessages = $true
         WriteVerboseMessages = $true
         WriteProgressMessages = $true
     }
-} 
+}

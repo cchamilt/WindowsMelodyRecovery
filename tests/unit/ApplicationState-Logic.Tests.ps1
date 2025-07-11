@@ -4,7 +4,7 @@
 BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-    
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -168,7 +168,7 @@ Package A           App.PackageA          1.2.3
         It "should process install script correctly" {
             # Mock Test-Path to return true for the state file
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*install_list.json" }
-            
+
             # Mock Get-Content to return app list JSON
             Mock Get-Content {
                 return '[{"Name":"TestApp1","Id":"Test.App1","Version":"1.0.0"},{"Name":"TestApp2","Id":"Test.App2","Version":"2.0.0"}]'
@@ -210,7 +210,7 @@ Package A           App.PackageA          1.2.3
         It "should process uninstall script correctly" {
             # Mock Test-Path to return true for the state file
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*uninstall_list.json" }
-            
+
             # Mock Get-Content to return app list JSON
             Mock Get-Content {
                 return '[{"Name":"TestApp1","Id":"Test.App1","Version":"1.0.0"},{"Name":"TestApp2","Id":"Test.App2","Version":"2.0.0"}]'
@@ -233,7 +233,7 @@ Package A           App.PackageA          1.2.3
         It "should handle missing uninstall script gracefully" {
             # Mock Test-Path to return true for the state file
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*no_uninstall_list.json" }
-            
+
             $appConfig = @{
                 name = "No Uninstall Script"
                 type = "custom"
@@ -309,4 +309,4 @@ Another App          Another.App           2.0.0
             $result | Should -Be "[]"
         }
     }
-} 
+}

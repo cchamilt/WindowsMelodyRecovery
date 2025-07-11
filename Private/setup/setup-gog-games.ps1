@@ -27,14 +27,14 @@ function Setup-GOGGames {
                 # Download GOG Galaxy installer
                 $installerUrl = "https://content-system.gog.com/open_link/download?path=/open/galaxy/client/2.0.0/setup_galaxy_2.0.0.exe"
                 $installerPath = Join-Path $env:TEMP "setup_galaxy.exe"
-                
+
                 Write-Host "Downloading GOG Galaxy installer..." -ForegroundColor Yellow
                 Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
-                
+
                 # Install GOG Galaxy
                 Write-Host "Installing GOG Galaxy..." -ForegroundColor Yellow
                 Start-Process -FilePath $installerPath -ArgumentList "/SILENT" -Wait
-                
+
                 Remove-Item $installerPath
                 return $true
             }
@@ -48,7 +48,7 @@ function Setup-GOGGames {
 
     function Get-InstalledGames {
         $installedGames = @()
-        
+
         $gogPath = "C:\Program Files (x86)\GOG Galaxy"
         if (Test-Path $gogPath) {
             try {
@@ -81,7 +81,7 @@ function Setup-GOGGames {
                 Write-Host "Error reading GOG Galaxy database: $($_.Exception.Message)" -ForegroundColor Red
             }
         }
-        
+
         return $installedGames
     }
 
@@ -92,7 +92,7 @@ function Setup-GOGGames {
         if (!$GamesListPath) {
             $backupPath = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME "Applications"
             $backupGamesPath = Join-Path $backupPath "gog-applications.json"
-            
+
             if (Test-Path $backupGamesPath) {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.GOG) {
@@ -150,7 +150,7 @@ function Setup-GOGGames {
                 $gamesToInstall | ForEach-Object {
                     Write-Host "- $($_.Name)" -ForegroundColor Cyan
                 }
-                
+
                 Start-Process "C:\Program Files (x86)\GOG Galaxy\GalaxyClient.exe"
             }
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
@@ -167,4 +167,4 @@ function Setup-GOGGames {
         Write-Host "Failed to setup GOG Games: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
-} 
+}

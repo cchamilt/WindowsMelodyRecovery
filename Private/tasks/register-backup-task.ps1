@@ -30,11 +30,11 @@ if (!$configFound) {
     $fromAddress = Read-Host "Enter sender email address (Office 365)"
     $toAddress = Read-Host "Enter recipient email address"
     $emailPassword = Read-Host "Enter email app password" -AsSecureString
-    
+
     # Convert secure string to plain text
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($emailPassword)
     $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    
+
     # Create config.env content
     $configEnv = @"
 # Email notification settings
@@ -42,14 +42,14 @@ BACKUP_EMAIL_FROM="$fromAddress"
 BACKUP_EMAIL_TO="$toAddress"
 BACKUP_EMAIL_PASSWORD="$plainPassword"
 "@
-    
+
     # Save to machine-specific backup directory
     $machineBackupDir = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME
     if (!(Test-Path $machineBackupDir)) {
         New-Item -ItemType Directory -Path $machineBackupDir -Force | Out-Null
     }
     $configEnv | Out-File (Join-Path $machineBackupDir "config.env") -Force
-    
+
     # Reload environment to get new settings
     if (!(Load-Environment)) {
         Write-Host "Failed to load updated configuration" -ForegroundColor Red
@@ -75,12 +75,12 @@ if ($existingTask) {
     $currentTrigger = $existingTask.Triggers[0]
     $triggerTime = $currentTrigger.StartBoundary.Split('T')[1].Substring(0, 5)
     $dayOfWeek = $currentTrigger.DaysOfWeek
-    
+
     Write-Host "Current schedule: Every $dayOfWeek at $triggerTime" -ForegroundColor Yellow
     $changeSchedule = Read-Host "Would you like to change the schedule? (y/N)"
-    
+
     if ($changeSchedule -eq 'y') {
-        $triggerTime = Read-Host "Enter time to run (HH:mm, 24hr format) [default: 02:00]" 
+        $triggerTime = Read-Host "Enter time to run (HH:mm, 24hr format) [default: 02:00]"
         $dayOfWeek = Read-Host "Enter day of week to run [default: Sunday]"
     }
 } else {
@@ -130,7 +130,7 @@ try {
         Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
         Write-Host "Existing backup task removed" -ForegroundColor Yellow
     }
-    
+
     # Register the new task
     $task = Register-ScheduledTask `
         -TaskName $taskName `

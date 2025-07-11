@@ -34,10 +34,10 @@ function Get-WmrApplicationState {
     $installedAppsJson = "[]"
     try {
         Write-Host "    Running discovery command: $($AppConfig.discovery_command)"
-        
+
         # Execute discovery command and capture raw output
         $discoveryOutput = Invoke-Expression $AppConfig.discovery_command
-        
+
         Write-Host "    Parsing discovery output with parse_script..."
         # Pass output to the parse_script (inline or file)
         try {
@@ -49,12 +49,12 @@ function Get-WmrApplicationState {
                 $scriptBlock = [ScriptBlock]::Create($AppConfig.parse_script)
                 $parseResult = & $scriptBlock $discoveryOutput
             }
-            
+
             # Ensure we have a valid result - if parse_script failed, it might return null
             if ($parseResult -eq $null) {
                 $parseResult = @()
             }
-            
+
             # Handle different types of parse_script output
             if ($parseResult -is [string]) {
                 # Parse script returned JSON string
@@ -90,7 +90,7 @@ function Get-WmrApplicationState {
                 $parsedApps = @()
             } else {
                 $parsedApps = $installedAppsJson | ConvertFrom-Json
-                
+
                 # Ensure consistent array format
                 if ($parsedApps -isnot [array] -and $parsedApps -ne $null) {
                     $parsedApps = @($parsedApps)
@@ -109,14 +109,14 @@ function Get-WmrApplicationState {
             $appsBytes = [System.Text.Encoding]::UTF8.GetBytes($installedAppsJson)
             $encryptedAppsJson = Protect-WmrData -DataBytes $appsBytes
             Set-Content -Path $stateFilePath -Value $encryptedAppsJson -Encoding UTF8
-            
+
             # Save metadata about encryption
             $metadata = @{ Encrypted = $true; OriginalSize = $appsBytes.Length }
             $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
             $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
         } else {
             Set-Content -Path $stateFilePath -Value $installedAppsJson -Encoding Utf8
-            
+
             # Save metadata about non-encryption
             $metadata = @{ Encrypted = $false; OriginalSize = $installedAppsJson.Length }
             $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
@@ -162,11 +162,11 @@ function Set-WmrApplicationState {
             } catch {
                 $wasEncrypted = $AppConfig.encrypt -eq $true
             }
-            
+
             if ($wasEncrypted) {
                 Write-Host "    WhatIf: Would decrypt application data with AES-256" -ForegroundColor Yellow
             }
-            
+
             $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
             if (-not $wasEncrypted) {
                 $parsedApps = $installedAppsJson | ConvertFrom-Json
@@ -233,7 +233,7 @@ function Uninstall-WmrApplicationState {
         [Parameter(Mandatory=$true)]
         [string]$StateFilesDirectory # Base directory where dynamic state files are stored
     )
-    
+
     if (-not $AppConfig.uninstall_script) {
         Write-Warning "  No uninstall_script defined for $($AppConfig.name). Skipping uninstallation."
         return
@@ -262,11 +262,11 @@ function Uninstall-WmrApplicationState {
             } catch {
                 $wasEncrypted = $AppConfig.encrypt -eq $true
             }
-            
+
             if ($wasEncrypted) {
                 Write-Host "    WhatIf: Would decrypt application data with AES-256" -ForegroundColor Yellow
             }
-            
+
             $installedAppsJson = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
             if (-not $wasEncrypted) {
                 $parsedApps = $installedAppsJson | ConvertFrom-Json
@@ -325,4 +325,4 @@ function Uninstall-WmrApplicationState {
 }
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
-# Available functions: Get-WmrApplicationState, Set-WmrApplicationState, Uninstall-WmrApplicationState 
+# Available functions: Get-WmrApplicationState, Set-WmrApplicationState, Uninstall-WmrApplicationState

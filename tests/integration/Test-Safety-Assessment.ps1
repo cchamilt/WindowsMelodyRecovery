@@ -91,7 +91,7 @@ function Test-OperationSafety {
         [string]$Content,
         [string]$FilePath
     )
-    
+
     $safetyReport = @{
         IsSafe = $true
         Violations = @()
@@ -99,7 +99,7 @@ function Test-OperationSafety {
         RequiresCIOnly = $false
         SafeForDev = $true
     }
-    
+
     # Check for dangerous patterns
     foreach ($category in $DangerousPatterns.Keys) {
         foreach ($pattern in $DangerousPatterns[$category]) {
@@ -118,7 +118,7 @@ function Test-OperationSafety {
                     }
                 }
                 $safetyReport.Violations += $violation
-                
+
                 if ($violation.Severity -in @('Critical', 'High')) {
                     $safetyReport.IsSafe = $false
                     $safetyReport.RequiresCIOnly = $true
@@ -127,7 +127,7 @@ function Test-OperationSafety {
             }
         }
     }
-    
+
     # Check for mitigating safe patterns
     $hasSafeMitigations = $false
     foreach ($safePattern in $SafePatterns) {
@@ -136,7 +136,7 @@ function Test-OperationSafety {
             break
         }
     }
-    
+
     # If violations but has safe mitigations, downgrade severity
     if ($safetyReport.Violations.Count -gt 0 -and $hasSafeMitigations) {
         $safetyReport.Warnings += "File has potential violations but uses safe patterns (mocking, test directories)"
@@ -144,7 +144,7 @@ function Test-OperationSafety {
         $safetyReport.SafeForDev = $true
         $safetyReport.RequiresCIOnly = $false
     }
-    
+
     return $safetyReport
 }
 
@@ -153,10 +153,10 @@ function Add-SafetyTags {
         [string]$FilePath,
         [object]$SafetyReport
     )
-    
+
     $content = Get-Content $FilePath -Raw
     $needsUpdate = $false
-    
+
     # Add CI-only tag if needed
     if ($SafetyReport.RequiresCIOnly -and $content -notmatch 'Tag.*"CI-Only"') {
         $content = $content -replace '(Describe\s+"[^"]+"\s+)-Tag\s+"[^"]*"', '$1-Tag "Integration", "CI-Only"'
@@ -166,7 +166,7 @@ function Add-SafetyTags {
         $needsUpdate = $true
         Write-Warning "Added CI-Only tag to $FilePath"
     }
-    
+
     # Add safety comments
     if ($SafetyReport.Violations.Count -gt 0) {
         $safetyComment = @"
@@ -191,13 +191,13 @@ Use -Tag 'CI-Only' to restrict execution."
 #>
 
 "@
-        
+
         if ($content -notmatch 'SAFETY ASSESSMENT:') {
             $content = $safetyComment + $content
             $needsUpdate = $true
         }
     }
-    
+
     if ($needsUpdate) {
         Set-Content -Path $FilePath -Value $content -Encoding UTF8
         Write-Host "Updated safety tags for $FilePath" -ForegroundColor Yellow
@@ -216,25 +216,25 @@ Write-Host ""
 
 foreach ($testFile in $testFiles) {
     Write-Host "🔍 Analyzing $($testFile.Name)..." -ForegroundColor Gray
-    
+
     $content = Get-Content $testFile.FullName -Raw
     $safetyReport = Test-OperationSafety -Content $content -FilePath $testFile.FullName
     $safetyReport.FileName = $testFile.Name
     $safetyReport.FilePath = $testFile.FullName
-    
+
     $assessmentResults += $safetyReport
-    
+
     # Status indicator
-    $status = if ($safetyReport.RequiresCIOnly) { "❌ CI-ONLY" } 
+    $status = if ($safetyReport.RequiresCIOnly) { "❌ CI-ONLY" }
               elseif ($safetyReport.Violations.Count -gt 0) { "⚠️  WARNINGS" }
               else { "✅ SAFE" }
-    
+
     Write-Host "  $status $($testFile.Name)" -ForegroundColor $(
         if ($safetyReport.RequiresCIOnly) { "Red" }
         elseif ($safetyReport.Violations.Count -gt 0) { "Yellow" }
         else { "Green" }
     )
-    
+
     # Add safety tags if violations found
     if ($safetyReport.Violations.Count -gt 0) {
         Add-SafetyTags -FilePath $testFile.FullName -SafetyReport $safetyReport
@@ -284,7 +284,7 @@ if ($OutputReport) {
     if (-not (Test-Path $reportsDir)) {
         New-Item -Path $reportsDir -ItemType Directory -Force | Out-Null
     }
-    
+
     $reportPath = Join-Path $reportsDir "Safety-Assessment-Report.json"
     $assessmentResults | ConvertTo-Json -Depth 10 | Set-Content -Path $reportPath -Encoding UTF8
     Write-Host ""
@@ -305,4 +305,4 @@ return @{
     WarningTests = $warningTests.Count
     CIOnlyTests = $ciOnlyTests.Count
     Results = $assessmentResults
-} 
+}

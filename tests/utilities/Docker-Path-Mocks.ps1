@@ -18,7 +18,7 @@ $script:DockerPathMappings = @{
 function Test-WmrAdminPrivilege {
     [CmdletBinding()]
     param()
-    
+
     # In Docker tests, simulate non-admin user
     if ($env:DOCKER_TEST_ADMIN -eq 'true') {
         return $true
@@ -32,7 +32,7 @@ function Get-WmrPrivilegeRequirements {
         [Parameter(Mandatory)]
         [object]$Template
     )
-    
+
     # Mock privilege requirements analysis
     $requirements = @{
         RequiresAdmin = $false
@@ -41,20 +41,20 @@ function Get-WmrPrivilegeRequirements {
         RegistryAccess = @()
         ServiceAccess = @()
     }
-    
+
     # Simulate analysis of template requirements
     if ($Template.metadata.name -match 'bitlocker|windows-features|services') {
         $requirements.RequiresAdmin = $true
         $requirements.RequiresElevation = $true
     }
-    
+
     return $requirements
 }
 
 function Test-WmrAdministrativePrivileges {
     [CmdletBinding()]
     param()
-    
+
     # Mock administrative privileges check
     return Test-WmrAdminPrivilege
 }
@@ -64,14 +64,14 @@ function Invoke-WmrSafeAdminOperation {
     param(
         [Parameter(Mandatory)]
         [ScriptBlock]$MainOperation,
-        
+
         [Parameter()]
         [ScriptBlock]$FallbackOperation,
-        
+
         [Parameter()]
         [string]$OperationType = "User"
     )
-    
+
     # Mock safe admin operation execution
     if ($OperationType -eq "Admin" -and -not (Test-WmrAdminPrivilege)) {
         if ($FallbackOperation) {
@@ -81,7 +81,7 @@ function Invoke-WmrSafeAdminOperation {
             throw "Administrative privileges required and no fallback available"
         }
     }
-    
+
     Write-Verbose "Executing main operation"
     return & $MainOperation
 }
@@ -91,20 +91,20 @@ function Invoke-WmrWithElevation {
     param(
         [Parameter(Mandatory)]
         [ScriptBlock]$ScriptBlock,
-        
+
         [Parameter()]
         [switch]$WhatIf,
-        
+
         [Parameter()]
         [switch]$NoPrompt
     )
-    
+
     # Mock elevation functionality
     if ($WhatIf) {
         Write-Host "What if: Would execute elevated operation"
         return
     }
-    
+
     if ((Test-WmrAdminPrivilege)) {
         Write-Verbose "Already elevated, executing directly"
         return & $ScriptBlock
@@ -124,12 +124,12 @@ function Convert-WmrPathForDocker {
         [Parameter(Mandatory, ValueFromPipeline)]
         [string]$Path
     )
-    
+
     process {
         if ([string]::IsNullOrEmpty($Path)) {
             return $Path
         }
-        
+
         # Handle Windows drive letters
         foreach ($mapping in $script:DockerPathMappings.GetEnumerator()) {
             if ($Path.StartsWith($mapping.Key, [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -139,7 +139,7 @@ function Convert-WmrPathForDocker {
                 return $convertedPath
             }
         }
-        
+
         # Handle relative paths and convert backslashes
         return $Path.Replace('\', '/')
     }
@@ -151,19 +151,19 @@ function Join-WmrPath {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter(Mandatory)]
         [string]$ChildPath
     )
-    
+
     if ([string]::IsNullOrEmpty($Path) -or [string]::IsNullOrEmpty($ChildPath)) {
         throw "Path parameters cannot be null or empty"
     }
-    
+
     # Convert Windows paths for Docker
     $convertedPath = Convert-WmrPathForDocker -Path $Path
     $convertedChild = Convert-WmrPathForDocker -Path $ChildPath
-    
+
     # Use native Join-Path with converted paths
     return Join-Path -Path $convertedPath -ChildPath $convertedChild
 }
@@ -175,7 +175,7 @@ function Test-WmrRegistryPath {
         [Parameter(Mandatory)]
         [string]$Path
     )
-    
+
     # Mock registry path validation
     return $Path -match '^HK[CLMU][MU]?:'
 }
@@ -185,11 +185,11 @@ function Get-WmrRegistryState {
     param(
         [Parameter(Mandatory)]
         [hashtable]$RegistryConfig,
-        
+
         [Parameter(Mandatory)]
         [string]$StateFilesDirectory
     )
-    
+
     # Mock registry state retrieval
     return @{
         Path = $RegistryConfig.path
@@ -205,7 +205,7 @@ function Backup-WindowsFeatures {
         [Parameter()]
         [string]$BackupPath
     )
-    
+
     Write-Verbose "Mock: Backing up Windows Features to $BackupPath"
     return @{
         Success = $true
@@ -219,11 +219,11 @@ function Test-WmrPrerequisites {
     param(
         [Parameter(Mandatory)]
         [object]$TemplateConfig,
-        
+
         [Parameter()]
         [string]$Operation = "Backup"
     )
-    
+
     Write-Verbose "Mock: Testing prerequisites for template '$($TemplateConfig.metadata.name)' with operation '$Operation'"
     return @{
         Success = $true
@@ -240,7 +240,7 @@ function Get-WindowsOptionalFeaturesState {
         [Parameter()]
         [string]$StateFilePath
     )
-    
+
     Write-Verbose "Mock: Getting Windows Optional Features state"
     return @{
         Features = @(
@@ -257,7 +257,7 @@ function Get-WindowsCapabilitiesState {
         [Parameter()]
         [string]$StateFilePath
     )
-    
+
     Write-Verbose "Mock: Getting Windows Capabilities state"
     return @{
         Capabilities = @(
@@ -273,12 +273,12 @@ function Manage-WindowsService {
     param(
         [Parameter(Mandatory)]
         [string]$ServiceName,
-        
+
         [Parameter(Mandatory)]
         [ValidateSet("Start", "Stop", "Restart", "Enable", "Disable")]
         [string]$Action
     )
-    
+
     Write-Verbose "Mock: Managing Windows Service '$ServiceName' with action '$Action'"
     return @{
         Success = $true
@@ -294,17 +294,17 @@ function Set-RegistryValue {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter(Mandatory)]
         [string]$Name,
-        
+
         [Parameter(Mandatory)]
         [object]$Value,
-        
+
         [Parameter()]
         [string]$Type = "String"
     )
-    
+
     Write-Verbose "Mock: Setting registry value '$Name' at '$Path' to '$Value'"
     return @{
         Success = $true
@@ -320,18 +320,18 @@ function Manage-ScheduledTask {
     param(
         [Parameter(Mandatory)]
         [string]$TaskName,
-        
+
         [Parameter(Mandatory)]
         [ValidateSet("Create", "Delete", "Enable", "Disable", "Run", "Remove")]
         [string]$Action,
-        
+
         [Parameter()]
         [hashtable]$TaskDefinition,
-        
+
         [Parameter()]
         [bool]$RequireElevation = $false
     )
-    
+
     Write-Verbose "Mock: Managing Scheduled Task '$TaskName' with action '$Action' (RequireElevation: $RequireElevation)"
     return @{
         Success = $true
@@ -345,7 +345,7 @@ function Manage-ScheduledTask {
 function Test-ElevationCapability {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Mock: Testing elevation capability"
     # In Docker tests, simulate that elevation is not available
     return $false
@@ -357,23 +357,23 @@ function New-ItemProperty {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter(Mandatory)]
         [string]$Name,
-        
+
         [Parameter(Mandatory)]
         [object]$Value,
-        
+
         [Parameter()]
         [ValidateSet("String", "ExpandString", "Binary", "DWord", "MultiString", "QWord")]
         [string]$PropertyType = "String",
-        
+
         [Parameter()]
         [switch]$Force
     )
-    
+
     Write-Verbose "Mock: Creating registry property '$Name' at '$Path' with value '$Value' (Type: $PropertyType)"
-    
+
     # Return a mock property object
     return @{
         PSPath = $Path
@@ -390,20 +390,20 @@ function Set-ItemProperty {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter(Mandatory)]
         [string]$Name,
-        
+
         [Parameter(Mandatory)]
         [object]$Value,
-        
+
         [Parameter()]
         [ValidateSet("String", "ExpandString", "Binary", "DWord", "MultiString", "QWord")]
         [string]$PropertyType = "String"
     )
-    
+
     Write-Verbose "Mock: Setting registry property '$Name' at '$Path' to '$Value' (Type: $PropertyType)"
-    
+
     # Simulate successful registry write
     return $null
 }
@@ -413,13 +413,13 @@ function Get-ItemProperty {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter()]
         [string]$Name = "*"
     )
-    
+
     Write-Verbose "Mock: Getting registry property '$Name' from '$Path'"
-    
+
     # Return mock registry values based on the path and name
     $mockValues = @{
         PSPath = $Path
@@ -428,7 +428,7 @@ function Get-ItemProperty {
         PSDrive = ($Path -split ':')[0]
         PSProvider = "Microsoft.PowerShell.Core\Registry"
     }
-    
+
     # Add specific test values based on common test patterns
     if ($Name -eq "TestValue" -or $Name -eq "*") {
         $mockValues.TestValue = "TestData"
@@ -451,7 +451,7 @@ function Get-ItemProperty {
     if ($Name -eq "Level3Value" -or $Name -eq "*") {
         $mockValues.Level3Value = "L3"
     }
-    
+
     return [PSCustomObject]$mockValues
 }
 
@@ -460,21 +460,21 @@ function New-Item {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter()]
         [string]$ItemType,
-        
+
         [Parameter()]
         [switch]$Force
     )
-    
+
     # Check if we're in a Docker environment
-    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
                           (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
-    
+
     if ($isDockerEnvironment) {
         Write-Verbose "Mock: Creating new item at '$Path' (Type: $ItemType)"
-        
+
         # For registry paths, simulate registry key creation
         if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
             return @{
@@ -486,7 +486,7 @@ function New-Item {
                 Name = Split-Path $Path -Leaf
             }
         }
-        
+
         # For file system paths in safe test directories, actually create them
         if ($Path.StartsWith("/workspace/Temp") -or $Path.StartsWith("/workspace/temp")) {
             if ($ItemType -eq "Directory") {
@@ -497,7 +497,7 @@ function New-Item {
                 return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
             }
         }
-        
+
         # For other file system paths, simulate file/directory creation
         return @{
             FullName = $Path
@@ -516,34 +516,34 @@ function Remove-Item {
     param(
         [Parameter()]
         [string]$Path,
-        
+
         [Parameter()]
         [switch]$Recurse,
-        
+
         [Parameter()]
         [switch]$Force,
-        
+
         [Parameter()]
         [switch]$Confirm
     )
-    
+
     # Handle null or empty paths gracefully
     if ([string]::IsNullOrWhiteSpace($Path)) {
         Write-Verbose "Mock Remove-Item: Ignoring null/empty path"
         return $null
     }
-    
+
     # Check if we're in a Docker environment
-    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
                           (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
-    
+
     if ($isDockerEnvironment) {
         # For files in safe test directories, actually remove them
         if ($Path.StartsWith("/workspace/Temp/") -or $Path.StartsWith("/workspace/temp/")) {
             Write-Verbose "Actually removing test file in Docker: '$Path'"
             return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$Confirm -ErrorAction $ErrorActionPreference
         }
-        
+
         # For other paths, simulate removal
         Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
         return $null
@@ -559,23 +559,23 @@ function Test-Path {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter()]
         [string]$PathType
     )
-    
+
     # Handle Docker environment detection without verbose spam
     if ($Path -eq '/.dockerenv') {
         # In Docker tests, simulate Docker environment detection
         return ($env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true')
     }
-    
+
     # Mock registry paths as existing for test scenarios
     if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
         # Simulate registry key existence based on test patterns
         return $true
     }
-    
+
     # For file system paths, use original Test-Path with Microsoft.PowerShell.Management module
     if ($PathType) {
         return Microsoft.PowerShell.Management\Test-Path -Path $Path -PathType $PathType -ErrorAction SilentlyContinue
@@ -595,7 +595,7 @@ function Get-WmrInheritanceConfiguration {
         [Parameter()]
         [hashtable]$TemplateConfig = @{}
     )
-    
+
     return @{
         enabled = $true
         validation_level = 'moderate'
@@ -609,7 +609,7 @@ function Get-WmrInheritanceConfiguration {
 function Get-WmrMachineContext {
     [CmdletBinding()]
     param()
-    
+
     return @{
         machine_name = $env:COMPUTERNAME ?? 'docker-test'
         hostname = $env:HOSTNAME ?? 'docker-test'
@@ -633,11 +633,11 @@ function Test-WmrMachineSelectors {
     param(
         [Parameter(Mandatory)]
         [hashtable]$Selectors,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$Context
     )
-    
+
     # Mock machine selector testing
     return $true
 }
@@ -647,14 +647,14 @@ function Test-WmrStringComparison {
     param(
         [Parameter(Mandatory)]
         [string]$Value1,
-        
+
         [Parameter(Mandatory)]
         [string]$Value2,
-        
+
         [Parameter(Mandatory)]
         [string]$ComparisonType
     )
-    
+
     switch ($ComparisonType) {
         'equals' { return $Value1 -eq $Value2 }
         'equals_ci' { return $Value1 -ieq $Value2 }
@@ -669,11 +669,11 @@ function Get-WmrApplicableMachineConfigurations {
     param(
         [Parameter(Mandatory)]
         [array]$MachineConfigurations,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$Context
     )
-    
+
     # Mock applicable machine configurations
     return $MachineConfigurations
 }
@@ -683,11 +683,11 @@ function Merge-WmrSharedConfiguration {
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$SharedConfig
     )
-    
+
     # Mock configuration merging
     return $ResolvedConfig
 }
@@ -697,11 +697,11 @@ function Merge-WmrMachineSpecificConfiguration {
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$MachineConfig
     )
-    
+
     # Mock machine-specific configuration merging
     return $ResolvedConfig
 }
@@ -711,11 +711,11 @@ function Apply-WmrInheritanceRules {
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
-        
+
         [Parameter(Mandatory)]
         [array]$InheritanceRules
     )
-    
+
     # Mock inheritance rules application
     return $ResolvedConfig
 }
@@ -725,11 +725,11 @@ function Test-WmrInheritanceRuleCondition {
     param(
         [Parameter(Mandatory)]
         [hashtable]$Rule,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$Context
     )
-    
+
     # Mock inheritance rule condition testing
     return $true
 }
@@ -739,11 +739,11 @@ function Apply-WmrConditionalSections {
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
-        
+
         [Parameter(Mandatory)]
         [array]$ConditionalSections
     )
-    
+
     # Mock conditional sections application
     return $ResolvedConfig
 }
@@ -753,11 +753,11 @@ function Test-WmrConditionalSectionConditions {
     param(
         [Parameter(Mandatory)]
         [hashtable]$Condition,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$Context
     )
-    
+
     # Mock conditional section condition testing
     return $true
 }
@@ -767,11 +767,11 @@ function Test-WmrResolvedConfiguration {
     param(
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig,
-        
+
         [Parameter(Mandatory)]
         [hashtable]$InheritanceConfig
     )
-    
+
     # Mock resolved configuration testing
     return $true
 }
@@ -782,7 +782,7 @@ function Test-WmrStrictConfigurationValidation {
         [Parameter(Mandatory)]
         [hashtable]$ResolvedConfig
     )
-    
+
     # Mock strict configuration validation
     return $true
 }
@@ -792,11 +792,11 @@ function Resolve-WmrTemplateInheritance {
     param(
         [Parameter(Mandatory)]
         [hashtable]$TemplateConfig,
-        
+
         [Parameter()]
         [hashtable]$Context = @{}
     )
-    
+
     # Mock template inheritance resolution
     return $TemplateConfig
 }
@@ -807,18 +807,18 @@ function Read-WmrTemplateConfig {
         [Parameter(Mandatory)]
         [string]$TemplatePath
     )
-    
+
     # Actually check if the file exists
     if (-not (Test-Path $TemplatePath)) {
         throw "Template file not found: $TemplatePath"
     }
-    
+
     try {
         $content = Get-Content $TemplatePath -Raw -Encoding UTF8
         if ($TemplatePath -like "*.yaml" -or $TemplatePath -like "*.yml") {
             # Check for obviously invalid YAML patterns - be more strict
-            if ($content -match "unclosed_array:\s*true" -or 
-                $content -match "\[\s*-\s*item1\s*-\s*item2\s*unclosed_array" -or 
+            if ($content -match "unclosed_array:\s*true" -or
+                $content -match "\[\s*-\s*item1\s*-\s*item2\s*unclosed_array" -or
                 $content -match "corrupted:\s*\[unclosed" -or
                 $content -match "invalid_structure:\s*\[" -and $content -notmatch "\]" -or
                 $content -match "corrupted_template" -or
@@ -828,7 +828,7 @@ function Read-WmrTemplateConfig {
                 ($content -match ":\s*\[" -and $content -notmatch "\]")) {  # Unclosed arrays
                 throw "Invalid YAML content: malformed structure detected"
             }
-            
+
             # Simple YAML parsing for test purposes
             $yamlContent = [PSCustomObject]@{
                 metadata = [PSCustomObject]@{}
@@ -837,12 +837,12 @@ function Read-WmrTemplateConfig {
                 registry = @()
                 applications = @()
             }
-            
+
             # Parse basic YAML structure
             $lines = $content -split "`n"
             $currentSection = $null
             $currentItem = $null
-            
+
             foreach ($line in $lines) {
                 $line = $line.Trim()
                 if ($line -match "^metadata:") {
@@ -881,7 +881,7 @@ function Read-WmrTemplateConfig {
                     }
                 }
             }
-            
+
             return $yamlContent
         } else {
             return ($content | ConvertFrom-Json)
@@ -897,7 +897,7 @@ function Test-WmrTemplateSchema {
         [Parameter(Mandatory)]
         [object]$TemplateConfig
     )
-    
+
     # Convert PSCustomObject to hashtable if needed
     if ($TemplateConfig -is [PSCustomObject]) {
         $configHash = @{}
@@ -906,12 +906,12 @@ function Test-WmrTemplateSchema {
         }
         $TemplateConfig = $configHash
     }
-    
+
     # Mock template schema validation
     if (-not $TemplateConfig.metadata) {
         throw "Template schema validation failed: 'metadata' is missing."
     }
-    
+
     if ($TemplateConfig.metadata -is [PSCustomObject]) {
         if (-not $TemplateConfig.metadata.name) {
             throw "Template schema validation failed: 'metadata.name' is missing."
@@ -921,8 +921,8 @@ function Test-WmrTemplateSchema {
             throw "Template schema validation failed: 'metadata.name' is missing."
         }
     }
-    
+
     return $true
 }
 
-# Functions are available when dot-sourced, no need to export when not in module context 
+# Functions are available when dot-sourced, no need to export when not in module context

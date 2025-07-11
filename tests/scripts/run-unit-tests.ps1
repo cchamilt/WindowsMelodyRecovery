@@ -48,8 +48,8 @@ Write-Host ""
 
 # Get all available unit tests
 $unitTestsPath = Join-Path $PSScriptRoot "..\unit"
-$availableTests = Get-ChildItem -Path $unitTestsPath -Filter "*.Tests.ps1" | ForEach-Object { 
-    $_.BaseName -replace '\.Tests$', '' 
+$availableTests = Get-ChildItem -Path $unitTestsPath -Filter "*.Tests.ps1" | ForEach-Object {
+    $_.BaseName -replace '\.Tests$', ''
 }
 
 Write-Host "📋 Available unit tests: $($availableTests.Count)" -ForegroundColor Gray
@@ -78,29 +78,29 @@ $totalTime = 0
 
 foreach ($test in $testsToRun) {
     $testFile = Join-Path $unitTestsPath "$test.Tests.ps1"
-    
+
     if (-not (Test-Path $testFile)) {
         Write-Warning "Test file not found: $testFile"
         continue
     }
-    
+
     Write-Host "🔍 Running $test unit tests..." -ForegroundColor Cyan
-    
+
     try {
         $startTime = Get-Date
-        
+
         # Configure Pester for better output with proper reporting
         $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $testResultsDir = Join-Path $projectRoot "test-results"
         $coverageDir = Join-Path $testResultsDir "coverage"
-        
+
         # Ensure test result directories exist
         @($testResultsDir, $coverageDir) | ForEach-Object {
             if (-not (Test-Path $_)) {
                 New-Item -Path $_ -ItemType Directory -Force | Out-Null
             }
         }
-        
+
         $pesterConfig = @{
             Run = @{
                 Path = $testFile
@@ -126,16 +126,16 @@ foreach ($test in $testsToRun) {
                 CoveragePercentTarget = 80
             }
         }
-        
+
         $result = Invoke-Pester -Configuration $pesterConfig
         $endTime = Get-Date
         $testTime = ($endTime - $startTime).TotalSeconds
-        
+
         $totalPassed += $result.PassedCount
         $totalFailed += $result.FailedCount
         $totalSkipped += $result.SkippedCount
         $totalTime += $testTime
-        
+
         if ($result.FailedCount -eq 0) {
             $statusMsg = "✅ $test tests passed ($($result.PassedCount) passed"
             if ($result.SkippedCount -gt 0) {
@@ -145,7 +145,7 @@ foreach ($test in $testsToRun) {
             Write-Host $statusMsg -ForegroundColor Green
         } else {
             Write-Host "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)" -ForegroundColor Red
-            
+
             # Show failed test details
             if ($result.Failed.Count -gt 0) {
                 Write-Host "   Failed tests:" -ForegroundColor Red
@@ -158,7 +158,7 @@ foreach ($test in $testsToRun) {
         Write-Host "💥 $test tests crashed: $_" -ForegroundColor Red
         $totalFailed++
     }
-    
+
     Write-Host ""
 }
 
@@ -183,4 +183,4 @@ if ($totalFailed -eq 0) {
     Write-Host ""
     Write-Host "⚠️  Some unit tests failed. Check the output above for details." -ForegroundColor Yellow
     exit 1
-} 
+}

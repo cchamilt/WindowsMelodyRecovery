@@ -32,7 +32,7 @@ function Update-WindowsMelodyRecovery {
         # Update Windows Store apps
         Write-Host "`nChecking for Windows Store app updates..." -ForegroundColor Yellow
         try {
-            Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | 
+            Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" |
                 Invoke-CimMethod -MethodName UpdateScanMethod
             Write-Host "Windows Store apps check completed" -ForegroundColor Green
         } catch {
@@ -90,8 +90,8 @@ function Update-WindowsMelodyRecovery {
                         Write-Host "Updating $($module.Name) from $($module.Version) to $($latest.Version)..." -ForegroundColor Yellow
                         Update-Module -Name $module.Name -Force
                         # Clean up older versions
-                        Get-InstalledModule -Name $module.Name -AllVersions | 
-                            Where-Object Version -lt $latest.Version | 
+                        Get-InstalledModule -Name $module.Name -AllVersions |
+                            Where-Object Version -lt $latest.Version |
                             Uninstall-Module -Force
                     }
                 } catch {

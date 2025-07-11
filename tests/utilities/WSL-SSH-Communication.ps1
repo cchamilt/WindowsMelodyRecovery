@@ -30,24 +30,24 @@ function Invoke-WSLSSHCommand {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Command,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$HostName = "wmr-wsl-mock",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$UserName = "testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [int]$Port = 22
     )
-    
+
     try {
         # Execute command via SSH with proper key authentication
         $sshCommand = "docker exec wmr-test-runner ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -i /workspace/tests/mock-data/ssh/id_rsa $UserName@$HostName '$Command'"
-        
+
         $result = Invoke-Expression $sshCommand
         $exitCode = $LASTEXITCODE
-        
+
         return @{
             Success = ($exitCode -eq 0)
             Output = if ($result) { $result -join "`n" } else { "" }
@@ -87,27 +87,27 @@ function Test-WSLSSHConnectivity {
     param(
         [Parameter(Mandatory = $false)]
         [string]$HostName = "wmr-wsl-mock",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$UserName = "testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [int]$Port = 22
     )
-    
+
     try {
         # Test SSH connectivity using the container's SSH key
         $sshCommand = "docker exec wmr-test-runner ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -i /workspace/tests/mock-data/ssh/id_rsa $UserName@$HostName 'echo connection-test'"
-        
+
         $result = Invoke-Expression $sshCommand
         $success = ($LASTEXITCODE -eq 0) -and ($result -eq "connection-test")
-        
+
         if ($success) {
             Write-Verbose "SSH connectivity test passed"
         } else {
             Write-Warning "SSH connectivity test failed. Exit code: $LASTEXITCODE, Output: $result"
         }
-        
+
         return $success
     }
     catch {
@@ -147,23 +147,23 @@ function Copy-WSLSSHFile {
     param(
         [Parameter(Mandatory = $true)]
         [string]$SourcePath,
-        
+
         [Parameter(Mandatory = $true)]
         [string]$DestinationPath,
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$ToContainer,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$User = "testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ContainerHost = "wmr-wsl-mock",
-        
+
         [Parameter(Mandatory = $false)]
         [int]$Port = 2222
     )
-    
+
     try {
         if ($ToContainer) {
             # Copy from host to container
@@ -175,7 +175,7 @@ function Copy-WSLSSHFile {
             $source = "$User@${ContainerHost}:$SourcePath"
             $destination = $DestinationPath
         }
-        
+
         $scpArgs = @(
             "-o", "StrictHostKeyChecking=no"
             "-o", "UserKnownHostsFile=/dev/null"
@@ -185,13 +185,13 @@ function Copy-WSLSSHFile {
             $source
             $destination
         )
-        
+
         Write-Verbose "Executing: scp $($scpArgs -join ' ')"
-        
+
         # Execute the SCP command
         $result = & scp @scpArgs 2>&1
         $exitCode = $LASTEXITCODE
-        
+
         return @{
             Success = ($exitCode -eq 0)
             ExitCode = $exitCode
@@ -247,28 +247,28 @@ function Invoke-WSLSSHScript {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ScriptContent,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ScriptType = "bash",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$HostName = "wmr-wsl-mock",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$UserName = "testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [int]$Port = 22
     )
-    
+
     try {
         # Create a temporary script file and execute it
         $scriptFile = "/tmp/ssh-script-$(Get-Random).sh"
-        
+
         # First, create the script file via SSH
         $createCommand = "cat > $scriptFile << 'EOF'`n$ScriptContent`nEOF && chmod +x $scriptFile"
         $createResult = Invoke-WSLSSHCommand -Command $createCommand -HostName $HostName -UserName $UserName -Port $Port
-        
+
         if (-not $createResult.Success) {
             return @{
                 Success = $false
@@ -277,14 +277,14 @@ function Invoke-WSLSSHScript {
                 Method = "SSH"
             }
         }
-        
+
         # Execute the script with proper environment
         $executeCommand = "cd /home/$UserName && export HOME=/home/$UserName && export USER=$UserName && export SHELL=/bin/bash && $scriptFile"
         $result = Invoke-WSLSSHCommand -Command $executeCommand -HostName $HostName -UserName $UserName -Port $Port
-        
+
         # Clean up the script file
         Invoke-WSLSSHCommand -Command "rm -f $scriptFile" -HostName $HostName -UserName $UserName -Port $Port | Out-Null
-        
+
         return @{
             Success = $result.Success
             Output = $result.Output
@@ -330,20 +330,20 @@ function New-WSLSSHTunnel {
     param(
         [Parameter(Mandatory = $true)]
         [int]$LocalPort,
-        
+
         [Parameter(Mandatory = $true)]
         [int]$RemotePort,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$User = "testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ContainerHost = "wmr-wsl-mock",
-        
+
         [Parameter(Mandatory = $false)]
         [int]$Port = 2222
     )
-    
+
     try {
         $sshArgs = @(
             "-o", "StrictHostKeyChecking=no"
@@ -355,17 +355,17 @@ function New-WSLSSHTunnel {
             "-p", $Port
             "$User@$ContainerHost"
         )
-        
+
         Write-Verbose "Creating SSH tunnel: ssh $($sshArgs -join ' ')"
-        
+
         # Create the tunnel
         $result = & ssh @sshArgs 2>&1
         $exitCode = $LASTEXITCODE
-        
+
         if ($exitCode -eq 0) {
             Write-Verbose "SSH tunnel created successfully: localhost:$LocalPort -> ${ContainerHost}:$RemotePort"
         }
-        
+
         return @{
             Success = ($exitCode -eq 0)
             ExitCode = $exitCode
@@ -389,4 +389,4 @@ function New-WSLSSHTunnel {
 }
 
 # Functions are available for dot-sourcing in tests
-# Note: Export-ModuleMember cannot be used in dot-sourced scripts 
+# Note: Export-ModuleMember cannot be used in dot-sourced scripts

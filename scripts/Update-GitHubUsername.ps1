@@ -15,7 +15,7 @@
 
 .EXAMPLE
     .\scripts\Update-GitHubUsername.ps1 -OldUsername "cchamilt" -NewUsername "newusername"
-    
+
 .EXAMPLE
     .\scripts\Update-GitHubUsername.ps1 -OldUsername "cchamilt" -NewUsername "newusername" -WhatIf
 #>
@@ -24,7 +24,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$OldUsername,
-    
+
     [Parameter(Mandatory = $true)]
     [string]$NewUsername
 )
@@ -58,21 +58,21 @@ foreach ($File in $FilesToUpdate) {
         Write-Warning "File not found: $File"
         continue
     }
-    
+
     Write-Host "📄 Processing: $File" -ForegroundColor Cyan
-    
+
     $Content = Get-Content $File -Raw
     $OriginalContent = $Content
-    
+
     # Replace old username with new username
     $Content = $Content -replace $OldUsername, $NewUsername
-    
+
     # Count replacements in this file
     $Replacements = ($OriginalContent.Split($OldUsername).Count - 1)
-    
+
     if ($Replacements -gt 0) {
         $TotalReplacements += $Replacements
-        
+
         if ($WhatIfPreference) {
             Write-Host "  ✏️  Would replace $Replacements instances of '$OldUsername'" -ForegroundColor Yellow
         } else {
@@ -97,7 +97,7 @@ if ($WhatIfPreference) {
     Write-Host "📊 Summary:" -ForegroundColor Cyan
     Write-Host "  - Files updated: $UpdatedFiles" -ForegroundColor Green
     Write-Host "  - Total replacements made: $TotalReplacements" -ForegroundColor Green
-    
+
     if ($UpdatedFiles -gt 0) {
         Write-Host ""
         Write-Host "✅ GitHub username updated successfully!" -ForegroundColor Green
@@ -114,9 +114,9 @@ if ($WhatIfPreference) {
 if (-not $WhatIfPreference -and $UpdatedFiles -gt 0) {
     Write-Host ""
     Write-Host "🔍 Validating updates..." -ForegroundColor Cyan
-    
+
     $ValidationErrors = 0
-    
+
     foreach ($File in $FilesToUpdate) {
         if (Test-Path $File) {
             $Content = Get-Content $File -Raw
@@ -126,10 +126,10 @@ if (-not $WhatIfPreference -and $UpdatedFiles -gt 0) {
             }
         }
     }
-    
+
     if ($ValidationErrors -eq 0) {
         Write-Host "✅ All files validated successfully" -ForegroundColor Green
     } else {
         Write-Warning "⚠️  $ValidationErrors files may need manual review"
     }
-} 
+}

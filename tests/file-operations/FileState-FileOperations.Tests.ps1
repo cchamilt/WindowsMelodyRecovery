@@ -6,21 +6,21 @@ $ConfirmPreference = 'None'
 BeforeAll {
     # Import test environment utilities
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
-    
+
     # Get standardized test paths
     $script:TestPaths = Get-TestPaths
-    
+
     # Import core files directly for unit testing
     . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\FileState.ps1")
     . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\PathUtilities.ps1")
     . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\EncryptionUtilities.ps1")
-    
+
     # Import test utilities if they exist
     $testHelperPath = Join-Path $PSScriptRoot "..\utilities\TestHelper.ps1"
     if (Test-Path $testHelperPath) {
         . $testHelperPath
     }
-    
+
     $encryptionHelperPath = Join-Path $PSScriptRoot "..\utilities\EncryptionTestHelper.ps1"
     if (Test-Path $encryptionHelperPath) {
         . $encryptionHelperPath
@@ -195,7 +195,7 @@ Describe "Set-WmrFileState - File Type" {
         # Clean up test directories before each test
         Remove-TestItems -Path $script:DestDir
         Remove-TestItems -Path $script:TempStateDir
-        
+
         # Recreate test directories
         New-Item -ItemType Directory -Path $script:DestDir -Force | Out-Null
         New-Item -ItemType Directory -Path $script:TempStateDir -Force | Out-Null
@@ -250,7 +250,7 @@ Describe "Set-WmrFileState - Directory Type" {
         # Clean up test directories before each test
         Remove-TestItems -Path $script:DestDir -Recurse -Force
         Remove-TestItems -Path $script:TempStateDir -Recurse -Force
-        
+
         # Recreate test directories
         New-Item -ItemType Directory -Path $script:DestDir -Force | Out-Null
         New-Item -ItemType Directory -Path $script:TempStateDir -Force | Out-Null
@@ -261,17 +261,17 @@ Describe "Set-WmrFileState - Directory Type" {
         $testDirPath = Join-Path $script:SourceDir "test_dir"
         Write-Debug "Test directory path: $testDirPath"
         New-Item -ItemType Directory -Path $testDirPath -Force | Out-Null
-        
+
         # Create test files
         $file1Path = Join-Path $testDirPath "file1.txt"
         $subdirPath = Join-Path $testDirPath "subdir"
         $file2Path = Join-Path $subdirPath "file2.txt"
-        
+
         Write-Debug "Creating test files:"
         Write-Debug "  file1: $file1Path"
         Write-Debug "  subdir: $subdirPath"
         Write-Debug "  file2: $file2Path"
-        
+
         New-Item -ItemType Directory -Path $subdirPath -Force | Out-Null
         Set-Content -Path $file1Path -Value "file1" -NoNewline
         Set-Content -Path $file2Path -Value "file2" -NoNewline
@@ -298,7 +298,7 @@ Describe "Set-WmrFileState - Directory Type" {
         # Create restore config
         $restoredDirPath = Join-Path $script:DestDir "restored_dir"
         Write-Debug "Restored directory path: $restoredDirPath"
-        
+
         $restoreConfig = [PSCustomObject]@{
             name = "Test Directory"
             path = $testDirPath
@@ -318,7 +318,7 @@ Describe "Set-WmrFileState - Directory Type" {
         $file1Path = Join-Path $restoredDirPath "file1.txt"
         $subdirPath = Join-Path $restoredDirPath "subdir"
         $file2Path = Join-Path $subdirPath "file2.txt"
-        
+
         Write-Debug "Verifying paths:"
         Write-Debug "  $file1Path exists: $(Test-Path $file1Path)"
         Write-Debug "  $subdirPath exists: $(Test-Path $subdirPath)"
@@ -375,7 +375,7 @@ Describe "Set-WmrFileState - Directory Type" {
         $file1Path = Join-Path $destinationPath "file1.txt"
         $subdirPath = Join-Path $destinationPath "subdir"
         $file2Path = Join-Path $subdirPath "file2.txt"
-        
+
         Test-Path $file1Path | Should -Be $true
         Test-Path $subdirPath | Should -Be $true
         Test-Path $file2Path | Should -Be $true
@@ -387,7 +387,7 @@ Describe "FileState" {
         # Clean test directories before each test
         Remove-TestItems -Path $script:testStateDir
         Remove-TestItems -Path $script:testDataDir
-        
+
         # Recreate test directories
         New-Item -ItemType Directory -Path $script:testStateDir -Force | Out-Null
         New-Item -ItemType Directory -Path $script:testDataDir -Force | Out-Null
@@ -520,7 +520,7 @@ Describe "FileState" {
             $testContent = "Secret content`nto restore"
             $contentBytes = [System.Text.Encoding]::UTF8.GetBytes($testContent)
             $encryptedContent = "ENCRYPTED:" + [Convert]::ToBase64String($contentBytes)
-            
+
             $stateFilePath = Join-Path -Path $script:testStateDir -ChildPath "secret.txt"
             New-TestFile -Path $stateFilePath -Content $encryptedContent
 
@@ -596,10 +596,10 @@ Describe "FileState" {
             $file1Path = Join-Path $destinationPath "file1.txt"
             $subdirPath = Join-Path $destinationPath "subdir"
             $file2Path = Join-Path $subdirPath "file2.txt"
-            
+
             Test-Path $file1Path | Should -Be $true
             Test-Path $subdirPath | Should -Be $true
             Test-Path $file2Path | Should -Be $true
         }
     }
-} 
+}

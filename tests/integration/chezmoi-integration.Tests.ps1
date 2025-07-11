@@ -4,7 +4,7 @@
     Integration tests for chezmoi dotfile management functionality
 
 .DESCRIPTION
-    Tests the complete chezmoi workflow including installation, configuration, 
+    Tests the complete chezmoi workflow including installation, configuration,
     file management, backup, and restore operations in a Docker environment.
 #>
 
@@ -12,17 +12,17 @@ BeforeAll {
     # Import test utilities
     . $PSScriptRoot/../utilities/Test-Utilities.ps1
     . $PSScriptRoot/../utilities/Mock-Utilities.ps1
-    
+
     # Set up test environment
     $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
-    
+
     # Use fallback path if $env:TEMP is not set
     $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
     $TestTempDir = Join-Path $tempPath "WindowsMelodyRecovery-Chezmoi-Tests"
     if (-not (Test-Path $TestTempDir)) {
         New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
     }
-    
+
     # Mock environment variables for testing
     $env:WMR_CONFIG_PATH = $TestTempDir
     $env:WMR_BACKUP_PATH = Join-Path $TestTempDir "backups"
@@ -30,30 +30,30 @@ BeforeAll {
 }
 
 Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
-    
+
     Context "Chezmoi Availability and Installation" {
         It "Should have chezmoi available in WSL environment" {
             # This test would run in a Docker environment with WSL mock
             # For local testing, we'll check if the function exists
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
-            
+
             $setupFunction = Get-Command Setup-Chezmoi -ErrorAction SilentlyContinue
             $setupFunction | Should -Not -BeNullOrEmpty
         }
-        
+
         It "Should have chezmoi setup functions available" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
-            
+
             $functions = @(
                 'Setup-Chezmoi',
                 'Setup-WSLChezmoi'
             )
-            
+
             foreach ($function in $functions) {
                 Get-Command $function -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
             }
         }
-        
+
         It "Should validate chezmoi installation script syntax" {
             $chezmoiSetupPath = Join-Path $PSScriptRoot "../../Private/setup/setup-chezmoi.ps1"
             if (Test-Path $chezmoiSetupPath) {
@@ -63,17 +63,17 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
             }
         }
     }
-    
+
     Context "Chezmoi Configuration Management" {
         It "Should handle chezmoi configuration validation" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
-            
+
             # Test configuration validation logic
             $configPath = Join-Path $TestTempDir "chezmoi-config"
             if (-not (Test-Path $configPath)) {
                 New-Item -Path $configPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create a mock chezmoi configuration
             $mockConfig = @"
 [chezmoi]
@@ -81,26 +81,26 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
     destDir = "~"
     configFile = "~/.config/chezmoi/chezmoi.toml"
 "@
-            
+
             $configFile = Join-Path $configPath "chezmoi.toml"
             $mockConfig | Out-File -FilePath $configFile -Encoding UTF8
-            
+
             Test-Path $configFile | Should -Be $true
         }
-        
+
         It "Should handle chezmoi source directory management" {
             $sourceDir = Join-Path $TestTempDir "chezmoi-source"
             if (-not (Test-Path $sourceDir)) {
                 New-Item -Path $sourceDir -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create mock dotfiles
             $mockFiles = @{
                 "dot_bashrc" = "# Mock .bashrc file"
                 "dot_gitconfig" = "[user]`n    name = Test User`n    email = test@example.com"
                 "dot_vimrc" = "set number`nset expandtab"
             }
-            
+
             foreach ($file in $mockFiles.GetEnumerator()) {
                 $filePath = Join-Path $sourceDir $file.Key
                 $file.Value | Out-File -FilePath $filePath -Encoding UTF8
@@ -108,18 +108,18 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
             }
         }
     }
-    
+
     Context "Chezmoi File Management" {
         It "Should handle file addition to chezmoi" {
             $testFile = Join-Path $TestTempDir "test-file.txt"
             "Test content for chezmoi" | Out-File -FilePath $testFile -Encoding UTF8
-            
+
             Test-Path $testFile | Should -Be $true
-            
+
             # Clean up
             Remove-Item $testFile -Force -ErrorAction SilentlyContinue
         }
-        
+
         It "Should handle chezmoi template processing" {
             $templateContent = @"
 {{ if eq .chezmoi.os "linux" }}
@@ -136,16 +136,16 @@ export PATH="/opt/homebrew/bin:$PATH"
 alias ll='ls -la'
 alias la='ls -A'
 "@
-            
+
             $templateFile = Join-Path $TestTempDir "dot_bashrc.tmpl"
             $templateContent | Out-File -FilePath $templateFile -Encoding UTF8
-            
+
             Test-Path $templateFile | Should -Be $true
-            
+
             # Clean up
             Remove-Item $templateFile -Force -ErrorAction SilentlyContinue
         }
-        
+
         It "Should handle chezmoi script templates" {
             $scriptTemplate = @"
 #!/bin/bash
@@ -155,24 +155,24 @@ echo "Running script: {{ .chezmoi.sourceFile | replace "run_once_" "" | replace 
 echo "Hostname: {{ .chezmoi.hostname }}"
 echo "Username: {{ .chezmoi.username }}"
 "@
-            
+
             $scriptFile = Join-Path $TestTempDir "run_once_setup.sh.tmpl"
             $scriptTemplate | Out-File -FilePath $scriptFile -Encoding UTF8
-            
+
             Test-Path $scriptFile | Should -Be $true
-            
+
             # Clean up
             Remove-Item $scriptFile -Force -ErrorAction SilentlyContinue
         }
     }
-    
+
     Context "Chezmoi Backup and Restore" {
         It "Should handle chezmoi backup creation" {
             $backupPath = Join-Path $TestTempDir "chezmoi-backup"
             if (-not (Test-Path $backupPath)) {
                 New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create mock backup structure
             $backupStructure = @{
                 "source" = @{
@@ -185,21 +185,21 @@ echo "Username: {{ .chezmoi.username }}"
                     "chezmoi.toml" = "[chezmoi]`n    sourceDir = `"~/.local/share/chezmoi`""
                 }
             }
-            
+
             # Create backup structure
             foreach ($dir in $backupStructure.GetEnumerator()) {
                 $dirPath = Join-Path $backupPath $dir.Key
                 if (-not (Test-Path $dirPath)) {
                     New-Item -Path $dirPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 foreach ($file in $dir.Value.GetEnumerator()) {
                     if ($file.Value -is [hashtable]) {
                         $subDirPath = Join-Path $dirPath $file.Key
                         if (-not (Test-Path $subDirPath)) {
                             New-Item -Path $subDirPath -ItemType Directory -Force | Out-Null
                         }
-                        
+
                         foreach ($subFile in $file.Value.GetEnumerator()) {
                             $filePath = Join-Path $subDirPath $subFile.Key
                             $subFile.Value | Out-File -FilePath $filePath -Encoding UTF8
@@ -210,29 +210,29 @@ echo "Username: {{ .chezmoi.username }}"
                     }
                 }
             }
-            
+
             Test-Path $backupPath | Should -Be $true
             Test-Path (Join-Path $backupPath "source") | Should -Be $true
             Test-Path (Join-Path $backupPath "config") | Should -Be $true
         }
-        
+
         It "Should handle chezmoi restore validation" {
             $backupPath = Join-Path $TestTempDir "chezmoi-backup"
             $restorePath = Join-Path $TestTempDir "chezmoi-restore"
-            
+
             if (Test-Path $backupPath) {
                 # Simulate restore by copying backup
                 Copy-Item -Path $backupPath -Destination $restorePath -Recurse -Force
-                
+
                 Test-Path $restorePath | Should -Be $true
                 Test-Path (Join-Path $restorePath "source") | Should -Be $true
                 Test-Path (Join-Path $restorePath "config") | Should -Be $true
             }
         }
-        
+
         It "Should validate backup manifest creation" {
             $backupPath = Join-Path $TestTempDir "chezmoi-backup"
-            
+
             # Create backup manifest
             $manifest = @{
                 BackupType = "Chezmoi"
@@ -244,7 +244,7 @@ echo "Username: {{ .chezmoi.username }}"
                 )
                 Files = @()
             }
-            
+
             # Add files to manifest
             if (Test-Path $backupPath) {
                 $files = Get-ChildItem -Path $backupPath -Recurse -File
@@ -256,21 +256,21 @@ echo "Username: {{ .chezmoi.username }}"
                     }
                 }
             }
-            
+
             $manifest | Should -Not -BeNullOrEmpty
             $manifest.BackupType | Should -Be "Chezmoi"
             $manifest.Components | Should -Contain "chezmoi-source"
         }
     }
-    
+
     Context "Chezmoi Integration with Windows Melody Recovery" {
         It "Should integrate with module backup functions" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
-            
+
             # Test that chezmoi backup is included in WSL backup
             $wslBackupFunctions = Get-Command -Name "*WSL*" -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $wslBackupFunctions | Should -Not -BeNullOrEmpty
-            
+
             # Test that WSL template includes chezmoi functionality
             $wslTemplatePath = "Templates/System/wsl.yaml"
             if (Test-Path $wslTemplatePath) {
@@ -279,25 +279,25 @@ echo "Username: {{ .chezmoi.username }}"
                 Set-ItResult -Skipped -Because "wsl.yaml template not found"
             }
         }
-        
+
         It "Should integrate with module setup functions" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
-            
+
             # Test that chezmoi setup is included in WSL setup
             $wslSetupFunctions = Get-Command -Name "*WSL*" -Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
             $wslSetupFunctions | Should -Not -BeNullOrEmpty
-            
+
             # Check for specific chezmoi setup function
             $chezmoiSetupFunction = Get-Command Setup-WSLChezmoi -ErrorAction SilentlyContinue
             $chezmoiSetupFunction | Should -Not -BeNullOrEmpty
         }
-        
+
         It "Should handle chezmoi configuration in module settings" {
             $configPath = Join-Path $TestTempDir "module-config"
             if (-not (Test-Path $configPath)) {
                 New-Item -Path $configPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create module configuration that includes chezmoi
             $moduleConfig = @{
                 WSL = @{
@@ -315,26 +315,26 @@ echo "Username: {{ .chezmoi.username }}"
                     }
                 }
             }
-            
+
             $configFile = Join-Path $configPath "scripts-config.json"
             $moduleConfig | ConvertTo-Json -Depth 10 | Out-File -FilePath $configFile -Encoding UTF8
-            
+
             Test-Path $configFile | Should -Be $true
-            
+
             # Validate JSON syntax
             $loadedConfig = Get-Content $configFile -Raw | ConvertFrom-Json
             $loadedConfig.WSL.Components | Should -Contain "chezmoi"
             $loadedConfig.WSL.Chezmoi.Enabled | Should -Be $true
         }
     }
-    
+
     Context "Chezmoi Error Handling" {
         It "Should handle missing WSL gracefully" {
             Import-Module $TestModulePath -Force -ErrorAction SilentlyContinue
-            
+
             # Mock WSL command to simulate missing WSL
             Mock Get-Command { return $null } -ParameterFilter { $Name -eq "wsl" }
-            
+
             # Test that setup function handles missing WSL
             try {
                 Setup-Chezmoi -ErrorAction Stop
@@ -342,7 +342,7 @@ echo "Username: {{ .chezmoi.username }}"
                 $_.Exception.Message | Should -Match "WSL"
             }
         }
-        
+
         It "Should handle chezmoi installation failures" {
             # Test chezmoi installation error handling
             $errorScript = @"
@@ -350,58 +350,58 @@ echo "Username: {{ .chezmoi.username }}"
 echo "Simulating chezmoi installation failure"
 exit 1
 "@
-            
+
             $scriptFile = Join-Path $TestTempDir "failed-install.sh"
             $errorScript | Out-File -FilePath $scriptFile -Encoding UTF8
-            
+
             # Test script execution failure
             try {
                 & bash $scriptFile
             } catch {
                 $LASTEXITCODE | Should -Be 1
             }
-            
+
             # Clean up
             Remove-Item $scriptFile -Force -ErrorAction SilentlyContinue
         }
-        
+
         It "Should handle invalid chezmoi configuration" {
             $invalidConfig = @"
 [chezmoi]
     invalidSetting = "this should cause an error"
     sourceDir = ""  # Empty source directory
 "@
-            
+
             $configFile = Join-Path $TestTempDir "invalid-chezmoi.toml"
             $invalidConfig | Out-File -FilePath $configFile -Encoding UTF8
-            
+
             Test-Path $configFile | Should -Be $true
-            
+
             # Clean up
             Remove-Item $configFile -Force -ErrorAction SilentlyContinue
         }
     }
-    
+
     Context "Chezmoi Performance and Scalability" {
         It "Should handle large dotfile repositories" {
             $largeRepoPath = Join-Path $TestTempDir "large-dotfiles"
             if (-not (Test-Path $largeRepoPath)) {
                 New-Item -Path $largeRepoPath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create many mock dotfiles
             for ($i = 1; $i -le 100; $i++) {
                 $filePath = Join-Path $largeRepoPath "dot_file$i"
                 "Content for file $i" | Out-File -FilePath $filePath -Encoding UTF8
             }
-            
+
             $fileCount = (Get-ChildItem -Path $largeRepoPath -File).Count
             $fileCount | Should -Be 100
-            
+
             # Clean up
             Remove-Item $largeRepoPath -Recurse -Force -ErrorAction SilentlyContinue
         }
-        
+
         It "Should handle complex template processing" {
             $complexTemplate = @"
 {{ if eq .chezmoi.os "linux" }}
@@ -426,12 +426,12 @@ export ARCH="arm64"
 export HOSTNAME="{{ .chezmoi.hostname }}"
 export USER="{{ .chezmoi.username }}"
 "@
-            
+
             $templateFile = Join-Path $TestTempDir "complex.tmpl"
             $complexTemplate | Out-File -FilePath $templateFile -Encoding UTF8
-            
+
             Test-Path $templateFile | Should -Be $true
-            
+
             # Clean up
             Remove-Item $templateFile -Force -ErrorAction SilentlyContinue
         }
@@ -443,7 +443,7 @@ AfterAll {
     if (Test-Path $TestTempDir) {
         Remove-Item -Path $TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
     }
-    
+
     # Remove module
     Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
-} 
+}

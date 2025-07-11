@@ -65,28 +65,28 @@ function Restore-WindowsMelodyRecovery {
 
                     [Parameter(Mandatory=$true)]
                     [string]$BackupType,
-                    
+
                     [Parameter(Mandatory=$true)]
                     [string]$MACHINE_BACKUP,
-                    
+
                     [Parameter(Mandatory=$true)]
                     [string]$SHARED_BACKUP
                 )
-                
+
                 # First check machine-specific backup
                 $machinePath = Join-Path $MACHINE_BACKUP $Path
                 if (Test-Path $machinePath) {
                     Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
                     return $machinePath
                 }
-                
+
                 # Fall back to shared backup
                 $sharedPath = Join-Path $SHARED_BACKUP $Path
                 if (Test-Path $sharedPath) {
                     Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
                     return $sharedPath
                 }
-                
+
                 Write-Host "No $BackupType backup found" -ForegroundColor Yellow
                 return $null
             }
@@ -125,7 +125,7 @@ function Restore-WindowsMelodyRecovery {
                 Write-Host "No restore functions were found. Check that restore scripts exist in the Private\restore directory." -ForegroundColor Yellow
             } else {
                 Write-Host "Script-based restoration completed! ($availableRestores functions executed)" -ForegroundColor Green
-                
+
                 # Run final post-restore applications analysis
                 Write-Host "`nRunning final post-restore applications analysis..." -ForegroundColor Blue
                 try {
@@ -143,7 +143,7 @@ function Restore-WindowsMelodyRecovery {
                             if ($analysisResult.Success) {
                                 Write-Host "`n=== RESTORE COMPLETE - POST-RESTORE ANALYSIS ===" -ForegroundColor Yellow
                                 Write-Host "Post-restore analysis saved to: $($analysisResult.BackupPath)" -ForegroundColor Green
-                                
+
                                 # Show summary if available
                                 if ($analysisResult.Analysis -and $analysisResult.Analysis.Summary) {
                                     $summary = $analysisResult.Analysis.Summary
@@ -152,7 +152,7 @@ function Restore-WindowsMelodyRecovery {
                                     Write-Host "  Successfully Restored: $($summary.RestoredApps)" -ForegroundColor Green
                                     Write-Host "  Still Need Manual Install: $($summary.StillUnmanagedApps)" -ForegroundColor Red
                                     Write-Host "  Restore Success Rate: $($summary.RestoreSuccessRate)%" -ForegroundColor Cyan
-                                    
+
                                     if ($summary.StillUnmanagedApps -gt 0) {
                                         Write-Host "`nIMPORTANT: Check the following files for applications that still need manual installation:" -ForegroundColor Yellow
                                         Write-Host "  - still-unmanaged-apps.json: Technical details for scripts" -ForegroundColor Cyan

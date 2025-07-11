@@ -17,7 +17,7 @@ case "$1" in
         if [ -z "$OUTPUT" ]; then
             OUTPUT="winget-export.json"
         fi
-        
+
         cat > "$OUTPUT" << 'EOF'
 {
   "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
@@ -108,4 +108,4 @@ EOF
         echo "Usage: winget [list|export|import|install|uninstall|search|upgrade] ..."
         exit 1
         ;;
-esac 
+esac

@@ -16,13 +16,13 @@ if (Test-Path $mockPath) {
 
 if ($script:IsDockerEnvironment) {
     Write-Verbose "Docker environment detected, loading additional Docker setup"
-    
+
     # Set up Docker-specific environment variables
     $env:WMR_DOCKER_TEST = 'true'
     $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? '/tmp/wmr-test-backup'
     $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? '/tmp/wmr-test-logs'
     $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? '/tmp/wmr-test-state'
-    
+
     # Create test directories
     @($env:WMR_BACKUP_PATH, $env:WMR_LOG_PATH, $env:WMR_STATE_PATH) | ForEach-Object {
         if (-not (Test-Path $_)) {
@@ -30,7 +30,7 @@ if ($script:IsDockerEnvironment) {
             Write-Verbose "Created test directory: $_"
         }
     }
-    
+
     # Mock Windows-specific environment variables
     $env:USERPROFILE = $env:USERPROFILE ?? '/mock-c/Users/TestUser'
     $env:PROGRAMFILES = $env:PROGRAMFILES ?? '/mock-c/Program Files'
@@ -41,7 +41,7 @@ if ($script:IsDockerEnvironment) {
     $env:PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE ?? 'AMD64'
     $env:USERDOMAIN = $env:USERDOMAIN ?? 'WORKGROUP'
     $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
-    
+
     # Mock Get-CimInstance for hardware information
     if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
         function Get-CimInstance {
@@ -49,7 +49,7 @@ if ($script:IsDockerEnvironment) {
             param(
                 [string]$ClassName
             )
-            
+
             switch ($ClassName) {
                 'Win32_Processor' {
                     return @(
@@ -81,7 +81,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock Windows Features functions
     if (-not (Get-Command Get-WindowsOptionalFeature -ErrorAction SilentlyContinue)) {
         function Get-WindowsOptionalFeature {
@@ -90,7 +90,7 @@ if ($script:IsDockerEnvironment) {
                 [switch]$Online,
                 [string]$FeatureName
             )
-            
+
             if ($FeatureName) {
                 return [PSCustomObject]@{
                     FeatureName = $FeatureName
@@ -106,7 +106,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Enable-WindowsOptionalFeature -ErrorAction SilentlyContinue)) {
         function Enable-WindowsOptionalFeature {
             [CmdletBinding()]
@@ -116,7 +116,7 @@ if ($script:IsDockerEnvironment) {
                 [switch]$Online,
                 [switch]$All
             )
-            
+
             return [PSCustomObject]@{
                 FeatureName = $FeatureName
                 RestartNeeded = $false
@@ -124,7 +124,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Disable-WindowsOptionalFeature -ErrorAction SilentlyContinue)) {
         function Disable-WindowsOptionalFeature {
             [CmdletBinding()]
@@ -133,7 +133,7 @@ if ($script:IsDockerEnvironment) {
                 [string]$FeatureName,
                 [switch]$Online
             )
-            
+
             return [PSCustomObject]@{
                 FeatureName = $FeatureName
                 RestartNeeded = $false
@@ -141,7 +141,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock Windows Capabilities functions
     if (-not (Get-Command Get-WindowsCapability -ErrorAction SilentlyContinue)) {
         function Get-WindowsCapability {
@@ -150,7 +150,7 @@ if ($script:IsDockerEnvironment) {
                 [switch]$Online,
                 [string]$Name
             )
-            
+
             if ($Name) {
                 return [PSCustomObject]@{
                     Name = $Name
@@ -166,7 +166,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Add-WindowsCapability -ErrorAction SilentlyContinue)) {
         function Add-WindowsCapability {
             [CmdletBinding()]
@@ -175,7 +175,7 @@ if ($script:IsDockerEnvironment) {
                 [string]$Name,
                 [switch]$Online
             )
-            
+
             return [PSCustomObject]@{
                 Name = $Name
                 RestartNeeded = $false
@@ -183,7 +183,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Remove-WindowsCapability -ErrorAction SilentlyContinue)) {
         function Remove-WindowsCapability {
             [CmdletBinding()]
@@ -192,7 +192,7 @@ if ($script:IsDockerEnvironment) {
                 [string]$Name,
                 [switch]$Online
             )
-            
+
             return [PSCustomObject]@{
                 Name = $Name
                 RestartNeeded = $false
@@ -200,7 +200,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock Scheduled Task functions
     if (-not (Get-Command Register-ScheduledTask -ErrorAction SilentlyContinue)) {
         function Register-ScheduledTask {
@@ -215,7 +215,7 @@ if ($script:IsDockerEnvironment) {
                 $Principal,
                 [string]$Description
             )
-            
+
             return [PSCustomObject]@{
                 TaskName = $TaskName
                 State = 'Ready'
@@ -227,7 +227,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Unregister-ScheduledTask -ErrorAction SilentlyContinue)) {
         function Unregister-ScheduledTask {
             [CmdletBinding()]
@@ -236,18 +236,18 @@ if ($script:IsDockerEnvironment) {
                 [string]$TaskName,
                 [switch]$Confirm
             )
-            
+
             return $true
         }
     }
-    
+
     if (-not (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue)) {
         function Get-ScheduledTask {
             [CmdletBinding()]
             param(
                 [string]$TaskName
             )
-            
+
             if ($TaskName) {
                 return [PSCustomObject]@{
                     TaskName = $TaskName
@@ -264,7 +264,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock Service functions
     if (-not (Get-Command Set-Service -ErrorAction SilentlyContinue)) {
         function Set-Service {
@@ -275,11 +275,11 @@ if ($script:IsDockerEnvironment) {
                 [string]$StartupType,
                 [string]$Status
             )
-            
+
             return $true
         }
     }
-    
+
     if (-not (Get-Command Start-Service -ErrorAction SilentlyContinue)) {
         function Start-Service {
             [CmdletBinding()]
@@ -287,11 +287,11 @@ if ($script:IsDockerEnvironment) {
                 [Parameter(Mandatory)]
                 [string]$Name
             )
-            
+
             return $true
         }
     }
-    
+
     if (-not (Get-Command Stop-Service -ErrorAction SilentlyContinue)) {
         function Stop-Service {
             [CmdletBinding()]
@@ -299,18 +299,18 @@ if ($script:IsDockerEnvironment) {
                 [Parameter(Mandatory)]
                 [string]$Name
             )
-            
+
             return $true
         }
     }
-    
+
     if (-not (Get-Command Get-Service -ErrorAction SilentlyContinue)) {
         function Get-Service {
             [CmdletBinding()]
             param(
                 [string]$Name
             )
-            
+
             if ($Name) {
                 return [PSCustomObject]@{
                     Name = $Name
@@ -327,7 +327,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock Windows Principal functions
     if (-not (Get-Command New-ScheduledTaskPrincipal -ErrorAction SilentlyContinue)) {
         function New-ScheduledTaskPrincipal {
@@ -337,7 +337,7 @@ if ($script:IsDockerEnvironment) {
                 [string]$RunLevel,
                 [string]$LogonType
             )
-            
+
             return [PSCustomObject]@{
                 UserId = $UserId ?? 'SYSTEM'
                 RunLevel = $RunLevel ?? 'Limited'
@@ -345,7 +345,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command New-ScheduledTaskAction -ErrorAction SilentlyContinue)) {
         function New-ScheduledTaskAction {
             [CmdletBinding()]
@@ -355,7 +355,7 @@ if ($script:IsDockerEnvironment) {
                 [string]$Argument,
                 [string]$WorkingDirectory
             )
-            
+
             return [PSCustomObject]@{
                 Execute = $Execute
                 Arguments = $Argument
@@ -363,7 +363,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command New-ScheduledTaskTrigger -ErrorAction SilentlyContinue)) {
         function New-ScheduledTaskTrigger {
             [CmdletBinding()]
@@ -374,7 +374,7 @@ if ($script:IsDockerEnvironment) {
                 [switch]$AtLogOn,
                 [DateTime]$At
             )
-            
+
             return [PSCustomObject]@{
                 TriggerType = if ($Daily) { 'Daily' } elseif ($Weekly) { 'Weekly' } elseif ($AtStartup) { 'AtStartup' } elseif ($AtLogOn) { 'AtLogOn' } else { 'Unknown' }
                 StartBoundary = $At ?? (Get-Date)
@@ -382,7 +382,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock prerequisite functions that tests expect
     if (-not (Get-Command Test-WmrPrerequisites -ErrorAction SilentlyContinue)) {
         function Test-WmrPrerequisites {
@@ -391,18 +391,18 @@ if ($script:IsDockerEnvironment) {
                 $TemplateConfig,
                 [string]$Operation
             )
-            
+
             return $true
         }
     }
-    
+
     if (-not (Get-Command Backup-WindowsFeatures -ErrorAction SilentlyContinue)) {
         function Backup-WindowsFeatures {
             [CmdletBinding()]
             param(
                 [string]$BackupPath
             )
-            
+
             return @{
                 Success = $true
                 RequiresElevation = $false
@@ -414,13 +414,13 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock administrative operations functions
     if (-not (Get-Command Get-WindowsOptionalFeaturesState -ErrorAction SilentlyContinue)) {
         function Get-WindowsOptionalFeaturesState {
             [CmdletBinding()]
             param()
-            
+
             return @{
                 Success = $true
                 RequiresElevation = $false
@@ -431,12 +431,12 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Get-WindowsCapabilitiesState -ErrorAction SilentlyContinue)) {
         function Get-WindowsCapabilitiesState {
             [CmdletBinding()]
             param()
-            
+
             return @{
                 Success = $true
                 RequiresElevation = $false
@@ -447,7 +447,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Manage-WindowsService -ErrorAction SilentlyContinue)) {
         function Manage-WindowsService {
             [CmdletBinding()]
@@ -457,7 +457,7 @@ if ($script:IsDockerEnvironment) {
                 [Parameter(Mandatory)]
                 [string]$Action
             )
-            
+
             return @{
                 Success = $true
                 RequiresElevation = $false
@@ -466,7 +466,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Set-RegistryValue -ErrorAction SilentlyContinue)) {
         function Set-RegistryValue {
             [CmdletBinding()]
@@ -478,7 +478,7 @@ if ($script:IsDockerEnvironment) {
                 [Parameter(Mandatory)]
                 $Value
             )
-            
+
             return @{
                 Success = $true
                 RequiresElevation = $Path -like "HKLM:*"
@@ -488,7 +488,7 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Manage-ScheduledTask -ErrorAction SilentlyContinue)) {
         function Manage-ScheduledTask {
             [CmdletBinding()]
@@ -499,7 +499,7 @@ if ($script:IsDockerEnvironment) {
                 [string]$Action,
                 [bool]$RequireElevation = $false
             )
-            
+
             return @{
                 Success = $true
                 RequiresElevation = $RequireElevation
@@ -508,16 +508,16 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     if (-not (Get-Command Test-ElevationCapability -ErrorAction SilentlyContinue)) {
         function Test-ElevationCapability {
             [CmdletBinding()]
             param()
-            
+
             return $true
         }
     }
-    
+
     # Set up mock Windows drives
     if (-not (Test-Path '/mock-c')) {
         New-Item -Path '/mock-c' -ItemType Directory -Force | Out-Null
@@ -528,7 +528,7 @@ if ($script:IsDockerEnvironment) {
         New-Item -Path '/mock-c/Windows' -ItemType Directory -Force | Out-Null
         Write-Verbose "Created mock Windows directory structure"
     }
-    
+
     # Mock Windows security objects
     if (-not ([System.Management.Automation.PSTypeName]'Security.Principal.WindowsIdentity').Type) {
         Add-Type -TypeDefinition @"
@@ -536,49 +536,49 @@ if ($script:IsDockerEnvironment) {
                 public class WindowsIdentity {
                     public string Name { get; set; }
                     public System.Collections.Generic.List<object> Groups { get; set; }
-                    
+
                     public WindowsIdentity() {
                         Name = "TestUser";
                         Groups = new System.Collections.Generic.List<object>();
                     }
-                    
+
                     public static WindowsIdentity GetCurrent() {
                         return new WindowsIdentity();
                     }
                 }
-                
+
                 public class WindowsPrincipal {
                     public WindowsIdentity Identity { get; set; }
-                    
+
                     public WindowsPrincipal(WindowsIdentity identity) {
                         Identity = identity;
                     }
-                    
+
                     public bool IsInRole(WindowsBuiltInRole role) {
                         return false; // Mock as non-admin by default
                     }
                 }
-                
+
                 public enum WindowsBuiltInRole {
                     Administrator
                 }
-                
+
                 public class SecurityIdentifier {
                     public SecurityIdentifier(WellKnownSidType sidType, SecurityIdentifier domainSid) {
                     }
-                    
+
                     public bool Equals(SecurityIdentifier other) {
                         return false;
                     }
                 }
-                
+
                 public enum WellKnownSidType {
                     BuiltinAdministratorsSid
                 }
             }
 "@
     }
-    
+
     # Mock id command for Unix-like systems
     if (-not (Get-Command id -ErrorAction SilentlyContinue)) {
         function id {
@@ -586,7 +586,7 @@ if ($script:IsDockerEnvironment) {
             return "1000"  # Non-root user ID
         }
     }
-    
+
     # Mock Read-WmrTemplateConfig for template operations
     if (-not (Get-Command Read-WmrTemplateConfig -ErrorAction SilentlyContinue)) {
         function Read-WmrTemplateConfig {
@@ -595,11 +595,11 @@ if ($script:IsDockerEnvironment) {
                 [Parameter(Mandatory=$true)]
                 [string]$TemplatePath
             )
-            
+
             if (-not (Test-Path $TemplatePath)) {
                 throw "Template file not found: $TemplatePath"
             }
-            
+
             try {
                 $content = Get-Content $TemplatePath -Raw -Encoding UTF8
                 if ($TemplatePath -like "*.yaml" -or $TemplatePath -like "*.yml") {
@@ -611,12 +611,12 @@ if ($script:IsDockerEnvironment) {
                         registry = @()
                         applications = @()
                     }
-                    
+
                     # Parse basic YAML structure
                     $lines = $content -split "`n"
                     $currentSection = $null
                     $currentItem = $null
-                    
+
                     foreach ($line in $lines) {
                         $line = $line.Trim()
                         if ($line -match "^metadata:") {
@@ -655,7 +655,7 @@ if ($script:IsDockerEnvironment) {
                             }
                         }
                     }
-                    
+
                     return $yamlContent
                 } else {
                     return ($content | ConvertFrom-Json)
@@ -665,18 +665,18 @@ if ($script:IsDockerEnvironment) {
             }
         }
     }
-    
+
     # Mock Get-WmrModulePath for module operations
     if (-not (Get-Command Get-WmrModulePath -ErrorAction SilentlyContinue)) {
         function Get-WmrModulePath {
             [CmdletBinding()]
             param()
-            
+
             # Return the actual module file path, not the directory
             return "/workspace/WindowsMelodyRecovery.psm1"
         }
     }
-    
+
     # Mock additional path utilities
     if (-not (Get-Command Get-WmrTestPath -ErrorAction SilentlyContinue)) {
         function Get-WmrTestPath {
@@ -685,14 +685,14 @@ if ($script:IsDockerEnvironment) {
                 [Parameter(Mandatory=$true)]
                 [string]$WindowsPath
             )
-            
+
             # Convert Windows paths to Linux paths for Docker
             $linuxPath = $WindowsPath -replace '\\', '/'
             $linuxPath = $linuxPath -replace '^C:', '/workspace'
             return $linuxPath
         }
     }
-    
+
     Write-Host "🐳 Docker test environment initialized with comprehensive mocks" -ForegroundColor Cyan
 } else {
     Write-Verbose "Native Windows environment detected, using standard functionality"
@@ -710,7 +710,7 @@ function Get-WmrTestPath {
         [Parameter(Mandatory)]
         [string]$WindowsPath
     )
-    
+
     if ($script:IsDockerEnvironment) {
         return Convert-WmrPathForDocker -Path $WindowsPath
     } else {
@@ -725,7 +725,7 @@ function ConvertTo-UnixLineEndings {
         [Parameter(Mandatory, ValueFromPipeline)]
         [string]$Text
     )
-    
+
     process {
         return $Text.Replace("`r`n", "`n").Replace("`r", "`n")
     }
@@ -738,7 +738,7 @@ function New-WmrTestDirectory {
         [Parameter(Mandatory)]
         [string]$Path
     )
-    
+
     $testPath = Get-WmrTestPath -WindowsPath $Path
     if (-not (Test-Path $testPath)) {
         New-Item -Path $testPath -ItemType Directory -Force | Out-Null
@@ -754,7 +754,7 @@ function Remove-WmrTestDirectory {
         [Parameter(Mandatory)]
         [string]$Path
     )
-    
+
     $testPath = Get-WmrTestPath -WindowsPath $Path
     if (Test-Path $testPath) {
         Remove-Item -Path $testPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -762,4 +762,4 @@ function Remove-WmrTestDirectory {
     }
 }
 
-# Functions are available when dot-sourced, no need to export when not in module context 
+# Functions are available when dot-sourced, no need to export when not in module context

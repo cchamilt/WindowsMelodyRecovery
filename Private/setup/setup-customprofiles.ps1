@@ -14,7 +14,7 @@ function Setup-CustomProfiles {
 
     try {
         Write-Host "Setting up custom profiles..." -ForegroundColor Blue
-        
+
         # Check if chezmoi is installed
         $chezmoiInstalled = $false
         try {
@@ -24,10 +24,10 @@ function Setup-CustomProfiles {
         } catch {
             Write-Host "Chezmoi is not installed." -ForegroundColor Yellow
         }
-        
+
         if (-not $chezmoiInstalled) {
             $installResponse = Read-Host "Would you like to install chezmoi? (Y/N)"
-            
+
             if ($installResponse -eq 'Y' -or $installResponse -eq 'y') {
                 Write-Host "Installing chezmoi via winget..." -ForegroundColor Yellow
                 try {
@@ -55,4 +55,4 @@ function Setup-CustomProfiles {
         Write-Host "Failed to setup custom profiles" -ForegroundColor Red
         return $false
     }
-} 
+}

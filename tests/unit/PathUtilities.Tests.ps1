@@ -69,5 +69,5 @@ Describe "Convert-WmrPath" {
         $result.PathType | Should -Be "File"
         $result.Path | Should -Be "customuri://something/data"
     }
-} 
+}
 

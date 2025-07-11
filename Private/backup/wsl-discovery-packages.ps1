@@ -13,9 +13,9 @@ function Get-WSLAptPackages {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
             return @()
         }
-        
+
         $result = wsl --exec bash -c "if command -v dpkg >/dev/null 2>&1; then dpkg --get-selections | head -1000; else echo 'dpkg not available'; fi" 2>$null
-        
+
         if ($result -and $result -ne "dpkg not available") {
             $packages = @()
             foreach ($line in $result) {
@@ -43,9 +43,9 @@ function Get-WSLNpmPackages {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
             return @()
         }
-        
+
         $result = wsl --exec bash -c "if command -v npm >/dev/null 2>&1; then npm list -g --depth=0 --json 2>/dev/null || echo '{\"dependencies\":{}}'; else echo '{\"dependencies\":{}}'; fi" 2>$null
-        
+
         if ($result) {
             $npmData = $result | ConvertFrom-Json
             $packages = @()
@@ -72,9 +72,9 @@ function Get-WSLPipPackages {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
             return @()
         }
-        
+
         $result = wsl --exec bash -c "if command -v pip >/dev/null 2>&1; then pip list --format=json 2>/dev/null || echo '[]'; elif command -v pip3 >/dev/null 2>&1; then pip3 list --format=json 2>/dev/null || echo '[]'; else echo '[]'; fi" 2>$null
-        
+
         if ($result) {
             $pipPackages = $result | ConvertFrom-Json
             $packages = @()
@@ -97,7 +97,7 @@ function Get-WSLPipPackages {
 # Main execution
 try {
     $allPackages = @()
-    
+
     switch ($PackageManager.ToLower()) {
         "apt" {
             $allPackages += Get-WSLAptPackages
@@ -120,7 +120,7 @@ try {
             $allPackages += Get-WSLPipPackages
         }
     }
-    
+
     if ($allPackages.Count -eq 0) {
         Write-Output "[]"
     } else {
@@ -129,4 +129,4 @@ try {
 } catch {
     Write-Error "Failed to discover WSL packages: $($_.Exception.Message)"
     Write-Output "[]"
-} 
+}

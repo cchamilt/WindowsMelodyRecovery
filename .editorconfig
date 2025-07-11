@@ -1,0 +1,17 @@
+# EditorConfig helps developers define and maintain consistent
+# coding styles between different editors and IDEs
+# EditorConfig is awesome: https://EditorConfig.org
+
+root = true
+
+# Universal settings (apply to all files)
+[*]
+trim_trailing_whitespace = true
+
+# Settings specific to shell scripts
+[*.sh]
+trim_trailing_whitespace = true
+
+# Settings specific to PowerShell scripts
+[*.ps1]
+trim_trailing_whitespace = true

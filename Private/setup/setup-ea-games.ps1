@@ -27,14 +27,14 @@ function Setup-EAGames {
                 # Download EA app installer
                 $installerUrl = "https://origin-a.akamaihd.net/EA-Desktop-Client-Download/installer-releases/EAappInstaller.exe"
                 $installerPath = Join-Path $env:TEMP "EAappInstaller.exe"
-                
+
                 Write-Host "Downloading EA app installer..." -ForegroundColor Yellow
                 Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
-                
+
                 # Install EA app
                 Write-Host "Installing EA app..." -ForegroundColor Yellow
                 Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
-                
+
                 Remove-Item $installerPath
                 return $true
             }
@@ -48,7 +48,7 @@ function Setup-EAGames {
 
     function Get-InstalledGames {
         $installedGames = @()
-        
+
         # Check EA app installation
         $contentPath = "$env:PROGRAMDATA\Electronic Arts\EA Desktop\Downloaded"
         $manifestPath = "$env:LOCALAPPDATA\Electronic Arts\EA Desktop\Downloaded"
@@ -81,7 +81,7 @@ function Setup-EAGames {
         if (!$GamesListPath) {
             $backupPath = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME "Applications"
             $backupGamesPath = Join-Path $backupPath "ea-applications.json"
-            
+
             if (Test-Path $backupGamesPath) {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.EA) {
@@ -138,7 +138,7 @@ function Setup-EAGames {
                 $gamesToInstall | ForEach-Object {
                     Write-Host "- $($_.Name)" -ForegroundColor Cyan
                 }
-                
+
                 Start-Process "$env:LOCALAPPDATA\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe"
             }
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {

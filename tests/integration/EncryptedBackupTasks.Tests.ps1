@@ -9,24 +9,24 @@ BeforeAll {
     } catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
-    
+
     # Set up test environment
     $script:TestDataPath = Join-Path ([System.IO.Path]::GetTempPath()) "WMR_EncryptedTasks_$(Get-Random)"
     $script:TestBackupDir = Join-Path $script:TestDataPath "BackupTasks"
     $script:TestConfigDir = Join-Path $script:TestDataPath "Config"
     $script:TestPassword = "BackupTask_P@ssw0rd123!"
     $script:TestSecureString = ConvertTo-SecureString -String $script:TestPassword -AsPlainText -Force
-    
+
     # Create test directories
     New-Item -ItemType Directory -Path $script:TestBackupDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:TestConfigDir -Force | Out-Null
-    
+
     # Helper function to validate safe test paths
     function Test-SafeTestPath {
         param($Path)
         return $Path -and $Path.StartsWith($script:TestDataPath)
     }
-    
+
     # Mock scheduled task functions for testing
     Mock Register-ScheduledTask {
         param($TaskName, $TaskPath, $Description, $Action, $Trigger, $Settings, $Principal)
@@ -39,12 +39,12 @@ BeforeAll {
             NextRunTime = (Get-Date).AddDays(1)
         }
     }
-    
+
     Mock Unregister-ScheduledTask {
         param($TaskName, $TaskPath, $Confirm)
         return $true
     }
-    
+
     Mock Get-ScheduledTask {
         param($TaskName, $TaskPath, $ErrorAction)
         if ($ErrorAction -eq 'SilentlyContinue') {
@@ -52,7 +52,7 @@ BeforeAll {
         }
         return $null
     }
-    
+
     Mock New-ScheduledTaskAction {
         param($Execute, $Argument, $WorkingDirectory)
         return @{
@@ -61,7 +61,7 @@ BeforeAll {
             WorkingDirectory = $WorkingDirectory
         }
     }
-    
+
     Mock New-ScheduledTaskTrigger {
         param($Weekly, $DaysOfWeek, $At)
         return @{
@@ -70,10 +70,10 @@ BeforeAll {
             StartBoundary = (Get-Date $At).ToString("yyyy-MM-ddTHH:mm:ss")
         }
     }
-    
+
     Mock New-ScheduledTaskSettingsSet {
-        param($AllowStartIfOnBatteries, $DontStopIfGoingOnBatteries, $StartWhenAvailable, 
-              $RunOnlyIfNetworkAvailable, $WakeToRun, $DontStopOnIdleEnd, 
+        param($AllowStartIfOnBatteries, $DontStopIfGoingOnBatteries, $StartWhenAvailable,
+              $RunOnlyIfNetworkAvailable, $WakeToRun, $DontStopOnIdleEnd,
               $RestartInterval, $RestartCount)
         return @{
             AllowStartIfOnBatteries = $AllowStartIfOnBatteries
@@ -86,7 +86,7 @@ BeforeAll {
             RestartCount = $RestartCount
         }
     }
-    
+
     Mock New-ScheduledTaskPrincipal {
         param($UserId, $LogonType, $RunLevel)
         return @{
@@ -98,13 +98,13 @@ BeforeAll {
 }
 
 Describe 'Encrypted Backup Task Integration Tests' {
-    
+
     Context 'Encrypted Backup Task Configuration' {
         BeforeEach {
             # Clear encryption cache
             Clear-WmrEncryptionCache
         }
-        
+
         It 'Should validate encryption configuration for backup tasks' {
             # Arrange
             $taskConfig = @{
@@ -134,48 +134,48 @@ Describe 'Encrypted Backup Task Integration Tests' {
                     Time = "02:00"
                 }
             }
-            
+
             # Act - Validate configuration
             $encryptedPaths = $taskConfig.BackupPaths | Where-Object { $_.Encrypt -eq $true }
             $unencryptedPaths = $taskConfig.BackupPaths | Where-Object { $_.Encrypt -eq $false }
-            
+
             # Assert
             $taskConfig.EncryptionEnabled | Should -Be $true
             $encryptedPaths | Should -HaveCount 2
             $unencryptedPaths | Should -HaveCount 1
-            
+
             # Verify encrypted paths are appropriate for encryption
             $encryptedPaths[0].Path | Should -Match "(id_rsa|private|key)"
             $encryptedPaths[1].Path | Should -Match "(credential|password|secret)"
         }
-        
+
         It 'Should create backup task with encryption support' {
             # Arrange
             $taskName = "Test_Encrypted_Backup"
             $taskPath = "\Custom Tasks"
             $backupScript = "C:\Test\Backup-WindowsMelodyRecovery.ps1"
-            
+
             # Mock the backup script existence
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq $backupScript }
-            
+
             # Act - Simulate task creation (using mocked functions)
             $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$backupScript`" -EncryptionEnabled" -WorkingDirectory "C:\Test"
             $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek "Sunday" -At "02:00"
             $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RunOnlyIfNetworkAvailable -WakeToRun -DontStopOnIdleEnd -RestartInterval (New-TimeSpan -Minutes 1) -RestartCount 3
             $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType "S4U" -RunLevel "Highest"
-            
+
             $task = Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Description "Test encrypted backup task" -Action $action -Trigger $trigger -Settings $settings -Principal $principal
-            
+
             # Assert
             $task | Should -Not -BeNull
             $task.TaskName | Should -Be $taskName
             $task.TaskPath | Should -Be $taskPath
             $task.State | Should -Be "Ready"
-            
+
             # Verify encryption parameter is included
             $action.Arguments | Should -Match "EncryptionEnabled"
         }
-        
+
         It 'Should handle encryption password configuration for tasks' {
             # Arrange
             $configPath = Join-Path $script:TestConfigDir "task_encryption.json"
@@ -193,12 +193,12 @@ Describe 'Encrypted Backup Task Integration Tests' {
                     "C:\Users\TestUser\Documents\passwords.txt"
                 )
             } | ConvertTo-Json -Depth 3
-            
+
             Set-Content -Path $configPath -Value $encryptionConfig -Encoding UTF8
-            
+
             # Act
             $config = Get-Content -Path $configPath | ConvertFrom-Json
-            
+
             # Assert
             $config.encryption_enabled | Should -Be $true
             $config.password_storage | Should -Be "secure"
@@ -206,7 +206,7 @@ Describe 'Encrypted Backup Task Integration Tests' {
             $config.key_derivation.iterations | Should -Be 100000
             $config.encrypted_paths | Should -HaveCount 3
         }
-        
+
         It 'Should validate encryption requirements for scheduled execution' {
             # Arrange
             $scheduledPaths = @(
@@ -217,13 +217,13 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 @{ Path = "C:\Users\TestUser\Documents\settings.json"; ShouldEncrypt = $false },
                 @{ Path = "C:\ProgramData\SSL\private\server.key"; ShouldEncrypt = $true }
             )
-            
+
             # Act - Analyze each path for encryption requirements
             $analysisResults = @()
             foreach ($pathInfo in $scheduledPaths) {
-                $requiresEncryption = $pathInfo.Path -match "(private|key|credential|password|secret)" -and 
+                $requiresEncryption = $pathInfo.Path -match "(private|key|credential|password|secret)" -and
                                      $pathInfo.Path -notmatch "(\.pub|config|known_hosts|settings)$"
-                
+
                 $analysisResults += @{
                     Path = $pathInfo.Path
                     Expected = $pathInfo.ShouldEncrypt
@@ -231,12 +231,12 @@ Describe 'Encrypted Backup Task Integration Tests' {
                     Match = $pathInfo.ShouldEncrypt -eq $requiresEncryption
                 }
             }
-            
+
             # Assert
             $analysisResults | ForEach-Object { $_.Match | Should -Be $true }
         }
     }
-    
+
     Context 'Backup Task Execution with Encryption' {
         It 'Should execute backup task with encryption parameters' {
             # Arrange
@@ -246,7 +246,7 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 EncryptionEnabled = $true
                 LogPath = Join-Path $script:TestBackupDir "backup.log"
             }
-            
+
             # Mock the template execution
             Mock Invoke-WmrTemplate {
                 param($TemplatePath, $Operation, $StateFilesDirectory, $Passphrase)
@@ -258,41 +258,41 @@ Describe 'Encrypted Backup Task Integration Tests' {
                     EncryptionUsed = $Passphrase -ne $null
                 }
             }
-            
+
             # Act
             $result = Invoke-WmrTemplate -TemplatePath $taskParameters.TemplatePath -Operation "Backup" -StateFilesDirectory $taskParameters.StateFilesDirectory -Passphrase $script:TestSecureString
-            
+
             # Assert
             $result.Success | Should -Be $true
             $result.EncryptionUsed | Should -Be $true
             $result.EncryptedFiles | Should -HaveCount 2
             $result.UnencryptedFiles | Should -HaveCount 2
-            
+
             # Verify template execution was called with encryption
             Should -Invoke Invoke-WmrTemplate -Exactly 1 -ParameterFilter { $Passphrase -ne $null }
         }
-        
+
         It 'Should handle encryption failures during scheduled backup' {
             # Arrange
             Mock Invoke-WmrTemplate {
                 param($TemplatePath, $Operation, $StateFilesDirectory, $Passphrase)
                 throw "Encryption failed: Invalid passphrase"
             }
-            
+
             # Act & Assert
-            { Invoke-WmrTemplate -TemplatePath "ssh.yaml" -Operation "Backup" -StateFilesDirectory $script:TestBackupDir -Passphrase $script:TestSecureString } | 
+            { Invoke-WmrTemplate -TemplatePath "ssh.yaml" -Operation "Backup" -StateFilesDirectory $script:TestBackupDir -Passphrase $script:TestSecureString } |
                 Should -Throw "*Encryption failed*"
         }
-        
+
         It 'Should log encryption operations in backup tasks' {
             # Arrange
             $logPath = Join-Path $script:TestBackupDir "encryption.log"
-            
+
             # Mock logging functions
             Mock Write-Host { }
             Mock Start-Transcript { }
             Mock Stop-Transcript { }
-            
+
             # Act - Simulate encrypted backup with logging
             Start-Transcript -Path $logPath -Append -Force
             try {
@@ -304,13 +304,13 @@ Describe 'Encrypted Backup Task Integration Tests' {
             } finally {
                 Stop-Transcript
             }
-            
+
             # Assert
             Should -Invoke Start-Transcript -Exactly 1
             Should -Invoke Stop-Transcript -Exactly 1
             Should -Invoke Write-Host -Exactly 5
         }
-        
+
         It 'Should handle concurrent encrypted backup tasks safely' {
             # Arrange
             $taskConfigs = @(
@@ -318,7 +318,7 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 @{ Name = "Network_Backup"; Template = "network.yaml"; Priority = 2 },
                 @{ Name = "Browser_Backup"; Template = "browsers.yaml"; Priority = 3 }
             )
-            
+
             # Mock concurrent task execution
             Mock Invoke-WmrTemplate {
                 param($TemplatePath, $Operation, $StateFilesDirectory, $Passphrase)
@@ -330,7 +330,7 @@ Describe 'Encrypted Backup Task Integration Tests' {
                     ExecutionTime = (Get-Date)
                 }
             }
-            
+
             # Act - Execute tasks concurrently
             $jobs = @()
             foreach ($config in $taskConfigs) {
@@ -339,23 +339,23 @@ Describe 'Encrypted Backup Task Integration Tests' {
                     Import-Module (Resolve-Path "$using:PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
                     Invoke-WmrTemplate -TemplatePath $Config.Template -Operation "Backup" -StateFilesDirectory $BackupDir -Passphrase $SecureString
                 } -ArgumentList $config, $script:TestBackupDir, $script:TestSecureString
-                
+
                 $jobs += $job
             }
-            
+
             # Wait for completion
             $results = $jobs | Wait-Job | Receive-Job
             $jobs | Remove-Job
-            
+
             # Assert
             $results | Should -HaveCount 3
-            $results | ForEach-Object { 
+            $results | ForEach-Object {
                 $_.Success | Should -Be $true
                 $_.EncryptionUsed | Should -Be $true
             }
         }
     }
-    
+
     Context 'Backup Task Security and Validation' {
         It 'Should validate backup task security configuration' {
             # Arrange
@@ -366,7 +366,7 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 LogEncryptionOperations = $true
                 ValidateEncryptionIntegrity = $true
             }
-            
+
             # Act - Validate security requirements
             $securityChecks = @()
             $securityChecks += @{ Check = "Admin Privileges"; Required = $securityConfig.RequireAdminPrivileges; Valid = $true }
@@ -374,32 +374,32 @@ Describe 'Encrypted Backup Task Integration Tests' {
             $securityChecks += @{ Check = "Secure Password Storage"; Required = $securityConfig.SecurePasswordStorage; Valid = $true }
             $securityChecks += @{ Check = "Log Encryption Operations"; Required = $securityConfig.LogEncryptionOperations; Valid = $true }
             $securityChecks += @{ Check = "Validate Encryption Integrity"; Required = $securityConfig.ValidateEncryptionIntegrity; Valid = $true }
-            
+
             # Assert
-            $securityChecks | ForEach-Object { 
+            $securityChecks | ForEach-Object {
                 if ($_.Required) {
                     $_.Valid | Should -Be $true
                 }
             }
         }
-        
+
         It 'Should handle backup task encryption key rotation' {
             # Arrange
             $currentKey = Get-WmrEncryptionKey -Passphrase $script:TestSecureString
             $newPassword = "NewRotated_P@ssw0rd456!"
             $newSecureString = ConvertTo-SecureString -String $newPassword -AsPlainText -Force
-            
+
             # Act - Simulate key rotation
             Clear-WmrEncryptionCache
             $newKey = Get-WmrEncryptionKey -Passphrase $newSecureString
-            
+
             # Assert
             $currentKey | Should -Not -BeNull
             $newKey | Should -Not -BeNull
             $newKey.Key | Should -Not -Be $currentKey.Key
             $newKey.Salt | Should -Not -Be $currentKey.Salt
         }
-        
+
         It 'Should validate backup task encryption compliance' {
             # Arrange
             $complianceRequirements = @{
@@ -410,32 +410,32 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 MinimumIterations = 100000
                 RequiredSaltLength = 32
             }
-            
+
             # Act - Get encryption parameters
             $keyInfo = Get-WmrEncryptionKey -Passphrase $script:TestSecureString
-            
+
             # Assert compliance
             $keyInfo.Key.Length | Should -Be ($complianceRequirements.MinimumKeyLength / 8)  # 32 bytes for 256 bits
             $keyInfo.Salt.Length | Should -Be $complianceRequirements.RequiredSaltLength
-            
+
             # Test encryption with compliance parameters
             $testData = "Compliance test data"
             $encrypted = Protect-WmrData -Data $testData -Passphrase $script:TestSecureString
             $decrypted = Unprotect-WmrData -EncodedData $encrypted -Passphrase $script:TestSecureString
-            
+
             $decrypted | Should -Be $testData
         }
-        
+
         It 'Should handle backup task encryption audit logging' {
             # Arrange
             $auditLog = Join-Path $script:TestBackupDir "encryption_audit.log"
-            
+
             # Mock audit logging
             Mock Add-Content {
                 param($Path, $Value)
                 # Simulate audit log entry
             }
-            
+
             # Act - Simulate encryption operations with audit logging
             $auditEntries = @(
                 "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Encryption key generated for backup task",
@@ -444,11 +444,11 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Encryption cache cleared",
                 "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Backup task completed successfully"
             )
-            
+
             foreach ($entry in $auditEntries) {
                 Add-Content -Path $auditLog -Value $entry
             }
-            
+
             # Assert
             Should -Invoke Add-Content -Exactly 5
         }
@@ -461,4 +461,4 @@ AfterAll {
     if ($script:TestDataPath -and (Test-SafeTestPath $script:TestDataPath)) {
         Remove-Item -Path $script:TestDataPath -Recurse -Force -ErrorAction SilentlyContinue
     }
-} 
+}

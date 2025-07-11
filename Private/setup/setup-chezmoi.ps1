@@ -34,7 +34,7 @@ function Setup-Chezmoi {
 
         # Ask user for dotfiles repository
         $gitRepo = Read-Host "Enter your dotfiles git repository URL (or press Enter to create empty repository)"
-        
+
         if ($gitRepo) {
             Write-Host "Setting up chezmoi with repository: $gitRepo" -ForegroundColor Yellow
             try {
@@ -81,4 +81,4 @@ function Setup-Chezmoi {
         Write-Host "Failed to setup chezmoi: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
-} 
+}

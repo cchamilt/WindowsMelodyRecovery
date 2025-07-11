@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory=$false)]
     [switch]$Force,
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$CleanInstall
 )
@@ -122,7 +122,7 @@ foreach ($dir in @("Public", "Private", "Templates", "docs")) {
             Write-Host "Copying $dir directory..." -ForegroundColor Cyan
             $sourceDir = Join-Path (Get-Location) $dir
             $targetDir = Join-Path $modulesPath $dir
-            
+
             # Copy all files in the directory
             Get-ChildItem -Path $sourceDir -File | ForEach-Object {
                 Write-Host "  Copying $($_.Name)..." -ForegroundColor Gray
@@ -132,17 +132,17 @@ foreach ($dir in @("Public", "Private", "Templates", "docs")) {
             Write-Host "Skipping $dir directory (use -Force to overwrite)" -ForegroundColor Yellow
             continue
         }
-        
+
         # Copy subdirectories recursively
         Get-ChildItem -Path $sourceDir -Directory | ForEach-Object {
             $subDirName = $_.Name
             $targetSubDir = Join-Path $targetDir $subDirName
-            
+
             Write-Host "  Copying subdirectory $subDirName..." -ForegroundColor Gray
             if (!(Test-Path $targetSubDir)) {
                 New-Item -ItemType Directory -Path $targetSubDir -Force | Out-Null
             }
-            
+
             # Use robocopy for better file overwriting
             if (Get-Command robocopy -ErrorAction SilentlyContinue) {
                 & robocopy "$($_.FullName)" "$targetSubDir" /E /IS /IT /IM > $null
@@ -180,8 +180,8 @@ try {
     Write-Host "- Initialize: Only handles configuration" -ForegroundColor White
     Write-Host "- Setup: Only handles optional component setup" -ForegroundColor White
     Write-Host "- Private scripts are loaded on-demand only when needed" -ForegroundColor White
-} 
+}
 catch {
     Write-Host "Error: $_" -ForegroundColor Red
     Write-Host "Please check the module manifest for errors." -ForegroundColor Yellow
-} 
+}

@@ -43,11 +43,11 @@ BeforeAll {
 Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
     Context "Script Prerequisite Logic" {
-        
+
         It "Should validate script prerequisites correctly" {
             # Mock successful script execution
             Mock Invoke-Expression { return "Expected Output" }
-            
+
             $scriptPrereq = @{
                 type = "script"
                 name = "Test Script"
@@ -55,16 +55,16 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 expected_output = "Expected Output"
                 on_missing = "warn"
             }
-            
+
             # Test prerequisite validation logic
             $scriptPrereq.type | Should -Be "script"
             $scriptPrereq.on_missing | Should -BeIn @("warn", "fail_backup", "fail_restore")
         }
-        
+
         It "Should handle script execution failure correctly" {
             # Mock failed script execution
             Mock Invoke-Expression { throw "Script execution failed" }
-            
+
             $failingPrereq = @{
                 type = "script"
                 name = "Failing Script"
@@ -72,11 +72,11 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 expected_output = "Success"
                 on_missing = "fail_backup"
             }
-            
+
             # Should handle failure based on on_missing setting
             $failingPrereq.on_missing | Should -Be "fail_backup"
         }
-        
+
         It "Should validate script output matching logic" {
             $testCases = @(
                 @{ output = "Exact Match"; expected = "Exact Match"; shouldMatch = $true }
@@ -84,7 +84,7 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 @{ output = "Version 1.2.3"; expected = "Version \d+\.\d+\.\d+"; shouldMatch = $true }  # Regex
                 @{ output = ""; expected = "Something"; shouldMatch = $false }
             )
-            
+
             foreach ($case in $testCases) {
                 if ($case.shouldMatch) {
                     if ($case.expected -match "\\") {
@@ -100,9 +100,9 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
             }
         }
     }
-    
+
     Context "Registry Prerequisite Logic" {
-        
+
         It "Should validate registry path checking logic" {
             $registryPrereq = @{
                 type = "registry"
@@ -110,25 +110,25 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 path = "HKCU:\Software\Test"
                 on_missing = "warn"
             }
-            
+
             # Test registry prerequisite structure
             $registryPrereq.type | Should -Be "registry"
             $registryPrereq.path | Should -Match "^HK[CLU][MU]:"
         }
-        
+
         It "Should handle different registry hives correctly" {
             $registryHives = @(
                 "HKLM:\Software\Test",
-                "HKCU:\Software\Test", 
+                "HKCU:\Software\Test",
                 "HKCR:\Test",
                 "HKU:\S-1-5-21-123456789\Software\Test"
             )
-            
+
             foreach ($hive in $registryHives) {
                 $hive | Should -Match "^HK(LM|CU|CR|U):"
             }
         }
-        
+
         It "Should validate registry value checking logic" {
             $valuePrereq = @{
                 type = "registry"
@@ -138,15 +138,15 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 expected_value = "ExpectedData"
                 on_missing = "fail_restore"
             }
-            
+
             # Test value prerequisite structure
             $valuePrereq.value_name | Should -Not -BeNullOrEmpty
             $valuePrereq.expected_value | Should -Not -BeNullOrEmpty
         }
     }
-    
+
     Context "Application Prerequisite Logic" {
-        
+
         It "Should validate application checking logic" {
             $appPrereq = @{
                 type = "application"
@@ -155,14 +155,14 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 expected_output = "v\d+\.\d+\.\d+"
                 on_missing = "warn"
             }
-            
+
             # Mock successful application check
             Mock Invoke-Expression { return "v1.2.3" } -ParameterFilter { $Command -eq "test-app --version" }
-            
+
             $appPrereq.type | Should -Be "application"
             $appPrereq.check_command | Should -Not -BeNullOrEmpty
         }
-        
+
         It "Should handle missing applications correctly" {
             $missingAppPrereq = @{
                 type = "application"
@@ -171,16 +171,16 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 expected_output = "v\d+\.\d+\.\d+"
                 on_missing = "fail_backup"
             }
-            
+
             # Mock application not found
             Mock Invoke-Expression { throw "Command not found" } -ParameterFilter { $Command -eq "missing-app --version" }
-            
+
             $missingAppPrereq.on_missing | Should -Be "fail_backup"
         }
     }
-    
+
     Context "Prerequisite Validation Logic" {
-        
+
         It "Should validate prerequisite structure correctly" {
             $validPrereq = @{
                 type = "script"
@@ -189,58 +189,58 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 expected_output = "test"
                 on_missing = "warn"
             }
-            
+
             # Validate required fields
             $validPrereq.type | Should -Not -BeNullOrEmpty
             $validPrereq.name | Should -Not -BeNullOrEmpty
             $validPrereq.on_missing | Should -BeIn @("warn", "fail_backup", "fail_restore")
         }
-        
+
         It "Should handle invalid prerequisite types" {
             $invalidTypes = @("unknown", "invalid", "", $null)
             $validTypes = @("script", "registry", "application", "file", "directory")
-            
+
             foreach ($type in $invalidTypes) {
                 $type | Should -Not -BeIn $validTypes
             }
-            
+
             foreach ($type in $validTypes) {
                 $type | Should -BeIn $validTypes
             }
         }
-        
+
         It "Should validate on_missing values" {
             $validActions = @("warn", "fail_backup", "fail_restore")
             $invalidActions = @("ignore", "skip", "error", "", $null)
-            
+
             foreach ($action in $validActions) {
                 $action | Should -BeIn $validActions
             }
-            
+
             foreach ($action in $invalidActions) {
                 $action | Should -Not -BeIn $validActions
             }
         }
     }
-    
+
     Context "Error Handling Logic" {
-        
+
         It "Should handle null or empty prerequisites gracefully" {
             $nullPrereq = $null
             $emptyPrereq = @{}
-            
+
             # Should handle gracefully without throwing
             $nullPrereq | Should -BeNull
             $emptyPrereq.Count | Should -Be 0
         }
-        
+
         It "Should handle malformed prerequisite structures" {
             $malformedPrereqs = @(
                 @{ name = "Missing Type" },  # Missing type
                 @{ type = "script" },        # Missing name
                 @{ type = "script"; name = "Missing Script"; on_missing = "warn" }  # Missing script content
             )
-            
+
             foreach ($prereq in $malformedPrereqs) {
                 # Each should be missing required fields
                 if (-not $prereq.type) { $prereq.type | Should -BeNullOrEmpty }
@@ -248,22 +248,22 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
             }
         }
     }
-    
+
     Context "Prerequisite Execution Flow Logic" {
-        
+
         It "Should determine execution order correctly" {
             $prerequisites = @(
                 @{ type = "registry"; name = "Registry Check"; priority = 1 },
                 @{ type = "application"; name = "App Check"; priority = 2 },
                 @{ type = "script"; name = "Script Check"; priority = 3 }
             )
-            
+
             # Sort by priority (if implemented)
             $sortedPrereqs = $prerequisites | Sort-Object priority
             $sortedPrereqs[0].name | Should -Be "Registry Check"
             $sortedPrereqs[2].name | Should -Be "Script Check"
         }
-        
+
         It "Should handle prerequisite dependencies correctly" {
             $dependentPrereq = @{
                 type = "script"
@@ -273,15 +273,15 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 depends_on = @("Registry Check")
                 on_missing = "warn"
             }
-            
+
             # Test dependency structure
             $dependentPrereq.depends_on | Should -Contain "Registry Check"
             $dependentPrereq.depends_on.Count | Should -Be 1
         }
     }
-    
+
     Context "Output Validation Logic" {
-        
+
         It "Should validate different output formats correctly" {
             $outputTests = @(
                 @{ type = "exact"; pattern = "Success"; input = "Success"; expected = $true },
@@ -291,24 +291,24 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                 @{ type = "contains"; pattern = "OK"; input = "Status: OK"; expected = $true },
                 @{ type = "contains"; pattern = "OK"; input = "Status: ERROR"; expected = $false }
             )
-            
+
             foreach ($test in $outputTests) {
                 switch ($test.type) {
-                    "exact" { 
+                    "exact" {
                         if ($test.expected) {
                             $test.input | Should -Be $test.pattern
                         } else {
                             $test.input | Should -Not -Be $test.pattern
                         }
                     }
-                    "regex" { 
+                    "regex" {
                         if ($test.expected) {
                             $test.input | Should -Match $test.pattern
                         } else {
                             $test.input | Should -Not -Match $test.pattern
                         }
                     }
-                    "contains" { 
+                    "contains" {
                         if ($test.expected) {
                             $test.input | Should -Match $test.pattern
                         } else {
@@ -319,4 +319,4 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
             }
         }
     }
-} 
+}

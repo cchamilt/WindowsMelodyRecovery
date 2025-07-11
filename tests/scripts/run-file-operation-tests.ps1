@@ -8,7 +8,7 @@
     Runs tests that perform actual file operations in safe test directories.
     These tests operate ONLY in test-restore, test-backup, and Temp directories.
     Uses unified environment setup that works for both Docker and local Windows.
-    
+
     CI/CD Detection:
     - Local Windows: Safe operations only (no destructive registry/system changes)
     - CI/CD Windows: All operations including destructive tests
@@ -109,8 +109,8 @@ Write-Host ""
 
 # Get all available file operation tests
 $fileOperationsPath = Join-Path $PSScriptRoot "..\file-operations"
-$availableTests = Get-ChildItem -Path $fileOperationsPath -Filter "*.Tests.ps1" | ForEach-Object { 
-    $_.BaseName -replace '\.Tests$', '' 
+$availableTests = Get-ChildItem -Path $fileOperationsPath -Filter "*.Tests.ps1" | ForEach-Object {
+    $_.BaseName -replace '\.Tests$', ''
 }
 
 Write-Host "📋 Available file operation tests: $($availableTests.Count)" -ForegroundColor Gray
@@ -150,7 +150,7 @@ foreach ($dir in $safeDirs) {
     )
     # Docker-specific safety check for workspace paths
     $isDockerWorkspacePath = $script:IsDockerEnvironment -and $dir.StartsWith('/workspace/') -and $dir.Contains("Temp")
-    
+
     # CRITICAL: Check for dangerous C:\ root paths
     if ($dir.StartsWith("C:\") -and -not ($dir.StartsWith($projectRoot))) {
         Write-Error "🚨 SAFETY VIOLATION: Directory '$dir' attempts to write to C:\ root!"
@@ -159,7 +159,7 @@ foreach ($dir in $safeDirs) {
         Write-Error "🚨 All test operations must be within project temp directories or user temp in CI/CD!"
         return
     }
-    
+
     if (-not ($isProjectPath -or $isUserTempPath -or $isDockerWorkspacePath)) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' is not within safe test paths!"
         Write-Error "  • Project root: '$projectRoot'"
@@ -167,7 +167,7 @@ foreach ($dir in $safeDirs) {
         Write-Error "  • Docker workspace: $($script:IsDockerEnvironment)"
         return
     }
-    
+
     if (-not (Test-Path $dir)) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' does not exist after initialization!"
         return
@@ -191,29 +191,29 @@ $totalTime = 0
 
 foreach ($test in $testsToRun) {
     $testFile = Join-Path $fileOperationsPath "$test.Tests.ps1"
-    
+
     if (-not (Test-Path $testFile)) {
         Write-Warning "Test file not found: $testFile"
         continue
     }
-    
+
     Write-Host "🔍 Running $test file operation tests..." -ForegroundColor Cyan
-    
+
     try {
         $startTime = Get-Date
-        
+
         # Configure Pester for better output with proper reporting
         $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $testResultsDir = Join-Path $projectRoot "test-results"
         $coverageDir = Join-Path $testResultsDir "coverage"
-        
+
         # Ensure test result directories exist
         @($testResultsDir, $coverageDir) | ForEach-Object {
             if (-not (Test-Path $_)) {
                 New-Item -Path $_ -ItemType Directory -Force | Out-Null
             }
         }
-        
+
         $pesterConfig = @{
             Run = @{
                 Path = $testFile
@@ -239,16 +239,16 @@ foreach ($test in $testsToRun) {
                 CoveragePercentTarget = 80
             }
         }
-        
+
         $result = Invoke-Pester -Configuration $pesterConfig
         $endTime = Get-Date
         $testTime = ($endTime - $startTime).TotalSeconds
-        
+
         $totalPassed += $result.PassedCount
         $totalFailed += $result.FailedCount
         $totalSkipped += $result.SkippedCount
         $totalTime += $testTime
-        
+
         if ($result.FailedCount -eq 0) {
             $statusMsg = "✅ $test tests passed ($($result.PassedCount) passed"
             if ($result.SkippedCount -gt 0) {
@@ -258,7 +258,7 @@ foreach ($test in $testsToRun) {
             Write-Host $statusMsg -ForegroundColor Green
         } else {
             Write-Host "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)" -ForegroundColor Red
-            
+
             # Show failed test details
             if ($result.Failed.Count -gt 0) {
                 Write-Host "   Failed tests:" -ForegroundColor Red
@@ -271,7 +271,7 @@ foreach ($test in $testsToRun) {
         Write-Host "💥 $test tests crashed: $_" -ForegroundColor Red
         $totalFailed++
     }
-    
+
     Write-Host ""
 }
 
@@ -306,4 +306,4 @@ if ($totalFailed -eq 0) {
     Write-Host ""
     Write-Host "⚠️  Some file operation tests failed. Check the output above for details." -ForegroundColor Yellow
     exit 1
-} 
+}

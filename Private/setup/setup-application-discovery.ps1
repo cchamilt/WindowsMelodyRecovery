@@ -28,7 +28,7 @@
 
 .EXAMPLE
     Setup-ApplicationDiscovery -DiscoveryMode Full -CreateUserLists
-    
+
 .EXAMPLE
     Setup-ApplicationDiscovery -DocumentInstallation -OutputFormat CSV
 
@@ -42,17 +42,17 @@ param(
     [Parameter(Mandatory=$false)]
     [ValidateSet('Full', 'Quick', 'Manual')]
     [string]$DiscoveryMode = 'Quick',
-    
+
     [Parameter(Mandatory=$false)]
     [ValidateSet('JSON', 'CSV', 'YAML')]
     [string]$OutputFormat = 'JSON',
-    
+
     [Parameter(Mandatory=$false)]
     [string]$UserListPath = $null,
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$CreateUserLists,
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$DocumentInstallation
 )
@@ -83,32 +83,32 @@ function Setup-ApplicationDiscovery {
         [Parameter(Mandatory=$false)]
         [ValidateSet('Full', 'Quick', 'Manual')]
         [string]$DiscoveryMode = 'Quick',
-        
+
         [Parameter(Mandatory=$false)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$OutputFormat = 'JSON',
-        
+
         [Parameter(Mandatory=$false)]
         [string]$UserListPath = $null,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$CreateUserLists,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$DocumentInstallation
     )
-    
+
     begin {
         Write-Host "Setting up Application Discovery and Management..." -ForegroundColor Blue
-        
+
         # Check if running as administrator for full discovery
         $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-        
+
         if ($DiscoveryMode -eq 'Full' -and -not $isAdmin) {
             Write-Warning "Full discovery mode requires administrator privileges. Switching to Quick mode."
             $DiscoveryMode = 'Quick'
         }
-        
+
         # Get module configuration
         try {
             $config = Get-WindowsMelodyRecovery
@@ -122,59 +122,59 @@ function Setup-ApplicationDiscovery {
             $backupRoot = "$env:USERPROFILE\WindowsMelodyRecovery"
             $machineName = $env:COMPUTERNAME
         }
-        
+
         # Set up output paths
         $outputPath = Join-Path $backupRoot $machineName "ApplicationDiscovery"
         if (-not (Test-Path $outputPath)) {
             New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
         }
-        
+
         if (-not $UserListPath) {
             $UserListPath = Join-Path $outputPath "user-editable-apps.$($OutputFormat.ToLower())"
         }
     }
-    
+
     process {
         try {
             # Step 1: Discover unmanaged applications
             Write-Host "Step 1: Discovering unmanaged applications..." -ForegroundColor Cyan
             $unmanagedApps = Invoke-UnmanagedApplicationDiscovery -Mode $DiscoveryMode
-            
+
             if ($unmanagedApps) {
                 Write-Host "Found $($unmanagedApps.Count) unmanaged applications" -ForegroundColor Green
-                
+
                 # Save unmanaged applications list
                 $unmanagedPath = Join-Path $outputPath "unmanaged-applications.$($OutputFormat.ToLower())"
                 Save-ApplicationList -Applications $unmanagedApps -Path $unmanagedPath -Format $OutputFormat
             } else {
                 Write-Host "No unmanaged applications found or discovery was skipped" -ForegroundColor Yellow
             }
-            
+
             # Step 2: Document installation methods
             if ($DocumentInstallation) {
                 Write-Host "Step 2: Documenting installation methods..." -ForegroundColor Cyan
                 $installationDocs = New-InstallationDocumentation -Applications $unmanagedApps
-                
+
                 if ($installationDocs) {
                     $docsPath = Join-Path $outputPath "installation-documentation.$($OutputFormat.ToLower())"
                     Save-InstallationDocumentation -Documentation $installationDocs -Path $docsPath -Format $OutputFormat
                     Write-Host "Installation documentation saved to: $docsPath" -ForegroundColor Green
                 }
             }
-            
+
             # Step 3: Create user-editable lists
             if ($CreateUserLists) {
                 Write-Host "Step 3: Creating user-editable application lists..." -ForegroundColor Cyan
                 New-UserEditableApplicationLists -OutputPath $outputPath -Format $OutputFormat
             }
-            
+
             # Step 4: Configure decision workflows
             Write-Host "Step 4: Configuring application management workflows..." -ForegroundColor Cyan
             Initialize-ApplicationDecisionWorkflows -OutputPath $outputPath
-            
+
             Write-Host "Application discovery and management setup completed successfully!" -ForegroundColor Green
             return $true
-            
+
         } catch {
             Write-Error "Failed to setup application discovery: $_"
             return $false
@@ -189,12 +189,12 @@ function Invoke-UnmanagedApplicationDiscovery {
         [ValidateSet('Full', 'Quick', 'Manual')]
         [string]$Mode
     )
-    
+
     if ($WhatIfPreference) {
         Write-Host "WhatIf: Would discover unmanaged applications in $Mode mode" -ForegroundColor Yellow
         return @()
     }
-    
+
     try {
         # Use existing analyze-unmanaged.ps1 script
         $analyzeScript = Join-Path $PSScriptRoot "..\backup\analyze-unmanaged.ps1"
@@ -217,20 +217,20 @@ function Save-ApplicationList {
     param(
         [Parameter(Mandatory=$true)]
         [array]$Applications,
-        
+
         [Parameter(Mandatory=$true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory=$true)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$Format
     )
-    
+
     if ($WhatIfPreference) {
         Write-Host "WhatIf: Would save $($Applications.Count) applications to $Path in $Format format" -ForegroundColor Yellow
         return
     }
-    
+
     try {
         switch ($Format) {
             'JSON' {
@@ -265,14 +265,14 @@ function New-InstallationDocumentation {
         [Parameter(Mandatory=$true)]
         [array]$Applications
     )
-    
+
     if ($WhatIfPreference) {
         Write-Host "WhatIf: Would create installation documentation for $($Applications.Count) applications" -ForegroundColor Yellow
         return @()
     }
-    
+
     $documentation = @()
-    
+
     foreach ($app in $Applications) {
         $doc = @{
             Name = $app.Name
@@ -283,28 +283,28 @@ function New-InstallationDocumentation {
             InstallationNotes = ""
             ManualSteps = @()
         }
-        
+
         # Determine likely installation methods based on publisher and name
         if ($app.Publisher -match "Microsoft") {
             $doc.InstallationMethods += "Windows Store"
             $doc.InstallationMethods += "Microsoft Store"
             $doc.DownloadSources += "https://www.microsoft.com"
         }
-        
+
         # Check for common package managers
         $doc.InstallationMethods += "Manual Download"
         $doc.DownloadSources += "Publisher Website"
-        
+
         # Add common installation notes
         $doc.InstallationNotes = "Check publisher website for latest version and installation instructions"
         $doc.ManualSteps += "1. Download installer from publisher website"
         $doc.ManualSteps += "2. Run installer with appropriate permissions"
         $doc.ManualSteps += "3. Follow installation wizard"
         $doc.ManualSteps += "4. Verify installation completed successfully"
-        
+
         $documentation += $doc
     }
-    
+
     return $documentation
 }
 
@@ -313,20 +313,20 @@ function Save-InstallationDocumentation {
     param(
         [Parameter(Mandatory=$true)]
         [array]$Documentation,
-        
+
         [Parameter(Mandatory=$true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory=$true)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$Format
     )
-    
+
     if ($WhatIfPreference) {
         Write-Host "WhatIf: Would save installation documentation to $Path in $Format format" -ForegroundColor Yellow
         return
     }
-    
+
     try {
         switch ($Format) {
             'JSON' {
@@ -383,17 +383,17 @@ function New-UserEditableApplicationLists {
     param(
         [Parameter(Mandatory=$true)]
         [string]$OutputPath,
-        
+
         [Parameter(Mandatory=$true)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$Format
     )
-    
+
     if ($WhatIfPreference) {
         Write-Host "WhatIf: Would create user-editable application lists in $OutputPath" -ForegroundColor Yellow
         return
     }
-    
+
     try {
         # Create template for user-editable applications list
         $userAppsTemplate = @{
@@ -426,7 +426,7 @@ function New-UserEditableApplicationLists {
                 }
             }
         }
-        
+
         # Create template for user-editable games list
         $userGamesTemplate = @{
             metadata = @{
@@ -458,14 +458,14 @@ function New-UserEditableApplicationLists {
                 }
             }
         }
-        
+
         # Save templates
         $appsPath = Join-Path $OutputPath "user-editable-apps.$($Format.ToLower())"
         $gamesPath = Join-Path $OutputPath "user-editable-games.$($Format.ToLower())"
-        
+
         Save-ApplicationList -Applications @($userAppsTemplate) -Path $appsPath -Format $Format
         Save-ApplicationList -Applications @($userGamesTemplate) -Path $gamesPath -Format $Format
-        
+
         # Create instructions file
         $instructionsPath = Join-Path $OutputPath "user-lists-instructions.txt"
         $instructions = @"
@@ -505,14 +505,14 @@ Tips:
 - Test installations in a safe environment first
 - Back up your customized lists regularly
 "@
-        
+
         $instructions | Out-File -FilePath $instructionsPath -Encoding UTF8
-        
+
         Write-Host "User-editable lists created:" -ForegroundColor Green
         Write-Host "  Applications: $appsPath" -ForegroundColor Gray
         Write-Host "  Games: $gamesPath" -ForegroundColor Gray
         Write-Host "  Instructions: $instructionsPath" -ForegroundColor Gray
-        
+
     } catch {
         Write-Warning "Failed to create user-editable lists: $_"
     }
@@ -524,12 +524,12 @@ function Initialize-ApplicationDecisionWorkflows {
         [Parameter(Mandatory=$true)]
         [string]$OutputPath
     )
-    
+
     if ($WhatIfPreference) {
         Write-Host "WhatIf: Would initialize application decision workflows in $OutputPath" -ForegroundColor Yellow
         return
     }
-    
+
     try {
         # Create decision workflow configuration
         $workflowConfig = @{
@@ -588,13 +588,13 @@ function Initialize-ApplicationDecisionWorkflows {
                 }
             }
         }
-        
+
         # Save workflow configuration
         $workflowPath = Join-Path $OutputPath "application-decision-workflows.json"
         $workflowConfig | ConvertTo-Json -Depth 10 | Out-File -FilePath $workflowPath -Encoding UTF8
-        
+
         Write-Host "Application decision workflows initialized: $workflowPath" -ForegroundColor Green
-        
+
     } catch {
         Write-Warning "Failed to initialize application decision workflows: $_"
     }
@@ -606,13 +606,13 @@ function Test-ApplicationDiscoveryStatus {
         [Parameter(Mandatory=$false)]
         [string]$OutputPath = $null
     )
-    
+
     try {
         if (-not $OutputPath) {
             $config = Get-WindowsMelodyRecovery
             $OutputPath = Join-Path $config.BackupRoot $config.MachineName "ApplicationDiscovery"
         }
-        
+
         $status = @{
             ApplicationDiscoveryConfigured = $false
             UnmanagedAppsDiscovered = $false
@@ -621,30 +621,30 @@ function Test-ApplicationDiscoveryStatus {
             WorkflowsInitialized = $false
             OutputPath = $OutputPath
         }
-        
+
         if (Test-Path $OutputPath) {
             $status.ApplicationDiscoveryConfigured = $true
-            
+
             # Check for unmanaged apps
             $unmanagedFiles = Get-ChildItem -Path $OutputPath -Filter "unmanaged-applications.*" -ErrorAction SilentlyContinue
             $status.UnmanagedAppsDiscovered = $unmanagedFiles.Count -gt 0
-            
+
             # Check for installation documentation
             $docsFiles = Get-ChildItem -Path $OutputPath -Filter "installation-documentation.*" -ErrorAction SilentlyContinue
             $status.InstallationDocumented = $docsFiles.Count -gt 0
-            
+
             # Check for user lists
             $userAppsFiles = Get-ChildItem -Path $OutputPath -Filter "user-editable-apps.*" -ErrorAction SilentlyContinue
             $userGamesFiles = Get-ChildItem -Path $OutputPath -Filter "user-editable-games.*" -ErrorAction SilentlyContinue
             $status.UserListsCreated = ($userAppsFiles.Count -gt 0) -and ($userGamesFiles.Count -gt 0)
-            
+
             # Check for workflows
             $workflowFile = Join-Path $OutputPath "application-decision-workflows.json"
             $status.WorkflowsInitialized = Test-Path $workflowFile
         }
-        
+
         return $status
-        
+
     } catch {
         Write-Warning "Failed to check application discovery status: $_"
         return @{
@@ -662,4 +662,4 @@ function Test-ApplicationDiscoveryStatus {
 # Main execution
 if ($MyInvocation.InvocationName -ne '.') {
     Setup-ApplicationDiscovery -DiscoveryMode $DiscoveryMode -OutputFormat $OutputFormat -UserListPath $UserListPath -CreateUserLists:$CreateUserLists -DocumentInstallation:$DocumentInstallation
-} 
+}

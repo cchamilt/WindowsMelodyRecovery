@@ -56,19 +56,19 @@ if ($runInDocker) {
     Write-Host "🐳 Running end-to-end tests in Docker environment..." -ForegroundColor Cyan
     Write-Host "   Windows-only tests will be skipped automatically" -ForegroundColor Yellow
     Write-Host "   Timeout: $Timeout minutes" -ForegroundColor Gray
-    
+
     # Use Docker-based execution
     $dockerUtilsPath = Join-Path $PSScriptRoot ".." "utilities" "Docker-Management.ps1"
     if (Test-Path $dockerUtilsPath) {
         . $dockerUtilsPath
-        
+
         # Initialize Docker environment
         $startResult = Initialize-DockerEnvironment
         if (-not $startResult) {
             Write-Host "✗ Failed to initialize Docker environment" -ForegroundColor Red
             exit 1
         }
-        
+
         # Build test command with timeout
         $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && "
         if ($TestName) {
@@ -77,19 +77,19 @@ if ($runInDocker) {
             $testCommand += "Invoke-Pester -Path './tests/end-to-end/'"
         }
         $testCommand += " -OutputFormat $OutputFormat"
-        
+
         # Execute tests in Docker with timeout
         Write-Host "Executing end-to-end tests..." -ForegroundColor Cyan
         $timeoutSeconds = $Timeout * 60
-        
+
         # Use PowerShell job for timeout control
         $job = Start-Job -ScriptBlock {
             param($Command)
             docker exec wmr-test-runner pwsh -Command $Command
         } -ArgumentList $testCommand
-        
+
         $completed = Wait-Job -Job $job -Timeout $timeoutSeconds
-        
+
         if ($completed) {
             $result = Receive-Job -Job $job
             $exitCode = $job.State -eq 'Completed' ? 0 : 1
@@ -99,13 +99,13 @@ if ($runInDocker) {
             Stop-Job -Job $job
             $exitCode = 1
         }
-        
+
         Remove-Job -Job $job -Force
-        
+
         if (-not $SkipCleanup) {
             Stop-DockerEnvironment
         }
-        
+
         exit $exitCode
     } else {
         Write-Host "✗ Docker management utilities not found" -ForegroundColor Red
@@ -115,7 +115,7 @@ if ($runInDocker) {
     Write-Host "🪟 Running end-to-end tests in native Windows environment..." -ForegroundColor Cyan
     Write-Host "   All tests including Windows-only will be executed" -ForegroundColor Yellow
     Write-Host "   Timeout: $Timeout minutes" -ForegroundColor Gray
-    
+
     # Use native Windows execution
     try {
         # Import test environment
@@ -126,18 +126,18 @@ if ($runInDocker) {
             Write-Host "✗ Test environment not found at: $testEnvPath" -ForegroundColor Red
             exit 1
         }
-        
+
         # Initialize test environment
         Initialize-TestEnvironment
-        
+
         # Import the module
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
         Import-Module $modulePath -Force
-        
+
         # Run tests with timeout
         Write-Host "Executing end-to-end tests..." -ForegroundColor Cyan
-        
+
         $pesterConfig = @{
             Run = @{
                 Path = if ($TestName) {
@@ -150,27 +150,27 @@ if ($runInDocker) {
                 Verbosity = $OutputFormat
             }
         }
-        
+
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
                 Enabled = $true
                 OutputPath = Join-Path $moduleRoot "test-results" "end-to-end-test-results.xml"
             }
         }
-        
+
         # Execute with timeout using PowerShell job
         $job = Start-Job -ScriptBlock {
             param($Config)
             Invoke-Pester -Configuration $Config
         } -ArgumentList $pesterConfig
-        
+
         $timeoutSeconds = $Timeout * 60
         $completed = Wait-Job -Job $job -Timeout $timeoutSeconds
-        
+
         if ($completed) {
             $result = Receive-Job -Job $job
             $exitCode = $result.FailedCount -gt 0 ? 1 : 0
-            
+
             # Report results
             Write-Host "" -ForegroundColor White
             Write-Host "=== End-to-End Test Results ===" -ForegroundColor Cyan
@@ -178,7 +178,7 @@ if ($runInDocker) {
             Write-Host "Tests Failed: $($result.FailedCount)" -ForegroundColor Red
             Write-Host "Tests Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
             Write-Host "Total Tests: $($result.TotalCount)" -ForegroundColor White
-            
+
             if ($result.FailedCount -gt 0) {
                 Write-Host "✗ Some end-to-end tests failed" -ForegroundColor Red
             } else {
@@ -189,16 +189,16 @@ if ($runInDocker) {
             Stop-Job -Job $job
             $exitCode = 1
         }
-        
+
         Remove-Job -Job $job -Force
-        
+
         # Cleanup
         if (-not $SkipCleanup) {
             Remove-TestEnvironment
         }
-        
+
         exit $exitCode
-        
+
     } catch {
         Write-Host "✗ Error running end-to-end tests: $($_.Exception.Message)" -ForegroundColor Red
         exit 1
@@ -206,4 +206,4 @@ if ($runInDocker) {
 }
 
 # Model: claude-3-5-sonnet-20241022
-# Confidence: 85% 
+# Confidence: 85%

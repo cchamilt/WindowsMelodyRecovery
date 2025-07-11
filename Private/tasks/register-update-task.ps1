@@ -59,7 +59,7 @@ try {
         -RunLevel Highest
 
     # Remove existing task if it exists
-    Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue | 
+    Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue |
         Unregister-ScheduledTask -Confirm:$false
 
     # Register the new task
@@ -101,4 +101,4 @@ if ($response -eq "Y" -or $response -eq "y") {
     } catch {
         Write-Host "Failed to run system update: $_" -ForegroundColor Red
     }
-} 
+}

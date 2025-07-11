@@ -18,14 +18,14 @@ BeforeAll {
     if (Test-Path "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1") {
         . "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1"
     }
-    
+
     # Import the main module to ensure Template functions are available
     Import-Module "$PSScriptRoot/../../WindowsMelodyRecovery.psd1" -Force
-    
+
     # Set up environment-aware test paths
-    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or 
+    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
                           (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
-    
+
     if ($isDockerEnvironment) {
         $script:TempTemplateDir = "/workspace/Temp"
     } else {
@@ -33,14 +33,14 @@ BeforeAll {
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $script:TempTemplateDir = Join-Path $moduleRoot "Temp"
     }
-    
+
     $script:TempTemplatePath = Join-Path $script:TempTemplateDir "test_template.yaml"
-    
+
     # Ensure temp directory exists
     if (-not (Test-Path $script:TempTemplateDir)) {
         New-Item -Path $script:TempTemplateDir -ItemType Directory -Force | Out-Null
     }
-    
+
     # Create a basic test template file
     $basicTemplateContent = @"
 metadata:
@@ -58,7 +58,7 @@ prerequisites:
 }
 
 Describe "TemplateModule File Operations" -Tag "FileOperations", "Safe" {
-    
+
     AfterAll {
         # Clean up the dummy template file
         Remove-Item -Path $script:TempTemplatePath -Force -ErrorAction SilentlyContinue
@@ -91,7 +91,7 @@ metadata:
     - item2
   unclosed_array: true
 "@ | Set-Content -Path $invalidYamlPath -Encoding Utf8
-            
+
             try {
                 { Read-WmrTemplateConfig -TemplatePath $invalidYamlPath } | Should -Throw
             } finally {
@@ -126,7 +126,7 @@ prerequisites: []
             # Create a nested template structure
             $nestedDir = Join-Path $script:TempTemplateDir "system"
             $nestedTemplatePath = Join-Path $nestedDir "nested_template.yaml"
-            
+
             if (-not (Test-Path $nestedDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $nestedDir -Force | Out-Null
             }
@@ -157,7 +157,7 @@ prerequisites: []
 
         It "should validate file extensions" {
             $validExtensions = @(".yaml", ".yml")
-            
+
             foreach ($ext in $validExtensions) {
                 $testPath = Join-Path $script:TempTemplateDir "test_extension$ext"
                 # Copy content from the main template file
@@ -241,7 +241,7 @@ prerequisites: []
         It "should handle template file backup operations" {
             $backupDir = Join-Path $script:TempTemplateDir "template_backups"
             $backupTemplatePath = Join-Path $backupDir "test_template_backup.yaml"
-            
+
             if (-not (Test-Path $backupDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
             }
@@ -261,7 +261,7 @@ prerequisites: []
         It "should handle template versioning correctly" {
             $versionDir = Join-Path $script:TempTemplateDir "versioned_templates"
             $versionedTemplatePath = Join-Path $versionDir "template_v1.0.yaml"
-            
+
             if (-not (Test-Path $versionDir -PathType Container)) {
                 New-Item -ItemType Directory -Path $versionDir -Force | Out-Null
             }
@@ -290,10 +290,10 @@ prerequisites: []
 
         It "should handle file permission errors gracefully" {
             $readOnlyPath = Join-Path $script:TempTemplateDir "readonly_template.yaml"
-            
+
             # Create template file first
             Get-Content $script:TempTemplatePath | Set-Content -Path $readOnlyPath -Encoding Utf8
-            
+
             try {
                 # On Linux/Docker, we can't easily set read-only, so just test normal access
                 { Read-WmrTemplateConfig -TemplatePath $readOnlyPath } | Should -Not -Throw
@@ -304,7 +304,7 @@ prerequisites: []
 
         It "should handle corrupted template files gracefully" {
             $corruptedPath = Join-Path $script:TempTemplateDir "corrupted_template.yaml"
-            
+
             # Create a corrupted YAML file
             "corrupted: [unclosed array" | Set-Content -Path $corruptedPath -Encoding Utf8
 
@@ -317,7 +317,7 @@ prerequisites: []
 
         It "should handle very large template files" {
             $largeTemplatePath = Join-Path $script:TempTemplateDir "large_template.yaml"
-            
+
             # Create a large template file
             $largeContent = @"
 metadata:
@@ -337,7 +337,7 @@ prerequisites:
     on_missing: warn
 "@
             }
-            
+
             $largeContent | Set-Content -Path $largeTemplatePath -Encoding Utf8
 
             try {
@@ -349,4 +349,4 @@ prerequisites:
             }
         }
     }
-} 
+}

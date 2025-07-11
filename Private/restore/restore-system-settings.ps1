@@ -4,8 +4,8 @@ function Restore-SystemSettings {
     Restores system settings from backup data.
 
     .DESCRIPTION
-    This function restores various system settings including registry values, 
-    user preferences, and system configurations from backup data created by 
+    This function restores various system settings including registry values,
+    user preferences, and system configurations from backup data created by
     the Windows Melody Recovery backup operations.
 
     .PARAMETER BackupPath
@@ -45,10 +45,10 @@ function Restore-SystemSettings {
     }
 
     # Check for restore manifest
-    $manifestPath = if ($RestoreManifest) { 
-        $RestoreManifest 
-    } else { 
-        Join-Path $BackupPath "backup-manifest.json" 
+    $manifestPath = if ($RestoreManifest) {
+        $RestoreManifest
+    } else {
+        Join-Path $BackupPath "backup-manifest.json"
     }
 
     $manifest = $null
@@ -65,7 +65,7 @@ function Restore-SystemSettings {
     $registryPath = Join-Path $BackupPath "registry"
     if (Test-Path $registryPath) {
         Write-Host "Restoring registry settings..." -ForegroundColor Yellow
-        
+
         Get-ChildItem $registryPath -Filter "*.reg" | ForEach-Object {
             if ($WhatIf) {
                 Write-Host "  WhatIf: Would import registry file: $($_.Name)" -ForegroundColor Yellow
@@ -89,7 +89,7 @@ function Restore-SystemSettings {
     $preferencesPath = Join-Path $BackupPath "preferences"
     if (Test-Path $preferencesPath) {
         Write-Host "Restoring user preferences..." -ForegroundColor Yellow
-        
+
         Get-ChildItem $preferencesPath -Filter "*.json" | ForEach-Object {
             if ($WhatIf) {
                 Write-Host "  WhatIf: Would restore preferences from: $($_.Name)" -ForegroundColor Yellow
@@ -98,7 +98,7 @@ function Restore-SystemSettings {
                     Write-Host "  Restoring preferences from: $($_.Name)" -ForegroundColor Cyan
                     $preferences = Get-Content $_.FullName | ConvertFrom-Json
                     Write-Host "    Loaded $($preferences.PSObject.Properties.Count) preference settings" -ForegroundColor Green
-                    
+
                     # In a real implementation, this would apply the preferences
                     # For testing, we'll just validate the structure
                     foreach ($prop in $preferences.PSObject.Properties) {
@@ -115,7 +115,7 @@ function Restore-SystemSettings {
     $configPath = Join-Path $BackupPath "config"
     if (Test-Path $configPath) {
         Write-Host "Restoring system configuration..." -ForegroundColor Yellow
-        
+
         Get-ChildItem $configPath -Filter "*.json" | ForEach-Object {
             if ($WhatIf) {
                 Write-Host "  WhatIf: Would restore configuration from: $($_.Name)" -ForegroundColor Yellow
@@ -124,7 +124,7 @@ function Restore-SystemSettings {
                     Write-Host "  Restoring configuration from: $($_.Name)" -ForegroundColor Cyan
                     $config = Get-Content $_.FullName | ConvertFrom-Json
                     Write-Host "    Loaded configuration with $($config.PSObject.Properties.Count) sections" -ForegroundColor Green
-                    
+
                     # In a real implementation, this would apply the configuration
                     # For testing, we'll just validate the structure
                     foreach ($section in $config.PSObject.Properties) {
@@ -198,10 +198,10 @@ function Restore-SystemSettings {
 
     Write-Host "System settings restore completed!" -ForegroundColor Green
     Write-Host "Items restored: $($restoreManifest.RestoredItems.Count)" -ForegroundColor Cyan
-    
+
     if ($WhatIf) {
         Write-Host "This was a simulation - no actual changes were made." -ForegroundColor Yellow
     }
 
     return $restoreManifest
-} 
+}

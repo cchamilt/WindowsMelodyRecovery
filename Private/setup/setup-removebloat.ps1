@@ -77,7 +77,7 @@ function Setup-RemoveBloat {
                 if ($package) {
                     Write-Host "Removing $app..." -ForegroundColor Yellow
                     $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
-                    
+
                     # Also remove provisioned package if it exists
                     $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $app
                     if ($provPackage) {
@@ -173,7 +173,7 @@ function Setup-RemoveBloat {
         foreach ($program in $thirdPartyBloat) {
             try {
                 Write-Host "Checking for $program..." -ForegroundColor Yellow
-                $app = Get-WmiObject -Class Win32_Product -ErrorAction Stop | 
+                $app = Get-WmiObject -Class Win32_Product -ErrorAction Stop |
                     Where-Object { $_.Name -like "*$program*" }
                 if ($app) {
                     Write-Host "Removing $program..." -ForegroundColor Yellow
@@ -213,7 +213,7 @@ function Setup-RemoveBloat {
                 if ($package) {
                     Write-Host "Removing Lenovo app: $app..." -ForegroundColor Yellow
                     $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
-                    
+
                     # Also remove provisioned package
                     $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app
                     if ($provPackage) {
@@ -261,7 +261,7 @@ function Setup-RemoveBloat {
         foreach ($program in $installedPrograms) {
             if ($program.Name -in $lenovoPrograms -or $program.DisplayName -in $lenovoPrograms) {
                 Write-Host "Uninstalling: $($program.Name)$($program.DisplayName)" -ForegroundColor Yellow
-                
+
                 try {
                     if ($program.UninstallString) {
                         $uninstallString = $program.UninstallString
@@ -373,17 +373,17 @@ function Setup-RemoveBloat {
         # Disable Lenovo Universal Device Client devices
         Write-Host "`nDisabling Lenovo UDC devices..." -ForegroundColor Yellow
         try {
-            $lenovoDevices = Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { 
-                $_.FriendlyName -like "*Lenovo Universal Device*" -or 
+            $lenovoDevices = Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object {
+                $_.FriendlyName -like "*Lenovo Universal Device*" -or
                 $_.InstanceId -like "*VEN_17EF*" -or  # Lenovo's Vendor ID
-                $_.HardwareID -like "*LenovoUDC*" 
+                $_.HardwareID -like "*LenovoUDC*"
             }
 
             foreach ($device in $lenovoDevices) {
                 try {
                     Write-Host "Disabling device: $($device.FriendlyName)" -ForegroundColor Yellow
                     $device | Disable-PnpDevice -Confirm:$false -ErrorAction Stop
-                    
+
                     # Prevent Windows from re-enabling it
                     $instanceId = $device.InstanceId -replace "\\", "\\"
                     $registryPath = "HKLM:\SYSTEM\CurrentControlSet\Enum\$instanceId"
@@ -458,7 +458,7 @@ function Setup-RemoveBloat {
                 if (!(Test-Path $path)) {
                     New-Item -Path $path -Force | Out-Null
                 }
-                
+
                 $settings = $suggestionSettings[$path]
                 foreach ($name in $settings.Keys) {
                     Set-ItemProperty -Path $path -Name $name -Value $settings[$name] -Type DWord -ErrorAction Stop

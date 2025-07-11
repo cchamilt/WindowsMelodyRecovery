@@ -2,29 +2,29 @@ function Get-WindowsMelodyRecoveryStatus {
     <#
     .SYNOPSIS
         Get comprehensive status information about the Windows Melody Recovery module.
-    
+
     .DESCRIPTION
-        Returns detailed information about the module's initialization status, 
+        Returns detailed information about the module's initialization status,
         loaded components, configuration, and any errors or warnings.
-    
+
     .PARAMETER Detailed
         Show detailed information including all configuration settings.
-    
+
     .PARAMETER ShowErrors
         Show only error information.
-    
+
     .PARAMETER ShowWarnings
         Show only warning information.
-    
+
     .EXAMPLE
         Get-WindowsMelodyRecoveryStatus
-    
+
     .EXAMPLE
         Get-WindowsMelodyRecoveryStatus -Detailed
-    
+
     .EXAMPLE
         Get-WindowsMelodyRecoveryStatus -ShowErrors
-    
+
     .OUTPUTS
         Hashtable containing the module status information.
     #>
@@ -32,17 +32,17 @@ function Get-WindowsMelodyRecoveryStatus {
     param(
         [Parameter(Mandatory=$false)]
         [switch]$Detailed,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$ShowErrors,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$ShowWarnings
     )
-    
+
     # Get module information
     $moduleInfo = Get-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
-    
+
     # Get module version from manifest if module info is not available
     $moduleVersion = $null
     if ($moduleInfo) {
@@ -63,16 +63,16 @@ function Get-WindowsMelodyRecoveryStatus {
             }
         }
     }
-    
+
     # Get initialization status if available
     $initStatus = $null
     if (Get-Command Get-ModuleInitializationStatus -ErrorAction SilentlyContinue) {
         $initStatus = Get-ModuleInitializationStatus
     }
-    
+
     # Get configuration
     $config = Get-WindowsMelodyRecovery
-    
+
     # Build status object
     $status = @{
         ModuleInfo = @{
@@ -110,7 +110,7 @@ function Get-WindowsMelodyRecoveryStatus {
             PowerShellVersion = $PSVersionTable.PSVersion.Major -ge 5
         }
     }
-    
+
     # Check for available functions
     $expectedFunctions = @(
         'Get-WindowsMelodyRecovery',
@@ -121,7 +121,7 @@ function Get-WindowsMelodyRecoveryStatus {
         'Setup-WindowsMelodyRecovery',
         'Test-WindowsMelodyRecovery'
     )
-    
+
     foreach ($function in $expectedFunctions) {
         if (Get-Command $function -ErrorAction SilentlyContinue) {
             $status.Functions.Available += $function
@@ -129,7 +129,7 @@ function Get-WindowsMelodyRecoveryStatus {
             $status.Functions.Missing += $function
         }
     }
-    
+
     # Add detailed configuration if requested
     if ($Detailed) {
         $status.Configuration.Detailed = @{
@@ -142,7 +142,7 @@ function Get-WindowsMelodyRecoveryStatus {
             UpdateSettings = $config.UpdateSettings
         }
     }
-    
+
     # Filter based on parameters
     if ($ShowErrors) {
         $status = @{
@@ -150,48 +150,48 @@ function Get-WindowsMelodyRecoveryStatus {
             MissingFunctions = $status.Functions.Missing
             DependencyIssues = @()
         }
-        
+
         if (-not $status.Dependencies.Pester) {
             $status.DependencyIssues += "Pester module not found"
         }
         if (-not $status.Dependencies.PowerShellVersion) {
             $status.DependencyIssues += "PowerShell 5.1+ recommended"
         }
-        
+
         return $status
     }
-    
+
     if ($ShowWarnings) {
         $warnings = @()
-        
+
         if ($status.Functions.Missing.Count -gt 0) {
             $warnings += "Missing functions: $($status.Functions.Missing -join ', ')"
         }
-        
+
         if (-not $status.Dependencies.Pester) {
             $warnings += "Pester module not found (required for testing)"
         }
-        
+
         if (-not $status.Configuration.IsInitialized) {
             $warnings += "Module not fully initialized"
         }
-        
+
         return @{
             Warnings = $warnings
         }
     }
-    
+
     # Add compatibility properties for tests
     Write-Verbose "ModuleInfo.Version: $($status.ModuleInfo.Version)"
     Write-Verbose "moduleVersion: $moduleVersion"
-    
-    $status.ModuleVersion = if ($status.ModuleInfo.Version) { 
+
+    $status.ModuleVersion = if ($status.ModuleInfo.Version) {
         Write-Verbose "Using ModuleInfo.Version: $($status.ModuleInfo.Version)"
-        $status.ModuleInfo.Version 
-    } elseif ($moduleVersion) { 
+        $status.ModuleInfo.Version
+    } elseif ($moduleVersion) {
         Write-Verbose "Using moduleVersion: $moduleVersion"
-        $moduleVersion 
-    } else { 
+        $moduleVersion
+    } else {
         Write-Verbose "Using fallback version: 1.0.0"
         "1.0.0"  # Fallback version
     }
@@ -199,7 +199,7 @@ function Get-WindowsMelodyRecoveryStatus {
     $status.ConfigurationPath = $status.Configuration.BackupRoot
     $status.PowerShellVersion = $status.Environment.PowerShellVersion
     $status.OperatingSystem = $status.Environment.OS
-    
+
     return $status
 }
 
@@ -207,17 +207,17 @@ function Show-WindowsMelodyRecoveryStatus {
     <#
     .SYNOPSIS
         Display a formatted status report for the Windows Melody Recovery module.
-    
+
     .DESCRIPTION
         Shows a user-friendly status report with color-coded information about
         the module's state, configuration, and any issues.
-    
+
     .PARAMETER Detailed
         Show detailed configuration information.
-    
+
     .EXAMPLE
         Show-WindowsMelodyRecoveryStatus
-    
+
     .EXAMPLE
         Show-WindowsMelodyRecoveryStatus -Detailed
     #>
@@ -226,15 +226,15 @@ function Show-WindowsMelodyRecoveryStatus {
         [Parameter(Mandatory=$false)]
         [switch]$Detailed
     )
-    
+
     $status = Get-WindowsMelodyRecoveryStatus -Detailed:$Detailed
-    
+
     $separator = "=" * 60
     Write-Host ""
     Write-Host $separator -ForegroundColor Cyan
     Write-Host "Windows Melody Recovery - Module Status Report" -ForegroundColor Cyan
     Write-Host $separator -ForegroundColor Cyan
-    
+
     # Module Information
     Write-Host ""
     Write-Host "Module Information:" -ForegroundColor Yellow
@@ -246,7 +246,7 @@ function Show-WindowsMelodyRecoveryStatus {
     } else {
         Write-Host "  Module not loaded" -ForegroundColor Red
     }
-    
+
     # Initialization Status
     Write-Host ""
     Write-Host "Initialization Status:" -ForegroundColor Yellow
@@ -259,7 +259,7 @@ function Show-WindowsMelodyRecoveryStatus {
     } else {
         Write-Host "  Module not initialized" -ForegroundColor Red
     }
-    
+
     # Configuration
     Write-Host ""
     Write-Host "Configuration:" -ForegroundColor Yellow
@@ -272,7 +272,7 @@ function Show-WindowsMelodyRecoveryStatus {
     } else {
         Write-Host "  Configuration not initialized" -ForegroundColor Yellow
     }
-    
+
     # Functions
     Write-Host ""
     Write-Host "Functions:" -ForegroundColor Yellow
@@ -283,7 +283,7 @@ function Show-WindowsMelodyRecoveryStatus {
     if ($status.Functions.Missing.Count -gt 0) {
         Write-Host "  Missing: $($status.Functions.Missing -join ', ')" -ForegroundColor Red
     }
-    
+
     # Dependencies
     Write-Host ""
     Write-Host "Dependencies:" -ForegroundColor Yellow
@@ -297,7 +297,7 @@ function Show-WindowsMelodyRecoveryStatus {
     } else {
         Write-Host "  PowerShell 5.1+ recommended" -ForegroundColor Yellow
     }
-    
+
     # Environment
     Write-Host ""
     Write-Host "Environment:" -ForegroundColor Yellow
@@ -306,33 +306,33 @@ function Show-WindowsMelodyRecoveryStatus {
     Write-Host "  Platform: $($status.Environment.Platform)" -ForegroundColor White
     Write-Host "  User: $($status.Environment.CurrentUser)" -ForegroundColor White
     Write-Host "  Computer: $($status.Environment.ComputerName)" -ForegroundColor White
-    
+
     # Detailed Configuration
     if ($Detailed -and $status.Configuration.Detailed) {
         Write-Host ""
         Write-Host "Detailed Configuration:" -ForegroundColor Yellow
-        
+
         # Email Settings
         Write-Host "  Email Settings:" -ForegroundColor Cyan
         $email = $status.Configuration.Detailed.EmailSettings
         Write-Host "    From: $($email.FromAddress)" -ForegroundColor Gray
         Write-Host "    To: $($email.ToAddress)" -ForegroundColor Gray
         Write-Host "    SMTP: $($email.SmtpServer):$($email.SmtpPort)" -ForegroundColor Gray
-        
+
         # Backup Settings
         Write-Host "  Backup Settings:" -ForegroundColor Cyan
         $backup = $status.Configuration.Detailed.BackupSettings
         Write-Host "    Retention: $($backup.RetentionDays) days" -ForegroundColor Gray
         Write-Host "    Exclude Paths: $($backup.ExcludePaths.Count)" -ForegroundColor Gray
         Write-Host "    Include Paths: $($backup.IncludePaths.Count)" -ForegroundColor Gray
-        
+
         # Logging Settings
         Write-Host "  Logging Settings:" -ForegroundColor Cyan
         $logging = $status.Configuration.Detailed.LoggingSettings
         Write-Host "    Path: $($logging.Path)" -ForegroundColor Gray
         Write-Host "    Level: $($logging.Level)" -ForegroundColor Gray
     }
-    
+
     # Errors and Warnings
     if ($status.Initialization.Errors.Count -gt 0) {
         Write-Host ""
@@ -341,7 +341,7 @@ function Show-WindowsMelodyRecoveryStatus {
             Write-Host "  $errorMessage" -ForegroundColor Red
         }
     }
-    
+
     # Summary
     $separator = "=" * 60
     Write-Host ""
@@ -355,4 +355,4 @@ function Show-WindowsMelodyRecoveryStatus {
     }
     Write-Host $separator -ForegroundColor Cyan
     Write-Host ""
-} 
+}

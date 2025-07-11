@@ -27,10 +27,10 @@ function Test-MockDataExists {
         [string]$DataType,
         [string]$Path
     )
-    
+
     $mockPath = Get-MockDataPath -DataType $DataType
     $fullPath = Join-Path $mockPath $Path
-    
+
     return Test-Path $fullPath
 }
 
@@ -43,11 +43,11 @@ function Get-MockDataPath {
     param(
         [string]$DataType
     )
-    
+
     # Use standardized test paths from Test-Environment-Standard.ps1
     $testPaths = Get-StandardTestPaths
     $basePath = $testPaths.TestMockData
-    
+
     switch ($DataType) {
         "registry" { return Join-Path $basePath "registry" }
         "appdata" { return Join-Path $basePath "appdata" }
@@ -75,28 +75,28 @@ function Initialize-MockEnvironment {
         [string]$TestType = "Integration",
         [string]$Scope = "Standard"
     )
-    
+
     Write-Host "🚀 Initializing enhanced mock environment: $Environment" -ForegroundColor Cyan
     Write-Host "   Test Type: $TestType | Scope: $Scope" -ForegroundColor Gray
-    
+
     # Use enhanced mock infrastructure
     Initialize-EnhancedMockInfrastructure -TestType $TestType -Scope $Scope
-    
+
     # Legacy compatibility - create additional directories if needed
     $legacyDirs = @(
         "/mock-registry",
-        "/mock-appdata", 
+        "/mock-appdata",
         "/mock-programfiles",
         "/mock-cloud"
     )
-    
+
     foreach ($dir in $legacyDirs) {
         if (-not (Test-Path $dir)) {
             New-Item -Path $dir -ItemType Directory -Force | Out-Null
             Write-Host "  ✓ Created legacy compatibility directory: $dir" -ForegroundColor Gray
         }
     }
-    
+
     Write-Host "✅ Enhanced mock environment initialized successfully!" -ForegroundColor Green
 }
 
@@ -105,17 +105,17 @@ function Get-MockRegistryValue {
         [string]$KeyPath,
         [string]$ValueName
     )
-    
+
     $mockRegistryPath = "/mock-registry"
     $fullPath = Join-Path $mockRegistryPath $KeyPath
-    
+
     if (Test-Path $fullPath) {
         $valueFile = Join-Path $fullPath "$ValueName.txt"
         if (Test-Path $valueFile) {
             return Get-Content $valueFile -Raw
         }
     }
-    
+
     return $null
 }
 
@@ -125,16 +125,16 @@ function Set-MockRegistryValue {
         [string]$ValueName,
         [string]$Value
     )
-    
+
     $mockRegistryPath = "/mock-registry"
     $fullPath = Join-Path $mockRegistryPath $KeyPath
-    
+
     if (-not (Test-Path $fullPath)) {
         New-Item -Path $fullPath -ItemType Directory -Force | Out-Null
     }
-    
+
     $valueFile = Join-Path $fullPath "$ValueName.txt"
     $Value | Out-File -FilePath $valueFile -Encoding UTF8
-    
+
     Write-Host "✓ Set mock registry value: $KeyPath\$ValueName = $Value" -ForegroundColor Green
-} 
+}

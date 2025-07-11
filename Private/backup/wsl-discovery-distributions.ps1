@@ -16,7 +16,7 @@ try {
         Write-Output ($result | ConvertTo-Json -Depth 5)
         return
     }
-    
+
     $wslInfo = @{
         WSLAvailable = $true
         Distributions = @()
@@ -24,7 +24,7 @@ try {
         DefaultDistribution = ""
         Message = "WSL available"
     }
-    
+
     try {
         $versionOutput = wsl --version 2>$null
         if ($versionOutput) {
@@ -33,7 +33,7 @@ try {
     } catch {
         $wslInfo.WSLVersion = "Legacy WSL 1"
     }
-    
+
     try {
         $distroOutput = wsl --list --verbose 2>$null
         if ($distroOutput) {
@@ -44,18 +44,18 @@ try {
                     $name = $matches[2]
                     $state = $matches[3]
                     $version = $matches[4]
-                    
+
                     $distro = @{
                         Name = $name
                         State = $state
                         Version = $version
                         IsDefault = $isDefault
                     }
-                    
+
                     if ($isDefault) {
                         $wslInfo.DefaultDistribution = $name
                     }
-                    
+
                     $distributions += $distro
                 }
             }
@@ -64,7 +64,7 @@ try {
     } catch {
         $wslInfo.Message = "Could not enumerate distributions"
     }
-    
+
     Write-Output ($wslInfo | ConvertTo-Json -Depth 10)
 } catch {
     $errorResult = @{
@@ -74,4 +74,4 @@ try {
         Message = "Error checking WSL: $($_.Exception.Message)"
     }
     Write-Output ($errorResult | ConvertTo-Json -Depth 5)
-} 
+}

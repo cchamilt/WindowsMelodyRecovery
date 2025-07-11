@@ -8,4 +8,4 @@ until curl --output /dev/null --silent --head --fail http://cloud-mock:3000; do
   sleep 1
 done
 
-echo "\nCloud-mock server is up and running!" 
+echo "\nCloud-mock server is up and running!"

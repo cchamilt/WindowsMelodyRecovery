@@ -20,35 +20,35 @@ function Setup-EpicGames {
         }
 
         Write-Host "Installing Legendary CLI..." -ForegroundColor Yellow
-        
+
         try {
             # Try to install via pip
             if (Get-Command pip -ErrorAction SilentlyContinue) {
                 pip install legendary-gl
                 return $true
             }
-            
+
             # Alternative: Download from GitHub releases
             $tempPath = Join-Path $env:TEMP "legendary"
             New-Item -ItemType Directory -Path $tempPath -Force | Out-Null
-            
+
             $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/derrod/legendary/releases/latest"
             $windowsAsset = $latestRelease.assets | Where-Object { $_.name -like "*windows.zip" }
-            
+
             if ($windowsAsset) {
                 $downloadUrl = $windowsAsset.browser_download_url
                 $zipPath = Join-Path $tempPath "legendary.zip"
-                
+
                 Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
                 Expand-Archive -Path $zipPath -DestinationPath "$env:LOCALAPPDATA\Programs\legendary" -Force
-                
+
                 # Add to PATH
                 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
                 if ($userPath -notlike "*legendary*") {
                     [Environment]::SetEnvironmentVariable("Path", "$userPath;$env:LOCALAPPDATA\Programs\legendary", "User")
                     $env:Path = "$env:Path;$env:LOCALAPPDATA\Programs\legendary"
                 }
-                
+
                 return $true
             }
         }
@@ -56,7 +56,7 @@ function Setup-EpicGames {
             Write-Host "Failed to install Legendary: $($_.Exception.Message)" -ForegroundColor Red
             return $false
         }
-        
+
         return $false
     }
 
@@ -67,10 +67,10 @@ function Setup-EpicGames {
         }
 
         $installedGames = @()
-        
+
         try {
             $games = legendary list-installed --json | ConvertFrom-Json
-            
+
             foreach ($game in $games) {
                 $installedGames += @{
                     Name = $game.title
@@ -83,7 +83,7 @@ function Setup-EpicGames {
         catch {
             Write-Host "Error getting installed games: $($_.Exception.Message)" -ForegroundColor Red
         }
-        
+
         return $installedGames
     }
 
@@ -111,11 +111,11 @@ function Setup-EpicGames {
 
         foreach ($game in $Games) {
             Write-Host "Installing $($game.Name) (AppID: $($game.AppId))..." -ForegroundColor Yellow
-            
+
             try {
                 # Install game
                 legendary install $game.AppId --base-path "C:\Epic Games" --yes
-                
+
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "Successfully installed $($game.Name)" -ForegroundColor Green
                 }
@@ -136,7 +136,7 @@ function Setup-EpicGames {
         if (!$GamesListPath) {
             $backupPath = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME "Applications"
             $backupGamesPath = Join-Path $backupPath "epic-applications.json"
-            
+
             if (Test-Path $backupGamesPath) {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.Epic) {
@@ -208,4 +208,4 @@ function Setup-EpicGames {
         Write-Host "Failed to setup Epic Games: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
-} 
+}

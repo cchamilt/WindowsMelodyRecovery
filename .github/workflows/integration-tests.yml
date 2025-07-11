@@ -39,18 +39,18 @@ jobs:
     name: Unit Tests
     runs-on: windows-latest
     timeout-minutes: 30
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Setup PowerShell modules
       shell: pwsh
       run: |
         Set-PSRepository PSGallery -InstallationPolicy Trusted
         Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
         Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
-        
+
     - name: Run PSScriptAnalyzer
       shell: pwsh
       run: |
@@ -59,7 +59,7 @@ jobs:
           $results | Format-Table
           Write-Error "PSScriptAnalyzer found issues"
         }
-        
+
     - name: Run unit tests
       shell: pwsh
       run: |
@@ -71,14 +71,14 @@ jobs:
         $config.CodeCoverage.Enabled = $true
         $config.CodeCoverage.Path = './*.ps*1'
         $config.CodeCoverage.OutputPath = './test-results/coverage.xml'
-        
+
         New-Item -Path './test-results' -ItemType Directory -Force
         $result = Invoke-Pester -Configuration $config
-        
+
         if ($result.FailedCount -gt 0) {
           Write-Error "Unit tests failed: $($result.FailedCount) failures"
         }
-        
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
@@ -92,10 +92,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     needs: unit-tests
-    
+
     strategy:
       matrix:
-        test_suite: 
+        test_suite:
           - Backup
           - Restore
           - WSL
@@ -103,59 +103,59 @@ jobs:
           - Cloud
           - Setup
       fail-fast: false
-      
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Setup PowerShell modules
       shell: pwsh
       run: |
         Set-PSRepository PSGallery -InstallationPolicy Trusted
         Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
         Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
-        
+
     - name: Enable WSL and install Ubuntu
       shell: pwsh
       run: |
         # Enable WSL feature
         Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
         Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
-        
+
         # Download and install WSL2 kernel update
         $wslUpdateUrl = "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi"
         Invoke-WebRequest -Uri $wslUpdateUrl -OutFile "wsl_update_x64.msi"
         Start-Process msiexec.exe -Wait -ArgumentList '/i wsl_update_x64.msi /quiet'
-        
+
         # Set WSL2 as default
         wsl --set-default-version 2
-        
+
         # Install Ubuntu
         Invoke-WebRequest -Uri "https://aka.ms/wslubuntu2204" -OutFile "Ubuntu.appx" -UseBasicParsing
         Add-AppxPackage .\Ubuntu.appx
-        
+
     - name: Initialize WSL Ubuntu
       shell: pwsh
       run: |
         # Initialize Ubuntu (this may take a few minutes)
         wsl --install --distribution Ubuntu-22.04 --no-launch
-        
+
         # Wait for WSL to be ready
         Start-Sleep -Seconds 30
-        
+
         # Setup Ubuntu with non-interactive user creation
         wsl -d Ubuntu-22.04 -- bash -c "useradd -m -s /bin/bash testuser && echo 'testuser:testpass' | chpasswd && usermod -aG sudo testuser"
         wsl -d Ubuntu-22.04 -- bash -c "echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers"
-        
+
         # Install basic packages
         wsl -d Ubuntu-22.04 -u testuser -- bash -c "sudo apt update && sudo apt install -y curl wget git vim python3 python3-pip nodejs npm"
-        
+
     - name: Install chezmoi in WSL
       shell: pwsh
       run: |
         wsl -d Ubuntu-22.04 -u testuser -- bash -c "sh -c \"\$(curl -fsLS get.chezmoi.io)\" -- -b /usr/local/bin"
         wsl -d Ubuntu-22.04 -u testuser -- bash -c "chezmoi --version"
-        
+
     - name: Setup package managers
       shell: pwsh
       run: |
@@ -163,15 +163,15 @@ jobs:
         Set-ExecutionPolicy Bypass -Scope Process -Force
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        
+
         # Install Scoop
         if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
           iwr -useb get.scoop.sh | iex
         }
-        
+
         # Winget should be pre-installed on GitHub Actions runners
         winget --version
-        
+
     - name: Install gaming platform simulators
       shell: pwsh
       run: |
@@ -180,13 +180,13 @@ jobs:
         $epicPath = "$env:ProgramFiles(x86)\Epic Games\Launcher"
         $gogPath = "$env:ProgramFiles(x86)\GOG Galaxy"
         $eaPath = "$env:ProgramFiles\Electronic Arts\EA Desktop"
-        
+
         # Create directories
         New-Item -Path $steamPath -ItemType Directory -Force
         New-Item -Path $epicPath -ItemType Directory -Force
         New-Item -Path $gogPath -ItemType Directory -Force
         New-Item -Path $eaPath -ItemType Directory -Force
-        
+
         # Create mock configuration files
         @{
           "steam" = @{
@@ -195,14 +195,14 @@ jobs:
             "games" = @()
           }
         } | ConvertTo-Json | Out-File "$steamPath\config.json"
-        
+
         @{
           "epic" = @{
             "user_id" = "test-epic-user"
             "games" = @()
           }
         } | ConvertTo-Json | Out-File "$epicPath\config.json"
-        
+
     - name: Setup cloud storage simulation
       shell: pwsh
       run: |
@@ -210,22 +210,22 @@ jobs:
         $oneDrivePath = "$env:USERPROFILE\OneDrive"
         $googleDrivePath = "$env:USERPROFILE\Google Drive"
         $dropboxPath = "$env:USERPROFILE\Dropbox"
-        
+
         New-Item -Path "$oneDrivePath\WindowsMelodyRecovery" -ItemType Directory -Force
         New-Item -Path "$googleDrivePath\WindowsMelodyRecovery" -ItemType Directory -Force
         New-Item -Path "$dropboxPath\WindowsMelodyRecovery" -ItemType Directory -Force
-        
+
         # Create mock sync status files
         "synced" | Out-File "$oneDrivePath\.sync_status"
         "synced" | Out-File "$googleDrivePath\.sync_status"
         "synced" | Out-File "$dropboxPath\.sync_status"
-        
+
     - name: Initialize Windows Melody Recovery module
       shell: pwsh
       run: |
         # Import the module
         Import-Module .\WindowsMelodyRecovery.psm1 -Force
-        
+
         # Initialize with test configuration
         $config = @{
           BackupRoot = "$env:TEMP\WMR-Tests\Backups"
@@ -234,10 +234,10 @@ jobs:
           LogLevel = "Verbose"
           TestMode = $true
         }
-        
+
         New-Item -Path $config.BackupRoot -ItemType Directory -Force
         $config | ConvertTo-Json | Out-File "Config\test-config.json"
-        
+
     - name: Run integration tests
       shell: pwsh
       run: |
@@ -245,12 +245,12 @@ jobs:
         if ("${{ github.event.inputs.test_suite }}" -ne "") {
           $testSuite = "${{ github.event.inputs.test_suite }}"
         }
-        
+
         Write-Host "Running test suite: $testSuite" -ForegroundColor Green
-        
+
         # Create test results directory
         New-Item -Path "test-results\integration" -ItemType Directory -Force
-        
+
         # Configure Pester
         $config = New-PesterConfiguration
         $config.Run.Path = "./tests/integration"
@@ -259,16 +259,16 @@ jobs:
         $config.TestResult.OutputPath = "./test-results/integration/integration-tests-$testSuite.xml"
         $config.TestResult.OutputFormat = 'NUnitXml'
         $config.Output.Verbosity = 'Detailed'
-        
+
         # Set environment variables for tests
         $env:WMR_TEST_MODE = "true"
         $env:WMR_BACKUP_ROOT = "$env:TEMP\WMR-Tests\Backups"
         $env:WMR_WSL_DISTRO = "Ubuntu-22.04"
         $env:WMR_CLOUD_PATH = "$env:USERPROFILE\OneDrive\WindowsMelodyRecovery"
-        
+
         # Run the tests
         $result = Invoke-Pester -Configuration $config
-        
+
         # Generate summary
         $summary = @{
           TestSuite = $testSuite
@@ -279,13 +279,13 @@ jobs:
           Duration = $result.TotalTime
           Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         }
-        
+
         $summary | ConvertTo-Json | Out-File "test-results\integration\summary-$testSuite.json"
-        
+
         if ($result.FailedCount -gt 0) {
           Write-Error "Integration tests failed: $($result.FailedCount) failures in $testSuite suite"
         }
-        
+
     - name: Collect system information
       shell: pwsh
       if: always()
@@ -301,10 +301,10 @@ jobs:
           Git = try { git --version } catch { "Not installed" }
           Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         }
-        
+
         New-Item -Path "test-results" -ItemType Directory -Force
         $sysInfo | ConvertTo-Json | Out-File "test-results\system-info.json"
-        
+
     - name: Upload integration test results
       uses: actions/upload-artifact@v4
       if: always()
@@ -319,66 +319,66 @@ jobs:
     timeout-minutes: 120
     needs: integration-tests
     if: github.event_name == 'schedule' || github.event.inputs.test_suite == 'All' || github.ref == 'refs/heads/main'
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Setup complete environment
       shell: pwsh
       run: |
         # Install all required modules and tools
         Set-PSRepository PSGallery -InstallationPolicy Trusted
         Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
-        
+
         # Setup WSL
         Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
         Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
-        
+
         # Install package managers
         Set-ExecutionPolicy Bypass -Scope Process -Force
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
         iwr -useb get.scoop.sh | iex
-        
+
     - name: Run complete backup and restore cycle
       shell: pwsh
       run: |
         # Record start time for duration calculation
         $startTime = Get-Date
-        
+
         # Import module
         Import-Module .\WindowsMelodyRecovery.psm1 -Force
-        
+
         # Setup test environment
         $backupRoot = "$env:TEMP\WMR-E2E-Tests"
         New-Item -Path $backupRoot -ItemType Directory -Force
-        
+
         # Initialize module
         Initialize-WindowsMelodyRecovery -BackupRoot $backupRoot -Force
-        
+
         # Run full backup
         Write-Host "Starting full backup..." -ForegroundColor Green
         $backupResult = Backup-WindowsMelodyRecovery -BackupRootPath $backupRoot
-        
+
         if (-not $backupResult.Success) {
           throw "Backup failed: $($backupResult.Errors -join ', ')"
         }
-        
+
         Write-Host "Backup completed successfully" -ForegroundColor Green
-        
+
         # Simulate system changes
         Write-Host "Simulating system changes..." -ForegroundColor Yellow
-        
+
         # Run full restore
         Write-Host "Starting full restore..." -ForegroundColor Green
         $restoreResult = Restore-WindowsMelodyRecovery -BackupRootPath $backupRoot
-        
+
         if (-not $restoreResult.Success) {
           throw "Restore failed: $($restoreResult.Errors -join ', ')"
         }
-        
+
         Write-Host "Restore completed successfully" -ForegroundColor Green
-        
+
         # Generate E2E report
         $e2eReport = @{
           BackupResult = $backupResult
@@ -387,10 +387,10 @@ jobs:
           Success = $backupResult.Success -and $restoreResult.Success
           Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         }
-        
+
         New-Item -Path "test-results" -ItemType Directory -Force
         $e2eReport | ConvertTo-Json -Depth 10 | Out-File "test-results\e2e-report.json"
-        
+
     - name: Upload E2E test results
       uses: actions/upload-artifact@v4
       if: always()
@@ -404,42 +404,63 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit-tests, integration-tests, e2e-tests]
     if: always()
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Download all test results
       uses: actions/download-artifact@v4
       with:
         path: all-test-results/
-        
+      continue-on-error: true
+
     - name: Generate comprehensive report
       shell: pwsh
       run: |
         # Install PowerShell modules
         Install-Module -Name ImportExcel -Force -SkipPublisherCheck -Scope CurrentUser
-        
+
         # Collect all test results
         $allResults = @()
-        $testDirs = Get-ChildItem "all-test-results" -Directory
-        
-        foreach ($dir in $testDirs) {
-          $jsonFiles = Get-ChildItem "$($dir.FullName)" -Filter "*.json" -Recurse
-          foreach ($file in $jsonFiles) {
-            try {
-              $content = Get-Content $file.FullName | ConvertFrom-Json
-              $allResults += @{
-                Source = $dir.Name
-                File = $file.Name
-                Data = $content
+
+        # Check if all-test-results directory exists
+        if (-not (Test-Path "all-test-results")) {
+          Write-Warning "No test results downloaded. Creating empty directory structure."
+          New-Item -Path "all-test-results" -ItemType Directory -Force
+        }
+
+                # Get test directories (may be empty)
+        $testDirs = Get-ChildItem "all-test-results" -Directory -ErrorAction SilentlyContinue
+
+        if ($testDirs) {
+          Write-Host "Found $($testDirs.Count) test result directories" -ForegroundColor Green
+          foreach ($dir in $testDirs) {
+            Write-Host "Processing directory: $($dir.Name)" -ForegroundColor Cyan
+            $jsonFiles = Get-ChildItem "$($dir.FullName)" -Filter "*.json" -Recurse -ErrorAction SilentlyContinue
+
+            if ($jsonFiles) {
+              foreach ($file in $jsonFiles) {
+                try {
+                  $content = Get-Content $file.FullName | ConvertFrom-Json
+                  $allResults += @{
+                    Source = $dir.Name
+                    File = $file.Name
+                    Data = $content
+                  }
+                  Write-Host "  Added: $($file.Name)" -ForegroundColor Green
+                } catch {
+                  Write-Warning "Failed to parse $($file.FullName): $($_.Exception.Message)"
+                }
               }
-            } catch {
-              Write-Warning "Failed to parse $($file.FullName): $($_.Exception.Message)"
+            } else {
+              Write-Warning "No JSON files found in $($dir.Name)"
             }
           }
+        } else {
+          Write-Warning "No test result directories found. Report will be generated with empty results."
         }
-        
+
         # Generate summary report
         $summary = @{
           TotalTestRuns = $allResults.Count
@@ -449,11 +470,11 @@ jobs:
           RunId = "${{ github.run_id }}"
           Results = $allResults
         }
-        
+
         # Save comprehensive report
         New-Item -Path "final-report" -ItemType Directory -Force
         $summary | ConvertTo-Json -Depth 10 | Out-File "final-report/comprehensive-test-report.json"
-        
+
         # Generate HTML report
         $html = @"
         <!DOCTYPE html>
@@ -482,7 +503,7 @@ jobs:
                 <p><strong>Git Ref:</strong> $($summary.GitRef)</p>
                 <p><strong>Run ID:</strong> $($summary.RunId)</p>
             </div>
-            
+
             <div class="summary">
                 <h2>📊 Test Summary</h2>
                 <p><strong>Total Test Runs:</strong> $($summary.TotalTestRuns)</p>
@@ -490,7 +511,7 @@ jobs:
                 <p><strong>Real WSL:</strong> ✅ Ubuntu 22.04</p>
                 <p><strong>Real Package Managers:</strong> ✅ Chocolatey, Scoop, Winget</p>
             </div>
-            
+
             <h2>📋 Test Results by Suite</h2>
             <table>
                 <tr>
@@ -499,23 +520,33 @@ jobs:
                     <th>Details</th>
                 </tr>
         "@
-        
-        foreach ($result in $allResults) {
-          $status = if ($result.Data.Success -eq $true) { "✅ Passed" } else { "❌ Failed" }
-          $badgeClass = if ($result.Data.Success -eq $true) { "badge-success" } else { "badge-danger" }
-          
-          $html += @"
+
+                if ($allResults.Count -gt 0) {
+          foreach ($result in $allResults) {
+            $status = if ($result.Data.Success -eq $true) { "✅ Passed" } else { "❌ Failed" }
+            $badgeClass = if ($result.Data.Success -eq $true) { "badge-success" } else { "badge-danger" }
+
+            $html += @"
                 <tr>
                     <td>$($result.Source)</td>
                     <td><span class="badge $badgeClass">$status</span></td>
                     <td>$($result.File)</td>
                 </tr>
         "@
+          }
+        } else {
+          $html += @"
+                <tr>
+                    <td colspan="3" style="text-align: center; font-style: italic; color: #6c757d;">
+                        No test results available. Jobs may have failed or been skipped.
+                    </td>
+                </tr>
+        "@
         }
-        
+
         $html += @"
             </table>
-            
+
             <div style="margin-top: 40px; padding: 20px; background-color: #e7f3ff; border-radius: 8px;">
                 <h3>🚀 About This Test Suite</h3>
                 <p>This comprehensive test suite runs on <strong>real Windows environments</strong> with:</p>
@@ -531,15 +562,15 @@ jobs:
         </body>
         </html>
         "@
-        
+
         $html | Out-File "final-report/test-report.html"
-        
+
     - name: Upload final report
       uses: actions/upload-artifact@v4
       with:
         name: comprehensive-test-report
         path: final-report/
-        
+
     - name: Comment on PR
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
@@ -547,29 +578,45 @@ jobs:
         script: |
           const fs = require('fs');
           const path = 'final-report/comprehensive-test-report.json';
-          
+          const runId = '${{ github.run_id }}';
+
+          let comment = '';
+
           if (fs.existsSync(path)) {
             const report = JSON.parse(fs.readFileSync(path, 'utf8'));
             const totalRuns = report.TotalTestRuns;
-            const runId = '${{ github.run_id }}';
-            
-            const comment = `## 🧪 Integration Test Results
-            
+
+            comment = `## 🧪 Integration Test Results
+
             **Test Summary:**
             - Total Test Runs: ${totalRuns}
             - Environment: Real Windows with WSL 2
             - Package Managers: Chocolatey, Scoop, Winget
-            
+
             **View Details:**
             - [Full Test Report](https://github.com/${{ github.repository }}/actions/runs/${runId})
             - [Download Artifacts](https://github.com/${{ github.repository }}/actions/runs/${runId}#artifacts)
-            
+
             This test suite validates the Windows Melody Recovery module on real Windows environments with actual WSL, package managers, and simulated gaming platforms.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-          } 
+          } else {
+            comment = `## 🧪 Integration Test Results
+
+            **Test Summary:**
+            - Status: ⚠️ No test results available
+            - Environment: Real Windows with WSL 2
+            - Package Managers: Chocolatey, Scoop, Winget
+
+            **Issue:**
+            Some test jobs may have failed or been skipped. Please check the workflow logs for details.
+
+            **View Details:**
+            - [Full Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${runId})
+            - [Workflow Logs](https://github.com/${{ github.repository }}/actions/runs/${runId}#summary)`;
+          }
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

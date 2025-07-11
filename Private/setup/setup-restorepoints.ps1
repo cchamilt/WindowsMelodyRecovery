@@ -24,11 +24,11 @@ function Setup-RestorePoints {
         $systemDrive = $env:SystemDrive
         Write-Host "Enabling System Protection for $systemDrive..." -ForegroundColor Yellow
         Enable-ComputerRestore -Drive $systemDrive
-        
+
         # Enable through registry as well (equivalent to GUI toggle)
         $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore"
         Set-ItemProperty -Path $regPath -Name "RPSessionInterval" -Value 1 -Type DWord
-        
+
         # Set protection percentage through vssadmin
         $drive = Get-WmiObject -Class Win32_Volume -Filter "DriveLetter = '$systemDrive'"
         $driveSize = [math]::Round($drive.Capacity / 1GB)
@@ -68,14 +68,14 @@ function Setup-RestorePoints {
             Write-Host "Creating monthly System Restore point schedule..." -ForegroundColor Yellow
             $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' `
                 -Argument '-NoProfile -ExecutionPolicy Bypass -Command "Checkpoint-Computer -Description \"Monthly System Restore Point\" -RestorePointType MODIFY_SETTINGS"'
-            
+
             # Create weekly trigger and modify for monthly
             $trigger = New-ScheduledTaskTrigger `
                 -Weekly `
                 -WeeksInterval 4 `
                 -DaysOfWeek Monday `
                 -At 4am
-            
+
             # Modify trigger to run on day 1 of each month
             $trigger.Repetition.Duration = $null
             $trigger.Repetition.Interval = "P1M"

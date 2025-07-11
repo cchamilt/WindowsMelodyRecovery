@@ -35,9 +35,9 @@ $testPaths = Initialize-StandardTestEnvironment -TestType "All" -Force:$Force
 Write-Host ""
 Write-Host "📁 Test directories ready:" -ForegroundColor Green
 Write-Host "  • Test Restore: $($testPaths.TestRestore)" -ForegroundColor Gray
-Write-Host "  • Test Backup: $($testPaths.TestBackup)" -ForegroundColor Gray  
+Write-Host "  • Test Backup: $($testPaths.TestBackup)" -ForegroundColor Gray
 Write-Host "  • Temp: $($testPaths.Temp)" -ForegroundColor Gray
 Write-Host "  • Mock Data: $($testPaths.MockData)" -ForegroundColor Gray
 
 Write-Host ""
-Write-Host "✅ Test environment reset complete! Ready for unit tests." -ForegroundColor Green 
+Write-Host "✅ Test environment reset complete! Ready for unit tests." -ForegroundColor Green

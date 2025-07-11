@@ -20,7 +20,7 @@ function Test-WmrFileConfig {
         } catch {
             # Property doesn't exist
         }
-        
+
         if ([string]::IsNullOrWhiteSpace($propValue)) {
             Write-Warning "FileConfig is missing required property: $prop"
             return $false
@@ -105,7 +105,7 @@ function Get-WmrFileState {
     if ($FileConfig.type -eq "file") {
         $content = Get-Content -Path $resolvedPath -Raw -Encoding UTF8
         $contentBytes = [System.Text.Encoding]::UTF8.GetBytes($content)
-        
+
         if ($FileConfig.encrypt) {
             Write-Verbose "Encrypting file content with AES-256"
             if (-not $Passphrase) {
@@ -115,13 +115,13 @@ function Get-WmrFileState {
             $encryptedContent = Protect-WmrData -Data $contentBytes -Passphrase $Passphrase
             $fileState.Content = $encryptedContent
             $fileState.Encrypted = $true
-            
+
             # Save encrypted content
             Set-Content -Path $stateFilePath -Value $encryptedContent -Encoding UTF8 -NoNewline
         } else {
             $fileState.Content = [System.Convert]::ToBase64String($contentBytes)
             $fileState.Encrypted = $false
-            
+
             # Save original content
             Set-Content -Path $stateFilePath -Value $content -Encoding UTF8 -NoNewline
         }
@@ -132,7 +132,7 @@ function Get-WmrFileState {
         }
 
         # Save metadata
-        $metadata = @{ 
+        $metadata = @{
             Encrypted = $fileState.Encrypted
             OriginalSize = $contentBytes.Length
             Encoding = "UTF8"
@@ -145,7 +145,7 @@ function Get-WmrFileState {
         $dirContent = Get-ChildItem -Path $resolvedPath -Recurse | ForEach-Object {
             Write-Debug "Processing item: $($_.FullName)"
             Write-Debug "Base path: $resolvedPath"
-            
+
             # Handle TestDrive paths specially
             if ($resolvedPath.StartsWith("TestDrive:")) {
                 $basePath = $resolvedPath
@@ -157,11 +157,11 @@ function Get-WmrFileState {
                 $basePath = $resolvedPath.Replace('/', '\').TrimEnd('\')
                 $relativePath = $fullPath.Substring($basePath.Length).TrimStart('\')
             }
-            
+
             Write-Debug "Full path: $($_.FullName)"
             Write-Debug "Base path: $basePath"
             Write-Debug "Relative path: $relativePath"
-            
+
             @{
                 FullName = $_.FullName
                 Length = $_.Length
@@ -223,7 +223,7 @@ function Set-WmrFileState {
         Write-Warning "Could not resolve destination path for $($FileConfig.name). Original path: $pathToUse. Skipping restore for this item."
         return
     }
-    
+
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $FileConfig.dynamic_state_path
 
     if (-not (Test-Path $stateFilePath)) {
@@ -245,7 +245,7 @@ function Set-WmrFileState {
 
     if ($FileConfig.type -eq "file") {
         $content = Get-Content -Path $stateFilePath -Raw -Encoding UTF8
-        
+
         if ($FileConfig.encrypt) {
             Write-Verbose "Decrypting file content"
             if (-not $Passphrase) {
@@ -259,7 +259,7 @@ function Set-WmrFileState {
         }
     } elseif ($FileConfig.type -eq "directory") {
         $dirContent = Get-Content -Path $stateFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
-        
+
         # Create the target directory if it doesn't exist
         if (-not (Test-Path $destinationPath)) {
             New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
@@ -304,4 +304,4 @@ function Set-WmrFileState {
     }
 
     Write-Verbose "File state restored for $($FileConfig.name) to $destinationPath"
-} 
+}

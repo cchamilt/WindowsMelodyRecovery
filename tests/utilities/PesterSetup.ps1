@@ -12,11 +12,11 @@ function Initialize-WmrTestEnvironment {
     $config.TestResult.Enabled = $true
     $config.TestResult.OutputFormat = 'NUnitXml'
     $config.TestResult.OutputPath = 'test-results.xml'
-    
+
     # Initialize TestDrive if not already done
     if (-not (Get-PSDrive -Name TestDrive -ErrorAction SilentlyContinue)) {
         $null = New-PSDrive -Name TestDrive -PSProvider FileSystem -Root (New-Item -ItemType Directory -Path (Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())) -Force)
     }
 
     return $config
-} 
+}

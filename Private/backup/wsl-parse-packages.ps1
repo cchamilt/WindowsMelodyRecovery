@@ -10,17 +10,17 @@ param(
 
 try {
     $packages = $DiscoveryOutput | ConvertFrom-Json
-    
+
     # Create array format expected by ApplicationState
     $applications = @()
-    
+
     # Ensure packages is treated as an array
     if ($packages -eq $null) {
         $packages = @()
     } elseif ($packages -isnot [array]) {
         $packages = @($packages)
     }
-    
+
     foreach ($pkg in $packages) {
         if ($pkg -ne $null -and $pkg.Name) {
             $application = @{
@@ -29,11 +29,11 @@ try {
                 Status = if ($pkg.Status) { $pkg.Status } else { "Unknown" }
                 PackageManager = if ($pkg.PackageManager) { $pkg.PackageManager } else { "Unknown" }
             }
-            
+
             $applications += $application
         }
     }
-    
+
     if ($applications.Count -eq 0) {
         Write-Output "[]"
     } else {
@@ -42,4 +42,4 @@ try {
 } catch {
     Write-Error "Failed to parse WSL package data: $($_.Exception.Message)"
     Write-Output "[]"
-} 
+}

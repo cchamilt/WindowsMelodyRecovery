@@ -70,20 +70,20 @@ function Get-WindowsMelodyRecovery {
     <#
     .SYNOPSIS
         Get the current Windows Melody Recovery configuration.
-    
+
     .DESCRIPTION
-        Returns the current module configuration including backup settings, 
+        Returns the current module configuration including backup settings,
         cloud provider settings, and initialization status.
-    
+
     .EXAMPLE
         Get-WindowsMelodyRecovery
-    
+
     .OUTPUTS
         Hashtable containing the module configuration.
     #>
     [CmdletBinding()]
     param()
-    
+
     return $script:Config
 }
 
@@ -91,25 +91,25 @@ function Set-WindowsMelodyRecovery {
     <#
     .SYNOPSIS
         Set Windows Melody Recovery configuration.
-    
+
     .DESCRIPTION
         Updates the module configuration with new settings.
-    
+
     .PARAMETER Config
         Complete configuration hashtable to replace current config.
-    
+
     .PARAMETER BackupRoot
         Path to the backup root directory.
-    
+
     .PARAMETER MachineName
         Name of the machine for backup identification.
-    
+
     .PARAMETER WindowsMelodyRecoveryPath
         Path to the Windows Melody Recovery installation.
-    
+
     .PARAMETER CloudProvider
         Cloud storage provider (OneDrive, GoogleDrive, Dropbox, Box, Custom).
-    
+
     .EXAMPLE
         Set-WindowsMelodyRecovery -BackupRoot "C:\Backups" -CloudProvider "OneDrive"
     #>
@@ -117,21 +117,21 @@ function Set-WindowsMelodyRecovery {
     param(
         [Parameter(Mandatory=$false)]
         [hashtable]$Config,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$BackupRoot,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$MachineName,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$WindowsMelodyRecoveryPath,
-        
+
         [Parameter(Mandatory=$false)]
         [ValidateSet('OneDrive', 'GoogleDrive', 'Dropbox', 'Box', 'Custom')]
         [string]$CloudProvider
     )
-    
+
     if ($Config) {
         $script:Config = $Config
     } else {
@@ -140,7 +140,7 @@ function Set-WindowsMelodyRecovery {
         if ($WindowsMelodyRecoveryPath) { $script:Config.WindowsMelodyRecoveryPath = $WindowsMelodyRecoveryPath }
         if ($CloudProvider) { $script:Config.CloudProvider = $CloudProvider }
     }
-    
+
     $script:Config.LastConfigured = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 }
 
@@ -149,14 +149,14 @@ function Import-PrivateScripts {
     <#
     .SYNOPSIS
         Import private scripts by category.
-    
+
     .DESCRIPTION
         Loads private scripts from the specified category (backup, restore, setup, tasks, scripts).
         This function should only be called when needed, not during module initialization.
-    
+
     .PARAMETER Category
         The category of scripts to load.
-    
+
     .EXAMPLE
         Import-PrivateScripts -Category "backup"
     #>
@@ -166,42 +166,42 @@ function Import-PrivateScripts {
         [ValidateSet('backup', 'restore', 'setup', 'tasks', 'scripts')]
         [string]$Category
     )
-    
+
     # Prevent infinite loops by checking if Import-PrivateScripts is being called recursively
     $callStack = Get-PSCallStack
     $importCallCount = ($callStack | Where-Object { $_.Command -eq "Import-PrivateScripts" }).Count
-    
+
     if ($importCallCount -gt 1) {
         Write-Verbose "Recursive Import-PrivateScripts call detected (depth: $importCallCount) - preventing infinite loop"
         return
     }
-    
+
     # Additional safety check for module loading context
-    $moduleLoadingContext = ($callStack | Where-Object { 
-        $_.ScriptName -like "*WindowsMelodyRecovery.psm1" -or 
+    $moduleLoadingContext = ($callStack | Where-Object {
+        $_.ScriptName -like "*WindowsMelodyRecovery.psm1" -or
         $_.Command -eq "Import-Module" -or
         $_.Command -eq "."
     }).Count
-    
+
     if ($moduleLoadingContext -gt 3) {
         Write-Verbose "Module loading context detected (depth: $moduleLoadingContext) - deferring private script loading"
         return
     }
-    
+
     $categoryPath = Join-Path $PSScriptRoot "Private\$Category"
     Write-Verbose "Looking for $Category scripts in: $categoryPath"
-    
+
     if (Test-Path $categoryPath) {
         $scripts = Get-ChildItem -Path "$categoryPath\*.ps1" -ErrorAction SilentlyContinue
         Write-Verbose "Found $($scripts.Count) $Category scripts"
-        
+
         foreach ($script in $scripts) {
             try {
                 Write-Verbose "Loading script: $($script.FullName)"
-                
+
                 # For production: load actual script content
                 . $script.FullName
-                
+
                 Write-Verbose "Successfully loaded $Category script: $($script.Name)"
             } catch {
                 Write-Warning "Failed to load $Category script $($script.Name): $_"
@@ -266,29 +266,29 @@ if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyCont
     }
 } else {
     Write-Warning "Initialization system not available, using fallback initialization"
-    
+
     # Fallback initialization - only load public functions, not private scripts
     try {
         # Try to initialize module configuration from config file
         if (Get-Command Initialize-ModuleFromConfig -ErrorAction SilentlyContinue) {
             Initialize-ModuleFromConfig
         }
-        
+
         # Load public functions only
         $PublicPath = Join-Path $PSScriptRoot "Public"
         if (Test-Path $PublicPath) {
             $Public = @(Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue)
-            
+
             foreach ($import in $Public) {
                 $functionName = $import.BaseName
                 Write-Verbose "Attempting to load: $functionName from $($import.FullName)"
-                
+
                 try {
                     . $import.FullName
-                    
+
                     # Small delay to ensure function is registered
                     Start-Sleep -Milliseconds 10
-                    
+
                     # Verify the function was actually loaded
                     if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                         Write-Verbose "Successfully loaded public function: $functionName"
@@ -302,9 +302,9 @@ if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyCont
         } else {
             Write-Warning "Public functions directory not found at: $PublicPath"
         }
-        
+
         $script:ModuleInitialized = $true
-        
+
     } catch {
         Write-Warning "Fallback initialization failed: $($_.Exception.Message)"
         $script:InitializationErrors += $_.Exception.Message
@@ -317,17 +317,17 @@ $script:LoadedPublicFunctions = @()
 
 if (Test-Path $PublicPath) {
     $PublicScripts = Get-ChildItem -Path "$PublicPath\*.ps1" -ErrorAction SilentlyContinue
-    
+
     foreach ($script in $PublicScripts) {
         $functionName = $script.BaseName
-        
+
         # Only load if not already loaded
         if (-not (Get-Command $functionName -ErrorAction SilentlyContinue)) {
             Write-Verbose "Loading public function: $functionName from $($script.FullName)"
-            
+
             try {
                 . $script.FullName
-                
+
                 # Verify the function was actually loaded
                 if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                     $script:LoadedPublicFunctions += $functionName
@@ -353,13 +353,13 @@ $ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMelodyRecovery', 'Set-
 # Add backup functions if they were loaded in test environment
 if ($isTestEnvironment) {
     $testBackupFunctions = @(
-        "Backup-Applications", 
-        "Backup-SystemSettings", 
-        "Backup-GameManagers", 
+        "Backup-Applications",
+        "Backup-SystemSettings",
+        "Backup-GameManagers",
         "Backup-GamingPlatforms",
         "Backup-CloudIntegration"
     )
-    
+
     foreach ($funcName in $testBackupFunctions) {
         if (Get-Command $funcName -ErrorAction SilentlyContinue) {
             $ModuleFunctions += $funcName
@@ -473,7 +473,7 @@ if ($isTestEnvironment) {
                 return @{ Success = $true; Message = "Applications backup completed" }
             }
         }
-        
+
         if (-not (Get-Command Backup-SystemSettings -ErrorAction SilentlyContinue)) {
             function Global:Backup-SystemSettings {
                 param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force, $WhatIf)
@@ -481,7 +481,7 @@ if ($isTestEnvironment) {
                 return @{ Success = $true; Message = "System settings backup completed" }
             }
         }
-        
+
         if (-not (Get-Command Backup-GameManagers -ErrorAction SilentlyContinue)) {
             function Global:Backup-GameManagers {
                 param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force, $WhatIf)
@@ -491,7 +491,7 @@ if ($isTestEnvironment) {
             # Create alias for test compatibility
             Set-Alias -Name "Backup-GamingPlatforms" -Value "Backup-GameManagers" -Scope Global
         }
-        
+
         # Create a mock cloud integration function for tests
         if (-not (Get-Command Backup-CloudIntegration -ErrorAction SilentlyContinue)) {
             function Global:Backup-CloudIntegration {
@@ -500,7 +500,7 @@ if ($isTestEnvironment) {
                 return @{ Success = $true; Message = "Mock backup completed" }
             }
         }
-        
+
         Write-Verbose "Test environment setup complete with stub functions"
     } catch {
         Write-Warning "Failed to create stub functions for testing: $_"

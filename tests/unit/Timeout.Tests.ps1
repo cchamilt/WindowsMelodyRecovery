@@ -46,7 +46,7 @@ Describe "Timeout Tests" {
             # Get configured test timeout
             $timeout = Get-TestTimeout -Type "Test"
             $timeout | Should -BeGreaterThan 0
-            
+
             # Test with just under the timeout
             $timeoutTest = {
                 Start-TestWithTimeout -ScriptBlock {
@@ -58,4 +58,4 @@ Describe "Timeout Tests" {
             $timeoutTest | Should -Not -Throw
         }
     }
-} 
+}

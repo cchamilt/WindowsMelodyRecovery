@@ -14,24 +14,24 @@ function Get-WmrEncryptionKey {
     <#
     .SYNOPSIS
     Gets or creates an AES-256 encryption key from a passphrase.
-    
+
     .DESCRIPTION
     Derives an AES-256 key from a user-provided passphrase using PBKDF2.
     Caches the key during the session to avoid repeated passphrase prompts.
-    
+
     .PARAMETER Passphrase
     Optional passphrase. If not provided, prompts the user securely.
-    
+
     .PARAMETER Salt
     Optional salt for key derivation. If not provided, generates a new random salt.
-    
+
     .OUTPUTS
     Hashtable with 'Key' and 'Salt' properties
     #>
     param(
         [Parameter(Mandatory=$false)]
         [SecureString]$Passphrase,
-        
+
         [Parameter(Mandatory=$false)]
         [byte[]]$Salt
     )
@@ -51,7 +51,7 @@ function Get-WmrEncryptionKey {
             throw "Encryption passphrase cannot be empty"
         }
     }
-    
+
     # Validate that the provided passphrase is not empty
     if ($Passphrase.Length -eq 0) {
         throw "Encryption passphrase cannot be empty"
@@ -67,16 +67,16 @@ function Get-WmrEncryptionKey {
     $passphrasePtr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Passphrase)
     try {
         $passphraseText = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($passphrasePtr)
-        
+
         # Derive key using PBKDF2 (100,000 iterations for security)
         $pbkdf2 = New-Object System.Security.Cryptography.Rfc2898DeriveBytes($passphraseText, $Salt, 100000)
         $key = $pbkdf2.GetBytes(32)  # 256-bit key
         $pbkdf2.Dispose()
-        
+
         # Cache the key and salt for this session
         $script:CachedEncryptionKey = $key
         $script:CachedKeySalt = $Salt
-        
+
         return @{
             Key = $key
             Salt = $Salt
@@ -95,7 +95,7 @@ function Clear-WmrEncryptionCache {
     <#
     .SYNOPSIS
     Clears the cached encryption key from memory.
-    
+
     .DESCRIPTION
     Securely clears the cached encryption key and salt from memory.
     Call this when finished with encryption operations.
@@ -120,17 +120,17 @@ function Protect-WmrData {
     <#
     .SYNOPSIS
     Encrypts data using AES-256 symmetric encryption.
-    
+
     .DESCRIPTION
     Encrypts the provided data using AES-256-CBC with a key derived from a passphrase.
     The output includes the salt, IV, and encrypted data as a Base64-encoded string.
-    
+
     .PARAMETER Data
     The data to encrypt. Can be either a string or byte array.
-    
+
     .PARAMETER Passphrase
     Optional passphrase for encryption. If not provided, prompts the user.
-    
+
     .OUTPUTS
     Base64-encoded string containing salt, IV, and encrypted data
     #>
@@ -141,14 +141,14 @@ function Protect-WmrData {
         [AllowEmptyCollection()]
         [ValidateNotNull()]
         [object]$Data,
-        
+
         [Parameter(Mandatory=$true)]
         [ValidateNotNull()]
         [SecureString]$Passphrase
     )
 
     Write-Verbose "Encrypting data using AES-256-CBC encryption"
-    
+
     try {
         # Convert input to bytes if it's a string
         $dataBytes = if ($Data -is [byte[]]) {
@@ -158,12 +158,12 @@ function Protect-WmrData {
         } else {
             throw "Data must be either a string or byte array"
         }
-        
+
         # Handle empty input - create empty byte array
         if ($dataBytes.Length -eq 0) {
             $dataBytes = New-Object byte[] 0
         }
-        
+
         # Get encryption key and salt
         $keyInfo = Get-WmrEncryptionKey -Passphrase $Passphrase
         $key = $keyInfo.Key
@@ -177,26 +177,26 @@ function Protect-WmrData {
         $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
         $aes.Key = $key
         $aes.GenerateIV()  # Generate random IV for this encryption
-        
+
         $iv = $aes.IV
 
         # Encrypt the data
         $encryptor = $aes.CreateEncryptor()
         $encryptedBytes = $encryptor.TransformFinalBlock($dataBytes, 0, $dataBytes.Length)
-        
+
         # Combine salt (32 bytes) + IV (16 bytes) + encrypted data
         $combinedData = New-Object byte[] ($salt.Length + $iv.Length + $encryptedBytes.Length)
         [Array]::Copy($salt, 0, $combinedData, 0, $salt.Length)
         [Array]::Copy($iv, 0, $combinedData, $salt.Length, $iv.Length)
         [Array]::Copy($encryptedBytes, 0, $combinedData, $salt.Length + $iv.Length, $encryptedBytes.Length)
-        
+
         # Return as Base64 string
         $encryptedData = [System.Convert]::ToBase64String($combinedData)
-        
+
         # Clean up
         $encryptor.Dispose()
         $aes.Dispose()
-        
+
         Write-Verbose "Data successfully encrypted ($(($dataBytes.Length)) bytes -> $(($combinedData.Length)) bytes)"
         return $encryptedData
     }
@@ -210,21 +210,21 @@ function Unprotect-WmrData {
     <#
     .SYNOPSIS
     Decrypts data that was encrypted with Protect-WmrData.
-    
+
     .DESCRIPTION
     Decrypts AES-256-CBC encrypted data using a passphrase-derived key.
     Expects input that contains salt, IV, and encrypted data.
-    
+
     .PARAMETER EncodedData
     Base64-encoded string containing salt, IV, and encrypted data.
-    
+
     .PARAMETER Passphrase
     Optional passphrase for decryption. If not provided, prompts the user.
-    
+
     .PARAMETER ReturnBytes
     If true, returns the decrypted data as a byte array. If false (default),
     attempts to convert the decrypted data to a UTF-8 string.
-    
+
     .OUTPUTS
     Decrypted data as a string (default) or byte array (if ReturnBytes is true)
     #>
@@ -233,17 +233,17 @@ function Unprotect-WmrData {
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$EncodedData,
-        
+
         [Parameter(Mandatory=$true)]
         [ValidateNotNull()]
         [SecureString]$Passphrase,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$ReturnBytes
     )
 
     Write-Verbose "Decrypting data using AES-256-CBC decryption"
-    
+
     try {
         # Decode the Base64 data
         try {
@@ -252,16 +252,16 @@ function Unprotect-WmrData {
         catch {
             throw "Decryption failed: Invalid Base64 data"
         }
-        
+
         # Extract salt (first 32 bytes), IV (next 16 bytes), and encrypted data (remainder)
         if ($combinedData.Length -lt 48) {  # 32 + 16 = minimum size
             throw "Decryption failed: Data too short"
         }
-        
+
         $salt = New-Object byte[] 32
         $iv = New-Object byte[] 16
         $encryptedBytes = New-Object byte[] ($combinedData.Length - 48)
-        
+
         [Array]::Copy($combinedData, 0, $salt, 0, 32)
         [Array]::Copy($combinedData, 32, $iv, 0, 16)
         [Array]::Copy($combinedData, 48, $encryptedBytes, 0, $encryptedBytes.Length)
@@ -291,9 +291,9 @@ function Unprotect-WmrData {
             if ($decryptor) { $decryptor.Dispose() }
             $aes.Dispose()
         }
-        
+
         Write-Verbose "Data successfully decrypted ($(($encryptedBytes.Length)) bytes -> $(($decryptedBytes.Length)) bytes)"
-        
+
         # Return as bytes or string based on ReturnBytes parameter
         if ($ReturnBytes) {
             return $decryptedBytes
@@ -316,13 +316,13 @@ function Test-WmrEncryption {
     <#
     .SYNOPSIS
     Tests the encryption/decryption functionality.
-    
+
     .DESCRIPTION
     Performs a round-trip test of the encryption and decryption functions.
-    
+
     .PARAMETER TestData
     Optional test data. If not provided, uses default test string.
-    
+
     .OUTPUTS
     Boolean indicating success or failure
     #>
@@ -330,29 +330,29 @@ function Test-WmrEncryption {
         [Parameter(Mandatory=$false)]
         [string]$TestData = "Windows Melody Recovery Encryption Test - $(Get-Date)"
     )
-    
+
     try {
         Write-Host "Testing AES-256 encryption/decryption..."
-        
+
         # Convert test data to bytes
         $originalBytes = [System.Text.Encoding]::UTF8.GetBytes($TestData)
         Write-Host "  Original data: $($originalBytes.Length) bytes"
-        
+
         # Create a test passphrase
         $testPassphrase = ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force
-        
+
         # Encrypt
         $encrypted = Protect-WmrData -Data $originalBytes -Passphrase $testPassphrase
         Write-Host "  Encrypted data: $($encrypted.Length) characters (Base64)"
-        
+
         # Clear cache to force re-derivation (simulates new session)
         Clear-WmrEncryptionCache
-        
+
         # Decrypt
         $decryptedBytes = Unprotect-WmrData -EncodedData $encrypted -Passphrase $testPassphrase
         $decryptedText = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
         Write-Host "  Decrypted data: $($decryptedBytes.Length) bytes"
-        
+
         # Verify
         $success = $decryptedText -eq $TestData
         if ($success) {
@@ -362,10 +362,10 @@ function Test-WmrEncryption {
             Write-Host "    Original: $TestData"
             Write-Host "    Decrypted: $decryptedText"
         }
-        
+
         # Clean up
         Clear-WmrEncryptionCache
-        
+
         return $success
     }
     catch {
@@ -376,4 +376,4 @@ function Test-WmrEncryption {
 }
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
-# Available functions: Protect-WmrData, Unprotect-WmrData, Get-WmrEncryptionKey, Clear-WmrEncryptionCache, Test-WmrEncryption 
+# Available functions: Protect-WmrData, Unprotect-WmrData, Get-WmrEncryptionKey, Clear-WmrEncryptionCache, Test-WmrEncryption

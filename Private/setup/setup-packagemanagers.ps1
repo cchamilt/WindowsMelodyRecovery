@@ -26,10 +26,10 @@ function Setup-PackageManagers {
                 Set-ExecutionPolicy Bypass -Scope Process -Force
                 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
                 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-                
+
                 # Refresh environment variables
                 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-                
+
                 Write-Host "Chocolatey installed successfully" -ForegroundColor Green
             } catch {
                 Write-Host "Failed to install Chocolatey: $($_.Exception.Message)" -ForegroundColor Red

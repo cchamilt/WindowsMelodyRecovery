@@ -16,12 +16,12 @@ function Setup-SteamGames {
 
     try {
         Write-Host "Setting up Steam games..." -ForegroundColor Blue
-        
+
         # Determine games list path
         if (!$GamesListPath) {
             $backupPath = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME "Applications"
             $backupGamesPath = Join-Path $backupPath "steam-applications.json"
-            
+
             if (Test-Path $backupGamesPath) {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.Steam) {
@@ -44,9 +44,9 @@ function Setup-SteamGames {
 
         Write-Host "Steam games setup completed!" -ForegroundColor Green
         return $true
-        
+
     } catch {
         Write-Host "Error setting up Steam games: $_" -ForegroundColor Red
         return $false
     }
-} 
+}

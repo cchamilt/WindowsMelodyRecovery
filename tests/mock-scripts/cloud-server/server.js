@@ -45,7 +45,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: {
         fileSize: 100 * 1024 * 1024 // 100MB limit
@@ -76,7 +76,7 @@ app.get('/health', (req, res) => {
 app.get('/api/:provider/status', (req, res) => {
     const provider = req.params.provider;
     const cloudPath = CLOUD_PATHS[provider];
-    
+
     if (!cloudPath || !fs.existsSync(cloudPath)) {
         return res.status(404).json({
             provider: provider,
@@ -84,11 +84,11 @@ app.get('/api/:provider/status', (req, res) => {
             error: 'Provider not found or path does not exist'
         });
     }
-    
+
     try {
         const stats = fs.statSync(cloudPath);
         const files = fs.readdirSync(cloudPath);
-        
+
         res.json({
             provider: provider,
             available: true,
@@ -112,22 +112,22 @@ app.get('/api/:provider/files', (req, res) => {
     const provider = req.params.provider;
     const cloudPath = CLOUD_PATHS[provider];
     const subPath = req.query.path || '';
-    
+
     if (!cloudPath) {
         return res.status(404).json({ error: 'Provider not found' });
     }
-    
+
     try {
         const fullPath = path.join(cloudPath, subPath);
-        
+
         if (!fs.existsSync(fullPath)) {
             return res.status(404).json({ error: 'Path not found' });
         }
-        
+
         const items = fs.readdirSync(fullPath).map(item => {
             const itemPath = path.join(fullPath, item);
             const stats = fs.statSync(itemPath);
-            
+
             return {
                 name: item,
                 path: path.join(subPath, item),
@@ -137,7 +137,7 @@ app.get('/api/:provider/files', (req, res) => {
                 modified: stats.mtime
             };
         });
-        
+
         res.json({
             provider: provider,
             path: subPath,
@@ -151,11 +151,11 @@ app.get('/api/:provider/files', (req, res) => {
 // Upload file to cloud storage
 app.post('/api/:provider/upload', upload.single('file'), (req, res) => {
     const provider = req.params.provider;
-    
+
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
-    
+
     try {
         res.json({
             provider: provider,
@@ -173,11 +173,11 @@ app.post('/api/:provider/upload', upload.single('file'), (req, res) => {
 // Upload multiple files
 app.post('/api/:provider/upload-multiple', upload.array('files', 10), (req, res) => {
     const provider = req.params.provider;
-    
+
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: 'No files uploaded' });
     }
-    
+
     try {
         const uploadedFiles = req.files.map(file => ({
             filename: file.filename,
@@ -185,7 +185,7 @@ app.post('/api/:provider/upload-multiple', upload.array('files', 10), (req, res)
             size: file.size,
             path: file.path
         }));
-        
+
         res.json({
             provider: provider,
             filesUploaded: uploadedFiles.length,
@@ -202,18 +202,18 @@ app.get('/api/:provider/download/:filename', (req, res) => {
     const provider = req.params.provider;
     const filename = req.params.filename;
     const cloudPath = CLOUD_PATHS[provider];
-    
+
     if (!cloudPath) {
         return res.status(404).json({ error: 'Provider not found' });
     }
-    
+
     try {
         const filePath = path.join(cloudPath, 'WindowsMelodyRecovery', filename);
-        
+
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
         }
-        
+
         res.download(filePath, filename);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -225,20 +225,20 @@ app.delete('/api/:provider/delete/:filename', (req, res) => {
     const provider = req.params.provider;
     const filename = req.params.filename;
     const cloudPath = CLOUD_PATHS[provider];
-    
+
     if (!cloudPath) {
         return res.status(404).json({ error: 'Provider not found' });
     }
-    
+
     try {
         const filePath = path.join(cloudPath, 'WindowsMelodyRecovery', filename);
-        
+
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
         }
-        
+
         fs.unlinkSync(filePath);
-        
+
         res.json({
             provider: provider,
             filename: filename,
@@ -255,19 +255,19 @@ app.post('/api/:provider/mkdir', (req, res) => {
     const provider = req.params.provider;
     const dirName = req.body.name;
     const cloudPath = CLOUD_PATHS[provider];
-    
+
     if (!cloudPath) {
         return res.status(404).json({ error: 'Provider not found' });
     }
-    
+
     if (!dirName) {
         return res.status(400).json({ error: 'Directory name required' });
     }
-    
+
     try {
         const dirPath = path.join(cloudPath, 'WindowsMelodyRecovery', dirName);
         fs.ensureDirSync(dirPath);
-        
+
         res.json({
             provider: provider,
             directory: dirName,
@@ -283,7 +283,7 @@ app.post('/api/:provider/mkdir', (req, res) => {
 // Sync status endpoint (simulates cloud sync)
 app.get('/api/:provider/sync-status', (req, res) => {
     const provider = req.params.provider;
-    
+
     // Simulate sync status
     const syncStatus = {
         provider: provider,
@@ -293,13 +293,13 @@ app.get('/api/:provider/sync-status', (req, res) => {
         syncedFiles: Math.floor(Math.random() * 100) + 50,
         errors: []
     };
-    
+
     // Randomly simulate sync issues for testing
     if (Math.random() < 0.1) {
         syncStatus.status = 'syncing';
         syncStatus.pendingFiles = Math.floor(Math.random() * 5) + 1;
     }
-    
+
     res.json(syncStatus);
 });
 
@@ -308,7 +308,7 @@ app.get('/api/:provider/backups', (req, res) => {
     const provider = req.params.provider;
     const cloudPath = CLOUD_PATHS[provider];
     const backupPath = path.join(cloudPath, 'WindowsMelodyRecovery');
-    
+
     try {
         if (!fs.existsSync(backupPath)) {
             return res.json({
@@ -316,7 +316,7 @@ app.get('/api/:provider/backups', (req, res) => {
                 backups: []
             });
         }
-        
+
         const backups = fs.readdirSync(backupPath)
             .filter(item => {
                 const itemPath = path.join(backupPath, item);
@@ -326,7 +326,7 @@ app.get('/api/:provider/backups', (req, res) => {
                 const backupDir = path.join(backupPath, backup);
                 const stats = fs.statSync(backupDir);
                 const files = fs.readdirSync(backupDir);
-                
+
                 return {
                     name: backup,
                     created: stats.birthtime,
@@ -343,7 +343,7 @@ app.get('/api/:provider/backups', (req, res) => {
                 };
             })
             .sort((a, b) => new Date(b.created) - new Date(a.created));
-        
+
         res.json({
             provider: provider,
             backups: backups
@@ -386,7 +386,7 @@ try {
         key: fs.readFileSync('/app/certs/key.pem'),
         cert: fs.readFileSync('/app/certs/cert.pem')
     };
-    
+
     const httpsServer = https.createServer(httpsOptions, app);
     httpsServer.listen(HTTPS_PORT, () => {
         console.log(`Cloud Mock Server (HTTPS) listening on port ${HTTPS_PORT}`);
@@ -410,4 +410,4 @@ process.on('SIGINT', () => {
         console.log('HTTP server closed');
         process.exit(0);
     });
-}); 
+});

@@ -51,7 +51,7 @@ function Test-WmrTemplateSchema {
     if (-not $TemplateConfig.metadata) {
         throw "Template schema validation failed: 'metadata' section is missing."
     }
-    
+
     if (-not $TemplateConfig.metadata.name) {
         throw "Template schema validation failed: 'metadata.name' is missing."
     }

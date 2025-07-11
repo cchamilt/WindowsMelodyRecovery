@@ -21,7 +21,7 @@ BeforeAll {
 
     # Import the module
     Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
-    
+
     # Load TemplateInheritance.ps1 content without Export-ModuleMember
     $templateInheritancePath = Join-Path (Split-Path (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1")) "Private\Core\TemplateInheritance.ps1"
     $templateInheritanceLines = Get-Content $templateInheritancePath
@@ -38,13 +38,13 @@ BeforeAll {
     }
     $templateInheritanceContent = $filteredLines -join "`n"
     Invoke-Expression $templateInheritanceContent
-    
+
     # Import test utilities
     . "$PSScriptRoot/../utilities/Test-Utilities.ps1"
-    
+
     # Test data directory
     $script:TestDataPath = Join-Path $PSScriptRoot "../mock-data"
-    
+
     # Create test template configurations
     $script:BasicTemplate = @{
         metadata = @{
@@ -62,7 +62,7 @@ BeforeAll {
             }
         )
     }
-    
+
     $script:InheritanceTemplate = @{
         metadata = @{
             name = "Inheritance Template"
@@ -184,7 +184,7 @@ BeforeAll {
             }
         )
     }
-    
+
     $script:TestMachineContext = @{
         MachineName = "TEST-MACHINE"
         UserName = "TestUser"
@@ -213,13 +213,13 @@ Describe "Template Inheritance Core Functions" {
         It "Should return default configuration when no template configuration exists" {
             $template = @{ metadata = @{ name = "Test" } }
             $result = Get-WmrInheritanceConfiguration -TemplateConfig $template
-            
+
             $result.inheritance_mode | Should -Be "merge"
             $result.machine_precedence | Should -Be $true
             $result.validation_level | Should -Be "moderate"
             $result.fallback_strategy | Should -Be "use_shared"
         }
-        
+
         It "Should merge template configuration with defaults" {
             $template = @{
                 metadata = @{ name = "Test" }
@@ -229,18 +229,18 @@ Describe "Template Inheritance Core Functions" {
                 }
             }
             $result = Get-WmrInheritanceConfiguration -TemplateConfig $template
-            
+
             $result.inheritance_mode | Should -Be "override"
             $result.machine_precedence | Should -Be $true  # Default
             $result.validation_level | Should -Be "strict"
             $result.fallback_strategy | Should -Be "use_shared"  # Default
         }
     }
-    
+
     Context "Get-WmrMachineContext" {
         It "Should collect basic machine context information" {
             $context = Get-WmrMachineContext
-            
+
             $context.MachineName | Should -Not -BeNullOrEmpty
             $context.UserName | Should -Not -BeNullOrEmpty
             $context.OSVersion | Should -Not -BeNullOrEmpty
@@ -248,10 +248,10 @@ Describe "Template Inheritance Core Functions" {
             $context.EnvironmentVariables | Should -Not -BeNull
             $context.Timestamp | Should -BeOfType [DateTime]
         }
-        
+
         It "Should include hardware and software information" {
             $context = Get-WmrMachineContext
-            
+
             $context.HardwareInfo | Should -Not -BeNull
             $context.SoftwareInfo | Should -Not -BeNull
             $context.SoftwareInfo.PowerShellVersion | Should -Not -BeNullOrEmpty
@@ -270,11 +270,11 @@ Describe "Machine Selector Testing" {
                     case_sensitive = $false
                 }
             )
-            
+
             $result = Test-WmrMachineSelectors -MachineSelectors $selectors -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
-        
+
         It "Should not match incorrect machine name" {
             $selectors = @(
                 @{
@@ -284,11 +284,11 @@ Describe "Machine Selector Testing" {
                     case_sensitive = $false
                 }
             )
-            
+
             $result = Test-WmrMachineSelectors -MachineSelectors $selectors -MachineContext $script:TestMachineContext
             $result | Should -Be $false
         }
-        
+
         It "Should match hostname pattern selector" {
             $selectors = @(
                 @{
@@ -298,11 +298,11 @@ Describe "Machine Selector Testing" {
                     case_sensitive = $false
                 }
             )
-            
+
             $result = Test-WmrMachineSelectors -MachineSelectors $selectors -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
-        
+
         It "Should match environment variable selector" {
             $selectors = @(
                 @{
@@ -313,28 +313,28 @@ Describe "Machine Selector Testing" {
                     case_sensitive = $false
                 }
             )
-            
+
             $result = Test-WmrMachineSelectors -MachineSelectors $selectors -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
     }
-    
+
     Context "Test-WmrStringComparison" {
         It "Should perform case-insensitive equals comparison" {
             $result = Test-WmrStringComparison -Value "TEST" -Expected "test" -Operator "equals" -CaseSensitive $false
             $result | Should -Be $true
         }
-        
+
         It "Should perform case-sensitive equals comparison" {
             $result = Test-WmrStringComparison -Value "TEST" -Expected "test" -Operator "equals" -CaseSensitive $true
             $result | Should -Be $false
         }
-        
+
         It "Should perform contains comparison" {
             $result = Test-WmrStringComparison -Value "TEST-MACHINE" -Expected "MACHINE" -Operator "contains" -CaseSensitive $false
             $result | Should -Be $true
         }
-        
+
         It "Should perform regex matches comparison" {
             $result = Test-WmrStringComparison -Value "TEST-MACHINE-01" -Expected "TEST-.*-\d+" -Operator "matches" -CaseSensitive $false
             $result | Should -Be $true
@@ -346,16 +346,16 @@ Describe "Configuration Merging" {
     Context "Get-WmrApplicableMachineConfigurations" {
         It "Should return configurations that match machine selectors" {
             $machineConfigs = $script:InheritanceTemplate.machine_specific
-            
+
             $result = Get-WmrApplicableMachineConfigurations -MachineSpecificConfigs $machineConfigs -MachineContext $script:TestMachineContext
-            
+
             # The function should return all applicable configurations
             $result.Count | Should -BeGreaterThan 0
             # Check that at least one configuration matches
             $testMachineConfig = $result | Where-Object { $_.name -eq "Test Machine Configuration" }
             $testMachineConfig | Should -Not -BeNull
         }
-        
+
         It "Should return configurations sorted by priority" {
             $machineConfigs = @(
                 @{
@@ -369,23 +369,23 @@ Describe "Configuration Merging" {
                     priority = 90
                 }
             )
-            
+
             $result = Get-WmrApplicableMachineConfigurations -MachineSpecificConfigs $machineConfigs -MachineContext $script:TestMachineContext
-            
+
             $result.Count | Should -Be 2
             $result[0].name | Should -Be "High Priority"
             $result[1].name | Should -Be "Low Priority"
         }
     }
-    
+
     Context "Merge-WmrSharedConfiguration" {
         It "Should merge shared configuration into resolved configuration" {
             $resolvedConfig = @{ metadata = @{ name = "Test" } }
             $sharedConfig = $script:InheritanceTemplate.shared
             $inheritanceConfig = @{ inheritance_mode = "merge"; machine_precedence = $true }
-            
+
             $result = Merge-WmrSharedConfiguration -ResolvedConfig $resolvedConfig -SharedConfig $sharedConfig -InheritanceConfig $inheritanceConfig
-            
+
             $result.files | Should -Not -BeNull
             $result.registry | Should -Not -BeNull
             $result.files.Count | Should -Be 1
@@ -394,7 +394,7 @@ Describe "Configuration Merging" {
             $result.registry[0].inheritance_source | Should -Be "shared"
         }
     }
-    
+
     Context "Merge-WmrMachineSpecificConfiguration" {
         It "Should merge machine-specific configuration with deep merge strategy" {
             $resolvedConfig = @{
@@ -408,16 +408,16 @@ Describe "Configuration Merging" {
                     }
                 )
             }
-            
+
             $machineConfig = $script:InheritanceTemplate.machine_specific[0]
             $inheritanceConfig = @{ inheritance_mode = "merge"; machine_precedence = $true }
-            
+
             $result = Merge-WmrMachineSpecificConfiguration -ResolvedConfig $resolvedConfig -MachineConfig $machineConfig -InheritanceConfig $inheritanceConfig
-            
+
             $result.files.Count | Should -Be 2  # Original + machine-specific
             $result.registry | Should -Not -BeNull  # Machine-specific registry should exist
             $result.registry.Count | Should -BeGreaterThan 0  # Should have at least some registry items
-            
+
             # Check that machine-specific items have correct inheritance metadata
             $machineFile = $result.files | Where-Object { $_.inheritance_source -eq "machine_specific" }
             $machineFile | Should -Not -BeNull
@@ -439,16 +439,16 @@ Describe "Inheritance Rules Application" {
                     }
                 )
             }
-            
+
             $inheritanceRules = $script:InheritanceTemplate.inheritance_rules
-            
+
             $result = Apply-WmrInheritanceRules -ResolvedConfig $resolvedConfig -InheritanceRules $inheritanceRules -MachineContext $script:TestMachineContext
-            
+
             $result.registry | Should -Not -BeNull
             $result.registry.Count | Should -BeGreaterThan 0  # Should have at least some registry items
         }
     }
-    
+
     Context "Test-WmrInheritanceRuleCondition" {
         It "Should return true when rule has no conditions" {
             $rule = @{
@@ -456,11 +456,11 @@ Describe "Inheritance Rules Application" {
                 applies_to = @("registry")
                 action = "merge"
             }
-            
+
             $result = Test-WmrInheritanceRuleCondition -Rule $rule -ResolvedConfig @{} -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
-        
+
         It "Should check inheritance tags condition" {
             $rule = @{
                 name = "Test Rule"
@@ -472,7 +472,7 @@ Describe "Inheritance Rules Application" {
                 }
                 action = "merge"
             }
-            
+
             $resolvedConfig = @{
                 registry = @(
                     @{
@@ -481,7 +481,7 @@ Describe "Inheritance Rules Application" {
                     }
                 )
             }
-            
+
             $result = Test-WmrInheritanceRuleCondition -Rule $rule -ResolvedConfig $resolvedConfig -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
@@ -493,16 +493,16 @@ Describe "Conditional Sections" {
         It "Should apply conditional sections when conditions are met" {
             $resolvedConfig = @{ metadata = @{ name = "Test" } }
             $conditionalSections = $script:InheritanceTemplate.conditional_sections
-            
+
             $result = Apply-WmrConditionalSections -ResolvedConfig $resolvedConfig -ConditionalSections $conditionalSections -MachineContext $script:TestMachineContext
-            
+
             $result.files | Should -Not -BeNull
             $result.files.Count | Should -Be 1
             $result.files[0].inheritance_source | Should -Be "conditional"
             $result.files[0].conditional_section | Should -Be "High Resolution Display"
         }
     }
-    
+
     Context "Test-WmrConditionalSectionConditions" {
         It "Should evaluate custom script conditions" {
             $conditionalSection = @{
@@ -517,11 +517,11 @@ Describe "Conditional Sections" {
                 )
                 logic = "and"
             }
-            
+
             $result = Test-WmrConditionalSectionConditions -ConditionalSection $conditionalSection -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
-        
+
         It "Should evaluate machine name conditions" {
             $conditionalSection = @{
                 name = "Test Section"
@@ -535,11 +535,11 @@ Describe "Conditional Sections" {
                 )
                 logic = "and"
             }
-            
+
             $result = Test-WmrConditionalSectionConditions -ConditionalSection $conditionalSection -MachineContext $script:TestMachineContext
             $result | Should -Be $true
         }
-        
+
         It "Should handle condition failures with skip action" {
             $conditionalSection = @{
                 name = "Test Section"
@@ -553,7 +553,7 @@ Describe "Conditional Sections" {
                 )
                 logic = "and"
             }
-            
+
             $result = Test-WmrConditionalSectionConditions -ConditionalSection $conditionalSection -MachineContext $script:TestMachineContext
             $result | Should -Be $false
         }
@@ -574,13 +574,13 @@ Describe "Configuration Validation" {
                     }
                 )
             }
-            
+
             $inheritanceConfig = @{ validation_level = "moderate" }
-            
+
             { Test-WmrResolvedConfiguration -ResolvedConfig $resolvedConfig -InheritanceConfig $inheritanceConfig } | Should -Not -Throw
         }
     }
-    
+
     Context "Test-WmrStrictConfigurationValidation" {
         It "Should detect duplicate names in strict validation" {
             $resolvedConfig = @{
@@ -589,17 +589,17 @@ Describe "Configuration Validation" {
                     @{ name = "Duplicate"; path = (Get-WmrTestPath -WindowsPath "C:\Test2\file.txt") }
                 )
             }
-            
+
             { Test-WmrStrictConfigurationValidation -ResolvedConfig $resolvedConfig } | Should -Throw "*Duplicate names found*"
         }
-        
+
         It "Should detect missing required properties" {
             $resolvedConfig = @{
                 files = @(
                     @{ path = (Get-WmrTestPath -WindowsPath "C:\Test\file.txt") }  # Missing name
                 )
             }
-            
+
             { Test-WmrStrictConfigurationValidation -ResolvedConfig $resolvedConfig } | Should -Throw "*Missing required 'name' property*"
         }
     }
@@ -609,44 +609,44 @@ Describe "Full Template Inheritance Resolution" {
     Context "Resolve-WmrTemplateInheritance" {
         It "Should resolve template inheritance for basic template without inheritance features" {
             $result = Resolve-WmrTemplateInheritance -TemplateConfig $script:BasicTemplate -MachineContext $script:TestMachineContext
-            
+
             $result.metadata.name | Should -Be "Basic Template"
             $result.files.Count | Should -Be 1
             $result.files[0].name | Should -Be "Basic File"
         }
-        
+
         It "Should resolve template inheritance for template with all inheritance features" {
             $result = Resolve-WmrTemplateInheritance -TemplateConfig $script:InheritanceTemplate -MachineContext $script:TestMachineContext
-            
+
             $result.metadata.name | Should -Be "Inheritance Template"
             $result.files | Should -Not -BeNull
             $result.registry | Should -Not -BeNull
-            
+
             # Should have shared + machine-specific + conditional files
             $result.files.Count | Should -BeGreaterOrEqual 2  # At least shared and machine-specific files
-            
+
             # Check inheritance sources - should have at least some files with inheritance metadata
             $filesWithInheritance = $result.files | Where-Object { $_.inheritance_source }
             $filesWithInheritance.Count | Should -BeGreaterThan 0
-            
+
             # Should have at least one file (could be shared, machine-specific, or conditional)
             $result.files.Count | Should -BeGreaterThan 0
         }
-        
+
         It "Should handle template with no applicable machine-specific configurations" {
             $template = $script:InheritanceTemplate | ConvertTo-Json -Depth 100 | ConvertFrom-Json
             $template.machine_specific[0].machine_selectors[0].value = "DIFFERENT-MACHINE"
-            
+
             $result = Resolve-WmrTemplateInheritance -TemplateConfig $template -MachineContext $script:TestMachineContext
-            
+
             # Should only have shared + conditional files (no machine-specific)
             $result.files.Count | Should -Be 2
-            
+
             $machineFile = $result.files | Where-Object { $_.inheritance_source -eq "machine_specific" }
             $machineFile | Should -BeNull
         }
     }
-    
+
     Context "Configuration Merging Edge Cases" {
         It "Should handle conflicting configurations with machine precedence" {
             $template = @{
@@ -680,9 +680,9 @@ Describe "Full Template Inheritance Resolution" {
                     }
                 )
             }
-            
+
             $result = Resolve-WmrTemplateInheritance -TemplateConfig $template -MachineContext $script:TestMachineContext
-            
+
             $result.files.Count | Should -BeGreaterThan 0  # Should have at least some files
             # Check that machine-specific configuration takes precedence
             $machineFile = $result.files | Where-Object { $_.inheritance_source -eq "machine_specific" }
@@ -696,5 +696,5 @@ AfterAll {
     if (Test-Path $script:TestDataPath) {
         # Clean up test data if needed
     }
-} 
+}
 

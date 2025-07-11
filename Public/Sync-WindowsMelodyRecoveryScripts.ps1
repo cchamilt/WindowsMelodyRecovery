@@ -3,19 +3,19 @@ function Sync-WindowsMelodyRecoveryScripts {
     param(
         [Parameter(Mandatory=$false)]
         [switch]$WhatIf,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$Force,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$NoPrompt
     )
 
     Write-Host "Syncing Scripts Configuration with Available Scripts..." -ForegroundColor Green
-    
+
     # Get current module root - handle cases where PSScriptRoot might be empty
     $moduleRoot = $null
-    
+
     # First, try to get the module path directly
     $moduleInfo = Get-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
     if ($moduleInfo) {
@@ -26,7 +26,7 @@ function Sync-WindowsMelodyRecoveryScripts {
         # Last resort: use current directory or workspace
         $moduleRoot = if (Test-Path "/workspace") { "/workspace" } else { Get-Location }
     }
-    
+
     # Additional fallback for test environments
     if (-not $moduleRoot -or -not (Test-Path $moduleRoot)) {
         # Try to find the module by looking for the .psm1 file
@@ -37,7 +37,7 @@ function Sync-WindowsMelodyRecoveryScripts {
             (Split-Path $PSCommandPath -Parent -ErrorAction SilentlyContinue),
             "/root/.local/share/powershell/Modules/WindowsMelodyRecovery"
         )
-        
+
         foreach ($path in $possiblePaths) {
             if ($path -and (Test-Path (Join-Path $path "WindowsMelodyRecovery.psm1"))) {
                 $moduleRoot = $path
@@ -45,16 +45,16 @@ function Sync-WindowsMelodyRecoveryScripts {
             }
         }
     }
-    
+
     # Validate module root
     if (-not $moduleRoot -or -not (Test-Path $moduleRoot)) {
         Write-Error "Could not determine module root path. Tried: $moduleRoot"
         return
     }
-    
+
     $configPath = Join-Path $moduleRoot "Config\scripts-config.json"
     $templatePath = Join-Path $moduleRoot "Templates\scripts-config.json"
-    
+
     # Load current configuration or template
     $currentConfig = $null
     if (Test-Path $configPath) {
@@ -67,32 +67,32 @@ function Sync-WindowsMelodyRecoveryScripts {
         Write-Error "No configuration template found"
         return
     }
-    
+
     # Scan for actual script files
     $categories = @('backup', 'restore', 'setup')
     $discoveredScripts = @{}
-    
+
     foreach ($category in $categories) {
         $categoryPath = Join-Path $moduleRoot "Private\$category"
         $discoveredScripts[$category] = @()
-        
+
         if (Test-Path $categoryPath) {
             $scripts = Get-ChildItem -Path $categoryPath -Filter "*.ps1" | Where-Object { $_.Name -ne 'template.ps1' }
-            
+
             foreach ($script in $scripts) {
                 # Try to extract function name from script content
                 $content = Get-Content $script.FullName -Raw
                 $functionMatch = [regex]::Match($content, 'function\s+([A-Za-z-]+)\s*{')
-                
+
                 if ($functionMatch.Success) {
                     $functionName = $functionMatch.Groups[1].Value
                     $scriptName = $functionName -replace "^(Backup|Restore|Setup)-", "" -replace "Settings$", " Settings"
-                    
+
                     # Try to find existing configuration for this script
-                    $existingScript = $currentConfig.$category.enabled | Where-Object { 
-                        $_.function -eq $functionName -or $_.script -eq $script.Name 
+                    $existingScript = $currentConfig.$category.enabled | Where-Object {
+                        $_.function -eq $functionName -or $_.script -eq $script.Name
                     }
-                    
+
                     $discoveredScript = @{
                         name = if ($existingScript) { $existingScript.name } else { $scriptName }
                         function = $functionName
@@ -102,9 +102,9 @@ function Sync-WindowsMelodyRecoveryScripts {
                         enabled = if ($existingScript) { $existingScript.enabled } else { $true }
                         required = if ($existingScript) { $existingScript.required } else { $false }
                     }
-                    
+
                     $discoveredScripts[$category] += $discoveredScript
-                    
+
                     if ($WhatIf) {
                         $status = if ($existingScript) { "EXISTS" } else { "NEW" }
                         Write-Host "  [$status] $category`: $($discoveredScript.name) -> $functionName" -ForegroundColor $(if ($existingScript) { 'Green' } else { 'Cyan' })
@@ -115,7 +115,7 @@ function Sync-WindowsMelodyRecoveryScripts {
             }
         }
     }
-    
+
     if ($WhatIf) {
         Write-Host "`nSummary:" -ForegroundColor Yellow
         foreach ($category in $categories) {
@@ -126,7 +126,7 @@ function Sync-WindowsMelodyRecoveryScripts {
         Write-Host "`nUse -Force to apply changes" -ForegroundColor Cyan
         return
     }
-    
+
     if (-not $Force -and -not $NoPrompt) {
         Write-Host "`nChanges to be made:" -ForegroundColor Yellow
         foreach ($category in $categories) {
@@ -134,33 +134,33 @@ function Sync-WindowsMelodyRecoveryScripts {
             $discovered = @($discoveredScripts[$category]).Count
             Write-Host "  $category`: $existing -> $discovered scripts" -ForegroundColor Gray
         }
-        
+
         $response = Read-Host "Apply these changes? (Y/N)"
         if ($response -ne 'Y') {
             Write-Host "Operation cancelled" -ForegroundColor Yellow
             return
         }
     }
-    
+
     # Update the configuration with discovered scripts
     foreach ($category in $categories) {
         $currentConfig.$category.enabled = $discoveredScripts[$category]
     }
-    
+
     # Save the updated configuration
     $configDir = Split-Path $configPath -Parent
     if (-not (Test-Path $configDir)) {
         New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     }
-    
+
     $currentConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Force
-    
+
     Write-Host "`nScripts configuration successfully synced!" -ForegroundColor Green
     Write-Host "Configuration saved to: $configPath" -ForegroundColor Cyan
-    
+
     # Show summary
     foreach ($category in $categories) {
         $count = @($discoveredScripts[$category]).Count
         Write-Host "  $category`: $count scripts configured" -ForegroundColor Gray
     }
-} 
+}

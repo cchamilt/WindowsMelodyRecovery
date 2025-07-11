@@ -7,7 +7,7 @@
 .DESCRIPTION
     Runs Windows-only tests that require native Windows environment and may require administrative privileges.
     This script is designed for Windows CI/CD environments and includes comprehensive safety checks.
-    
+
     Tests are organized into categories:
     - Unit tests: Windows-specific logic tests
     - Integration tests: Windows registry, services, and system integration
@@ -19,7 +19,7 @@
     Default: 'unit'
 
 .PARAMETER TestName
-    Specific test file to run (without .Tests.ps1 extension). 
+    Specific test file to run (without .Tests.ps1 extension).
 
 .PARAMETER OutputFormat
     Pester output format. Default is 'Detailed'.
@@ -127,18 +127,18 @@ try {
         Write-Host "✗ Test environment not found at: $testEnvPath" -ForegroundColor Red
         exit 1
     }
-    
+
     # Initialize test environment
     Initialize-TestEnvironment
-    
+
     # Import the module
     $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
     Import-Module $modulePath -Force
-    
+
     # Determine test paths
     $testPaths = @()
-    
+
     if ($Category -eq 'all') {
         $testPaths += Join-Path $PSScriptRoot ".." "windows-only" "unit"
         $testPaths += Join-Path $PSScriptRoot ".." "windows-only" "integration"
@@ -166,11 +166,11 @@ try {
             exit 1
         }
     }
-    
+
     # Run tests
     Write-Host "Executing Windows-only tests..." -ForegroundColor Cyan
     Write-Host "Test paths: $($testPaths -join ', ')" -ForegroundColor Gray
-    
+
     $pesterConfig = @{
         Run = @{
             Path = $testPaths
@@ -179,26 +179,26 @@ try {
             Verbosity = $OutputFormat
         }
     }
-    
+
     if ($GenerateReport) {
         $resultsDir = Join-Path $moduleRoot "test-results"
         if (-not (Test-Path $resultsDir)) {
             New-Item -Path $resultsDir -ItemType Directory -Force | Out-Null
         }
-        
+
         $pesterConfig.TestResult = @{
             Enabled = $true
             OutputPath = Join-Path $resultsDir "windows-only-test-results.xml"
         }
     }
-    
+
     $result = Invoke-Pester -Configuration $pesterConfig
-    
+
     # Cleanup
     if (-not $SkipCleanup) {
         Remove-TestEnvironment
     }
-    
+
     # Report results
     Write-Host "" -ForegroundColor White
     Write-Host "=== Windows-Only Test Results ===" -ForegroundColor Cyan
@@ -206,7 +206,7 @@ try {
     Write-Host "Tests Failed: $($result.FailedCount)" -ForegroundColor Red
     Write-Host "Tests Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
     Write-Host "Total Tests: $($result.TotalCount)" -ForegroundColor White
-    
+
     if ($result.FailedCount -gt 0) {
         Write-Host "✗ Some Windows-only tests failed" -ForegroundColor Red
         exit 1
@@ -214,7 +214,7 @@ try {
         Write-Host "✓ All Windows-only tests passed!" -ForegroundColor Green
         exit 0
     }
-    
+
 } catch {
     Write-Host "✗ Error running Windows-only tests: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Stack trace:" -ForegroundColor Red
@@ -223,4 +223,4 @@ try {
 }
 
 # Model: claude-3-5-sonnet-20241022
-# Confidence: 90% 
+# Confidence: 90%

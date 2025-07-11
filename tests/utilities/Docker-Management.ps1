@@ -16,7 +16,7 @@
 $script:DockerComposeFile = "docker-compose.test.yml"
 $script:ExpectedContainers = @(
     "wmr-windows-mock",
-    "wmr-wsl-mock", 
+    "wmr-wsl-mock",
     "wmr-cloud-mock",
     "wmr-test-runner",
     "wmr-gaming-mock",
@@ -35,7 +35,7 @@ function Test-DockerAvailable {
     [CmdletBinding()]
     [OutputType([bool])]
     param()
-    
+
     try {
         # Test Docker daemon
         $dockerVersion = docker --version 2>$null
@@ -43,18 +43,18 @@ function Test-DockerAvailable {
             Write-Warning "Docker is not available or not running"
             return $false
         }
-        
+
         # Test Docker Compose
         $composeVersion = docker compose version 2>$null
         if (-not $composeVersion) {
             Write-Warning "Docker Compose is not available"
             return $false
         }
-        
+
         Write-Verbose "Docker is available: $dockerVersion"
         Write-Verbose "Docker Compose is available: $composeVersion"
         return $true
-        
+
     } catch {
         Write-Warning "Failed to check Docker availability: $($_.Exception.Message)"
         return $false
@@ -73,9 +73,9 @@ function Get-ContainerStatus {
     [CmdletBinding()]
     [OutputType([hashtable])]
     param()
-    
+
     $containerStatus = @{}
-    
+
     try {
         foreach ($container in $script:ExpectedContainers) {
             try {
@@ -89,9 +89,9 @@ function Get-ContainerStatus {
                 $containerStatus[$container] = "error"
             }
         }
-        
+
         return $containerStatus
-        
+
     } catch {
         Write-Warning "Failed to get container status: $($_.Exception.Message)"
         return @{}
@@ -110,16 +110,16 @@ function Test-ContainersRunning {
     [CmdletBinding()]
     [OutputType([bool])]
     param()
-    
+
     $containerStatus = Get-ContainerStatus
-    
+
     foreach ($container in $script:ExpectedContainers) {
         if ($containerStatus[$container] -ne "running") {
             Write-Verbose "Container $container is not running (status: $($containerStatus[$container]))"
             return $false
         }
     }
-    
+
     Write-Verbose "All expected containers are running"
     return $true
 }
@@ -147,47 +147,47 @@ function Start-TestContainers {
         [switch]$NoBuild,
         [switch]$Clean
     )
-    
+
     Write-Host "🚀 Starting Docker test environment..." -ForegroundColor Yellow
-    
+
     try {
         # Ensure Docker is available
         if (-not (Test-DockerAvailable)) {
             Write-Error "Docker is not available. Please ensure Docker Desktop is installed and running."
             return $false
         }
-        
+
         # Clean up if requested
         if ($Clean) {
             Write-Host "🧹 Cleaning up existing containers..." -ForegroundColor Cyan
             Stop-TestContainers -Force
             Remove-TestContainers -Force
         }
-        
+
         # Check if containers are already running
         if ((Test-ContainersRunning) -and -not $ForceRebuild -and -not $Clean) {
             Write-Host "✓ All containers are already running" -ForegroundColor Green
             return $true
         }
-        
+
         # Build containers if needed
         if (-not $NoBuild) {
             Write-Host "🔨 Building Docker images..." -ForegroundColor Cyan
-            
+
             $buildArgs = @("-f", $script:DockerComposeFile, "build")
             if ($ForceRebuild) {
                 $buildArgs += "--no-cache"
             }
             $buildArgs += "--parallel"
-            
+
             $buildResult = docker compose $buildArgs 2>&1
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning "Docker compose build failed, trying individual service builds..."
-                
+
                 # Try building individual services
                 $services = @("windows-mock", "wsl-mock", "cloud-mock", "test-runner", "gaming-mock", "package-mock")
                 $failedBuilds = @()
-                
+
                 foreach ($service in $services) {
                     Write-Host "Building $service..." -ForegroundColor Gray
                     $serviceArgs = @("-f", $script:DockerComposeFile, "build")
@@ -195,7 +195,7 @@ function Start-TestContainers {
                         $serviceArgs += "--no-cache"
                     }
                     $serviceArgs += $service
-                    
+
                     docker compose $serviceArgs 2>&1 | Out-Null
                     if ($LASTEXITCODE -ne 0) {
                         $failedBuilds += $service
@@ -204,7 +204,7 @@ function Start-TestContainers {
                         Write-Host "✓ $service built successfully" -ForegroundColor Green
                     }
                 }
-                
+
                 if ($failedBuilds.Count -gt 0) {
                     Write-Error "Failed to build services: $($failedBuilds -join ', ')"
                     return $false
@@ -213,7 +213,7 @@ function Start-TestContainers {
                 Write-Host "✓ All Docker images built successfully" -ForegroundColor Green
             }
         }
-        
+
         # Start containers
         Write-Host "🚀 Starting containers..." -ForegroundColor Cyan
         $startResult = docker compose -f $script:DockerComposeFile up -d 2>&1
@@ -221,32 +221,32 @@ function Start-TestContainers {
             Write-Error "Failed to start containers: $startResult"
             return $false
         }
-        
+
         # Wait for containers to be ready
         Write-Host "⏳ Waiting for containers to be ready..." -ForegroundColor Cyan
         $maxWaitTime = 60 # seconds
         $waitInterval = 5 # seconds
         $elapsedTime = 0
-        
+
         while ($elapsedTime -lt $maxWaitTime) {
             Start-Sleep -Seconds $waitInterval
             $elapsedTime += $waitInterval
-            
+
             if (Test-ContainersRunning) {
                 Write-Host "✓ All containers are running" -ForegroundColor Green
                 break
             }
-            
+
             Write-Host "⏳ Still waiting for containers... ($elapsedTime/$maxWaitTime seconds)" -ForegroundColor Yellow
         }
-        
+
         # Final status check
         if (-not (Test-ContainersRunning)) {
             Write-Warning "Some containers failed to start properly"
             Show-ContainerStatus
             return $false
         }
-        
+
         # Test container connectivity
         Write-Host "🔍 Testing container connectivity..." -ForegroundColor Cyan
         if (Test-ContainerConnectivity) {
@@ -255,17 +255,17 @@ function Start-TestContainers {
             Write-Warning "Container connectivity test failed"
             return $false
         }
-        
+
         # Test cloud mock health (optional)
         if (Test-CloudMockHealth) {
             Write-Host "✓ Cloud mock server is healthy" -ForegroundColor Green
         } else {
             Write-Host "⚠ Cloud mock server health check failed (continuing anyway)" -ForegroundColor Yellow
         }
-        
+
         Write-Host "🎉 Docker test environment is ready!" -ForegroundColor Green
         return $true
-        
+
     } catch {
         Write-Error "Failed to start test containers: $($_.Exception.Message)"
         return $false
@@ -288,16 +288,16 @@ function Stop-TestContainers {
     param(
         [switch]$Force
     )
-    
+
     Write-Host "🛑 Stopping test containers..." -ForegroundColor Yellow
-    
+
     try {
         if ($Force) {
             docker compose -f $script:DockerComposeFile kill 2>&1 | Out-Null
         } else {
             docker compose -f $script:DockerComposeFile stop 2>&1 | Out-Null
         }
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✓ Containers stopped successfully" -ForegroundColor Green
             return $true
@@ -305,7 +305,7 @@ function Stop-TestContainers {
             Write-Warning "Failed to stop some containers"
             return $false
         }
-        
+
     } catch {
         Write-Error "Failed to stop containers: $($_.Exception.Message)"
         return $false
@@ -328,17 +328,17 @@ function Remove-TestContainers {
     param(
         [switch]$Force
     )
-    
+
     Write-Host "🗑️ Removing test containers and volumes..." -ForegroundColor Yellow
-    
+
     try {
         $removeArgs = @("-f", $script:DockerComposeFile, "down", "--volumes", "--remove-orphans")
         if ($Force) {
             $removeArgs += "--rmi", "local"
         }
-        
+
         docker compose $removeArgs 2>&1 | Out-Null
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✓ Containers and volumes removed successfully" -ForegroundColor Green
             return $true
@@ -346,7 +346,7 @@ function Remove-TestContainers {
             Write-Warning "Failed to remove some containers or volumes"
             return $false
         }
-        
+
     } catch {
         Write-Error "Failed to remove containers: $($_.Exception.Message)"
         return $false
@@ -365,7 +365,7 @@ function Test-ContainerConnectivity {
     [CmdletBinding()]
     [OutputType([bool])]
     param()
-    
+
     try {
         $testResult = docker exec wmr-test-runner pwsh -Command "Write-Host 'Container connectivity test passed'; exit 0" 2>&1
         if ($LASTEXITCODE -eq 0) {
@@ -374,7 +374,7 @@ function Test-ContainerConnectivity {
             Write-Warning "Container connectivity test failed: $testResult"
             return $false
         }
-        
+
     } catch {
         Write-Warning "Container connectivity test failed: $($_.Exception.Message)"
         return $false
@@ -393,7 +393,7 @@ function Test-CloudMockHealth {
     [CmdletBinding()]
     [OutputType([bool])]
     param()
-    
+
     try {
         $healthResponse = Invoke-RestMethod -Uri "http://localhost:3000/health" -TimeoutSec 10 -ErrorAction Stop
         if ($healthResponse.status -eq "healthy") {
@@ -402,7 +402,7 @@ function Test-CloudMockHealth {
             Write-Warning "Cloud mock server returned unhealthy status: $($healthResponse.status)"
             return $false
         }
-        
+
     } catch {
         Write-Warning "Cloud mock server health check failed: $($_.Exception.Message)"
         return $false
@@ -418,11 +418,11 @@ function Show-ContainerStatus {
     #>
     [CmdletBinding()]
     param()
-    
+
     Write-Host "`n📊 Container Status:" -ForegroundColor Cyan
-    
+
     $containerStatus = Get-ContainerStatus
-    
+
     foreach ($container in $script:ExpectedContainers) {
         $status = $containerStatus[$container]
         $color = switch ($status) {
@@ -432,10 +432,10 @@ function Show-ContainerStatus {
             "error" { "Red" }
             default { "Gray" }
         }
-        
+
         Write-Host "  $container : $status" -ForegroundColor $color
     }
-    
+
     Write-Host ""
 }
 
@@ -452,9 +452,9 @@ function Show-ContainerLogs {
     param(
         [int]$Lines = 20
     )
-    
+
     Write-Host "📝 Container Logs:" -ForegroundColor Cyan
-    
+
     foreach ($container in $script:ExpectedContainers) {
         Write-Host "`n--- $container logs (last $Lines lines) ---" -ForegroundColor Yellow
         docker logs $container --tail $Lines 2>&1 | ForEach-Object {
@@ -482,15 +482,15 @@ function Initialize-DockerEnvironment {
         [switch]$ForceRebuild,
         [switch]$Clean
     )
-    
+
     Write-Host "🏗️ Initializing Docker test environment..." -ForegroundColor Cyan
-    
+
     # Check Docker availability
     if (-not (Test-DockerAvailable)) {
         Write-Error "Docker is not available. Please install Docker Desktop and ensure it's running."
         return $false
     }
-    
+
     # Start containers
     $startResult = Start-TestContainers -ForceRebuild:$ForceRebuild -Clean:$Clean
     if (-not $startResult) {
@@ -498,10 +498,10 @@ function Initialize-DockerEnvironment {
         Show-ContainerStatus
         return $false
     }
-    
+
     # Show final status
     Show-ContainerStatus
-    
+
     Write-Host "✅ Docker test environment initialized successfully!" -ForegroundColor Green
     return $true
 }
@@ -518,15 +518,15 @@ function Reset-DockerEnvironment {
     [CmdletBinding()]
     [OutputType([bool])]
     param()
-    
+
     Write-Host "🔄 Resetting Docker test environment..." -ForegroundColor Cyan
-    
+
     # Stop containers
     Stop-TestContainers -Force
-    
+
     # Remove containers and volumes
     Remove-TestContainers -Force
-    
+
     # Start fresh
     return Initialize-DockerEnvironment -Clean
 }
@@ -537,7 +537,7 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
 } else {
     Export-ModuleMember -Function @(
         'Test-DockerAvailable',
-        'Get-ContainerStatus', 
+        'Get-ContainerStatus',
         'Test-ContainersRunning',
         'Start-TestContainers',
         'Stop-TestContainers',
@@ -549,4 +549,4 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
         'Initialize-DockerEnvironment',
         'Reset-DockerEnvironment'
     )
-} 
+}

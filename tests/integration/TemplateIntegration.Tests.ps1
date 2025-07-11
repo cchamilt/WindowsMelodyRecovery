@@ -10,7 +10,7 @@ Describe "Template Integration Tests" {
         } catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
-        
+
         # Define paths
         $script:ProjectPath = (Get-Item -Path $PSScriptRoot).Parent.Parent.FullName
         $script:InvokeTemplatePath = Join-Path $script:ProjectPath "Private\Core\InvokeWmrTemplate.ps1"
@@ -208,4 +208,4 @@ MyDummyApp           Test.DummyApp    9.9.9
             $originalDisplayTemplate | Set-Content -Path $script:DisplayTemplatePath -Encoding Utf8
         }
     }
-} 
+}

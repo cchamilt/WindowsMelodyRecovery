@@ -6,7 +6,7 @@ function Load-Environment {
         [Parameter(Mandatory=$false)]
         [string]$ConfigPath = $null
     )
-    
+
     # If no ConfigPath provided, try to use module's configuration
     if (-not $ConfigPath) {
         $moduleConfig = Get-WindowsMelodyRecovery
@@ -16,7 +16,7 @@ function Load-Environment {
             $script:MACHINE_NAME = $moduleConfig.MachineName
             $script:CLOUD_PROVIDER = $moduleConfig.CloudProvider
             $script:WINDOWS_MELODY_RECOVERY_PATH = $moduleConfig.WindowsMelodyRecoveryPath
-            
+
             Write-Verbose "Environment loaded from module configuration"
             return $true
         } else {
@@ -24,12 +24,12 @@ function Load-Environment {
             return $false
         }
     }
-    
+
     if (-not (Test-Path $ConfigPath)) {
         Write-Warning "Configuration file not found at: $ConfigPath"
         return $false
     }
-    
+
     try {
         $config = Get-Content $ConfigPath | ConvertFrom-StringData
         foreach ($key in $config.Keys) {
@@ -48,7 +48,7 @@ function Get-ConfigValue {
         [Parameter(Mandatory=$true)]
         [string]$Key
     )
-    
+
     return $script:Config[$Key]
 }
 
@@ -57,11 +57,11 @@ function Set-ConfigValue {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Key,
-        
+
         [Parameter(Mandatory=$true)]
         $Value
     )
-    
+
     $script:Config[$Key] = $Value
 }
 
@@ -92,22 +92,22 @@ function Get-ScriptsConfig {
         [ValidateSet('backup', 'restore', 'setup')]
         [string]$Category
     )
-    
+
     # Try to load from user's config directory first, then fall back to module template
     $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     $userConfigPath = Join-Path $moduleRoot "Config\scripts-config.json"
     $templateConfigPath = Join-Path $moduleRoot "Templates\scripts-config.json"
-    
+
     $configPath = if (Test-Path $userConfigPath) { $userConfigPath } else { $templateConfigPath }
-    
+
     if (-not (Test-Path $configPath)) {
         Write-Warning "Scripts configuration not found at: $configPath"
         return $null
     }
-    
+
     try {
         $config = Get-Content $configPath -Raw | ConvertFrom-Json
-        
+
         if ($Category) {
             return $config.$Category.enabled | Where-Object { $_.enabled -eq $true }
         } else {
@@ -124,18 +124,18 @@ function Set-ScriptsConfig {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Category,
-        
+
         [Parameter(Mandatory=$true)]
         [string]$ScriptName,
-        
+
         [Parameter(Mandatory=$true)]
         [bool]$Enabled
     )
-    
+
     $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     $userConfigPath = Join-Path $moduleRoot "Config\scripts-config.json"
     $templateConfigPath = Join-Path $moduleRoot "Templates\scripts-config.json"
-    
+
     # Copy template to user config if it doesn't exist
     if (-not (Test-Path $userConfigPath) -and (Test-Path $templateConfigPath)) {
         $configDir = Split-Path $userConfigPath -Parent
@@ -144,20 +144,20 @@ function Set-ScriptsConfig {
         }
         Copy-Item -Path $templateConfigPath -Destination $userConfigPath -Force
     }
-    
+
     if (-not (Test-Path $userConfigPath)) {
         Write-Error "Cannot create or find scripts configuration file"
         return $false
     }
-    
+
     try {
         $config = Get-Content $userConfigPath -Raw | ConvertFrom-Json
-        
+
         # Find and update the script
         $scriptConfig = $config.$Category.enabled | Where-Object { $_.name -eq $ScriptName -or $_.function -eq $ScriptName }
         if ($scriptConfig) {
             $scriptConfig.enabled = $Enabled
-            
+
             # Save the updated configuration
             $config | ConvertTo-Json -Depth 10 | Set-Content -Path $userConfigPath -Force
             Write-Verbose "Updated $ScriptName in $Category to enabled=$Enabled"
@@ -176,17 +176,17 @@ function Initialize-ModuleFromConfig {
     # Try to load configuration from the module's config directory
     $moduleRoot = Split-Path $PSScriptRoot -Parent
     $configFile = Join-Path $moduleRoot "Config\windows.env"
-    
+
     if (Test-Path $configFile) {
         try {
             $config = Get-Content $configFile | ConvertFrom-StringData
-            
+
             # Update module configuration from file
             if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
             if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
             if ($config.WINDOWS_MELODY_RECOVERY_PATH) { $script:Config.WindowsMelodyRecoveryPath = $config.WINDOWS_MELODY_RECOVERY_PATH }
             if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
-            
+
             $script:Config.IsInitialized = $true
             Write-Verbose "Module configuration loaded from: $configFile"
             return $true
@@ -195,7 +195,7 @@ function Initialize-ModuleFromConfig {
             return $false
         }
     }
-    
+
     return $false
 }
 
@@ -203,28 +203,28 @@ function Invoke-WSLScript {
     <#
     .SYNOPSIS
     Execute a bash script inside WSL from PowerShell
-    
+
     .DESCRIPTION
     Creates a temporary bash script and executes it inside WSL with proper error handling
-    
+
     .PARAMETER ScriptContent
     The bash script content to execute
-    
+
     .PARAMETER Distribution
     Specific WSL distribution to use (optional)
-    
+
     .PARAMETER AsRoot
     Run the script with sudo privileges
-    
+
     .PARAMETER WorkingDirectory
     Set working directory inside WSL
-    
+
     .PARAMETER PassThru
     Return the exit code and output
-    
+
     .EXAMPLE
     Invoke-WSLScript -ScriptContent "apt update && apt list --upgradable"
-    
+
     .EXAMPLE
     $script = @"
     #!/bin/bash
@@ -237,30 +237,30 @@ function Invoke-WSLScript {
     param(
         [Parameter(Mandatory=$true)]
         [string]$ScriptContent,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$Distribution,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$AsRoot,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$WorkingDirectory,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$PassThru
     )
-    
+
     # Check if WSL is available
     if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
         throw "WSL is not available on this system"
     }
-    
+
     try {
         # Create temporary script file
         $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
         $tempScript = Join-Path $tempPath "wsl-script-$(Get-Random).sh"
-        
+
         # Prepare script content with proper shebang and error handling
         $fullScript = @"
 #!/bin/bash
@@ -271,21 +271,21 @@ $(if ($WorkingDirectory) { "cd `"$WorkingDirectory`"" })
 
 $ScriptContent
 "@
-        
+
         # Write script with UTF-8 encoding without BOM
         $utf8NoBom = New-Object System.Text.UTF8Encoding $false
         [System.IO.File]::WriteAllText($tempScript, $fullScript, $utf8NoBom)
-        
+
         # Convert Windows path to WSL path
         $wslScriptPath = "/mnt/" + (($tempScript -replace '\\', '/') -replace ':', '').ToLower()
-        
+
         # Build WSL command
         $wslArgs = @()
         if ($Distribution) {
             $wslArgs += @("-d", $Distribution)
         }
         $wslArgs += @("--exec", "bash", "-c")
-        
+
         # Build bash command
         $bashCommand = "chmod +x '$wslScriptPath'"
         if ($AsRoot) {
@@ -294,15 +294,15 @@ $ScriptContent
             $bashCommand += " && '$wslScriptPath'"
         }
         $wslArgs += $bashCommand
-        
+
         Write-Verbose "Executing WSL command: wsl $($wslArgs -join ' ')"
-        
+
         if ($PassThru) {
             # Capture output and exit code
             $process = Start-Process -FilePath "wsl" -ArgumentList $wslArgs -Wait -PassThru -NoNewWindow -RedirectStandardOutput -RedirectStandardError
             $output = $process.StandardOutput.ReadToEnd()
             $errorOutput = $process.StandardError.ReadToEnd()
-            
+
             return @{
                 ExitCode = $process.ExitCode
                 Output = $output
@@ -316,7 +316,7 @@ $ScriptContent
                 throw "WSL script execution failed with exit code $LASTEXITCODE"
             }
         }
-        
+
     } finally {
         # Cleanup temporary script
         if (Test-Path $tempScript) {
@@ -329,13 +329,13 @@ function Sync-WSLPackages {
     <#
     .SYNOPSIS
     Sync WSL package lists to OneDrive backup
-    
+
     .DESCRIPTION
     Exports APT, NPM, and PIP package lists from WSL to OneDrive for backup
-    
+
     .PARAMETER BackupPath
     Override the default backup path
-    
+
     .EXAMPLE
     Sync-WSLPackages
     #>
@@ -344,7 +344,7 @@ function Sync-WSLPackages {
         [Parameter(Mandatory=$false)]
         [string]$BackupPath
     )
-    
+
     if (!$BackupPath) {
         $config = Get-WindowsMelodyRecovery
         if ($config.CloudProvider -eq "OneDrive") {
@@ -353,7 +353,7 @@ function Sync-WSLPackages {
             $BackupPath = "$env:USERPROFILE\WSL-Packages"
         }
     }
-    
+
     $packageSyncScript = @"
 #!/bin/bash
 set -e
@@ -394,13 +394,13 @@ function Sync-WSLHome {
     <#
     .SYNOPSIS
     Sync WSL home directory to backup location
-    
+
     .DESCRIPTION
     Uses rsync to backup WSL home directory with exclusions for large/temporary files
-    
+
     .PARAMETER ExcludePatterns
     Additional patterns to exclude from sync
-    
+
     .EXAMPLE
     Sync-WSLHome -ExcludePatterns @('*.log', 'temp/*')
     #>
@@ -409,7 +409,7 @@ function Sync-WSLHome {
         [Parameter(Mandatory=$false)]
         [string[]]$ExcludePatterns = @()
     )
-    
+
     $defaultExcludes = @(
         'work/*/repos',
         '.cache',
@@ -419,10 +419,10 @@ function Sync-WSLHome {
         '*.log',
         '.vscode-server'
     )
-    
+
     $allExcludes = $defaultExcludes + $ExcludePatterns
     $excludeArgs = ($allExcludes | ForEach-Object { "--exclude '$_'" }) -join ' '
-    
+
     $homeSyncScript = @"
 #!/bin/bash
 set -e
@@ -453,13 +453,13 @@ function Test-WSLRepositories {
     <#
     .SYNOPSIS
     Check git repositories in WSL for uncommitted changes
-    
+
     .DESCRIPTION
     Scans work directories for git repositories and reports status
-    
+
     .PARAMETER WorkDirectory
     Base directory to scan for repositories
-    
+
     .EXAMPLE
     Test-WSLRepositories -WorkDirectory "/home/user/projects"
     #>
@@ -468,7 +468,7 @@ function Test-WSLRepositories {
         [Parameter(Mandatory=$false)]
         [string]$WorkDirectory = "/home/\$(whoami)/work/repos"
     )
-    
+
     $repoCheckScript = @'
 #!/bin/bash
 set -e
@@ -488,19 +488,19 @@ find "$WORK_DIR" -name ".git" -type d | while read gitdir; do
     repo_dir=$(dirname "$gitdir")
     repo_name=$(basename "$repo_dir")
     echo "Checking: $repo_name"
-    
+
     cd "$repo_dir"
-    
+
     # Check for uncommitted changes
     if ! git diff --quiet; then
         echo "  ⚠️  Uncommitted changes found"
     fi
-    
+
     # Check for untracked files
     if [ -n "$(git ls-files --others --exclude-standard)" ]; then
         echo "  ⚠️  Untracked files found"
     fi
-    
+
     # Check if ahead/behind remote
     if git remote -v | grep -q origin; then
         git fetch origin 2>/dev/null || true
@@ -508,13 +508,13 @@ find "$WORK_DIR" -name ".git" -type d | while read gitdir; do
         if [ -n "$current_branch" ]; then
             local_commit=$(git rev-parse HEAD)
             remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null || echo "")
-            
+
             if [ "$local_commit" != "$remote_commit" ] && [ -n "$remote_commit" ]; then
                 echo "  ⚠️  Out of sync with remote"
             fi
         fi
     fi
-    
+
     echo "  ✅ $repo_name checked"
 done
 
@@ -534,16 +534,16 @@ function Setup-WSLChezmoi {
     <#
     .SYNOPSIS
     Install and configure chezmoi for dotfile management in WSL
-    
+
     .DESCRIPTION
     Installs chezmoi in WSL and optionally initializes it with a git repository
-    
+
     .PARAMETER GitRepository
     Git repository URL for dotfiles (optional)
-    
+
     .PARAMETER InitializeRepo
     Whether to initialize chezmoi with the repository
-    
+
     .EXAMPLE
     Setup-WSLChezmoi -GitRepository "https://github.com/username/dotfiles.git" -InitializeRepo
     #>
@@ -551,16 +551,16 @@ function Setup-WSLChezmoi {
     param(
         [Parameter(Mandatory=$false)]
         [string]$GitRepository,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$InitializeRepo
     )
-    
+
     # Check if WSL is available
     if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
         throw "WSL is not available on this system"
     }
-    
+
     try {
         $chezmoiSetupScript = @'
 #!/bin/bash
@@ -574,37 +574,37 @@ if command -v chezmoi &> /dev/null; then
     chezmoi --version
 else
     echo "📦 Installing chezmoi..."
-    
+
     # Install chezmoi using the official installer
     sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/bin"
-    
+
     # Add to PATH if not already there
     if ! grep -q 'export PATH="$HOME/bin:$PATH"' ~/.bashrc; then
         echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
         export PATH="$HOME/bin:$PATH"
     fi
-    
+
     echo "✅ chezmoi installed successfully"
 fi
 
 # Initialize chezmoi if requested and repository provided
 if [ -n "$GitRepository" ] && [ "$InitializeRepo" = "True" ]; then
     echo "🔧 Initializing chezmoi with repository: $GitRepository"
-    
+
     if [ ! -d "$HOME/.local/share/chezmoi" ]; then
         chezmoi init "$GitRepository"
         echo "✅ chezmoi initialized with repository"
     else
         echo "ℹ️  chezmoi already initialized"
     fi
-    
+
     # Apply dotfiles
     echo "📋 Applying dotfiles..."
     chezmoi apply
     echo "✅ Dotfiles applied"
 else
     echo "🔧 Initializing empty chezmoi repository..."
-    
+
     if [ ! -d "$HOME/.local/share/chezmoi" ]; then
         chezmoi init
         echo "✅ chezmoi initialized (empty repository)"
@@ -652,12 +652,12 @@ echo "  cm, cma, cme, cms, cmd, cmu, cmcd"
         $params = @{
             ScriptContent = $chezmoiSetupScript
         }
-        
+
         Invoke-WSLScript @params
-        
+
         Write-Host "✅ chezmoi setup completed in WSL" -ForegroundColor Green
         return $true
-        
+
     } catch {
         Write-Host "❌ Failed to setup chezmoi in WSL: $($_.Exception.Message)" -ForegroundColor Red
         return $false
@@ -668,13 +668,13 @@ function Backup-WSLChezmoi {
     <#
     .SYNOPSIS
     Backup chezmoi configuration and dotfiles from WSL
-    
+
     .DESCRIPTION
     Backs up chezmoi source directory and configuration to Windows
-    
+
     .PARAMETER BackupPath
     Path to backup chezmoi data
-    
+
     .EXAMPLE
     Backup-WSLChezmoi -BackupPath "C:\Backup\chezmoi"
     #>
@@ -683,18 +683,18 @@ function Backup-WSLChezmoi {
         [Parameter(Mandatory=$true)]
         [string]$BackupPath
     )
-    
+
     # Check if WSL is available
     if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
         Write-Host "WSL is not available on this system" -ForegroundColor Yellow
         return $false
     }
-    
+
     try {
         # Convert Windows path to WSL path
         $chezmoiBackupPath = $BackupPath + "/chezmoi"
         $chezmoiBackupPathLinux = $chezmoiBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
-        
+
         $chezmoiBackupScript = @'
 #!/bin/bash
 set -e
@@ -753,7 +753,7 @@ echo "✅ chezmoi backup completed!"
         Invoke-WSLScript -ScriptContent $chezmoiBackupScript
         Write-Host "✅ chezmoi backup completed" -ForegroundColor Green
         return $true
-        
+
     } catch {
         Write-Host "❌ Failed to backup chezmoi: $($_.Exception.Message)" -ForegroundColor Red
         return $false
@@ -764,13 +764,13 @@ function Restore-WSLChezmoi {
     <#
     .SYNOPSIS
     Restore chezmoi configuration and dotfiles to WSL
-    
+
     .DESCRIPTION
     Restores chezmoi source directory and configuration from Windows backup
-    
+
     .PARAMETER BackupPath
     Path to restore chezmoi data from
-    
+
     .EXAMPLE
     Restore-WSLChezmoi -BackupPath "C:\Backup\chezmoi"
     #>
@@ -779,18 +779,18 @@ function Restore-WSLChezmoi {
         [Parameter(Mandatory=$true)]
         [string]$BackupPath
     )
-    
+
     # Check if WSL is available
     if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
         Write-Host "WSL is not available on this system" -ForegroundColor Yellow
         return $false
     }
-    
+
     try {
         # Convert Windows path to WSL path
         $chezmoiBackupPath = $BackupPath + "/chezmoi"
         $chezmoiBackupPathLinux = $chezmoiBackupPath -replace '\\', '/' -replace 'C:', '/mnt/c'
-        
+
         $chezmoiRestoreScript = @'
 #!/bin/bash
 set -e
@@ -809,7 +809,7 @@ fi
 if ! command -v chezmoi &> /dev/null; then
     echo "📦 Installing chezmoi..."
     sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/bin"
-    
+
     # Add to PATH
     if ! grep -q 'export PATH="$HOME/bin:$PATH"' ~/.bashrc; then
         echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
@@ -854,7 +854,7 @@ echo "✅ chezmoi restore completed!"
         Invoke-WSLScript -ScriptContent $chezmoiRestoreScript
         Write-Host "✅ chezmoi restore completed" -ForegroundColor Green
         return $true
-        
+
     } catch {
         Write-Host "❌ Failed to restore chezmoi: $($_.Exception.Message)" -ForegroundColor Red
         return $false

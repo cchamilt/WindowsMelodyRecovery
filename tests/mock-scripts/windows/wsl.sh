@@ -26,14 +26,14 @@ check_wsl_container() {
 exec_in_wsl() {
     local cmd="$1"
     local user="${2:-$WSL_USER}"
-    
+
     log_debug "Executing command in WSL container: '$cmd' as user '$user'"
-    
+
     # Check if container is running
     if ! check_wsl_container; then
         return 1
     fi
-    
+
     # Execute command with proper error handling
     if [ "$user" = "root" ]; then
         log_debug "Running as root: docker exec $WSL_CONTAINER bash -c '$cmd'"
@@ -44,7 +44,7 @@ exec_in_wsl() {
         docker exec -u "$user" "$WSL_CONTAINER" bash -c "$cmd"
         local exit_code=$?
     fi
-    
+
     log_debug "Command completed with exit code: $exit_code"
     return $exit_code
 }
@@ -52,11 +52,11 @@ exec_in_wsl() {
 # Function to test container connectivity
 test_connectivity() {
     log_debug "Testing connectivity to WSL container..."
-    
+
     if ! check_wsl_container; then
         return 1
     fi
-    
+
     # Test basic connectivity
     if docker exec "$WSL_CONTAINER" echo "connectivity test" >/dev/null 2>&1; then
         log_debug "Basic connectivity test passed"
@@ -108,7 +108,7 @@ while [[ $# -gt 0 ]]; do
             log_debug "Handling --distribution command with distro: $2"
             DISTRO="$2"
             shift 2
-            
+
             if [ "$1" = "--" ]; then
                 shift
                 # Execute the remaining command in WSL container
@@ -241,4 +241,4 @@ EOF
 done
 
 # If we get here with no arguments, start interactive session
-docker exec -it -u "$WSL_USER" "$WSL_CONTAINER" bash 
+docker exec -it -u "$WSL_USER" "$WSL_CONTAINER" bash

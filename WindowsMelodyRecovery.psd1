@@ -10,24 +10,24 @@
     DotNetFrameworkVersion = '4.7.2'
     CLRVersion = '4.0.30319'
     ProcessorArchitecture = 'Amd64'
-    
+
     # Module dependencies
     RequiredModules = @()
-    
+
     # Required assemblies
     RequiredAssemblies = @()
-    
+
     # Script files to process as modules
     ScriptsToProcess = @(
         'Private\Core\WindowsMelodyRecovery.Core.ps1'
     )
-    
+
     # Types to process
     TypesToProcess = @()
-    
+
     # Format files
     FormatsToProcess = @()
-    
+
     # Functions to export
     FunctionsToExport = @(
         # Core functions
@@ -35,13 +35,13 @@
         'Set-WindowsMelodyRecovery',
         'Initialize-WindowsMelodyRecovery',
         'Test-WindowsMelodyRecovery',
-        
+
         # Status and initialization functions
         'Get-WindowsMelodyRecoveryStatus',
         'Show-WindowsMelodyRecoveryStatus',
         'Initialize-WindowsMelodyRecoveryModule',
         'Get-ModuleInitializationStatus',
-        
+
         # Backup functions
         'Backup-WindowsMelodyRecovery',
         'Backup-SystemSettings',
@@ -49,7 +49,7 @@
         'Backup-GamingPlatforms',
         'Backup-WSL',
         'Backup-CloudIntegration',
-        
+
         # Restore functions
         'Restore-WindowsMelodyRecovery',
         'Restore-SystemSettings',
@@ -57,51 +57,51 @@
         'Restore-GamingPlatforms',
         'Restore-WSL',
         'Restore-CloudIntegration',
-        
+
         # Setup functions
         'Setup-WindowsMelodyRecovery',
         'Setup-WSL',
         'Setup-GamingPlatforms',
         'Setup-CloudIntegration',
-        
+
         # Management functions
         'Update-WindowsMelodyRecovery',
         'Convert-ToWinget',
         'Set-WindowsMelodyRecoveryScripts',
         'Sync-WindowsMelodyRecoveryScripts',
-        
+
         # Task management
         'Install-WindowsMelodyRecoveryTasks',
         'Remove-WindowsMelodyRecoveryTasks',
-        
+
         # Utility functions
         'Import-PrivateScripts',
         'Convert-WmrPath',
-        
+
         # Encryption functions
         'Protect-WmrData',
         'Unprotect-WmrData',
         'Get-WmrEncryptionKey',
         'Clear-WmrEncryptionCache',
-        
+
         # Core state management functions
         'Get-WmrRegistryState',
         'Get-WmrFileState',
         'Invoke-WmrTemplate',
-        
+
         # Template functions
         'Read-WmrTemplateConfig',
         'Test-WmrTemplateSchema'
     )
-    
+
     # Cmdlets to export
     CmdletsToExport = @()
-    
+
     # Variables to export
     VariablesToExport = @(
         'WindowsMelodyRecoveryConfig'
     )
-    
+
     # Aliases to export
     AliasesToExport = @(
         'wmr-init',
@@ -111,7 +111,7 @@
         'wmr-test',
         'wmr-status'
     )
-    
+
     # Module-specific data
     PrivateData = @{
         PSData = @{
@@ -156,7 +156,7 @@
             ExternalModuleDependencies = @()
         }
     }
-    
+
     # Help info URI
     HelpInfoUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery/wiki'
-} 
+}

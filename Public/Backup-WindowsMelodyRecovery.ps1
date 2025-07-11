@@ -2,23 +2,23 @@ function Backup-WindowsMelodyRecovery {
     <#
     .SYNOPSIS
         Backs up Windows system configuration and applications using templates.
-    
+
     .DESCRIPTION
         Performs a comprehensive backup of Windows system settings, applications, and configurations
         using the Windows Melody Recovery template system.
-    
+
     .PARAMETER TemplatePath
         Specific template to run. Use "ALL" to run all templates.
-    
+
     .PARAMETER BackupRoot
         Override the default backup root path.
-    
+
     .EXAMPLE
         Backup-WindowsMelodyRecovery
-        
+
     .EXAMPLE
         Backup-WindowsMelodyRecovery -TemplatePath "ALL"
-        
+
     .EXAMPLE
         Backup-WindowsMelodyRecovery -TemplatePath "applications.yaml"
     #>
@@ -26,7 +26,7 @@ function Backup-WindowsMelodyRecovery {
     param(
         [Parameter(Mandatory=$false)]
         [string]$TemplatePath,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$BackupRoot
     )
@@ -65,28 +65,28 @@ function Backup-WindowsMelodyRecovery {
                 # Run all templates
                 $templateDir = Join-Path $PSScriptRoot "..\Templates\System"
                 $templateFiles = Get-ChildItem -Path $templateDir -Filter "*.yaml" -ErrorAction SilentlyContinue
-                
+
                 if (-not $templateFiles) {
                     throw "No template files found in $templateDir"
                 }
-                
+
                 $totalTemplates = $templateFiles.Count
                 $successfulTemplates = 0
-                
+
                 Write-Host "Processing $totalTemplates templates..." -ForegroundColor Blue
-                
+
                 foreach ($templateFile in $templateFiles) {
                     try {
                         Write-Host "Processing template: $($templateFile.Name)" -ForegroundColor Cyan
-                        
+
                         # Create component-specific backup directory
                         $componentName = $templateFile.BaseName
                         $componentBackupDir = Join-Path $MACHINE_BACKUP $componentName
-                        
+
                         if (-not (Test-Path $componentBackupDir)) {
                             New-Item -ItemType Directory -Path $componentBackupDir -Force | Out-Null
                         }
-                        
+
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
                         Write-Host "Template completed: $($templateFile.Name)" -ForegroundColor Green
@@ -94,7 +94,7 @@ function Backup-WindowsMelodyRecovery {
                         Write-Host "Template failed: $($templateFile.Name) - $($_.Exception.Message)" -ForegroundColor Red
                     }
                 }
-                
+
                 Write-Host "Template backup completed: $successfulTemplates/$totalTemplates successful" -ForegroundColor Green
                 return @{
                     Success = $successfulTemplates -gt 0
@@ -105,27 +105,27 @@ function Backup-WindowsMelodyRecovery {
                 }
             } else {
                 # Run single template
-                $templateFullPath = if (Test-Path $TemplatePath) { 
-                    $TemplatePath 
-                } else { 
+                $templateFullPath = if (Test-Path $TemplatePath) {
+                    $TemplatePath
+                } else {
                     Join-Path $PSScriptRoot "..\Templates\System\$TemplatePath"
                 }
-                
+
                 if (-not (Test-Path $templateFullPath)) {
                     throw "Template file not found: $templateFullPath"
                 }
-                
+
                 # Create component-specific backup directory
                 $templateName = (Get-Item $templateFullPath).BaseName
                 $componentBackupDir = Join-Path $MACHINE_BACKUP $templateName
-                
+
                 if (-not (Test-Path $componentBackupDir)) {
                     New-Item -ItemType Directory -Path $componentBackupDir -Force | Out-Null
                 }
 
                 Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Backup" -StateFilesDirectory $componentBackupDir
                 Write-Host "Template backup completed successfully" -ForegroundColor Green
-                
+
                 return @{
                     Success = $true
                     BackupCount = 1
@@ -138,24 +138,24 @@ function Backup-WindowsMelodyRecovery {
             # Default template backup
             $templateDir = Join-Path $PSScriptRoot "..\Templates\System"
             $templateFiles = Get-ChildItem -Path $templateDir -Filter "*.yaml" -ErrorAction SilentlyContinue
-            
+
             if ($templateFiles) {
                 $totalTemplates = $templateFiles.Count
                 $successfulTemplates = 0
-                
+
                 Write-Host "Processing $totalTemplates templates..." -ForegroundColor Blue
-                
+
                 foreach ($templateFile in $templateFiles) {
                     try {
                         Write-Host "Processing: $($templateFile.Name)" -ForegroundColor Cyan
-                        
+
                         $componentName = $templateFile.BaseName
                         $componentBackupDir = Join-Path $MACHINE_BACKUP $componentName
-                        
+
                         if (-not (Test-Path $componentBackupDir)) {
                             New-Item -ItemType Directory -Path $componentBackupDir -Force | Out-Null
                         }
-                        
+
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
                         Write-Host "Completed: $($templateFile.Name)" -ForegroundColor Green
@@ -163,7 +163,7 @@ function Backup-WindowsMelodyRecovery {
                         Write-Host "Failed: $($templateFile.Name)" -ForegroundColor Red
                     }
                 }
-                
+
                 Write-Host "Backup completed: $successfulTemplates templates processed" -ForegroundColor Green
                 return @{
                     Success = $successfulTemplates -gt 0
@@ -173,17 +173,17 @@ function Backup-WindowsMelodyRecovery {
                 }
             } else {
                 Write-Host "No templates found, using script-based backup" -ForegroundColor Yellow
-                
+
                 # Fallback to script-based backup
                 Import-PrivateScripts -Category 'backup'
-                
+
                 $backupFunctions = Get-ScriptsConfig -Category 'backup'
                 if (-not $backupFunctions) {
                     $backupFunctions = @(
                         @{ name = "Applications"; function = "Backup-Applications"; enabled = $true }
                     )
                 }
-                
+
                 $availableBackups = 0
                 foreach ($backup in $backupFunctions) {
                     if (Get-Command $backup.function -ErrorAction SilentlyContinue) {
@@ -201,7 +201,7 @@ function Backup-WindowsMelodyRecovery {
                         }
                     }
                 }
-                
+
                 Write-Host "Script backup completed: $availableBackups functions executed" -ForegroundColor Green
                 return @{
                     Success = $availableBackups -gt 0

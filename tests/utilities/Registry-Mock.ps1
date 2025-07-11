@@ -16,7 +16,7 @@ function Initialize-MockRegistry {
     .SYNOPSIS
     Initializes the mock registry with default test data
     #>
-    
+
     $script:MockRegistry = @{
         'HKCU:\SOFTWARE\WmrRegTest' = @{
             'TestValue' = 'OriginalData'
@@ -34,7 +34,7 @@ function Initialize-MockRegistry {
             'ResolutionWidth' = '768'
         }
     }
-    
+
     Write-Verbose "Mock registry initialized with test data"
 }
 
@@ -47,19 +47,19 @@ function Get-MockItemProperty {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$Name
     )
-    
+
     # Initialize mock registry if not already done
     if (-not $script:MockRegistry) {
         Initialize-MockRegistry
     }
-    
+
     # Normalize the path
     $normalizedPath = $Path -replace '/', '\'
-    
+
     # Check if the registry key exists
     if (-not $script:MockRegistry.ContainsKey($normalizedPath)) {
         $errorMessage = "Registry key not found: $Path"
@@ -70,9 +70,9 @@ function Get-MockItemProperty {
             return $null
         }
     }
-    
+
     $keyData = $script:MockRegistry[$normalizedPath]
-    
+
     if ($Name) {
         # Return specific value
         if ($keyData.ContainsKey($Name)) {
@@ -105,33 +105,33 @@ function Set-MockItemProperty {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $true)]
         [string]$Name,
-        
+
         [Parameter(Mandatory = $true)]
         [object]$Value,
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$Force
     )
-    
+
     # Initialize mock registry if not already done
     if (-not $script:MockRegistry) {
         Initialize-MockRegistry
     }
-    
+
     # Normalize the path
     $normalizedPath = $Path -replace '/', '\'
-    
+
     # Create the key if it doesn't exist
     if (-not $script:MockRegistry.ContainsKey($normalizedPath)) {
         $script:MockRegistry[$normalizedPath] = @{}
     }
-    
+
     # Set the value
     $script:MockRegistry[$normalizedPath][$Name] = $Value
-    
+
     Write-Verbose "Mock registry: Set $normalizedPath\$Name = $Value"
     return $true
 }
@@ -145,21 +145,21 @@ function Test-MockPath {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$PathType
     )
-    
+
     # For registry paths, check mock registry
     if ($Path -match '^HK(CU|LM|CR|U|CC):') {
         if (-not $script:MockRegistry) {
             Initialize-MockRegistry
         }
-        
+
         $normalizedPath = $Path -replace '/', '\'
         return $script:MockRegistry.ContainsKey($normalizedPath)
     }
-    
+
     # For file system paths, use actual Test-Path
     return (& (Get-Command Test-Path -CommandType Cmdlet) @PSBoundParameters)
 }
@@ -173,29 +173,29 @@ function New-MockItem {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ItemType,
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$Force
     )
-    
+
     # For registry paths, add to mock registry
     if ($Path -match '^HK(CU|LM|CR|U|CC):') {
         if (-not $script:MockRegistry) {
             Initialize-MockRegistry
         }
-        
+
         $normalizedPath = $Path -replace '/', '\'
         if (-not $script:MockRegistry.ContainsKey($normalizedPath)) {
             $script:MockRegistry[$normalizedPath] = @{}
         }
-        
+
         Write-Verbose "Mock registry: Created key $normalizedPath"
         return @{ FullName = $normalizedPath }
     }
-    
+
     # For file system paths, use actual New-Item
     return (& (Get-Command New-Item -CommandType Cmdlet) @PSBoundParameters)
 }
@@ -209,20 +209,20 @@ function Remove-MockItem {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$Recurse,
-        
+
         [Parameter(Mandatory = $false)]
         [switch]$Force
     )
-    
+
     # For registry paths, remove from mock registry
     if ($Path -match '^HK(CU|LM|CR|U|CC):') {
         if (-not $script:MockRegistry) {
             Initialize-MockRegistry
         }
-        
+
         $normalizedPath = $Path -replace '/', '\'
         if ($script:MockRegistry.ContainsKey($normalizedPath)) {
             $script:MockRegistry.Remove($normalizedPath)
@@ -230,7 +230,7 @@ function Remove-MockItem {
         }
         return $true
     }
-    
+
     # For file system paths, use actual Remove-Item
     return (& (Get-Command Remove-Item -CommandType Cmdlet) @PSBoundParameters)
 }
@@ -240,16 +240,16 @@ function Enable-RegistryMocking {
     .SYNOPSIS
     Enables registry mocking by creating aliases for registry cmdlets
     #>
-    
+
     # Create aliases for registry operations
     Set-Alias -Name "Get-ItemProperty" -Value "Get-MockItemProperty" -Scope Global -Force
     Set-Alias -Name "Set-ItemProperty" -Value "Set-MockItemProperty" -Scope Global -Force
     Set-Alias -Name "Test-Path" -Value "Test-MockPath" -Scope Global -Force
     Set-Alias -Name "New-Item" -Value "New-MockItem" -Scope Global -Force
     Set-Alias -Name "Remove-Item" -Value "Remove-MockItem" -Scope Global -Force
-    
+
     Initialize-MockRegistry
-    
+
     Write-Host "✓ Registry mocking enabled for testing" -ForegroundColor Green
 }
 
@@ -258,14 +258,14 @@ function Disable-RegistryMocking {
     .SYNOPSIS
     Disables registry mocking by removing aliases
     #>
-    
+
     # Remove aliases to restore original cmdlets
     Remove-Alias -Name "Get-ItemProperty" -Scope Global -Force -ErrorAction SilentlyContinue
     Remove-Alias -Name "Set-ItemProperty" -Scope Global -Force -ErrorAction SilentlyContinue
     Remove-Alias -Name "Test-Path" -Scope Global -Force -ErrorAction SilentlyContinue
     Remove-Alias -Name "New-Item" -Scope Global -Force -ErrorAction SilentlyContinue
     Remove-Alias -Name "Remove-Item" -Scope Global -Force -ErrorAction SilentlyContinue
-    
+
     Write-Host "✓ Registry mocking disabled" -ForegroundColor Yellow
 }
 
@@ -274,11 +274,11 @@ function Get-MockRegistryState {
     .SYNOPSIS
     Returns the current state of the mock registry for debugging
     #>
-    
+
     if (-not $script:MockRegistry) {
         return @{}
     }
-    
+
     return $script:MockRegistry
 }
 
@@ -291,7 +291,7 @@ if ($MyInvocation.MyCommand.CommandType -eq "ExternalScript") {
     Export-ModuleMember -Function @(
         'Initialize-MockRegistry',
         'Get-MockItemProperty',
-        'Set-MockItemProperty', 
+        'Set-MockItemProperty',
         'Test-MockPath',
         'New-MockItem',
         'Remove-MockItem',

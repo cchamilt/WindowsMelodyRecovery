@@ -25,12 +25,12 @@ function Initialize-MockEnvironment {
     param(
         [string]$Environment = "Enhanced"
     )
-    
+
     Write-Host "🔗 Initializing mock environment (legacy compatibility)" -ForegroundColor Yellow
-    
+
     # Use enhanced infrastructure with integration test scope
     Initialize-EnhancedMockInfrastructure -TestType "Integration" -Scope "Standard"
-    
+
     Write-Host "✓ Legacy mock environment initialized with enhanced infrastructure" -ForegroundColor Green
 }
 
@@ -40,10 +40,10 @@ function Get-MockDataPath {
         Legacy compatibility wrapper for mock data paths.
     #>
     param([string]$DataType)
-    
+
     $testPaths = Get-StandardTestPaths
     $mockDataRoot = $testPaths.TestMockData
-    
+
     return Join-Path $mockDataRoot $DataType
 }
 
@@ -56,10 +56,10 @@ function Test-MockDataExists {
         [string]$DataType,
         [string]$Path
     )
-    
+
     $mockPath = Get-MockDataPath -DataType $DataType
     $fullPath = Join-Path $mockPath $Path
-    
+
     return Test-Path $fullPath
 }
 
@@ -68,16 +68,16 @@ function Initialize-MockForTestType {
     <#
     .SYNOPSIS
         Initializes appropriate mock data based on test type and context.
-    
+
     .PARAMETER TestType
         Type of test requiring mock data.
-    
+
     .PARAMETER TestContext
         Specific test context or component being tested.
-    
+
     .PARAMETER Scope
         Scope of mock data required.
-    
+
     .EXAMPLE
         Initialize-MockForTestType -TestType "Integration" -TestContext "ApplicationBackup"
         Initialize-MockForTestType -TestType "EndToEnd" -TestContext "CompleteWorkflow" -Scope "Comprehensive"
@@ -86,21 +86,21 @@ function Initialize-MockForTestType {
     param(
         [ValidateSet('Unit', 'Integration', 'FileOperations', 'EndToEnd')]
         [string]$TestType,
-        
+
         [string]$TestContext,
-        
+
         [ValidateSet('Minimal', 'Standard', 'Comprehensive', 'Enterprise')]
         [string]$Scope = 'Standard'
     )
-    
+
     Write-Host "🎯 Initializing mock data for $TestType tests" -ForegroundColor Cyan
     if ($TestContext) {
         Write-Host "   Context: $TestContext" -ForegroundColor Gray
     }
-    
+
     # Initialize base enhanced infrastructure
     Initialize-EnhancedMockInfrastructure -TestType $TestType -Scope $Scope
-    
+
     # Apply context-specific customizations
     if ($TestContext) {
         switch ($TestContext) {
@@ -129,7 +129,7 @@ function Initialize-MockForTestType {
             }
         }
     }
-    
+
     Write-Host "✓ Mock data initialized for $TestType/$TestContext" -ForegroundColor Green
 }
 
@@ -139,10 +139,10 @@ function Enhance-ApplicationMockData {
         Enhances application mock data with additional realistic details.
     #>
     param([string]$Scope)
-    
+
     $testPaths = Get-StandardTestPaths
     $appDataPath = Join-Path $testPaths.TestMockData "applications"
-    
+
     # Add realistic configuration files for applications
     $configEnhancements = @{
         'VSCode' = @{
@@ -176,15 +176,15 @@ function Enhance-ApplicationMockData {
             )
         }
     }
-    
+
     foreach ($app in $configEnhancements.Keys) {
         $appPath = Join-Path $appDataPath $app
         New-Item -Path $appPath -ItemType Directory -Force | Out-Null
-        
+
         foreach ($configFile in $configEnhancements[$app].Keys) {
             $configPath = Join-Path $appPath $configFile
             $configContent = $configEnhancements[$app][$configFile]
-            
+
             if ($configFile.EndsWith('.json')) {
                 $configContent | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
             } else {
@@ -192,7 +192,7 @@ function Enhance-ApplicationMockData {
             }
         }
     }
-    
+
     Write-Host "    ✓ Enhanced application configurations" -ForegroundColor Gray
 }
 
@@ -202,14 +202,14 @@ function Enhance-GamingMockData {
         Enhances gaming mock data with detailed game libraries and settings.
     #>
     param([string]$Scope)
-    
+
     $testPaths = Get-StandardTestPaths
     $gamingPath = Join-Path $testPaths.TestMockData "gaming"
-    
+
     # Steam library folders
     $steamPath = Join-Path $gamingPath "steam"
     New-Item -Path $steamPath -ItemType Directory -Force | Out-Null
-    
+
     $libraryFolders = @"
 "libraryfolders"
 {
@@ -229,13 +229,13 @@ function Enhance-GamingMockData {
     }
 }
 "@
-    
+
     $libraryFolders | Set-Content -Path (Join-Path $steamPath "libraryfolders.vdf") -Encoding UTF8
-    
+
     # Steam user data
     $userDataPath = Join-Path $steamPath "userdata\123456789\config"
     New-Item -Path $userDataPath -ItemType Directory -Force | Out-Null
-    
+
     $localConfig = @"
 "UserLocalConfigStore"
 {
@@ -254,9 +254,9 @@ function Enhance-GamingMockData {
     }
 }
 "@
-    
+
     $localConfig | Set-Content -Path (Join-Path $userDataPath "localconfig.vdf") -Encoding UTF8
-    
+
     Write-Host "    ✓ Enhanced gaming configurations and libraries" -ForegroundColor Gray
 }
 
@@ -266,14 +266,14 @@ function Enhance-CloudMockData {
         Enhances cloud mock data with sync status and provider-specific features.
     #>
     param([string]$Scope)
-    
+
     $testPaths = Get-StandardTestPaths
     $cloudPath = Join-Path $testPaths.TestMockData "cloud"
-    
+
     # Add detailed sync logs and status files
     foreach ($provider in @('OneDrive', 'GoogleDrive', 'Dropbox', 'Box')) {
         $providerPath = Join-Path $cloudPath $provider
-        
+
         # Sync log
         $syncLog = @(
             "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Sync started"
@@ -281,9 +281,9 @@ function Enhance-CloudMockData {
             "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Upload completed successfully"
             "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Sync completed"
         )
-        
+
         $syncLog | Set-Content -Path (Join-Path $providerPath "sync.log") -Encoding UTF8
-        
+
         # Provider-specific settings
         $providerSettings = switch ($provider) {
             'OneDrive' {
@@ -334,10 +334,10 @@ function Enhance-CloudMockData {
                 }
             }
         }
-        
+
         $providerSettings | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $providerPath "settings.json") -Encoding UTF8
     }
-    
+
     Write-Host "    ✓ Enhanced cloud provider settings and sync logs" -ForegroundColor Gray
 }
 
@@ -347,10 +347,10 @@ function Enhance-WSLMockData {
         Enhances WSL mock data with detailed distribution configurations and package lists.
     #>
     param([string]$Scope)
-    
+
     $testPaths = Get-StandardTestPaths
     $wslPath = Join-Path $testPaths.TestMockData "wsl"
-    
+
     # Enhanced package data with more realistic package lists
     $enhancedPackages = @{
         'Ubuntu' = @{
@@ -386,22 +386,22 @@ function Enhance-WSLMockData {
             )
         }
     }
-    
+
     foreach ($distro in $enhancedPackages.Keys) {
         $distroPath = Join-Path $wslPath $distro
-        
+
         foreach ($category in $enhancedPackages[$distro].Keys) {
             $categoryFile = Join-Path $distroPath "$category-packages.txt"
             $enhancedPackages[$distro][$category] | Set-Content -Path $categoryFile -Encoding UTF8
         }
     }
-    
+
     # Add dotfiles and configuration examples
     foreach ($distro in @('Ubuntu', 'Debian')) {
         $distroPath = Join-Path $wslPath $distro
         $dotfilesPath = Join-Path $distroPath "dotfiles"
         New-Item -Path $dotfilesPath -ItemType Directory -Force | Out-Null
-        
+
         # Sample .bashrc
         $bashrc = @'
 # ~/.bashrc: executed by bash(1) for non-login shells.
@@ -432,9 +432,9 @@ if [ -x /usr/bin/dircolors ]; then
     alias ls='ls --color=auto'
 fi
 '@
-        
+
         $bashrc | Set-Content -Path (Join-Path $dotfilesPath ".bashrc") -Encoding UTF8
-        
+
         # Sample .vimrc
         $vimrc = @'
 " Basic vim configuration
@@ -447,10 +447,10 @@ set hlsearch
 set incsearch
 syntax on
 '@
-        
+
         $vimrc | Set-Content -Path (Join-Path $dotfilesPath ".vimrc") -Encoding UTF8
     }
-    
+
     Write-Host "    ✓ Enhanced WSL packages, dotfiles, and configurations" -ForegroundColor Gray
 }
 
@@ -460,10 +460,10 @@ function Enhance-SystemSettingsMockData {
         Enhances system settings mock data with comprehensive Windows configurations.
     #>
     param([string]$Scope)
-    
+
     $testPaths = Get-StandardTestPaths
     $systemPath = Join-Path $testPaths.TestMockData "system-settings"
-    
+
     # Windows Features
     $windowsFeatures = @{
         'Enabled' = @(
@@ -487,9 +487,9 @@ function Enhance-SystemSettingsMockData {
             'SimpleTCP'
         )
     }
-    
+
     $windowsFeatures | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $systemPath "windows-features.json") -Encoding UTF8
-    
+
     # Windows Capabilities
     $windowsCapabilities = @{
         'Installed' = @(
@@ -504,9 +504,9 @@ function Enhance-SystemSettingsMockData {
             'Print.Management.Console~~~~0.0.1.0'
         )
     }
-    
+
     $windowsCapabilities | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $systemPath "windows-capabilities.json") -Encoding UTF8
-    
+
     # Startup programs
     $startupPrograms = @(
         @{
@@ -531,9 +531,9 @@ function Enhance-SystemSettingsMockData {
             'Impact' = 'Medium'
         }
     )
-    
+
     $startupPrograms | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $systemPath "startup-programs.json") -Encoding UTF8
-    
+
     # Environment variables
     $environmentVariables = @{
         'System' = @{
@@ -547,9 +547,9 @@ function Enhance-SystemSettingsMockData {
             'TEMP' = 'C:\Users\TestUser\AppData\Local\Temp'
         }
     }
-    
+
     $environmentVariables | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $systemPath "environment-variables.json") -Encoding UTF8
-    
+
     Write-Host "    ✓ Enhanced system settings: features, capabilities, startup, environment" -ForegroundColor Gray
 }
 
@@ -557,16 +557,16 @@ function Get-MockDataForTest {
     <#
     .SYNOPSIS
         Retrieves appropriate mock data for specific test scenarios.
-    
+
     .PARAMETER TestName
         Name of the test requiring mock data.
-    
+
     .PARAMETER Component
         Component being tested.
-    
+
     .PARAMETER DataFormat
         Required format for the mock data.
-    
+
     .EXAMPLE
         Get-MockDataForTest -TestName "ApplicationBackup" -Component "winget" -DataFormat "json"
         Get-MockDataForTest -TestName "WSLPackageDiscovery" -Component "Ubuntu" -DataFormat "packagelist"
@@ -575,17 +575,17 @@ function Get-MockDataForTest {
     param(
         [Parameter(Mandatory = $true)]
         [string]$TestName,
-        
+
         [Parameter(Mandatory = $true)]
         [string]$Component,
-        
+
         [ValidateSet('json', 'xml', 'yaml', 'txt', 'packagelist', 'registry', 'config')]
         [string]$DataFormat = 'json'
     )
-    
+
     $testPaths = Get-StandardTestPaths
     $mockDataRoot = $testPaths.TestMockData
-    
+
     # Map test names to component paths
     $componentMap = @{
         'ApplicationBackup' = 'applications'
@@ -595,9 +595,9 @@ function Get-MockDataForTest {
         'SystemSettingsBackup' = 'system-settings'
         'RegistryBackup' = 'registry'
     }
-    
+
     $componentPath = Join-Path $mockDataRoot $componentMap[$TestName]
-    
+
     switch ($DataFormat) {
         'json' {
             $dataFile = Join-Path $componentPath "$Component.json"
@@ -619,7 +619,7 @@ function Get-MockDataForTest {
             }
         }
     }
-    
+
     return $null
 }
 
@@ -627,10 +627,10 @@ function Validate-MockDataIntegrity {
     <#
     .SYNOPSIS
         Validates the integrity and completeness of mock data.
-    
+
     .PARAMETER TestType
         Type of test to validate mock data for.
-    
+
     .RETURNS
         PSObject with validation results.
     #>
@@ -639,12 +639,12 @@ function Validate-MockDataIntegrity {
         [ValidateSet('Unit', 'Integration', 'FileOperations', 'EndToEnd', 'All')]
         [string]$TestType = 'All'
     )
-    
+
     Write-Host "🔍 Validating mock data integrity for $TestType tests..." -ForegroundColor Cyan
-    
+
     $testPaths = Get-StandardTestPaths
     $mockDataRoot = $testPaths.TestMockData
-    
+
     $validation = @{
         TestType = $TestType
         Valid = $true
@@ -656,7 +656,7 @@ function Validate-MockDataIntegrity {
             IssuesFound = 0
         }
     }
-    
+
     # Define required components for each test type
     $requiredComponents = @{
         'Unit' = @('unit')
@@ -665,15 +665,15 @@ function Validate-MockDataIntegrity {
         'EndToEnd' = @('end-to-end', 'applications', 'gaming', 'cloud', 'wsl', 'system-settings')
         'All' = @('unit', 'applications', 'gaming', 'cloud', 'wsl', 'system-settings', 'registry', 'file-operations', 'end-to-end')
     }
-    
+
     $componentsToCheck = $requiredComponents[$TestType]
     $validation.Summary.TotalComponents = $componentsToCheck.Count
-    
+
     foreach ($component in $componentsToCheck) {
         $componentPath = Join-Path $mockDataRoot $component
         $componentValid = $true
         $componentIssues = @()
-        
+
         if (-not (Test-Path $componentPath)) {
             $componentValid = $false
             $componentIssues += "Component directory missing: $component"
@@ -689,14 +689,14 @@ function Validate-MockDataIntegrity {
                 'registry' { @() } # Registry files are dynamic
                 default { @() }
             }
-            
+
             foreach ($requiredFile in $requiredFiles) {
                 $filePath = if ($requiredFile.EndsWith('.json')) {
                     Join-Path $componentPath $requiredFile
                 } else {
                     Join-Path $componentPath "$requiredFile.json"
                 }
-                
+
                 if (-not (Test-Path $filePath)) {
                     $componentValid = $false
                     $componentIssues += "Missing required file: $requiredFile"
@@ -704,21 +704,21 @@ function Validate-MockDataIntegrity {
                 }
             }
         }
-        
+
         $validation.ComponentStatus[$component] = @{
             Valid = $componentValid
             Issues = $componentIssues
         }
-        
+
         if ($componentValid) {
             $validation.Summary.ValidComponents++
         } else {
             $validation.Summary.IssuesFound += $componentIssues.Count
         }
     }
-    
+
     $validation.Valid = ($validation.Summary.IssuesFound -eq 0)
-    
+
     # Report results
     if ($validation.Valid) {
         Write-Host "✅ Mock data validation passed" -ForegroundColor Green
@@ -727,13 +727,13 @@ function Validate-MockDataIntegrity {
         Write-Host "❌ Mock data validation failed" -ForegroundColor Red
         Write-Host "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)" -ForegroundColor Gray
         Write-Host "   Issues: $($validation.Summary.IssuesFound)" -ForegroundColor Red
-        
+
         foreach ($issue in $validation.Issues) {
             Write-Host "     • $issue" -ForegroundColor Red
         }
     }
-    
+
     return $validation
 }
 
-# Functions are available when dot-sourced 
+# Functions are available when dot-sourced

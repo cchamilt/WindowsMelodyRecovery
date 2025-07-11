@@ -1,4 +1,4 @@
-# Script to uninstall existing applications and reinstall them via winget 
+# Script to uninstall existing applications and reinstall them via winget
 
 function Convert-ToWinget {
     [CmdletBinding()]
@@ -22,13 +22,13 @@ function Convert-ToWinget {
         param (
             [string]$AppName
         )
-        
+
         try {
             $wingetSearch = winget search --exact $AppName | Out-String
-            
+
             # Escape special regex characters in the app name
             $escapedAppName = [regex]::Escape($AppName)
-            
+
             if ($wingetSearch -match "$escapedAppName\s+(\S+)\s+.*?(\w+)$") {
                 return @{
                     Id = $matches[1]
@@ -43,7 +43,7 @@ function Convert-ToWinget {
 
     try {
         Write-Host "Scanning for installed applications..." -ForegroundColor Blue
-        
+
         # Get all installed programs from registry
         $regPaths = @(
             'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
@@ -53,17 +53,17 @@ function Convert-ToWinget {
 
         $applications = @()
         foreach ($path in $regPaths) {
-            $applications += Get-ItemProperty $path | 
-                Where-Object { $_.DisplayName -and $_.UninstallString } | 
+            $applications += Get-ItemProperty $path |
+                Where-Object { $_.DisplayName -and $_.UninstallString } |
                 Select-Object DisplayName, Publisher, DisplayVersion, UninstallString
         }
 
         # Filter out already winget-managed applications
         $wingetList = winget list --accept-source-agreements | Out-String
-        $wingetApps = $wingetList -split "`n" | 
-            Select-Object -Skip 2 | 
+        $wingetApps = $wingetList -split "`n" |
+            Select-Object -Skip 2 |
             Where-Object { $_ -match '\S' } |
-            ForEach-Object { 
+            ForEach-Object {
                 if ($_ -match '^(.*?)\s+\d') { $matches[1].Trim() }
             }
 
@@ -108,7 +108,7 @@ function Convert-ToWinget {
             if ($response -eq "Y" -or $response -eq "y") {
                 foreach ($app in $convertible) {
                     Write-Host "`nProcessing $($app.Name)..." -ForegroundColor Blue
-                    
+
                     # Attempt uninstallation
                     try {
                         Write-Host "Uninstalling current version..." -ForegroundColor Yellow

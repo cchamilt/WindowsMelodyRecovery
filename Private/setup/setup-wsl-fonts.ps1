@@ -63,10 +63,10 @@ function Setup-WSLFonts {
                 Get-ChildItem -Path $extractPath -Filter "*.ttf" -Recurse | ForEach-Object {
                     $fontName = $_.Name
                     $fontPath = Join-Path $fontsDir $fontName
-                    
+
                     # Copy to user fonts directory
                     Copy-Item $_.FullName -Destination $fontPath -Force
-                    
+
                     # Copy to system fonts directory
                     Copy-Item $_.FullName -Destination $systemFontsDir -Force
 
@@ -103,10 +103,10 @@ function Setup-WSLFonts {
             Get-ChildItem -Path $fontExtract -Filter "*.ttf" -Recurse | ForEach-Object {
                 $fontName = $_.Name
                 $fontPath = Join-Path $fontsDir $fontName
-                
+
                 # Copy to user fonts directory
                 Copy-Item $_.FullName -Destination $fontPath -Force
-                
+
                 # Copy to system fonts directory
                 Copy-Item $_.FullName -Destination $systemFontsDir -Force
 
@@ -128,12 +128,12 @@ function Setup-WSLFonts {
         # Configure WSL to use the fonts
         if (Get-Command wsl -ErrorAction SilentlyContinue) {
             Write-Host "`nConfiguring WSL to use the fonts..." -ForegroundColor Yellow
-            
+
             # Create a temporary script to handle font copying in WSL
             $tempScript = Join-Path $env:TEMP "copy-fonts.sh"
             $windowsFontsDir = "/mnt/" + (($fontsDir -replace '\\', '/') -replace ':', '').ToLower()
             $wslTempScript = "/mnt/" + (($tempScript -replace '\\', '/') -replace ':', '').ToLower()
-            
+
             $scriptContent = @(
                 "#!/bin/bash",
                 "set -e",
@@ -150,11 +150,11 @@ function Setup-WSLFonts {
                 "# Update font cache",
                 "fc-cache -f -v"
             ) -join "`n"
-            
+
             # Create UTF8 encoding without BOM
             $utf8NoBom = New-Object System.Text.UTF8Encoding $false
             [System.IO.File]::WriteAllText($tempScript, $scriptContent, $utf8NoBom)
-            
+
             try {
                 # Make script executable and run it with sudo
                 wsl --exec bash -c "chmod +x '$wslTempScript' && sudo '$wslTempScript'"
@@ -163,7 +163,7 @@ function Setup-WSLFonts {
                 Write-Host "Failed to configure WSL fonts: $($_.Exception.Message)" -ForegroundColor Red
                 Write-Host "You may need to manually copy fonts to WSL" -ForegroundColor Yellow
             }
-            
+
             # Cleanup temporary script
             Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
         } else {

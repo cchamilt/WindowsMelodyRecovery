@@ -71,4 +71,4 @@ if ($overallHealth) {
 } else {
     Write-Host "❌ Some health checks failed" -ForegroundColor Red
     exit 1
-} 
+}

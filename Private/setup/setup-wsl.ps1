@@ -14,7 +14,7 @@ function Setup-WSL {
 
         # Check if WSL is available
         $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -ErrorAction SilentlyContinue
-        
+
         if (!$wslFeature) {
             Write-Host "WSL feature not available on this system." -ForegroundColor Red
             return $false
@@ -58,7 +58,7 @@ function Setup-WSL {
             if ($wslVersion) {
                 Write-Host "Current WSL version:" -ForegroundColor Green
                 Write-Host $wslVersion -ForegroundColor Gray
-                
+
                 # Set default version to WSL2
                 wsl --set-default-version 2 2>$null
                 Write-Host "✅ Default WSL version set to WSL2" -ForegroundColor Green
@@ -145,13 +145,13 @@ sparseVhd=true
 
         # 8. Setup repository checking functionality
         Write-Host "`nSetting up WSL development tools..." -ForegroundColor Blue
-        
+
         # Check if we have any WSL distributions to work with
         try {
             $activeDistros = wsl --list --quiet 2>$null | Where-Object { $_ -and $_.Trim() -ne "" }
             if ($activeDistros) {
                 Write-Host "Setting up repository checking tools..." -ForegroundColor Yellow
-                
+
                 # Create a script for checking git repositories
                 $repoCheckScript = @"
 #!/bin/bash
@@ -169,50 +169,50 @@ echo "================================"
 check_directory() {
     local dir="\$1"
     local dir_name="\$2"
-    
+
     if [ ! -d "\$dir" ]; then
         echo "📁 \$dir_name directory not found: \$dir"
         return 0
     fi
-    
+
     echo "📁 Checking \${dir_name}: \${dir}"
-    
+
     find "\$dir" -name ".git" -type d | while read gitdir; do
         repo_dir=\$(dirname "\$gitdir")
         repo_name=\$(basename "\$repo_dir")
-        
+
         echo "  🔍 Checking: \$repo_name"
         cd "\$repo_dir"
-        
+
         # Check for uncommitted changes
         if ! git diff --quiet 2>/dev/null; then
             echo "    ⚠️  Uncommitted changes found"
         fi
-        
+
         # Check for staged changes
         if ! git diff --cached --quiet 2>/dev/null; then
             echo "    ⚠️  Staged changes found"
         fi
-        
+
         # Check for untracked files
         if [ -n "\$(git ls-files --others --exclude-standard 2>/dev/null)" ]; then
             echo "    ⚠️  Untracked files found"
         fi
-        
+
         # Check if ahead/behind remote
         if git remote -v 2>/dev/null | grep -q origin; then
             git fetch origin 2>/dev/null || true
             current_branch=\$(git branch --show-current 2>/dev/null)
-            
+
             if [ -n "\$current_branch" ]; then
                 local_commit=\$(git rev-parse HEAD 2>/dev/null)
                 remote_commit=\$(git rev-parse origin/\$current_branch 2>/dev/null || echo "")
-                
+
                 if [ "\$local_commit" != "\$remote_commit" ] && [ -n "\$remote_commit" ]; then
                     # Check if ahead or behind
                     ahead=\$(git rev-list --count HEAD..origin/\$current_branch 2>/dev/null || echo "0")
                     behind=\$(git rev-list --count origin/\$current_branch..HEAD 2>/dev/null || echo "0")
-                    
+
                     if [ "\$ahead" -gt 0 ]; then
                         echo "    ⬇️  Behind remote by \$ahead commits"
                     fi
@@ -222,11 +222,11 @@ check_directory() {
                 fi
             fi
         fi
-        
+
         # Check last commit date
         last_commit=\$(git log -1 --format="%cr" 2>/dev/null || echo "unknown")
         echo "    📅 Last commit: \$last_commit"
-        
+
         echo "    ✅ \$repo_name checked"
         echo ""
     done
@@ -319,4 +319,4 @@ echo "Usage: check-repos"
         Write-Host "Failed to setup WSL: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
-} 
+}

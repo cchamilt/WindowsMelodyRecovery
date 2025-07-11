@@ -31,13 +31,13 @@ $TargetDirectories = @{
 function Initialize-DirectoryStructure {
     [CmdletBinding()]
     param([switch]$WhatIf)
-    
+
     Write-Host "📁 Creating target directory structure..." -ForegroundColor Cyan
-    
+
     foreach ($envType in $TargetDirectories.Keys) {
         foreach ($testType in $TargetDirectories[$envType].Keys) {
             $targetPath = $TargetDirectories[$envType][$testType]
-            
+
             if (-not (Test-Path $targetPath)) {
                 if ($WhatIf) {
                     Write-Host "  Would create: $targetPath" -ForegroundColor Yellow
@@ -55,13 +55,13 @@ function Initialize-DirectoryStructure {
 function Get-TestMigrationPlan {
     [CmdletBinding()]
     param([string]$AnalysisFilePath)
-    
+
     if (-not (Test-Path $AnalysisFilePath)) {
         throw "Analysis file not found: $AnalysisFilePath"
     }
-    
+
     $analysisData = Get-Content $AnalysisFilePath -Raw | ConvertFrom-Json
-    
+
     $migrationPlan = @{
         DockerMigrations = @()
         WindowsMigrations = @()
@@ -71,30 +71,30 @@ function Get-TestMigrationPlan {
             WindowsFiles = 0
         }
     }
-    
+
     # Group failures by test file and target environment
     $fileGroups = @{}
-    
+
     foreach ($failure in $analysisData.Analysis.FailureAnalysis) {
         $testFile = $failure.TestFile
         $targetEnv = $failure.TargetEnvironment
-        
+
         if (-not $fileGroups.ContainsKey($testFile)) {
             $fileGroups[$testFile] = @{
                 'Docker-Fixable' = [System.Collections.ArrayList]@()
                 'Windows-Only' = [System.Collections.ArrayList]@()
             }
         }
-        
+
         $fileGroups[$testFile][$targetEnv].Add($failure) | Out-Null
     }
-    
+
     # Determine migration strategy for each file
     foreach ($testFile in $fileGroups.Keys) {
         $failures = $fileGroups[$testFile]
         $dockerFailures = $failures['Docker-Fixable'].Count
         $windowsFailures = $failures['Windows-Only'].Count
-        
+
         $migration = @{
             SourceFile = "tests/unit/$testFile"
             TestFile = $testFile
@@ -104,7 +104,7 @@ function Get-TestMigrationPlan {
             TargetPath = ""
             Action = ""
         }
-        
+
         # Determine migration strategy
         if ($windowsFailures -gt 0 -and $dockerFailures -eq 0) {
             # Pure Windows-only tests
@@ -135,10 +135,10 @@ function Get-TestMigrationPlan {
             $migrationPlan.DockerMigrations += $migration
             $migrationPlan.Summary.DockerFiles++
         }
-        
+
         $migrationPlan.Summary.TotalFiles++
     }
-    
+
     return $migrationPlan
 }
 
@@ -150,12 +150,12 @@ function Move-TestFile {
         [string]$Action,
         [switch]$WhatIf
     )
-    
+
     if (-not (Test-Path $SourcePath)) {
         Write-Warning "Source file not found: $SourcePath"
         return $false
     }
-    
+
     # Ensure target directory exists
     $targetDir = Split-Path $TargetPath -Parent
     if (-not (Test-Path $targetDir)) {
@@ -165,7 +165,7 @@ function Move-TestFile {
             New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
         }
     }
-    
+
     if ($WhatIf) {
         Write-Host "    Would move: $SourcePath → $TargetPath" -ForegroundColor Yellow
         Write-Host "    Action: $Action" -ForegroundColor Yellow
@@ -186,7 +186,7 @@ function Move-TestFile {
 function Create-WindowsOnlyTestSafeguards {
     [CmdletBinding()]
     param([switch]$WhatIf)
-    
+
     $safeguardScript = @'
 # Windows-Only Test Safeguards
 # This script ensures Windows-only tests run safely and only in appropriate environments
@@ -197,17 +197,17 @@ BeforeAll {
         Write-Warning "Skipping Windows-only tests on non-Windows platform"
         return
     }
-    
+
     # Ensure we're in CI/CD or explicitly authorized environment
     $isCI = $env:CI -eq 'true' -or $env:GITHUB_ACTIONS -eq 'true' -or $env:TF_BUILD -eq 'true'
     $isAuthorized = $env:WMR_ALLOW_WINDOWS_TESTS -eq 'true'
-    
+
     if (-not $isCI -and -not $isAuthorized) {
         Write-Warning "Windows-only tests should only run in CI/CD environments or with explicit authorization"
         Write-Host "To run locally, set environment variable: `$env:WMR_ALLOW_WINDOWS_TESTS = 'true'"
         return
     }
-    
+
     # Create restore point if running destructive tests
     if ($env:WMR_CREATE_RESTORE_POINT -eq 'true') {
         try {
@@ -226,9 +226,9 @@ AfterAll {
     }
 }
 '@
-    
+
     $safeguardPath = $TargetDirectories.Windows.Unit + "/WindowsTestSafeguards.ps1"
-    
+
     if ($WhatIf) {
         Write-Host "Would create Windows test safeguards at: $safeguardPath" -ForegroundColor Yellow
     } else {
@@ -240,7 +240,7 @@ AfterAll {
 function Create-DockerTestEnhancements {
     [CmdletBinding()]
     param([switch]$WhatIf)
-    
+
     $enhancementScript = @'
 # Docker Test Enhancements
 # Additional mocking and utilities for Docker-based testing
@@ -248,11 +248,11 @@ function Create-DockerTestEnhancements {
 BeforeAll {
     # Load enhanced Docker bootstrap
     . (Join-Path $PSScriptRoot "../../shared/utilities/Docker-Test-Bootstrap.ps1")
-    
+
     # Additional Docker-specific mocks for path issues
     if (Test-DockerEnvironment) {
         # Enhanced path validation mocking
-        Mock Test-Path { 
+        Mock Test-Path {
             param([string]$Path)
             if ($Path -like "*C:*" -and $Path -notlike "/mock-c/*") {
                 $convertedPath = Get-WmrTestPath -WindowsPath $Path
@@ -260,7 +260,7 @@ BeforeAll {
             }
             return $true
         } -ModuleName 'WindowsMelodyRecovery'
-        
+
         # Enhanced file operation mocking
         Mock Get-Content {
             param([string]$Path)
@@ -275,9 +275,9 @@ BeforeAll {
     }
 }
 '@
-    
+
     $enhancementPath = $TargetDirectories.Docker.Unit + "/DockerTestEnhancements.ps1"
-    
+
     if ($WhatIf) {
         Write-Host "Would create Docker test enhancements at: $enhancementPath" -ForegroundColor Yellow
     } else {
@@ -292,7 +292,7 @@ function Export-MigrationReport {
         [hashtable]$MigrationPlan,
         [string]$OutputPath = "test-migration-report.json"
     )
-    
+
     $report = @{
         Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         Summary = $MigrationPlan.Summary
@@ -305,7 +305,7 @@ function Export-MigrationReport {
             "Update documentation"
         )
     }
-    
+
     $report | ConvertTo-Json -Depth 10 | Out-File -FilePath $OutputPath -Encoding UTF8
     Write-Host "✅ Migration report exported to: $OutputPath" -ForegroundColor Green
 }
@@ -364,4 +364,4 @@ Write-Host "`n✅ Test categorization and migration completed!" -ForegroundColor
 
 if ($WhatIf) {
     Write-Host "`n⚠️  This was a dry run. Use -WhatIf:`$false to execute the migration." -ForegroundColor Yellow
-} 
+}

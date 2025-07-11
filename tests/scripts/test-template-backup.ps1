@@ -45,7 +45,7 @@ function Initialize-TestDirectories {
     if (-not (Test-Path $testDirectories.BackupsRoot)) {
         New-Item -ItemType Directory -Path $testDirectories.BackupsRoot -Force | Out-Null
     }
-    
+
     if (-not (Test-Path $testPaths.MachineBackup)) {
         New-Item -ItemType Directory -Path $testPaths.MachineBackup -Force | Out-Null
     }
@@ -63,7 +63,7 @@ function Show-DirectoryContents {
         [string]$Path,
         [string]$BasePathForDisplay
     )
-    
+
     if (Test-Path $Path) {
         Get-ChildItem $Path -Recurse | ForEach-Object {
             $relativePath = $_.FullName.Replace($BasePathForDisplay, "").TrimStart('\', '/')
@@ -80,7 +80,7 @@ function Show-DirectoryContents {
 try {
     # Initialize test directories
     Initialize-TestDirectories
-    
+
     # Import the module
     Import-Module .\WindowsMelodyRecovery.psm1 -Force -WarningAction SilentlyContinue
 
@@ -88,26 +88,26 @@ try {
     $originalConfig = Get-WindowsMelodyRecovery
     $testConfig = Get-TestConfig
     $global:WindowsMelodyRecovery = [PSCustomObject]$testConfig
-    
+
     Write-Host "=== TEMPLATE BACKUP TEST ===" -ForegroundColor Cyan
     Write-Host "Template: $TemplatePath" -ForegroundColor Yellow
     Write-Host "Test Backup Directory: $($testDirectories.BackupsRoot)" -ForegroundColor Yellow
     Write-Host ""
-    
+
     if ($TemplatePath -eq "ALL") {
         # Test all templates
         Write-Host "Testing all available templates..." -ForegroundColor Green
         $templatesPath = Join-Path $scriptRoot "Templates\System"
         $templateFiles = Get-ChildItem -Path $templatesPath -Filter "*.yaml" -ErrorAction SilentlyContinue
-        
+
         $successCount = 0
         $failCount = 0
-        
+
         foreach ($templateFile in $templateFiles) {
             Write-Host "`n--- Testing: $($templateFile.Name) ---" -ForegroundColor Cyan
             try {
                 . (Join-Path $scriptRoot "Private\Core\InvokeWmrTemplate.ps1")
-                
+
                 # Pass the machine backup directory directly - templates handle their own subdirectories
                 Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $testPaths.MachineBackup
                 Write-Host "✓ $($templateFile.Name) backup completed successfully" -ForegroundColor Green
@@ -117,40 +117,40 @@ try {
                 $failCount++
             }
         }
-        
+
         Write-Host "`n=== BACKUP SUMMARY ===" -ForegroundColor Cyan
         Write-Host "Successful: $successCount" -ForegroundColor Green
         Write-Host "Failed: $failCount" -ForegroundColor Red
         Write-Host "Total: $($successCount + $failCount)" -ForegroundColor Yellow
-        
+
     } else {
         # Test single template
-        $templateFullPath = if (Test-Path $TemplatePath) { 
-            $TemplatePath 
-        } else { 
+        $templateFullPath = if (Test-Path $TemplatePath) {
+            $TemplatePath
+        } else {
             Join-Path $scriptRoot "Templates\System\$TemplatePath"
         }
-        
+
         if (-not (Test-Path $templateFullPath)) {
             throw "Template file not found: $templateFullPath"
         }
-        
+
         . (Join-Path $scriptRoot "Private\Core\InvokeWmrTemplate.ps1")
-        
+
         $templateName = (Get-Item $templateFullPath).BaseName
-        
+
         # Pass the machine backup directory directly - templates handle their own subdirectories
         Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Backup" -StateFilesDirectory $testPaths.MachineBackup
         Write-Host "✓ Template backup completed successfully" -ForegroundColor Green
-        
+
         # Show what was backed up
         Write-Host "`n=== BACKUP CONTENTS ===" -ForegroundColor Cyan
         $componentBackupDir = Join-Path $testPaths.MachineBackup $templateName
         Show-DirectoryContents -Path $componentBackupDir -BasePathForDisplay $componentBackupDir
     }
-    
+
     Write-Host "`nTest backup completed! Use test-template-restore.ps1 to test restore operations." -ForegroundColor Green
-    
+
 } catch {
     Write-Host "Test backup failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor DarkRed
@@ -161,4 +161,4 @@ try {
         $global:WindowsMelodyRecovery = $originalConfig
     }
     Pop-Location
-} 
+}

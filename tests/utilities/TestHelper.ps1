@@ -13,10 +13,10 @@ function Test-ContainerHealth {
         [string]$ContainerName,
         [int]$TimeoutSeconds = 30
     )
-    
+
     $startTime = Get-Date
     $healthy = $false
-    
+
     while ((Get-Date) -lt ($startTime.AddSeconds($TimeoutSeconds))) {
         try {
             $status = docker inspect --format='{{.State.Status}}' $ContainerName 2>$null
@@ -29,7 +29,7 @@ function Test-ContainerHealth {
         }
         Start-Sleep -Seconds 2
     }
-    
+
     return $healthy
 }
 
@@ -38,7 +38,7 @@ function Test-ServiceEndpoint {
         [string]$Url,
         [int]$TimeoutSeconds = 10
     )
-    
+
     try {
         $response = Invoke-RestMethod -Uri $Url -TimeoutSec $TimeoutSeconds
         return $true
@@ -51,9 +51,9 @@ function Get-MockDataPath {
     param(
         [string]$DataType
     )
-    
+
     $basePath = "/mock-data"
-    
+
     switch ($DataType) {
         "registry" { return Join-Path $basePath "registry" }
         "appdata" { return Join-Path $basePath "appdata" }
@@ -69,10 +69,10 @@ function Test-MockDataExists {
         [string]$DataType,
         [string]$Path
     )
-    
+
     $mockPath = Get-MockDataPath -DataType $DataType
     $fullPath = Join-Path $mockPath $Path
-    
+
     return Test-Path $fullPath
 }
 
@@ -84,4 +84,4 @@ function Get-TestEnvironment {
         CloudMock = "wmr-cloud-mock"
         TestRunner = "wmr-test-runner"
     }
-} 
+}

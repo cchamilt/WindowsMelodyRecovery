@@ -14,10 +14,10 @@
 BeforeAll {
     # Import test environment utilities
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
-    
+
     # Get standardized test paths
     $script:TestPaths = Get-TestPaths
-    
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -25,12 +25,12 @@ BeforeAll {
     } catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
-    
+
     # Set up test paths using standardized test environment
     $script:TestBackupRoot = Join-Path $script:TestPaths.TestBackup "wsl"
-    $script:TestRestoreRoot = Join-Path $script:TestPaths.TestRestore "wsl"  
+    $script:TestRestoreRoot = Join-Path $script:TestPaths.TestRestore "wsl"
     $script:TempTestRoot = Join-Path $script:TestPaths.Temp "wsl-fileops"
-    
+
     # Create test directories
     foreach ($path in @($script:TestBackupRoot, $script:TestRestoreRoot, $script:TempTestRoot)) {
         if (-not (Test-Path $path)) {
@@ -49,7 +49,7 @@ AfterAll {
 }
 
 Describe "WSL File Operations Tests" -Tag "FileOperations", "WSL" {
-    
+
     Context "WSL Backup File Operations" {
         It "Should create WSL backup directory structure" {
             # Test backup directory creation
@@ -59,7 +59,7 @@ Describe "WSL File Operations Tests" -Tag "FileOperations", "WSL" {
                 "dotfiles",
                 "packages"
             )
-            
+
             foreach ($dir in $backupStructure) {
                 $dirPath = Join-Path $script:TestBackupRoot $dir
                 if (-not (Test-Path $dirPath)) {
@@ -68,7 +68,7 @@ Describe "WSL File Operations Tests" -Tag "FileOperations", "WSL" {
                 Test-Path $dirPath | Should -Be $true
             }
         }
-        
+
         It "Should backup WSL distribution information to file" {
             # Mock WSL distribution data
             $distributions = @(
@@ -87,13 +87,13 @@ Describe "WSL File Operations Tests" -Tag "FileOperations", "WSL" {
                     BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\TheDebianProject.DebianGNULinux_79rhkp1fndgsc\\LocalState"
                 }
             )
-            
+
             # Test backup file creation
             $distributionsPath = Join-Path $script:TestBackupRoot "distributions"
             $backupFile = Join-Path $distributionsPath "distributions.json"
-            
+
             $distributions | ConvertTo-Json -Depth 3 | Out-File -FilePath $backupFile -Encoding UTF8
-            
+
             # Verify backup file
             Test-Path $backupFile | Should -Be $true
             $backupContent = Get-Content $backupFile -Raw | ConvertFrom-Json
@@ -101,7 +101,7 @@ Describe "WSL File Operations Tests" -Tag "FileOperations", "WSL" {
             $backupContent[0].Name | Should -Be "Ubuntu-22.04"
             $backupContent[1].Name | Should -Be "Debian"
         }
-        
+
         It "Should backup WSL configuration files" {
             # Mock WSL configuration
             $wslConfig = @"
@@ -112,13 +112,13 @@ processors = 4
 swap = 2GB
 localhostForwarding = true
 "@
-            
+
             # Test configuration backup
             $configPath = Join-Path $script:TestBackupRoot "config"
             $configFile = Join-Path $configPath "wsl.conf"
-            
+
             $wslConfig | Out-File -FilePath $configFile -Encoding UTF8
-            
+
             # Verify configuration backup
             Test-Path $configFile | Should -Be $true
             $configContent = Get-Content $configFile -Raw
@@ -126,7 +126,7 @@ localhostForwarding = true
             $configContent | Should -Match "memory = 8GB"
             $configContent | Should -Match "processors = 4"
         }
-        
+
         It "Should backup WSL dotfiles" {
             # Mock dotfiles
             $dotfiles = @{
@@ -157,10 +157,10 @@ Host github.com
     IdentityFile ~/.ssh/id_rsa
 "@
             }
-            
+
             # Test dotfiles backup
             $dotfilesPath = Join-Path $script:TestBackupRoot "dotfiles"
-            
+
             foreach ($file in $dotfiles.Keys) {
                 $filePath = Join-Path $dotfilesPath $file
                 $fileDir = Split-Path $filePath -Parent
@@ -170,13 +170,13 @@ Host github.com
                 $dotfiles[$file] | Out-File -FilePath $filePath -Encoding UTF8
                 Test-Path $filePath | Should -Be $true
             }
-            
+
             # Verify dotfiles backup
             Test-Path (Join-Path $dotfilesPath ".bashrc") | Should -Be $true
             Test-Path (Join-Path $dotfilesPath ".gitconfig") | Should -Be $true
             Test-Path (Join-Path $dotfilesPath ".ssh/config") | Should -Be $true
         }
-        
+
         It "Should backup WSL package lists" {
             # Mock package lists
             $packageLists = @{
@@ -207,23 +207,23 @@ flask==2.3.2
 }
 "@
             }
-            
+
             # Test package lists backup
             $packagesPath = Join-Path $script:TestBackupRoot "packages"
-            
+
             foreach ($file in $packageLists.Keys) {
                 $filePath = Join-Path $packagesPath $file
                 $packageLists[$file] | Out-File -FilePath $filePath -Encoding UTF8
                 Test-Path $filePath | Should -Be $true
             }
-            
+
             # Verify package lists backup
             Test-Path (Join-Path $packagesPath "apt-packages.txt") | Should -Be $true
             Test-Path (Join-Path $packagesPath "pip-packages.txt") | Should -Be $true
             Test-Path (Join-Path $packagesPath "npm-packages.json") | Should -Be $true
         }
     }
-    
+
     Context "WSL Restore File Operations" {
         It "Should restore WSL distribution information from file" {
             # Create mock backup file
@@ -236,19 +236,19 @@ flask==2.3.2
                     State = "Running"
                 }
             )
-            
+
             $mockDistributions | ConvertTo-Json -Depth 3 | Out-File -FilePath $backupFile -Encoding UTF8
-            
+
             # Test restore operation
             $restoreFile = Join-Path $script:TestRestoreRoot "distributions.json"
             Copy-Item -Path $backupFile -Destination $restoreFile -Force
-            
+
             # Verify restore
             Test-Path $restoreFile | Should -Be $true
             $restoredContent = Get-Content $restoreFile -Raw | ConvertFrom-Json
             $restoredContent[0].Name | Should -Be "Ubuntu-22.04"
         }
-        
+
         It "Should restore WSL configuration files" {
             # Create mock backup configuration
             $backupConfigFile = Join-Path $script:TestBackupRoot "config/wsl.conf"
@@ -258,17 +258,17 @@ memory = 8GB
 processors = 4
 "@
             $mockConfig | Out-File -FilePath $backupConfigFile -Encoding UTF8
-            
+
             # Test restore operation
             $restoreConfigFile = Join-Path $script:TestRestoreRoot "wsl.conf"
             Copy-Item -Path $backupConfigFile -Destination $restoreConfigFile -Force
-            
+
             # Verify restore
             Test-Path $restoreConfigFile | Should -Be $true
             $restoredConfig = Get-Content $restoreConfigFile -Raw
             $restoredConfig | Should -Match "memory = 8GB"
         }
-        
+
         It "Should restore WSL dotfiles" {
             # Create mock backup dotfiles
             $backupDotfilesPath = Join-Path $script:TestBackupRoot "dotfiles"
@@ -278,36 +278,36 @@ export PATH=`$HOME/bin:`$PATH
 "@
             $bashrcFile = Join-Path $backupDotfilesPath ".bashrc"
             $mockBashrc | Out-File -FilePath $bashrcFile -Encoding UTF8
-            
+
             # Test restore operation
             $restoreDotfilesPath = Join-Path $script:TestRestoreRoot "dotfiles"
             if (-not (Test-Path $restoreDotfilesPath)) {
                 New-Item -Path $restoreDotfilesPath -ItemType Directory -Force | Out-Null
             }
-            
+
             Copy-Item -Path $bashrcFile -Destination (Join-Path $restoreDotfilesPath ".bashrc") -Force
-            
+
             # Verify restore
             Test-Path (Join-Path $restoreDotfilesPath ".bashrc") | Should -Be $true
             $restoredBashrc = Get-Content (Join-Path $restoreDotfilesPath ".bashrc") -Raw
             $restoredBashrc | Should -Match "export PATH"
         }
     }
-    
+
     Context "WSL Template File Operations" {
         It "Should process WSL template for backup operations" {
             # Test template-based backup file operations
             $templatePath = "Templates/System/wsl.yaml"
             $moduleRoot = Split-Path (Get-Module WindowsMelodyRecovery).Path -Parent
             $fullTemplatePath = Join-Path $moduleRoot $templatePath
-            
+
             if (Test-Path $fullTemplatePath) {
                 # Test template processing for file operations
                 $backupPath = Join-Path $script:TempTestRoot "template-backup"
                 if (-not (Test-Path $backupPath)) {
                     New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 # Mock template-based backup operation
                 $templateBackupFile = Join-Path $backupPath "wsl-template-backup.json"
                 $mockTemplateData = @{
@@ -315,9 +315,9 @@ export PATH=`$HOME/bin:`$PATH
                     timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     operations = @("backup-distributions", "backup-config", "backup-dotfiles")
                 }
-                
+
                 $mockTemplateData | ConvertTo-Json -Depth 3 | Out-File -FilePath $templateBackupFile -Encoding UTF8
-                
+
                 # Verify template backup
                 Test-Path $templateBackupFile | Should -Be $true
                 $templateContent = Get-Content $templateBackupFile -Raw | ConvertFrom-Json
@@ -327,7 +327,7 @@ export PATH=`$HOME/bin:`$PATH
                 Set-ItResult -Skipped -Because "wsl.yaml template not found"
             }
         }
-        
+
         It "Should handle template file validation" {
             # Test template file validation for file operations
             $mockTemplateFile = Join-Path $script:TempTestRoot "mock-wsl-template.yaml"
@@ -342,10 +342,10 @@ backup:
     type: file
     source: "%USERPROFILE%\\.wslconfig"
 "@
-            
+
             # Create mock template file
             $mockTemplateContent | Out-File -FilePath $mockTemplateFile -Encoding UTF8
-            
+
             # Test template file validation
             Test-Path $mockTemplateFile | Should -Be $true
             $templateContent = Get-Content $mockTemplateFile -Raw
@@ -355,7 +355,7 @@ backup:
             $templateContent | Should -Match "config"
         }
     }
-    
+
     Context "WSL File System Safety Operations" {
         It "Should only operate within test directories" {
             # Test that file operations are restricted to test directories
@@ -364,18 +364,18 @@ backup:
                 $script:TestRestoreRoot,
                 $script:TempTestRoot
             )
-            
+
             foreach ($path in $testPaths) {
                 # Verify paths are within test directories
                 $path | Should -Match "(test-backups|test-restore|Temp)"
                 Test-Path $path | Should -Be $true
             }
         }
-        
+
         It "Should handle file operation errors gracefully" {
             # Test error handling for file operations
             $invalidPath = Join-Path $script:TempTestRoot "nonexistent/deep/path/file.txt"
-            
+
             # Test graceful error handling
             try {
                 $null = Get-Content $invalidPath -ErrorAction Stop
@@ -384,10 +384,10 @@ backup:
                 $errorOccurred = $true
                 $_.Exception.Message | Should -Match "(Cannot find path|does not exist)"
             }
-            
+
             $errorOccurred | Should -Be $true
         }
-        
+
         It "Should validate file paths before operations" {
             # Test file path validation
             $validPaths = @(
@@ -395,25 +395,25 @@ backup:
                 (Join-Path $script:TestRestoreRoot "test.txt"),
                 (Join-Path $script:TempTestRoot "test.txt")
             )
-            
+
             $invalidPaths = @(
                 "C:\Windows\System32\test.txt",
                 "C:\Program Files\test.txt",
                 "/etc/passwd"
             )
-            
+
             # Test valid paths
             foreach ($path in $validPaths) {
                 $path | Should -Match "(test-backups|test-restore|Temp)"
             }
-            
+
             # Test invalid paths
             foreach ($path in $invalidPaths) {
                 $path | Should -Not -Match "(test-backups|test-restore|Temp)"
             }
         }
     }
-    
+
     Context "WSL Chezmoi File Operations" {
         It "Should backup chezmoi configuration files" {
             # Mock chezmoi configuration
@@ -424,37 +424,37 @@ backup:
 [diff]
     pager = "less -R"
 "@
-            
+
             # Test chezmoi config backup
             $chezmoiPath = Join-Path $script:TestBackupRoot "chezmoi"
             if (-not (Test-Path $chezmoiPath)) {
                 New-Item -Path $chezmoiPath -ItemType Directory -Force | Out-Null
             }
-            
+
             $configFile = Join-Path $chezmoiPath "chezmoi.toml"
             $chezmoiConfig | Out-File -FilePath $configFile -Encoding UTF8
-            
+
             # Verify chezmoi backup
             Test-Path $configFile | Should -Be $true
             $configContent = Get-Content $configFile -Raw
             $configContent | Should -Match 'email = "test@example.com"'
             $configContent | Should -Match 'name = "Test User"'
         }
-        
+
         It "Should backup chezmoi source directory structure" {
             # Mock chezmoi source directory
             $chezmoiSourcePath = Join-Path $script:TestBackupRoot "chezmoi/source"
             if (-not (Test-Path $chezmoiSourcePath)) {
                 New-Item -Path $chezmoiSourcePath -ItemType Directory -Force | Out-Null
             }
-            
+
             # Create mock chezmoi managed files
             $managedFiles = @{
                 "dot_bashrc" = "# Managed by chezmoi`nexport PATH=`$HOME/bin:`$PATH"
                 "dot_gitconfig.tmpl" = "[user]`n    name = {{ .name }}`n    email = {{ .email }}"
                 "private_dot_ssh/config" = "Host *`n    ServerAliveInterval 60"
             }
-            
+
             foreach ($file in $managedFiles.Keys) {
                 $filePath = Join-Path $chezmoiSourcePath $file
                 $fileDir = Split-Path $filePath -Parent
@@ -464,11 +464,11 @@ backup:
                 $managedFiles[$file] | Out-File -FilePath $filePath -Encoding UTF8
                 Test-Path $filePath | Should -Be $true
             }
-            
+
             # Verify chezmoi source backup
             Test-Path (Join-Path $chezmoiSourcePath "dot_bashrc") | Should -Be $true
             Test-Path (Join-Path $chezmoiSourcePath "dot_gitconfig.tmpl") | Should -Be $true
             Test-Path (Join-Path $chezmoiSourcePath "private_dot_ssh/config") | Should -Be $true
         }
     }
-} 
+}

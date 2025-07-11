@@ -41,7 +41,7 @@ function Setup-WindowsMelodyRecovery {
         # Load setup scripts on demand
         Write-Host "Loading setup scripts..." -ForegroundColor Yellow
         Import-PrivateScripts -Category 'setup'
-        
+
         # Verify setup functions are loaded
         $loadedFunctions = Get-Command -Name "Setup-*" -ErrorAction SilentlyContinue
         Write-Host "Found $($loadedFunctions.Count) setup functions: $($loadedFunctions.Name -join ', ')" -ForegroundColor Green
@@ -57,7 +57,7 @@ function Setup-WindowsMelodyRecovery {
                     } else {
                         $response = Read-Host "Run $($setup.name)? $($setup.description) (Y/N)"
                     }
-                    
+
                     if ($response -eq 'Y') {
                         Write-Host "Running $($setup.name)..." -ForegroundColor Yellow
                         try {
@@ -85,7 +85,7 @@ function Setup-WindowsMelodyRecovery {
         if (!$NoScheduledTasks) {
             if ($Force -or !$NoPrompt) {
                 $response = if ($NoPrompt) { 'Y' } else { Read-Host "Would you like to install scheduled tasks for backup and updates? (Y/N)" }
-                
+
                 if ($response -eq 'Y') {
                     Write-Host "Installing scheduled tasks..." -ForegroundColor Yellow
                     if (!(Install-WindowsMelodyRecoveryTasks -NoPrompt:$NoPrompt)) {

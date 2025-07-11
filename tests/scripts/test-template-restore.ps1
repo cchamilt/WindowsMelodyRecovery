@@ -33,7 +33,7 @@ By default, runs in WhatIf mode to prevent system changes.
 param(
     [Parameter(Mandatory=$true)]
     [string]$TemplatePath,
-    
+
     [Parameter(Mandatory=$true)]
     [string]$BackupName,
 
@@ -62,7 +62,7 @@ function Initialize-TestDirectories {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
         }
     }
-    
+
     if (-not (Test-Path $testPaths.RestoreTarget)) {
         New-Item -ItemType Directory -Path $testPaths.RestoreTarget -Force | Out-Null
     }
@@ -81,7 +81,7 @@ function Show-DirectoryContents {
         [string]$Path,
         [string]$BasePathForDisplay
     )
-    
+
     if (Test-Path $Path) {
         Get-ChildItem $Path -Recurse | ForEach-Object {
             $relativePath = $_.FullName.Replace($BasePathForDisplay, "").TrimStart('\', '/')
@@ -98,7 +98,7 @@ function Show-DirectoryContents {
 try {
     # Initialize test directories
     Initialize-TestDirectories
-    
+
     # Import the module
     Import-Module .\WindowsMelodyRecovery.psm1 -Force -WarningAction SilentlyContinue
 
@@ -106,62 +106,62 @@ try {
     $originalConfig = Get-WindowsMelodyRecovery
     $testConfig = Get-TestConfig
     $global:WindowsMelodyRecovery = [PSCustomObject]$testConfig
-    
+
     Write-Host "=== TEMPLATE RESTORE TEST ===" -ForegroundColor Cyan
     Write-Host "Template: $TemplatePath" -ForegroundColor Yellow
     Write-Host "Backup Name: $BackupName" -ForegroundColor Yellow
-    
+
     # Determine source directory - templates create their own subdirectories
     $sourceDir = $testPaths.MachineBackup
     $restoreStateDir = $testPaths.RestoreTarget
-    
+
     Write-Host "Source Directory: $sourceDir" -ForegroundColor Yellow
     Write-Host "Restore State Directory: $restoreStateDir" -ForegroundColor Yellow
     Write-Host ""
-    
+
     # Validate source directory exists
     $componentSourceDir = Join-Path $sourceDir $BackupName
     if (-not (Test-Path $componentSourceDir)) {
         throw "Backup directory not found: $componentSourceDir. Run test-template-backup.ps1 first."
     }
-    
+
     # Show what's available to restore
     Write-Host "=== AVAILABLE BACKUP DATA ===" -ForegroundColor Green
     Show-DirectoryContents -Path $componentSourceDir -BasePathForDisplay $componentSourceDir
     Write-Host ""
-    
+
     # Copy source data to restore location with correct structure
     Write-Host "Copying backup data to restore location..." -ForegroundColor Cyan
-    
+
     # Copy the component-specific directory from source to restore location
     $componentRestoreDir = Join-Path $restoreStateDir $BackupName
     if (Test-Path $componentRestoreDir) {
         Remove-Item $componentRestoreDir -Recurse -Force
     }
     Copy-Item $componentSourceDir $componentRestoreDir -Recurse -Force
-    
+
     # Resolve template path
-    $templateFullPath = if (Test-Path $TemplatePath) { 
-        $TemplatePath 
-    } else { 
+    $templateFullPath = if (Test-Path $TemplatePath) {
+        $TemplatePath
+    } else {
         Join-Path $scriptRoot "Templates\System\$TemplatePath"
     }
-    
+
     if (-not (Test-Path $templateFullPath)) {
         throw "Template file not found: $templateFullPath"
     }
-    
+
     Write-Host "Testing template restore..." -ForegroundColor Green
-    
+
     if (-not $Force) {
         Write-Host "*** RUNNING IN SAFE WHATIF MODE - NO SYSTEM CHANGES WILL BE MADE ***" -ForegroundColor Yellow -BackgroundColor DarkRed
         Write-Host "*** Use -Force parameter to make actual changes (NOT RECOMMENDED for testing) ***" -ForegroundColor Yellow -BackgroundColor DarkRed
         Write-Host ""
     }
-    
+
     # Dot-source the InvokeWmrTemplate module
     . (Join-Path $scriptRoot "Private\Core\InvokeWmrTemplate.ps1")
-    
+
     # Perform the restore operation using the copied data
     if ($Force) {
         Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir
@@ -169,7 +169,7 @@ try {
         Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir -WhatIf
     }
     Write-Host "✓ Template restore completed successfully" -ForegroundColor Green
-    
+
     # Show restore results
     Write-Host "`n=== RESTORE SIMULATION RESULTS ===" -ForegroundColor Green
     if ($Force) {
@@ -178,9 +178,9 @@ try {
         Write-Host "Note: This was a safe simulation. No actual system changes were made." -ForegroundColor Green
     }
     Write-Host "Restore data processed from: $restoreStateDir" -ForegroundColor Cyan
-    
+
     Write-Host "`nTest restore completed! Check the console output above for details." -ForegroundColor Green
-    
+
 } catch {
     Write-Host "Test restore failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor DarkRed
@@ -191,4 +191,4 @@ try {
         $global:WindowsMelodyRecovery = $originalConfig
     }
     Pop-Location
-} 
+}

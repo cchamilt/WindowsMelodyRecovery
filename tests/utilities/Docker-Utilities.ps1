@@ -13,10 +13,10 @@ function Test-ContainerHealth {
         [string]$ContainerName,
         [int]$TimeoutSeconds = 30
     )
-    
+
     $startTime = Get-Date
     $healthy = $false
-    
+
     while ((Get-Date) -lt ($startTime.AddSeconds($TimeoutSeconds))) {
         try {
             $status = docker inspect --format='{{.State.Status}}' $ContainerName 2>$null
@@ -29,7 +29,7 @@ function Test-ContainerHealth {
         }
         Start-Sleep -Seconds 2
     }
-    
+
     return $healthy
 }
 
@@ -38,7 +38,7 @@ function Test-ServiceEndpoint {
         [string]$Url,
         [int]$TimeoutSeconds = 10
     )
-    
+
     try {
         $response = Invoke-RestMethod -Uri $Url -TimeoutSec $TimeoutSeconds
         return $true
@@ -52,7 +52,7 @@ function Get-ContainerLogs {
         [string]$ContainerName,
         [int]$TailLines = 50
     )
-    
+
     try {
         $logs = docker logs $ContainerName --tail $TailLines 2>$null
         return $logs
@@ -67,12 +67,12 @@ function Wait-ForContainerReady {
         [int]$TimeoutSeconds = 60,
         [string]$HealthCheckCommand = "echo 'ready'"
     )
-    
+
     Write-Host "Waiting for container $ContainerName to be ready..." -ForegroundColor Yellow
-    
+
     $startTime = Get-Date
     $ready = $false
-    
+
     while ((Get-Date) -lt ($startTime.AddSeconds($TimeoutSeconds))) {
         try {
             $result = docker exec $ContainerName $HealthCheckCommand 2>$null
@@ -85,13 +85,13 @@ function Wait-ForContainerReady {
         }
         Start-Sleep -Seconds 2
     }
-    
+
     if ($ready) {
         Write-Host "✓ Container $ContainerName is ready" -ForegroundColor Green
     } else {
         Write-Host "✗ Container $ContainerName failed to become ready within $TimeoutSeconds seconds" -ForegroundColor Red
     }
-    
+
     return $ready
 }
 
@@ -109,7 +109,7 @@ function Test-AllContainersHealthy {
     $env = Get-TestEnvironment
     $containers = @($env.WindowsMock, $env.WSLMock, $env.CloudMock, $env.TestRunner)
     $healthyCount = 0
-    
+
     foreach ($container in $containers) {
         if (Test-ContainerHealth -ContainerName $container -TimeoutSeconds 10) {
             $healthyCount++
@@ -118,6 +118,6 @@ function Test-AllContainersHealthy {
             Write-Host "✗ $container is not healthy" -ForegroundColor Red
         }
     }
-    
+
     return $healthyCount -eq $containers.Count
-} 
+}

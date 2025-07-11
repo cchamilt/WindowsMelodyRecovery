@@ -11,19 +11,19 @@ function Initialize-WindowsMelodyRecoveryModule {
     param(
         [Parameter(Mandatory=$false)]
         [switch]$Force,
-        
+
         [Parameter(Mandatory=$false)]
         [switch]$SkipValidation,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$ConfigPath,
-        
+
         [Parameter(Mandatory=$false)]
         [hashtable]$OverrideConfig
     )
-    
+
     Write-Verbose "Starting WindowsMelodyRecovery module initialization..."
-    
+
     try {
         # Step 1: Validate module structure
         if (-not $SkipValidation) {
@@ -32,68 +32,68 @@ function Initialize-WindowsMelodyRecoveryModule {
                 throw "Module structure validation failed: $($validationResult.Message)"
             }
         }
-        
+
         # Step 2: Load core configuration
         $configResult = Initialize-ModuleConfiguration -ConfigPath $ConfigPath -OverrideConfig $OverrideConfig
         if (-not $configResult.Success) {
             throw "Configuration initialization failed: $($configResult.Message)"
         }
-        
+
         # Step 3: Load core utilities
         $coreResult = Load-CoreUtilities
         if (-not $coreResult.Success) {
             throw "Core utilities loading failed: $($coreResult.Message)"
         }
-        
+
         # Step 4: Load public functions
         $publicResult = Load-PublicFunctions
         if (-not $publicResult.Success) {
             throw "Public functions loading failed: $($publicResult.Message)"
         }
-        
+
         # Step 5: Setup module environment
         $envResult = Setup-ModuleEnvironment
         if (-not $envResult.Success) {
             throw "Environment setup failed: $($envResult.Message)"
         }
-        
+
         # Step 6: Validate dependencies
         $depResult = Test-ModuleDependencies
         if (-not $depResult.Success) {
             Write-Warning "Dependency validation failed: $($depResult.Message)"
             $script:InitializationErrors += $depResult.Message
         }
-        
+
         # Step 7: Setup aliases
         $aliasResult = Setup-ModuleAliases
         if (-not $aliasResult.Success) {
             Write-Warning "Alias setup failed: $($aliasResult.Message)"
             $script:InitializationErrors += $aliasResult.Message
         }
-        
+
         # Mark module as initialized
         $script:ModuleInitialized = $true
         $script:Config.IsInitialized = $true
         $script:Config.LastInitialized = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-        
+
         Write-Verbose "Module initialization completed successfully"
         Write-Verbose "Loaded components: $($script:LoadedComponents -join ', ')"
-        
+
         if ($script:InitializationErrors.Count -gt 0) {
             Write-Warning "Module initialized with warnings: $($script:InitializationErrors -join '; ')"
         }
-        
+
         return @{
             Success = $true
             Message = "Module initialized successfully"
             LoadedComponents = $script:LoadedComponents
             Warnings = $script:InitializationErrors
         }
-        
+
     } catch {
         $script:ModuleInitialized = $false
         $script:InitializationErrors += $_.Exception.Message
-        
+
         Write-Error "Module initialization failed: $($_.Exception.Message)"
         return @{
             Success = $false
@@ -107,9 +107,9 @@ function Initialize-WindowsMelodyRecoveryModule {
 function Test-ModuleStructure {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Validating module structure..."
-    
+
     $requiredPaths = @(
         "Private",
         "Private\Core",
@@ -122,7 +122,7 @@ function Test-ModuleStructure {
         "Config",
         "Templates"
     )
-    
+
     $missingPaths = @()
     foreach ($path in $requiredPaths) {
         $fullPath = Join-Path $PSScriptRoot ".." $path
@@ -130,20 +130,20 @@ function Test-ModuleStructure {
             $missingPaths += $path
         }
     }
-    
+
     if ($missingPaths.Count -gt 0) {
         return @{
             Success = $false
             Message = "Missing required directories: $($missingPaths -join ', ')"
         }
     }
-    
+
     $requiredFiles = @(
         "Private\Core\WindowsMelodyRecovery.Core.ps1",
         "WindowsMelodyRecovery.psm1",
         "WindowsMelodyRecovery.psd1"
     )
-    
+
     $missingFiles = @()
     foreach ($file in $requiredFiles) {
         $fullPath = Join-Path $PSScriptRoot ".." $file
@@ -151,14 +151,14 @@ function Test-ModuleStructure {
             $missingFiles += $file
         }
     }
-    
+
     if ($missingFiles.Count -gt 0) {
         return @{
             Success = $false
             Message = "Missing required files: $($missingFiles -join ', ')"
         }
     }
-    
+
     return @{
         Success = $true
         Message = "Module structure validation passed"
@@ -170,13 +170,13 @@ function Initialize-ModuleConfiguration {
     param(
         [Parameter(Mandatory=$false)]
         [string]$ConfigPath,
-        
+
         [Parameter(Mandatory=$false)]
         [hashtable]$OverrideConfig
     )
-    
+
     Write-Verbose "Initializing module configuration..."
-    
+
     try {
         # Try to load from provided config path first
         if ($ConfigPath -and (Test-Path $ConfigPath)) {
@@ -186,7 +186,7 @@ function Initialize-ModuleConfiguration {
                 return $configResult
             }
         }
-        
+
         # Try to load from module config directory
         $moduleConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "Config\windows.env"
         if (Test-Path $moduleConfigPath) {
@@ -196,7 +196,7 @@ function Initialize-ModuleConfiguration {
                 return $configResult
             }
         }
-        
+
         # Try to load from template
         $templateConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "Templates\windows.env.template"
         if (Test-Path $templateConfigPath) {
@@ -206,21 +206,21 @@ function Initialize-ModuleConfiguration {
                 return $configResult
             }
         }
-        
+
         # Use default configuration
         $defaultConfig = Get-DefaultConfiguration
         if ($OverrideConfig) {
             $defaultConfig = Merge-Configurations -Base $defaultConfig -Override $OverrideConfig
         }
-        
+
         $script:Config = $defaultConfig
         $script:LoadedComponents += "DefaultConfig"
-        
+
         return @{
             Success = $true
             Message = "Default configuration loaded"
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -235,7 +235,7 @@ function Load-ConfigurationFromFile {
         [Parameter(Mandatory=$true)]
         [string]$ConfigPath
     )
-    
+
     try {
         if (-not (Test-Path $ConfigPath)) {
             return @{
@@ -243,10 +243,10 @@ function Load-ConfigurationFromFile {
                 Message = "Configuration file not found: $ConfigPath"
             }
         }
-        
+
         $configContent = Get-Content $ConfigPath -Raw
         $config = @{}
-        
+
         # Parse key-value pairs
         $lines = $configContent -split "`n" | Where-Object { $_ -match '^([^#][^=]+)=(.*)$' }
         foreach ($line in $lines) {
@@ -256,18 +256,18 @@ function Load-ConfigurationFromFile {
                 $config[$key] = $value
             }
         }
-        
+
         # Update module configuration
         if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
         if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
         if ($config.WINDOWS_MELODY_RECOVERY_PATH) { $script:Config.WindowsMelodyRecoveryPath = $config.WINDOWS_MELODY_RECOVERY_PATH }
         if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
-        
+
         return @{
             Success = $true
             Message = "Configuration loaded from: $ConfigPath"
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -282,7 +282,7 @@ function Load-ConfigurationFromTemplate {
         [Parameter(Mandatory=$true)]
         [string]$TemplatePath
     )
-    
+
     try {
         if (-not (Test-Path $TemplatePath)) {
             return @{
@@ -290,34 +290,34 @@ function Load-ConfigurationFromTemplate {
                 Message = "Template file not found: $TemplatePath"
             }
         }
-        
+
         $templateContent = Get-Content $TemplatePath -Raw
         $config = @{}
-        
+
         # Parse template and substitute environment variables
         $lines = $templateContent -split "`n" | Where-Object { $_ -match '^([^#][^=]+)=(.*)$' }
         foreach ($line in $lines) {
             if ($line -match '^([^=]+)=(.*)$') {
                 $key = $matches[1].Trim()
                 $value = $matches[2].Trim()
-                
+
                 # Substitute environment variables
                 $value = [System.Environment]::ExpandEnvironmentVariables($value)
                 $config[$key] = $value
             }
         }
-        
+
         # Update module configuration
         if ($config.BACKUP_ROOT) { $script:Config.BackupRoot = $config.BACKUP_ROOT }
         if ($config.MACHINE_NAME) { $script:Config.MachineName = $config.MACHINE_NAME }
         if ($config.WINDOWS_MELODY_RECOVERY_PATH) { $script:Config.WindowsMelodyRecoveryPath = $config.WINDOWS_MELODY_RECOVERY_PATH }
         if ($config.CLOUD_PROVIDER) { $script:Config.CloudProvider = $config.CLOUD_PROVIDER }
-        
+
         return @{
             Success = $true
             Message = "Configuration loaded from template: $TemplatePath"
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -329,7 +329,7 @@ function Load-ConfigurationFromTemplate {
 function Get-DefaultConfiguration {
     [CmdletBinding()]
     param()
-    
+
     return @{
         BackupRoot = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Backups" } else { "/tmp/WindowsMelodyRecovery/Backups" }
         MachineName = $env:COMPUTERNAME
@@ -380,13 +380,13 @@ function Merge-Configurations {
     param(
         [Parameter(Mandatory=$true)]
         [hashtable]$Base,
-        
+
         [Parameter(Mandatory=$true)]
         [hashtable]$Override
     )
-    
+
     $merged = $Base.Clone()
-    
+
     foreach ($key in $Override.Keys) {
         if ($Override[$key] -is [hashtable] -and $merged[$key] -is [hashtable]) {
             $merged[$key] = Merge-Configurations -Base $merged[$key] -Override $Override[$key]
@@ -394,16 +394,16 @@ function Merge-Configurations {
             $merged[$key] = $Override[$key]
         }
     }
-    
+
     return $merged
 }
 
 function Load-CoreUtilities {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Loading core utilities..."
-    
+
     try {
         # Core utilities are already loaded via ScriptsToProcess in the manifest
         # Just verify they're available
@@ -420,28 +420,28 @@ function Load-CoreUtilities {
             'Set-ScriptsConfig',
             'Initialize-ModuleFromConfig'
         )
-        
+
         $missingFunctions = @()
         foreach ($function in $coreFunctions) {
             if (-not (Get-Command $function -ErrorAction SilentlyContinue)) {
                 $missingFunctions += $function
             }
         }
-        
+
         if ($missingFunctions.Count -gt 0) {
             return @{
                 Success = $false
                 Message = "Missing core functions: $($missingFunctions -join ', ')"
             }
         }
-        
+
         $script:LoadedComponents += "CoreUtilities"
-        
+
         return @{
             Success = $true
             Message = "Core utilities loaded successfully"
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -453,38 +453,38 @@ function Load-CoreUtilities {
 function Load-PublicFunctions {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Loading public functions..."
-    
+
     try {
         # Fix: Get the module root directory (two levels up from Private/Core)
         # $PSScriptRoot here is Private/Core, so we need to go up twice
         $privateDir = Split-Path $PSScriptRoot -Parent  # This gets us to Private
         $moduleRoot = Split-Path $privateDir -Parent    # This gets us to the module root
         $publicPath = Join-Path $moduleRoot "Public"
-        
+
         Write-Verbose "PSScriptRoot: $PSScriptRoot"
         Write-Verbose "Module root calculated as: $moduleRoot"
         Write-Verbose "Public path: $publicPath"
-        
+
         if (-not (Test-Path $publicPath)) {
             return @{
                 Success = $false
                 Message = "Public functions directory not found: $publicPath"
             }
         }
-        
+
         $publicScripts = Get-ChildItem -Path "$publicPath\*.ps1" -ErrorAction SilentlyContinue
         $loadedFunctions = @()
         $failedFunctions = @()
-        
+
         foreach ($script in $publicScripts) {
             try {
                 $functionName = $script.BaseName
                 Write-Verbose "Loading function: $functionName from $($script.FullName)"
-                
+
                 . $script.FullName
-                
+
                 # Verify function was loaded
                 if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                     $loadedFunctions += $functionName
@@ -496,23 +496,23 @@ function Load-PublicFunctions {
                 Write-Warning "Failed to load function $($script.BaseName): $($_.Exception.Message)"
             }
         }
-        
+
         if ($failedFunctions.Count -gt 0) {
             Write-Warning "Failed to load functions: $($failedFunctions -join ', ')"
         }
-        
+
         # Store loaded functions in script scope for module export
         $script:LoadedPublicFunctions = $loadedFunctions
-        
+
         $script:LoadedComponents += "PublicFunctions"
-        
+
         return @{
             Success = $loadedFunctions.Count -gt 0
             Message = "Loaded $($loadedFunctions.Count) public functions"
             LoadedFunctions = $loadedFunctions
             FailedFunctions = $failedFunctions
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -524,9 +524,9 @@ function Load-PublicFunctions {
 function Setup-ModuleEnvironment {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Setting up module environment..."
-    
+
     try {
         # Create necessary directories
         $directories = @(
@@ -536,28 +536,28 @@ function Setup-ModuleEnvironment {
             (Join-Path $script:Config.WindowsMelodyRecoveryPath "Logs"),
             (Join-Path $script:Config.WindowsMelodyRecoveryPath "Temp")
         )
-        
+
         foreach ($dir in $directories) {
             if (-not (Test-Path $dir)) {
                 New-Item -Path $dir -ItemType Directory -Force | Out-Null
                 Write-Verbose "Created directory: $dir"
             }
         }
-        
+
         # Set up logging
         $logFile = Join-Path $script:Config.LoggingSettings.Path "WindowsMelodyRecovery.log"
         $script:Config.LoggingSettings.LogFile = $logFile
-        
+
         # Export configuration variable
         Set-Variable -Name "WindowsMelodyRecoveryConfig" -Value $script:Config -Scope Global -Force
-        
+
         $script:LoadedComponents += "ModuleEnvironment"
-        
+
         return @{
             Success = $true
             Message = "Module environment setup completed"
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -569,18 +569,18 @@ function Setup-ModuleEnvironment {
 function Test-ModuleDependencies {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Testing module dependencies..."
-    
+
     try {
         $dependencies = @(
             @{ Name = "Pester"; ModuleName = "Pester" },
             @{ Name = "PowerShell"; Version = "5.1" }
         )
-        
+
         $missingDeps = @()
         $warnings = @()
-        
+
         foreach ($dep in $dependencies) {
             if ($dep.ModuleName) {
                 $module = Get-Module -Name $dep.ModuleName -ListAvailable -ErrorAction SilentlyContinue
@@ -589,19 +589,19 @@ function Test-ModuleDependencies {
                 }
             }
         }
-        
+
         # Test PowerShell version
         if ($PSVersionTable.PSVersion.Major -lt 5) {
             $warnings += "PowerShell 5.1 or higher recommended"
         }
-        
+
         if ($missingDeps.Count -gt 0) {
             return @{
                 Success = $false
                 Message = "Missing dependencies: $($missingDeps -join ', ')"
             }
         }
-        
+
         if ($warnings.Count -gt 0) {
             return @{
                 Success = $true
@@ -609,12 +609,12 @@ function Test-ModuleDependencies {
                 Warnings = $warnings
             }
         }
-        
+
         return @{
             Success = $true
             Message = "All dependencies validated successfully"
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -626,9 +626,9 @@ function Test-ModuleDependencies {
 function Setup-ModuleAliases {
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Setting up module aliases..."
-    
+
     try {
         $aliases = @{
             "wmr-init" = "Initialize-WindowsMelodyRecovery"
@@ -637,10 +637,10 @@ function Setup-ModuleAliases {
             "wmr-setup" = "Setup-WindowsMelodyRecovery"
             "wmr-test" = "Test-WindowsMelodyRecovery"
         }
-        
+
         $createdAliases = @()
         $failedAliases = @()
-        
+
         foreach ($alias in $aliases.Keys) {
             try {
                 if (-not (Get-Alias -Name $alias -ErrorAction SilentlyContinue)) {
@@ -651,22 +651,22 @@ function Setup-ModuleAliases {
                 $failedAliases += $alias
             }
         }
-        
+
         if ($failedAliases.Count -gt 0) {
             return @{
                 Success = $false
                 Message = "Failed to create aliases: $($failedAliases -join ', ')"
             }
         }
-        
+
         $script:LoadedComponents += "ModuleAliases"
-        
+
         return @{
             Success = $true
             Message = "Created $($createdAliases.Count) module aliases"
             CreatedAliases = $createdAliases
         }
-        
+
     } catch {
         return @{
             Success = $false
@@ -678,11 +678,11 @@ function Setup-ModuleAliases {
 function Get-ModuleInitializationStatus {
     [CmdletBinding()]
     param()
-    
+
     return @{
         Initialized = $script:ModuleInitialized
         LoadedComponents = $script:LoadedComponents
         Errors = $script:InitializationErrors
         Config = $script:Config
     }
-} 
+}

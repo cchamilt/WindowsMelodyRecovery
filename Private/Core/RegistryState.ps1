@@ -19,7 +19,7 @@ function Get-WmrRegistryState {
         Write-Host "    WhatIf: Would backup registry state from $($RegistryConfig.path)" -ForegroundColor Yellow
         $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $RegistryConfig.dynamic_state_path
         Write-Host "    WhatIf: Would save registry data to $stateFilePath" -ForegroundColor Yellow
-        
+
         if (-not (Test-Path $RegistryConfig.path)) {
             Write-Warning "    WhatIf: Registry path not found: $($RegistryConfig.path). Would skip backup for this item."
         } else {
@@ -113,11 +113,11 @@ function Set-WmrRegistryState {
 
     if ($WhatIfPreference) {
         Write-Host "    WhatIf: Would restore registry state from $stateFilePath to $resolvedPath" -ForegroundColor Yellow
-        
+
         if (Test-Path $stateFilePath) {
             try {
                 $stateData = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
-                
+
                 if ($RegistryConfig.type -eq "value") {
                     $valueToShow = "?"
                     if ($stateData.Encrypted -eq $true -and $stateData.EncryptedValue) {
@@ -196,4 +196,4 @@ function Set-WmrRegistryState {
 }
 
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
-# Available functions: Get-WmrRegistryState, Set-WmrRegistryState 
+# Available functions: Get-WmrRegistryState, Set-WmrRegistryState

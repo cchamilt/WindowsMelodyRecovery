@@ -16,10 +16,10 @@
 BeforeAll {
     # Import test environment utilities
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
-    
+
     # Get standardized test paths
     $script:TestPaths = Get-TestPaths
-    
+
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -295,7 +295,7 @@ Package A           App.PackageA          1.2.3
 
             $nestedPath = Join-Path $script:TempStateDir "level1/level2/level3"
             (Test-Path $nestedPath -PathType Container) | Should -Be $true
-            
+
             $stateFilePath = Join-Path $script:TempStateDir "level1/level2/level3/nested_app.json"
             (Test-Path $stateFilePath) | Should -Be $true
         }
@@ -313,7 +313,7 @@ Package A           App.PackageA          1.2.3
             }
 
             { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
-            
+
             $stateFilePath = Join-Path $script:TempStateDir "apps/directory_test.json"
             (Test-Path $stateFilePath) | Should -Be $true
         }
@@ -346,11 +346,11 @@ Visual Studio Code   Microsoft.VisualStudioCode 1.60.0
 
             $stateFilePath = Join-Path $script:TempStateDir "apps/json_validation.json"
             (Test-Path $stateFilePath) | Should -Be $true
-            
+
             # Validate JSON content
             $content = Get-Content -Path $stateFilePath -Raw -Encoding Utf8
             { $content | ConvertFrom-Json } | Should -Not -Throw
-            
+
             $parsed = $content | ConvertFrom-Json
             $parsed.Count | Should -Be 1
             $parsed[0].Name | Should -Be "Visual Studio Code"
@@ -383,9 +383,9 @@ Test App with 中文    Test.Unicode          1.0.0
 
             $stateFilePath = Join-Path $script:TempStateDir "apps/utf8_test.json"
             (Test-Path $stateFilePath) | Should -Be $true
-            
+
             $content = Get-Content -Path $stateFilePath -Raw -Encoding Utf8 | ConvertFrom-Json
             $content[0].Name | Should -Be "Test App with 中文"
         }
     }
-} 
+}

@@ -18,18 +18,18 @@ function Resolve-WmrTemplateInheritance {
     <#
     .SYNOPSIS
         Resolves template inheritance by merging shared and machine-specific configurations.
-    
+
     .DESCRIPTION
         Processes a template configuration to resolve inheritance patterns, applying
         shared configurations, machine-specific overrides, conditional sections,
         and custom inheritance rules.
-    
+
     .PARAMETER TemplateConfig
         The parsed template configuration object.
-    
+
     .PARAMETER MachineContext
         Context information about the current machine for inheritance resolution.
-    
+
     .EXAMPLE
         $resolvedConfig = Resolve-WmrTemplateInheritance -TemplateConfig $template -MachineContext $context
     #>
@@ -37,54 +37,54 @@ function Resolve-WmrTemplateInheritance {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$TemplateConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     Write-Verbose "Resolving template inheritance for template: $($TemplateConfig.metadata.name)"
-    
+
     # Initialize resolved configuration with base template
     $resolvedConfig = $TemplateConfig | ConvertTo-Json -Depth 100 | ConvertFrom-Json
-    
+
     # Get inheritance configuration or use defaults
     $inheritanceConfig = Get-WmrInheritanceConfiguration -TemplateConfig $TemplateConfig
-    
+
     try {
         # Step 1: Process shared configuration
         if ($TemplateConfig.shared) {
             Write-Verbose "Processing shared configuration sections"
             $resolvedConfig = Merge-WmrSharedConfiguration -ResolvedConfig $resolvedConfig -SharedConfig $TemplateConfig.shared -InheritanceConfig $inheritanceConfig
         }
-        
+
         # Step 2: Apply machine-specific overrides
         if ($TemplateConfig.machine_specific) {
             Write-Verbose "Processing machine-specific configuration overrides"
             $applicableMachineConfigs = Get-WmrApplicableMachineConfigurations -MachineSpecificConfigs $TemplateConfig.machine_specific -MachineContext $MachineContext
-            
+
             foreach ($machineConfig in $applicableMachineConfigs) {
                 $resolvedConfig = Merge-WmrMachineSpecificConfiguration -ResolvedConfig $resolvedConfig -MachineConfig $machineConfig -InheritanceConfig $inheritanceConfig
             }
         }
-        
+
         # Step 3: Apply inheritance rules
         if ($TemplateConfig.inheritance_rules) {
             Write-Verbose "Applying custom inheritance rules"
             $resolvedConfig = Apply-WmrInheritanceRules -ResolvedConfig $resolvedConfig -InheritanceRules $TemplateConfig.inheritance_rules -MachineContext $MachineContext
         }
-        
+
         # Step 4: Process conditional sections
         if ($TemplateConfig.conditional_sections) {
             Write-Verbose "Processing conditional sections"
             $resolvedConfig = Apply-WmrConditionalSections -ResolvedConfig $resolvedConfig -ConditionalSections $TemplateConfig.conditional_sections -MachineContext $MachineContext
         }
-        
+
         # Step 5: Validate final configuration
         Test-WmrResolvedConfiguration -ResolvedConfig $resolvedConfig -InheritanceConfig $inheritanceConfig
-        
+
         Write-Verbose "Template inheritance resolution completed successfully"
         return $resolvedConfig
-        
+
     } catch {
         Write-Error "Failed to resolve template inheritance: $($_.Exception.Message)"
         throw
@@ -101,14 +101,14 @@ function Get-WmrInheritanceConfiguration {
         [Parameter(Mandatory=$true)]
         [PSObject]$TemplateConfig
     )
-    
+
     $defaultConfig = @{
         inheritance_mode = "merge"
         machine_precedence = $true
         validation_level = "moderate"
         fallback_strategy = "use_shared"
     }
-    
+
     if ($TemplateConfig.configuration) {
         # Merge template configuration with defaults
         $config = @{}
@@ -128,7 +128,7 @@ function Get-WmrInheritanceConfiguration {
         }
         return $config
     }
-    
+
     return $defaultConfig
 }
 
@@ -136,20 +136,20 @@ function Get-WmrMachineContext {
     <#
     .SYNOPSIS
         Gets machine context information for inheritance resolution.
-    
+
     .DESCRIPTION
         Collects information about the current machine that can be used
         for inheritance resolution, including machine name, environment
         variables, hardware information, and software checks.
-    
+
     .EXAMPLE
         $context = Get-WmrMachineContext
     #>
     [CmdletBinding()]
     param()
-    
+
     Write-Verbose "Collecting machine context information"
-    
+
     try {
         $context = @{
             MachineName = $env:COMPUTERNAME
@@ -163,7 +163,7 @@ function Get-WmrMachineContext {
             SoftwareInfo = @{}
             Timestamp = Get-Date
         }
-        
+
         # Collect relevant environment variables
         $relevantEnvVars = @("COMPUTERNAME", "USERNAME", "USERPROFILE", "PROCESSOR_ARCHITECTURE", "USERDOMAIN", "PROCESSOR_IDENTIFIER")
         foreach ($envVar in $relevantEnvVars) {
@@ -172,7 +172,7 @@ function Get-WmrMachineContext {
                 $context.EnvironmentVariables[$envVar] = $envValue
             }
         }
-        
+
         # Collect basic hardware information
         try {
             $context.HardwareInfo.Processors = Get-CimInstance -ClassName Win32_Processor -ErrorAction SilentlyContinue | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors
@@ -181,7 +181,7 @@ function Get-WmrMachineContext {
         } catch {
             Write-Warning "Failed to collect hardware information: $($_.Exception.Message)"
         }
-        
+
         # Collect basic software information
         try {
             $context.SoftwareInfo.PowerShellVersion = $PSVersionTable.PSVersion.ToString()
@@ -189,10 +189,10 @@ function Get-WmrMachineContext {
         } catch {
             Write-Warning "Failed to collect software information: $($_.Exception.Message)"
         }
-        
+
         Write-Verbose "Machine context collection completed"
         return $context
-        
+
     } catch {
         Write-Error "Failed to collect machine context: $($_.Exception.Message)"
         throw
@@ -208,23 +208,23 @@ function Get-WmrApplicableMachineConfigurations {
     param(
         [Parameter(Mandatory=$true)]
         [array]$MachineSpecificConfigs,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     $applicableConfigs = @()
-    
+
     foreach ($config in $MachineSpecificConfigs) {
         if (Test-WmrMachineSelectors -MachineSelectors $config.machine_selectors -MachineContext $MachineContext) {
             Write-Verbose "Machine-specific configuration '$($config.name)' applies to this machine"
             $applicableConfigs += $config
         }
     }
-    
+
     # Sort by priority (higher priority first)
     $applicableConfigs = $applicableConfigs | Sort-Object { if ($_.priority) { $_.priority } else { 80 } } -Descending
-    
+
     return $applicableConfigs
 }
 
@@ -237,14 +237,14 @@ function Test-WmrMachineSelectors {
     param(
         [Parameter(Mandatory=$true)]
         [array]$MachineSelectors,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     foreach ($selector in $MachineSelectors) {
         $result = $false
-        
+
         switch ($selector.type) {
             "machine_name" {
                 $caseSensitive = if ($selector.case_sensitive -ne $null -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
@@ -283,12 +283,12 @@ function Test-WmrMachineSelectors {
                 }
             }
         }
-        
+
         if ($result) {
             return $true  # At least one selector matches
         }
     }
-    
+
     return $false  # No selectors matched
 }
 
@@ -301,63 +301,63 @@ function Test-WmrStringComparison {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Value,
-        
+
         [Parameter(Mandatory=$true)]
         [string]$Expected,
-        
+
         [Parameter(Mandatory=$false)]
         [string]$Operator = "equals",
-        
+
         [Parameter(Mandatory=$false)]
         [bool]$CaseSensitive = $false
     )
-    
+
     switch ($Operator) {
-        "equals" { 
+        "equals" {
             if ($CaseSensitive) {
                 return $Value -ceq $Expected
             } else {
                 return $Value -eq $Expected
             }
         }
-        "not_equals" { 
+        "not_equals" {
             if ($CaseSensitive) {
                 return $Value -cne $Expected
             } else {
                 return $Value -ne $Expected
             }
         }
-        "contains" { 
+        "contains" {
             if ($CaseSensitive) {
                 return $Value -clike "*$Expected*"
             } else {
                 return $Value -like "*$Expected*"
             }
         }
-        "matches" { 
+        "matches" {
             if ($CaseSensitive) {
                 return $Value -cmatch $Expected
             } else {
                 return $Value -match $Expected
             }
         }
-        "greater_than" { 
+        "greater_than" {
             if ($CaseSensitive) {
                 return $Value -cgt $Expected
             } else {
                 return $Value -gt $Expected
             }
         }
-        "less_than" { 
+        "less_than" {
             if ($CaseSensitive) {
                 return $Value -clt $Expected
             } else {
                 return $Value -lt $Expected
             }
         }
-        default { 
+        default {
             Write-Warning "Unknown comparison operator: $Operator"
-            return $false 
+            return $false
         }
     }
 }
@@ -371,20 +371,20 @@ function Merge-WmrSharedConfiguration {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$SharedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [hashtable]$InheritanceConfig
     )
-    
+
     $configSections = @("files", "registry", "applications", "prerequisites", "stages")
-    
+
     foreach ($section in $configSections) {
         if ($SharedConfig.$section) {
             Write-Verbose "Merging shared $section configuration"
-            
+
             # Add inheritance metadata to shared items
             $sharedItems = $SharedConfig.$section
             foreach ($item in $sharedItems) {
@@ -395,7 +395,7 @@ function Merge-WmrSharedConfiguration {
                     $item | Add-Member -NotePropertyName "inheritance_priority" -NotePropertyValue 50 -Force
                 }
             }
-            
+
             # Merge with existing configuration
             if ($ResolvedConfig.$section) {
                 $ResolvedConfig.$section = @($ResolvedConfig.$section) + @($sharedItems)
@@ -404,7 +404,7 @@ function Merge-WmrSharedConfiguration {
             }
         }
     }
-    
+
     return $ResolvedConfig
 }
 
@@ -417,21 +417,21 @@ function Merge-WmrMachineSpecificConfiguration {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [hashtable]$InheritanceConfig
     )
-    
+
     $configSections = @("files", "registry", "applications", "prerequisites", "stages")
     $mergeStrategy = if ($MachineConfig.merge_strategy) { $MachineConfig.merge_strategy } else { "deep_merge" }
-    
+
     foreach ($section in $configSections) {
         if ($MachineConfig.$section) {
             Write-Verbose "Merging machine-specific $section configuration using strategy: $mergeStrategy"
-            
+
             # Add inheritance metadata to machine-specific items
             $machineItems = $MachineConfig.$section
             foreach ($item in $machineItems) {
@@ -443,7 +443,7 @@ function Merge-WmrMachineSpecificConfiguration {
                     $item | Add-Member -NotePropertyName "inheritance_priority" -NotePropertyValue $priority -Force
                 }
             }
-            
+
             switch ($mergeStrategy) {
                 "replace" {
                     # Replace entire section
@@ -464,7 +464,7 @@ function Merge-WmrMachineSpecificConfiguration {
             }
         }
     }
-    
+
     return $ResolvedConfig
 }
 
@@ -477,31 +477,31 @@ function Merge-WmrConfigurationItems {
     param(
         [Parameter(Mandatory=$false)]
         [array]$ExistingItems,
-        
+
         [Parameter(Mandatory=$true)]
         [array]$NewItems,
-        
+
         [Parameter(Mandatory=$true)]
         [hashtable]$InheritanceConfig
     )
-    
+
     $mergedItems = @()
-    
+
     # Start with existing items
     if ($ExistingItems) {
         $mergedItems = @($ExistingItems)
     }
-    
+
     foreach ($newItem in $NewItems) {
         $matchingItem = $null
-        
+
         # Find matching item by name or inheritance tags
         foreach ($existingItem in $mergedItems) {
             if ($existingItem.name -eq $newItem.name) {
                 $matchingItem = $existingItem
                 break
             }
-            
+
             # Check for matching inheritance tags
             if ($existingItem.inheritance_tags -and $newItem.inheritance_tags) {
                 $commonTags = $existingItem.inheritance_tags | Where-Object { $_ -in $newItem.inheritance_tags }
@@ -511,7 +511,7 @@ function Merge-WmrConfigurationItems {
                 }
             }
         }
-        
+
         if ($matchingItem) {
             # Merge with existing item
             $mergedItem = Merge-WmrConfigurationItem -ExistingItem $matchingItem -NewItem $newItem -InheritanceConfig $InheritanceConfig
@@ -522,7 +522,7 @@ function Merge-WmrConfigurationItems {
             $mergedItems += $newItem
         }
     }
-    
+
     return $mergedItems
 }
 
@@ -535,28 +535,28 @@ function Merge-WmrConfigurationItem {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ExistingItem,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$NewItem,
-        
+
         [Parameter(Mandatory=$true)]
         [hashtable]$InheritanceConfig
     )
-    
+
     # Determine which item has higher priority
     $existingPriority = if ($ExistingItem.inheritance_priority) { $ExistingItem.inheritance_priority } else { 50 }
     $newPriority = if ($NewItem.inheritance_priority) { $NewItem.inheritance_priority } else { 50 }
-    
+
     $conflictResolution = "machine_wins"
     if ($NewItem.conflict_resolution) {
         $conflictResolution = $NewItem.conflict_resolution
     } elseif ($ExistingItem.conflict_resolution) {
         $conflictResolution = $ExistingItem.conflict_resolution
     }
-    
+
     # Create merged item
     $mergedItem = $ExistingItem | ConvertTo-Json -Depth 100 | ConvertFrom-Json
-    
+
     # Apply conflict resolution
     switch ($conflictResolution) {
         "machine_wins" {
@@ -611,7 +611,7 @@ function Merge-WmrConfigurationItem {
             }
         }
     }
-    
+
     return $mergedItem
 }
 
@@ -624,17 +624,17 @@ function Apply-WmrInheritanceRules {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [array]$InheritanceRules,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     foreach ($rule in $InheritanceRules) {
         Write-Verbose "Applying inheritance rule: $($rule.name)"
-        
+
         # Check if rule applies to current configuration
         if (Test-WmrInheritanceRuleCondition -Rule $rule -ResolvedConfig $ResolvedConfig -MachineContext $MachineContext) {
             # Apply rule to applicable sections
@@ -645,7 +645,7 @@ function Apply-WmrInheritanceRules {
             }
         }
     }
-    
+
     return $ResolvedConfig
 }
 
@@ -658,18 +658,18 @@ function Test-WmrInheritanceRuleCondition {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$Rule,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     if (-not $Rule.condition) {
         return $true  # No condition means always apply
     }
-    
+
     # Check inheritance tags condition
     if ($Rule.condition.inheritance_tags) {
         $requiredTags = $Rule.condition.inheritance_tags.contains
@@ -693,12 +693,12 @@ function Test-WmrInheritanceRuleCondition {
             return $hasMatchingTags
         }
     }
-    
+
     # Check machine selectors condition
     if ($Rule.condition.machine_selectors) {
         return Test-WmrMachineSelectors -MachineSelectors $Rule.condition.machine_selectors -MachineContext $MachineContext
     }
-    
+
     return $true
 }
 
@@ -711,14 +711,14 @@ function Apply-WmrInheritanceRuleToSection {
     param(
         [Parameter(Mandatory=$true)]
         [array]$Items,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$Rule,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     switch ($Rule.action) {
         "merge" {
             # Apply merge logic based on rule parameters
@@ -760,7 +760,7 @@ function Apply-WmrInheritanceRuleToSection {
             return $filteredItems
         }
     }
-    
+
     return $Items
 }
 
@@ -773,20 +773,20 @@ function Apply-WmrConditionalSections {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [array]$ConditionalSections,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     foreach ($conditionalSection in $ConditionalSections) {
         Write-Verbose "Evaluating conditional section: $($conditionalSection.name)"
-        
+
         if (Test-WmrConditionalSectionConditions -ConditionalSection $conditionalSection -MachineContext $MachineContext) {
             Write-Verbose "Applying conditional section: $($conditionalSection.name)"
-            
+
             # Apply conditional section to resolved configuration
             $configSections = @("files", "registry", "applications", "prerequisites", "stages")
             foreach ($section in $configSections) {
@@ -797,7 +797,7 @@ function Apply-WmrConditionalSections {
                         $item | Add-Member -NotePropertyName "inheritance_source" -NotePropertyValue "conditional" -Force
                         $item | Add-Member -NotePropertyName "conditional_section" -NotePropertyValue $conditionalSection.name -Force
                     }
-                    
+
                     if ($ResolvedConfig.$section) {
                         $ResolvedConfig.$section = @($ResolvedConfig.$section) + @($conditionalItems)
                     } else {
@@ -807,7 +807,7 @@ function Apply-WmrConditionalSections {
             }
         }
     }
-    
+
     return $ResolvedConfig
 }
 
@@ -820,17 +820,17 @@ function Test-WmrConditionalSectionConditions {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ConditionalSection,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$MachineContext
     )
-    
+
     $logic = if ($ConditionalSection.logic) { $ConditionalSection.logic } else { "and" }
     $results = @()
-    
+
     foreach ($condition in $ConditionalSection.conditions) {
         $result = $false
-        
+
         try {
             switch ($condition.type) {
                 "machine_name" {
@@ -858,20 +858,20 @@ function Test-WmrConditionalSectionConditions {
         } catch {
             Write-Verbose "Conditional check failed: $($_.Exception.Message)"
             $onFailure = if ($condition.on_failure) { $condition.on_failure } else { "skip" }
-            
+
             switch ($onFailure) {
                 "skip" { $result = $false }
-                "warn" { 
+                "warn" {
                     Write-Warning "Conditional check failed for '$($condition.type)': $($_.Exception.Message)"
-                    $result = $false 
+                    $result = $false
                 }
                 "fail" { throw "Conditional check failed for '$($condition.type)': $($_.Exception.Message)" }
             }
         }
-        
+
         $results += $result
     }
-    
+
     # Apply logic to combine results
     switch ($logic) {
         "and" { return ($results | Where-Object { $_ -eq $false }).Count -eq 0 }
@@ -890,15 +890,15 @@ function Test-WmrResolvedConfiguration {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig,
-        
+
         [Parameter(Mandatory=$true)]
         [hashtable]$InheritanceConfig
     )
-    
+
     $validationLevel = $InheritanceConfig.validation_level
-    
+
     Write-Verbose "Validating resolved configuration with level: $validationLevel"
-    
+
     switch ($validationLevel) {
         "strict" {
             # Strict validation - check all requirements
@@ -913,7 +913,7 @@ function Test-WmrResolvedConfiguration {
             Test-WmrRelaxedConfigurationValidation -ResolvedConfig $ResolvedConfig
         }
     }
-    
+
     Write-Verbose "Configuration validation completed"
 }
 
@@ -927,7 +927,7 @@ function Test-WmrStrictConfigurationValidation {
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig
     )
-    
+
     # Check for duplicate names within sections
     $configSections = @("files", "registry", "applications", "prerequisites")
     foreach ($section in $configSections) {
@@ -939,7 +939,7 @@ function Test-WmrStrictConfigurationValidation {
             }
         }
     }
-    
+
     # Check for conflicting paths
     if ($ResolvedConfig.files) {
         $paths = $ResolvedConfig.files | ForEach-Object { $_.path }
@@ -948,7 +948,7 @@ function Test-WmrStrictConfigurationValidation {
             Write-Warning "Duplicate file paths found: $($duplicatePaths.Name -join ', ')"
         }
     }
-    
+
     # Check for required properties
     foreach ($section in $configSections) {
         if ($ResolvedConfig.$section) {
@@ -977,7 +977,7 @@ function Test-WmrModerateConfigurationValidation {
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig
     )
-    
+
     # Check for basic required properties
     $configSections = @("files", "registry", "applications")
     foreach ($section in $configSections) {
@@ -989,7 +989,7 @@ function Test-WmrModerateConfigurationValidation {
             }
         }
     }
-    
+
     # Check for obvious conflicts
     if ($ResolvedConfig.files) {
         $paths = $ResolvedConfig.files | ForEach-Object { $_.path }
@@ -1010,12 +1010,12 @@ function Test-WmrRelaxedConfigurationValidation {
         [Parameter(Mandatory=$true)]
         [PSObject]$ResolvedConfig
     )
-    
+
     # Minimal validation - just check if configuration exists
     if (-not $ResolvedConfig) {
         throw "Resolved configuration is null or empty"
     }
-    
+
     # Check if at least one section exists
     $configSections = @("files", "registry", "applications", "prerequisites", "stages")
     $hasContent = $false
@@ -1025,7 +1025,7 @@ function Test-WmrRelaxedConfigurationValidation {
             break
         }
     }
-    
+
     if (-not $hasContent) {
         Write-Warning "Resolved configuration appears to be empty"
     }
@@ -1041,16 +1041,16 @@ function Merge-WmrRegistryValues {
     param(
         [Parameter(Mandatory=$true)]
         [array]$Items,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$Rule
     )
-    
+
     $conflictResolution = if ($Rule.parameters.conflict_resolution) { $Rule.parameters.conflict_resolution } else { "machine_wins" }
-    
+
     # Group items by registry path
     $groupedItems = $Items | Group-Object -Property path
-    
+
     $mergedItems = @()
     foreach ($group in $groupedItems) {
         if ($group.Count -eq 1) {
@@ -1058,7 +1058,7 @@ function Merge-WmrRegistryValues {
         } else {
             # Merge multiple items for same path
             $mergedItem = $group.Group[0] | ConvertTo-Json -Depth 100 | ConvertFrom-Json
-            
+
             # Apply conflict resolution
             foreach ($item in $group.Group[1..($group.Count-1)]) {
                 switch ($conflictResolution) {
@@ -1078,18 +1078,18 @@ function Merge-WmrRegistryValues {
                         # Default to higher priority
                         $mergedPriority = if ($mergedItem.inheritance_priority) { $mergedItem.inheritance_priority } else { 50 }
                         $itemPriority = if ($item.inheritance_priority) { $item.inheritance_priority } else { 50 }
-                        
+
                         if ($itemPriority -gt $mergedPriority) {
                             $mergedItem = $item
                         }
                     }
                 }
             }
-            
+
             $mergedItems += $mergedItem
         }
     }
-    
+
     return $mergedItems
 }
 
@@ -1102,16 +1102,16 @@ function Test-WmrConfigurationItemValidity {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$Item,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$Rule
     )
-    
+
     # Basic validity checks
     if (-not $Item.name) {
         return $false
     }
-    
+
     # Rule-specific validation
     if ($Rule.parameters.required_properties) {
         foreach ($prop in $Rule.parameters.required_properties) {
@@ -1120,7 +1120,7 @@ function Test-WmrConfigurationItemValidity {
             }
         }
     }
-    
+
     return $true
 }
 
@@ -1133,11 +1133,11 @@ function Test-WmrRuleItemMatch {
     param(
         [Parameter(Mandatory=$true)]
         [PSObject]$Item,
-        
+
         [Parameter(Mandatory=$true)]
         [PSObject]$Rule
     )
-    
+
     # Check inheritance tags
     if ($Rule.condition.inheritance_tags) {
         $requiredTags = $Rule.condition.inheritance_tags.contains
@@ -1146,7 +1146,7 @@ function Test-WmrRuleItemMatch {
             return $commonTags.Count -gt 0
         }
     }
-    
+
     # Check other conditions as needed
     return $false
 }
@@ -1172,4 +1172,4 @@ function Test-WmrRuleItemMatch {
 #     'Merge-WmrRegistryValues',
 #     'Test-WmrConfigurationItemValidity',
 #     'Test-WmrRuleItemMatch'
-# ) 
+# )

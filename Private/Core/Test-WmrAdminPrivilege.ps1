@@ -15,6 +15,6 @@ function Test-WmrAdminPrivilege {
     if (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         return $true
     }
-    
+
     return $false
-} 
+}

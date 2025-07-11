@@ -20,7 +20,7 @@ function Setup-[Feature] {
         # Add your setup logic here
         # Example:
         # Write-Host "Installing [Feature]..." -ForegroundColor Yellow
-        # 
+        #
         # try {
         #     # Try winget first
         #     $wingetResult = winget list [PackageName] 2>$null
@@ -43,7 +43,7 @@ function Setup-[Feature] {
 
         # Configuration steps
         Write-Host "Configuring [Feature]..." -ForegroundColor Yellow
-        
+
         # Add configuration logic here
         # Example:
         # $configPath = Join-Path $env:BACKUP_ROOT $env:MACHINE_NAME "[Feature]"
@@ -84,4 +84,4 @@ Sets up [Feature] without prompts.
 - Returns $true on success, $false on failure
 - Uses winget as primary package manager with chocolatey fallback
 - Stores configuration in backup location when applicable
-#> 
+#>

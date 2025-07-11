@@ -8,11 +8,11 @@ case "$1" in
         # reg export HKEY_LOCAL_MACHINE\SOFTWARE\Test output.reg
         KEY="$2"
         OUTPUT="$3"
-        
+
         # Convert Windows registry path to mock path
         MOCK_PATH=$(echo "$KEY" | sed 's/HKEY_LOCAL_MACHINE/HKLM/g' | sed 's/HKEY_CURRENT_USER/HKCU/g' | sed 's/\\/\//g')
         FULL_PATH="$REGISTRY_ROOT/$MOCK_PATH"
-        
+
         # Create mock registry export
         mkdir -p "$(dirname "$OUTPUT")"
         cat > "$OUTPUT" << EOF
@@ -60,4 +60,4 @@ EOF
         echo "Mock reg command - Usage: reg [export|import|query|add|delete] ..."
         exit 1
         ;;
-esac 
+esac

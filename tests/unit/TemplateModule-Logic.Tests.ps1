@@ -4,10 +4,10 @@
 BeforeAll {
     # Load the unified test environment (works for both Docker and Windows)
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
-    
+
     # Initialize test environment
     $testEnvironment = Initialize-TestEnvironment
-    
+
     # Mock all file operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*valid*" }
@@ -16,7 +16,7 @@ BeforeAll {
     Mock New-Item { return @{ FullName = $Path } }
     Mock Set-Content { }
     Mock Remove-Item { }
-    
+
     # Mock Get-Content for YAML template files
     Mock Get-Content {
         if ($Path -like "*valid*") {
@@ -43,14 +43,14 @@ files:
             return "default: content"
         }
     }
-    
+
     # Add missing Get-WmrTestPath function
     function Get-WmrTestPath {
         param(
             [string]$Path,
             [string]$WindowsPath
         )
-        
+
         # If WindowsPath is provided, use it; otherwise use Path
         if ($WindowsPath) {
             return $WindowsPath
@@ -241,7 +241,7 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should handle absolute template paths correctly" {
             $absolutePath = (Get-WmrTestPath -WindowsPath "C:\Templates\custom\template.yaml")
-            
+
             # Test that absolute paths are preserved (works with both Windows and Linux paths)
             $absolutePath | Should -Match "(^[A-Z]:\\.*template\.yaml$)|(^/.*template\.yaml$)"
         }
@@ -318,5 +318,5 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
             }
         }
     }
-} 
+}
 

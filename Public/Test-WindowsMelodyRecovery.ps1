@@ -53,7 +53,7 @@ function Test-WindowsMelodyRecovery {
         if ($config -and $config.BackupRoot) {
             $results.ConfigurationValid = $true
             Write-Host "Configuration is valid" -ForegroundColor Green
-            
+
             if ($Detailed) {
                 Write-Host ""
                 Write-Host "Configuration Details:" -ForegroundColor Cyan
@@ -76,11 +76,11 @@ function Test-WindowsMelodyRecovery {
         try {
             $backupRoot = $config.BackupRoot
             $machineBackupDir = Join-Path $backupRoot $config.MachineName
-            
+
             if (Test-Path $backupRoot) {
                 $results.BackupLocationAccessible = $true
                 Write-Host "Backup root location is accessible" -ForegroundColor Green
-                
+
                 if (Test-Path $machineBackupDir) {
                     Write-Host "Machine-specific backup directory exists" -ForegroundColor Green
                 } else {
@@ -103,11 +103,11 @@ function Test-WindowsMelodyRecovery {
             $taskPath = "\WindowsMelodyRecovery\"
             $backupTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Backup" -TaskPath $taskPath -ErrorAction SilentlyContinue
             $updateTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery-Update" -TaskPath $taskPath -ErrorAction SilentlyContinue
-            
+
             if ($backupTask -and $updateTask) {
                 $results.ScheduledTasksInstalled = $true
                 Write-Host "Scheduled tasks are installed" -ForegroundColor Green
-                
+
                 if ($Detailed) {
                     Write-Host ""
                     Write-Host "Scheduled Tasks Details:" -ForegroundColor Cyan
