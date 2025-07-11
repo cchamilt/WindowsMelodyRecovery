@@ -314,16 +314,20 @@ Describe "Set-WmrFileState - Directory Type" {
         # Restore the directory structure
         Set-WmrFileState -FileConfig $restoreConfig -StateFilesDirectory $script:TempStateDir
 
-        # Verify paths exist
+        # Verify paths exist (cross-platform compatible)
+        $file1Path = Join-Path $restoredDirPath "file1.txt"
+        $subdirPath = Join-Path $restoredDirPath "subdir"
+        $file2Path = Join-Path $subdirPath "file2.txt"
+        
         Write-Debug "Verifying paths:"
-        Write-Debug "  $restoredDirPath\file1.txt exists: $(Test-Path "$restoredDirPath\file1.txt")"
-        Write-Debug "  $restoredDirPath\subdir exists: $(Test-Path "$restoredDirPath\subdir")"
-        Write-Debug "  $restoredDirPath\subdir\file2.txt exists: $(Test-Path "$restoredDirPath\subdir\file2.txt")"
+        Write-Debug "  $file1Path exists: $(Test-Path $file1Path)"
+        Write-Debug "  $subdirPath exists: $(Test-Path $subdirPath)"
+        Write-Debug "  $file2Path exists: $(Test-Path $file2Path)"
 
         # Verify the directory structure was recreated
-        Test-Path "$restoredDirPath\file1.txt" | Should -Be $true
-        Test-Path "$restoredDirPath\subdir" | Should -Be $true
-        Test-Path "$restoredDirPath\subdir\file2.txt" | Should -Be $true
+        Test-Path $file1Path | Should -Be $true
+        Test-Path $subdirPath | Should -Be $true
+        Test-Path $file2Path | Should -Be $true
     }
 
     It "Should restore directory structure" {
@@ -367,10 +371,14 @@ Describe "Set-WmrFileState - Directory Type" {
         # Act
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:testStateDir
 
-        # Assert
-        Test-Path "$destinationPath\file1.txt" | Should -Be $true
-        Test-Path "$destinationPath\subdir" | Should -Be $true
-        Test-Path "$destinationPath\subdir\file2.txt" | Should -Be $true
+        # Assert (cross-platform compatible)
+        $file1Path = Join-Path $destinationPath "file1.txt"
+        $subdirPath = Join-Path $destinationPath "subdir"
+        $file2Path = Join-Path $subdirPath "file2.txt"
+        
+        Test-Path $file1Path | Should -Be $true
+        Test-Path $subdirPath | Should -Be $true
+        Test-Path $file2Path | Should -Be $true
     }
 }
 
@@ -584,10 +592,14 @@ Describe "FileState" {
             # Act
             Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:testStateDir
 
-            # Assert
-            Test-Path "$destinationPath\file1.txt" | Should -Be $true
-            Test-Path "$destinationPath\subdir" | Should -Be $true
-            Test-Path "$destinationPath\subdir\file2.txt" | Should -Be $true
+            # Assert (cross-platform compatible)
+            $file1Path = Join-Path $destinationPath "file1.txt"
+            $subdirPath = Join-Path $destinationPath "subdir"
+            $file2Path = Join-Path $subdirPath "file2.txt"
+            
+            Test-Path $file1Path | Should -Be $true
+            Test-Path $subdirPath | Should -Be $true
+            Test-Path $file2Path | Should -Be $true
         }
     }
 } 

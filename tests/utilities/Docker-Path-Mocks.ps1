@@ -488,9 +488,14 @@ function New-Item {
         }
         
         # For file system paths in safe test directories, actually create them
-        if (($Path.StartsWith("/workspace/Temp") -or $Path.StartsWith("/workspace/temp")) -and $ItemType -eq "Directory") {
-            Write-Verbose "Actually creating directory in Docker: '$Path'"
-            return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
+        if ($Path.StartsWith("/workspace/Temp") -or $Path.StartsWith("/workspace/temp")) {
+            if ($ItemType -eq "Directory") {
+                Write-Verbose "Actually creating directory in Docker: '$Path'"
+                return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
+            } elseif ($ItemType -eq "File") {
+                Write-Verbose "Actually creating file in Docker: '$Path'"
+                return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
+            }
         }
         
         # For other file system paths, simulate file/directory creation
@@ -516,7 +521,10 @@ function Remove-Item {
         [switch]$Recurse,
         
         [Parameter()]
-        [switch]$Force
+        [switch]$Force,
+        
+        [Parameter()]
+        [switch]$Confirm
     )
     
     # Handle null or empty paths gracefully
@@ -533,16 +541,16 @@ function Remove-Item {
         # For files in safe test directories, actually remove them
         if ($Path.StartsWith("/workspace/Temp/") -or $Path.StartsWith("/workspace/temp/")) {
             Write-Verbose "Actually removing test file in Docker: '$Path'"
-            return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction $ErrorActionPreference
+            return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$Confirm -ErrorAction $ErrorActionPreference
         }
         
         # For other paths, simulate removal
-        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force)"
+        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
         return $null
     } else {
         # In local environments, use the real Remove-Item for cleanup
-        Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force)"
-        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -ErrorAction $ErrorActionPreference
+        Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
+        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$Confirm -ErrorAction $ErrorActionPreference
     }
 }
 

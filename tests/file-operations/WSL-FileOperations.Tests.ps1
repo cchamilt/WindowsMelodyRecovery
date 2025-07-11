@@ -12,6 +12,12 @@
 #>
 
 BeforeAll {
+    # Import test environment utilities
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    
+    # Get standardized test paths
+    $script:TestPaths = Get-TestPaths
+    
     # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
@@ -20,10 +26,10 @@ BeforeAll {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
     
-    # Set up test paths
-    $script:TestBackupRoot = Join-Path $PSScriptRoot "../../test-backups/wsl"
-    $script:TestRestoreRoot = Join-Path $PSScriptRoot "../../test-restore/wsl"
-    $script:TempTestRoot = Join-Path $PSScriptRoot "../../Temp/wsl-fileops"
+    # Set up test paths using standardized test environment
+    $script:TestBackupRoot = Join-Path $script:TestPaths.TestBackup "wsl"
+    $script:TestRestoreRoot = Join-Path $script:TestPaths.TestRestore "wsl"  
+    $script:TempTestRoot = Join-Path $script:TestPaths.Temp "wsl-fileops"
     
     # Create test directories
     foreach ($path in @($script:TestBackupRoot, $script:TestRestoreRoot, $script:TempTestRoot)) {
@@ -34,9 +40,9 @@ BeforeAll {
 }
 
 AfterAll {
-    # Clean up test directories
+    # Clean up test directories safely
     foreach ($path in @($script:TestBackupRoot, $script:TestRestoreRoot, $script:TempTestRoot)) {
-        if (Test-Path $path) {
+        if ($path -and (Test-Path $path) -and (Test-SafeTestPath $path)) {
             Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
