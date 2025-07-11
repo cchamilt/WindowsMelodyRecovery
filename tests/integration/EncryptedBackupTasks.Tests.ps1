@@ -289,18 +289,18 @@ Describe 'Encrypted Backup Task Integration Tests' {
             $logPath = Join-Path $script:TestBackupDir "encryption.log"
 
             # Mock logging functions
-            Mock Write-Host { }
+            Mock Write-Information -MessageData { } -InformationAction Continue
             Mock Start-Transcript { }
             Mock Stop-Transcript { }
 
             # Act - Simulate encrypted backup with logging
             Start-Transcript -Path $logPath -Append -Force
             try {
-                Write-Host "Starting encrypted backup operation"
-                Write-Host "Encryption enabled: True"
-                Write-Host "Processing encrypted files: 2"
-                Write-Host "Processing unencrypted files: 3"
-                Write-Host "Encrypted backup completed successfully"
+                Write-Information -MessageData "Starting encrypted backup operation" -InformationAction Continue
+                Write-Information -MessageData "Encryption enabled: True" -InformationAction Continue
+                Write-Information -MessageData "Processing encrypted files: 2" -InformationAction Continue
+                Write-Information -MessageData "Processing unencrypted files: 3" -InformationAction Continue
+                Write-Information -MessageData "Encrypted backup completed successfully" -InformationAction Continue
             } finally {
                 Stop-Transcript
             }

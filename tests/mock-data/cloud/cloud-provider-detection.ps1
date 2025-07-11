@@ -5,24 +5,24 @@ function Get-MockCloudProviders {
     <#
     .SYNOPSIS
     Detects available cloud storage providers in the mock environment
-    
+
     .DESCRIPTION
     Returns information about available cloud storage providers including
     OneDrive, Google Drive, Dropbox, Box, and Custom storage solutions
-    
+
     .EXAMPLE
     Get-MockCloudProviders
     #>
-    
+
     $providers = @()
     $mockCloudRoot = if (Test-Path "/mock-data/cloud") { "/mock-data/cloud" } else { "$PSScriptRoot" }
-    
+
     # OneDrive Detection
     $oneDrivePath = Join-Path $mockCloudRoot "OneDrive"
     if (Test-Path $oneDrivePath) {
         $oneDriveInfo = Get-Content (Join-Path $oneDrivePath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         $syncStatus = Get-Content (Join-Path $oneDrivePath ".sync_status") -Raw
-        
+
         $providers += @{
             Name = "OneDrive"
             Type = "personal"
@@ -37,13 +37,13 @@ function Get-MockCloudProviders {
             Account = $oneDriveInfo.account
         }
     }
-    
+
     # Google Drive Detection
     $googleDrivePath = Join-Path $mockCloudRoot "GoogleDrive"
     if (Test-Path $googleDrivePath) {
         $googleDriveInfo = Get-Content (Join-Path $googleDrivePath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         $syncStatus = Get-Content (Join-Path $googleDrivePath ".sync_status") -Raw
-        
+
         $providers += @{
             Name = "GoogleDrive"
             Type = "personal"
@@ -58,13 +58,13 @@ function Get-MockCloudProviders {
             Account = $googleDriveInfo.account
         }
     }
-    
+
     # Dropbox Detection
     $dropboxPath = Join-Path $mockCloudRoot "Dropbox"
     if (Test-Path $dropboxPath) {
         $dropboxInfo = Get-Content (Join-Path $dropboxPath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
         $syncStatus = Get-Content (Join-Path $dropboxPath ".sync_status") -Raw
-        
+
         $providers += @{
             Name = "Dropbox"
             Type = "personal"
@@ -79,12 +79,12 @@ function Get-MockCloudProviders {
             Account = $dropboxInfo.account
         }
     }
-    
+
     # Box Detection
     $boxPath = Join-Path $mockCloudRoot "Box"
     if (Test-Path $boxPath) {
         $boxInfo = Get-Content (Join-Path $boxPath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
-        
+
         $providers += @{
             Name = "Box"
             Type = "business"
@@ -99,12 +99,12 @@ function Get-MockCloudProviders {
             Account = $boxInfo.account
         }
     }
-    
+
     # Custom Storage Detection
     $customPath = Join-Path $mockCloudRoot "Custom"
     if (Test-Path $customPath) {
         $customInfo = Get-Content (Join-Path $customPath "WindowsMelodyRecovery\cloud-provider-info.json") | ConvertFrom-Json
-        
+
         $providers += @{
             Name = "Custom"
             Type = "custom"
@@ -119,7 +119,7 @@ function Get-MockCloudProviders {
             Account = $customInfo.account
         }
     }
-    
+
     return $providers
 }
 
@@ -127,26 +127,26 @@ function Test-CloudProviderConnectivity {
     <#
     .SYNOPSIS
     Tests connectivity to cloud storage providers
-    
+
     .DESCRIPTION
     Simulates testing connectivity to various cloud storage providers
     and returns status information
-    
+
     .PARAMETER ProviderName
     Name of the cloud provider to test
-    
+
     .EXAMPLE
     Test-CloudProviderConnectivity -ProviderName "OneDrive"
     #>
-    
+
     param(
         [Parameter(Mandatory=$true)]
         [string]$ProviderName
     )
-    
+
     $providers = Get-MockCloudProviders
     $provider = $providers | Where-Object { $_.Name -eq $ProviderName }
-    
+
     if (-not $provider) {
         return @{
             Provider = $ProviderName
@@ -155,7 +155,7 @@ function Test-CloudProviderConnectivity {
             TestTime = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
         }
     }
-    
+
     # Simulate connectivity test
     $testResults = @{
         Provider = $ProviderName
@@ -167,7 +167,7 @@ function Test-CloudProviderConnectivity {
         ResponseTime = (Get-Random -Minimum 50 -Maximum 200)
         TestTime = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
     }
-    
+
     return $testResults
 }
 
@@ -175,38 +175,38 @@ function Get-CloudProviderFailoverOrder {
     <#
     .SYNOPSIS
     Returns the recommended failover order for cloud providers
-    
+
     .DESCRIPTION
     Provides a prioritized list of cloud providers based on availability,
     sync status, and storage capacity
-    
+
     .EXAMPLE
     Get-CloudProviderFailoverOrder
     #>
-    
+
     $providers = Get-MockCloudProviders
     $prioritized = @()
-    
+
     # Priority 1: Up-to-date providers with high storage
-    $prioritized += $providers | Where-Object { 
-        $_.SyncStatus -eq "up_to_date" -and 
+    $prioritized += $providers | Where-Object {
+        $_.SyncStatus -eq "up_to_date" -and
         $_.StorageTotal -match "TB|[5-9][0-9][0-9] GB"
     } | Sort-Object @{Expression={$_.StorageTotal}; Descending=$true}
-    
+
     # Priority 2: Syncing providers with good storage
-    $prioritized += $providers | Where-Object { 
-        $_.SyncStatus -eq "syncing" -and 
+    $prioritized += $providers | Where-Object {
+        $_.SyncStatus -eq "syncing" -and
         $_.StorageTotal -match "TB|[1-9][0-9][0-9] GB"
     } | Sort-Object @{Expression={$_.StorageTotal}; Descending=$true}
-    
+
     # Priority 3: All other available providers
-    $prioritized += $providers | Where-Object { 
-        $_.Available -and 
+    $prioritized += $providers | Where-Object {
+        $_.Available -and
         $_ -notin $prioritized
     } | Sort-Object @{Expression={$_.StorageTotal}; Descending=$true}
-    
+
     return $prioritized
 }
 
 # Functions are available for dot-sourcing in tests
-# Export-ModuleMember -Function Get-MockCloudProviders, Test-CloudProviderConnectivity, Get-CloudProviderFailoverOrder 
+# Export-ModuleMember -Function Get-MockCloudProviders, Test-CloudProviderConnectivity, Get-CloudProviderFailoverOrder

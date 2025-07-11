@@ -22,7 +22,7 @@ function Setup-RemoveBloat {
     }
 
     try {
-        Write-Host "Starting Windows bloatware removal..." -ForegroundColor Blue
+        Write-Information -MessageData "Starting Windows bloatware removal..." -InformationAction Continue
 
         # List of Windows 10/11 bloatware app packages to remove
         $bloatwareApps = @(
@@ -75,7 +75,7 @@ function Setup-RemoveBloat {
             try {
                 $package = Get-AppxPackage -Name $app -ErrorAction SilentlyContinue
                 if ($package) {
-                    Write-Host "Removing $app..." -ForegroundColor Yellow
+                    Write-Warning -Message "Removing $app..."
                     $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
 
                     # Also remove provisioned package if it exists
@@ -83,19 +83,19 @@ function Setup-RemoveBloat {
                     if ($provPackage) {
                         $provPackage | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
                     }
-                    Write-Host "Successfully removed $app" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully removed $app" -InformationAction Continue
                     $removedCount++
                 } else {
-                    Write-Host "Skipping $app (not installed)" -ForegroundColor Gray
+                    Write-Verbose -Message "Skipping $app (not installed)"
                 }
             } catch {
-                Write-Host "Failed to remove $app : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to remove $app : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Disable Windows features
-        Write-Host "`nDisabling unnecessary Windows features..." -ForegroundColor Yellow
+        Write-Warning -Message "`nDisabling unnecessary Windows features..."
         $windowsFeatures = @(
             #"WindowsMediaPlayer"
             "Internet-Explorer-Optional-*"
@@ -105,22 +105,22 @@ function Setup-RemoveBloat {
         $disabledFeatures = 0
         foreach ($feature in $windowsFeatures) {
             try {
-                Write-Host "Disabling Windows feature: $feature..." -ForegroundColor Yellow
+                Write-Warning -Message "Disabling Windows feature: $feature..."
                 $result = Disable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart -ErrorAction Stop
                 if ($result.RestartNeeded) {
-                    Write-Host "Restart required after disabling $feature" -ForegroundColor Yellow
+                    Write-Warning -Message "Restart required after disabling $feature"
                 } else {
-                    Write-Host "Successfully disabled $feature" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully disabled $feature" -InformationAction Continue
                 }
                 $disabledFeatures++
             } catch {
-                Write-Host "Failed to disable feature $feature : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to disable feature $feature : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Disable telemetry tasks
-        Write-Host "`nDisabling telemetry tasks..." -ForegroundColor Yellow
+        Write-Warning -Message "`nDisabling telemetry tasks..."
         $tasks = @(
             "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
             "\Microsoft\Windows\Application Experience\ProgramDataUpdater"
@@ -135,21 +135,21 @@ function Setup-RemoveBloat {
             try {
                 $taskObj = Get-ScheduledTask -TaskPath (Split-Path $task) -TaskName (Split-Path $task -Leaf) -ErrorAction SilentlyContinue
                 if ($taskObj) {
-                    Write-Host "Disabling scheduled task: $task..." -ForegroundColor Yellow
+                    Write-Warning -Message "Disabling scheduled task: $task..."
                     Disable-ScheduledTask -TaskPath (Split-Path $task) -TaskName (Split-Path $task -Leaf) -ErrorAction Stop | Out-Null
-                    Write-Host "Successfully disabled $task" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully disabled $task" -InformationAction Continue
                     $disabledTasks++
                 } else {
-                    Write-Host "Skipping task $task (not found)" -ForegroundColor Gray
+                    Write-Verbose -Message "Skipping task $task (not found)"
                 }
             } catch {
-                Write-Host "Failed to disable task $task : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to disable task $task : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Remove third-party bloatware
-        Write-Host "`nRemoving third-party bloatware..." -ForegroundColor Yellow
+        Write-Warning -Message "`nRemoving third-party bloatware..."
         $thirdPartyBloat = @(
             "McAfee Security"
             "McAfee LiveSafe"
@@ -172,29 +172,29 @@ function Setup-RemoveBloat {
         $removedPrograms = 0
         foreach ($program in $thirdPartyBloat) {
             try {
-                Write-Host "Checking for $program..." -ForegroundColor Yellow
+                Write-Warning -Message "Checking for $program..."
                 $app = Get-WmiObject -Class Win32_Product -ErrorAction Stop |
                     Where-Object { $_.Name -like "*$program*" }
                 if ($app) {
-                    Write-Host "Removing $program..." -ForegroundColor Yellow
+                    Write-Warning -Message "Removing $program..."
                     $result = $app.Uninstall()
                     if ($result.ReturnValue -eq 0) {
-                        Write-Host "Successfully removed $program" -ForegroundColor Green
+                        Write-Information -MessageData "Successfully removed $program" -InformationAction Continue
                         $removedPrograms++
                     } else {
                         throw "Uninstall returned error code: $($result.ReturnValue)"
                     }
                 } else {
-                    Write-Host "Skipping $program (not installed)" -ForegroundColor Gray
+                    Write-Verbose -Message "Skipping $program (not installed)"
                 }
             } catch {
-                Write-Host "Failed to remove $program : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to remove $program : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Remove Lenovo bloatware specifically
-        Write-Host "`nRemoving Lenovo bloatware..." -ForegroundColor Blue
+        Write-Information -MessageData "`nRemoving Lenovo bloatware..." -InformationAction Continue
         $lenovoApps = @(
             "E046963F.LenovoCompanion",
             "E046963F.LenovoSettings",
@@ -211,7 +211,7 @@ function Setup-RemoveBloat {
             try {
                 $package = Get-AppxPackage -Name $app -AllUsers -ErrorAction SilentlyContinue
                 if ($package) {
-                    Write-Host "Removing Lenovo app: $app..." -ForegroundColor Yellow
+                    Write-Warning -Message "Removing Lenovo app: $app..."
                     $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
 
                     # Also remove provisioned package
@@ -219,19 +219,19 @@ function Setup-RemoveBloat {
                     if ($provPackage) {
                         $provPackage | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
                     }
-                    Write-Host "Successfully removed $app" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully removed $app" -InformationAction Continue
                     $removedLenovo++
                 } else {
-                    Write-Host "Skipping $app (not installed)" -ForegroundColor Gray
+                    Write-Verbose -Message "Skipping $app (not installed)"
                 }
             } catch {
-                Write-Host "Failed to remove $app : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to remove $app : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Additional Lenovo program removal
-        Write-Host "`nRemoving additional Lenovo programs..." -ForegroundColor Yellow
+        Write-Warning -Message "`nRemoving additional Lenovo programs..."
         $lenovoPrograms = @(
             "Lenovo Universal Device Client",
             "Lenovo Vantage",
@@ -254,13 +254,13 @@ function Setup-RemoveBloat {
             $installedPrograms += Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.Publisher -like "*Lenovo*" }
             $installedPrograms += Get-ItemProperty "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.Publisher -like "*Lenovo*" }
         } catch {
-            Write-Host "Warning: Could not enumerate all installed programs" -ForegroundColor Yellow
+            Write-Warning -Message "Warning: Could not enumerate all installed programs"
         }
 
         # Uninstall programs
         foreach ($program in $installedPrograms) {
             if ($program.Name -in $lenovoPrograms -or $program.DisplayName -in $lenovoPrograms) {
-                Write-Host "Uninstalling: $($program.Name)$($program.DisplayName)" -ForegroundColor Yellow
+                Write-Warning -Message "Uninstalling: $($program.Name)$($program.DisplayName)"
 
                 try {
                     if ($program.UninstallString) {
@@ -272,16 +272,16 @@ function Setup-RemoveBloat {
                             $uninstallString = $uninstallString -replace "/I", "/X"
                             Start-Process "cmd.exe" -ArgumentList "/c $uninstallString /quiet /norestart" -Wait -NoNewWindow
                         }
-                        Write-Host "Successfully uninstalled $($program.Name)$($program.DisplayName)" -ForegroundColor Green
+                        Write-Information -MessageData "Successfully uninstalled $($program.Name)$($program.DisplayName)" -InformationAction Continue
                     }
                 } catch {
-                    Write-Host "Failed to uninstall $($program.Name)$($program.DisplayName) : $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "Failed to uninstall $($program.Name)$($program.DisplayName) : $($_.Exception.Message)"
                 }
             }
         }
 
         # Stop and disable Lenovo services
-        Write-Host "`nDisabling Lenovo services..." -ForegroundColor Yellow
+        Write-Warning -Message "`nDisabling Lenovo services..."
         $lenovoServices = @(
             "LenovoVantageService",
             "LenovoSystemInterfaceFoundationService",
@@ -295,15 +295,15 @@ function Setup-RemoveBloat {
                 if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
                     Stop-Service -Name $service -Force -ErrorAction Stop
                     Set-Service -Name $service -StartupType Disabled -ErrorAction Stop
-                    Write-Host "Disabled service: $service" -ForegroundColor Green
+                    Write-Information -MessageData "Disabled service: $service" -InformationAction Continue
                 }
             } catch {
-                Write-Host "Failed to disable service $service : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to disable service $service : $($_.Exception.Message)"
             }
         }
 
         # Remove Lenovo scheduled tasks
-        Write-Host "`nRemoving Lenovo scheduled tasks..." -ForegroundColor Yellow
+        Write-Warning -Message "`nRemoving Lenovo scheduled tasks..."
         $lenovoTasks = @(
             "\Lenovo\*",
             "\ImController\*"
@@ -314,19 +314,19 @@ function Setup-RemoveBloat {
                 $tasks = Get-ScheduledTask -TaskPath $taskPath -ErrorAction SilentlyContinue
                 if ($tasks) {
                     foreach ($task in $tasks) {
-                        Write-Host "Removing task: $($task.TaskName)..." -ForegroundColor Yellow
+                        Write-Warning -Message "Removing task: $($task.TaskName)..."
                         Unregister-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -Confirm:$false -ErrorAction Stop
-                        Write-Host "Successfully removed task: $($task.TaskName)" -ForegroundColor Green
+                        Write-Information -MessageData "Successfully removed task: $($task.TaskName)" -InformationAction Continue
                     }
                 }
             } catch {
-                Write-Host "Failed to remove tasks from $taskPath : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to remove tasks from $taskPath : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Remove Lenovo folders
-        Write-Host "`nRemoving Lenovo folders..." -ForegroundColor Yellow
+        Write-Warning -Message "`nRemoving Lenovo folders..."
         $lenovoFolders = @(
             "$env:ProgramFiles\Lenovo",
             "${env:ProgramFiles(x86)}\Lenovo",
@@ -338,40 +338,40 @@ function Setup-RemoveBloat {
         foreach ($folder in $lenovoFolders) {
             try {
                 if (Test-Path $folder) {
-                    Write-Host "Removing folder: $folder..." -ForegroundColor Yellow
+                    Write-Warning -Message "Removing folder: $folder..."
                     Remove-Item -Path $folder -Recurse -Force -ErrorAction Stop
-                    Write-Host "Successfully removed folder: $folder" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully removed folder: $folder" -InformationAction Continue
                 }
             } catch {
-                Write-Host "Failed to remove folder $folder : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to remove folder $folder : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Remove Lenovo UDC Service
-        Write-Host "`nRemoving Lenovo UDC Service..." -ForegroundColor Yellow
+        Write-Warning -Message "`nRemoving Lenovo UDC Service..."
         try {
             if (Get-Service -Name "UDCService" -ErrorAction SilentlyContinue) {
                 Stop-Service -Name "UDCService" -Force -ErrorAction Stop
                 Set-Service -Name "UDCService" -StartupType Disabled -ErrorAction Stop
-                Write-Host "Disabled UDCService" -ForegroundColor Green
+                Write-Information -MessageData "Disabled UDCService" -InformationAction Continue
             }
         } catch {
-            Write-Host "UDCService not found or already disabled" -ForegroundColor Gray
+            Write-Verbose -Message "UDCService not found or already disabled"
         }
 
         # Remove UDCService from registry
         try {
             if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\UDCService") {
                 Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\UDCService" -Recurse -Force -ErrorAction Stop
-                Write-Host "Removed UDCService registry entries" -ForegroundColor Green
+                Write-Information -MessageData "Removed UDCService registry entries" -InformationAction Continue
             }
         } catch {
-            Write-Host "UDCService registry entries not found" -ForegroundColor Gray
+            Write-Verbose -Message "UDCService registry entries not found"
         }
 
         # Disable Lenovo Universal Device Client devices
-        Write-Host "`nDisabling Lenovo UDC devices..." -ForegroundColor Yellow
+        Write-Warning -Message "`nDisabling Lenovo UDC devices..."
         try {
             $lenovoDevices = Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object {
                 $_.FriendlyName -like "*Lenovo Universal Device*" -or
@@ -381,7 +381,7 @@ function Setup-RemoveBloat {
 
             foreach ($device in $lenovoDevices) {
                 try {
-                    Write-Host "Disabling device: $($device.FriendlyName)" -ForegroundColor Yellow
+                    Write-Warning -Message "Disabling device: $($device.FriendlyName)"
                     $device | Disable-PnpDevice -Confirm:$false -ErrorAction Stop
 
                     # Prevent Windows from re-enabling it
@@ -390,23 +390,23 @@ function Setup-RemoveBloat {
                     if (Test-Path $registryPath) {
                         Set-ItemProperty -Path $registryPath -Name "ConfigFlags" -Value 0x1 -Type DWord -ErrorAction SilentlyContinue
                     }
-                    Write-Host "Successfully disabled $($device.FriendlyName)" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully disabled $($device.FriendlyName)" -InformationAction Continue
                 } catch {
-                    Write-Host "Failed to disable device $($device.FriendlyName) : $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "Failed to disable device $($device.FriendlyName) : $($_.Exception.Message)"
                 }
             }
 
             if ($lenovoDevices.Count -eq 0) {
-                Write-Host "No Lenovo UDC devices found" -ForegroundColor Gray
+                Write-Verbose -Message "No Lenovo UDC devices found"
             } else {
-                Write-Host "Lenovo UDC devices processing completed" -ForegroundColor Green
+                Write-Information -MessageData "Lenovo UDC devices processing completed" -InformationAction Continue
             }
         } catch {
-            Write-Host "Failed to process Lenovo UDC devices: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "Failed to process Lenovo UDC devices: $($_.Exception.Message)"
         }
 
         # Disable suggestion notifications
-        Write-Host "`nDisabling suggestion notifications..." -ForegroundColor Yellow
+        Write-Warning -Message "`nDisabling suggestion notifications..."
         $suggestionSettings = @{
             # Windows Suggestions
             "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" = @{
@@ -462,42 +462,43 @@ function Setup-RemoveBloat {
                 $settings = $suggestionSettings[$path]
                 foreach ($name in $settings.Keys) {
                     Set-ItemProperty -Path $path -Name $name -Value $settings[$name] -Type DWord -ErrorAction Stop
-                    Write-Host "Disabled $name" -ForegroundColor Green
+                    Write-Information -MessageData "Disabled $name" -InformationAction Continue
                     $disabledSuggestions++
                 }
             }
             catch {
-                Write-Host "Failed to set suggestion settings for $path : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to set suggestion settings for $path : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Disable Windows Spotlight
-        Write-Host "`nDisabling Windows Spotlight..." -ForegroundColor Yellow
+        Write-Warning -Message "`nDisabling Windows Spotlight..."
         try {
             Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "RotatingLockScreenEnabled" -Value 0 -Type DWord -ErrorAction Stop
             Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "RotatingLockScreenOverlayEnabled" -Value 0 -Type DWord -ErrorAction Stop
-            Write-Host "Windows Spotlight disabled" -ForegroundColor Green
+            Write-Information -MessageData "Windows Spotlight disabled" -InformationAction Continue
         }
         catch {
-            Write-Host "Failed to disable Windows Spotlight: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "Failed to disable Windows Spotlight: $($_.Exception.Message)"
         }
 
-        Write-Host "`nBloatware removal completed!" -ForegroundColor Green
-        Write-Host "Summary:" -ForegroundColor Cyan
-        Write-Host "- Removed $removedCount Windows Store apps" -ForegroundColor White
-        Write-Host "- Disabled $disabledFeatures Windows features" -ForegroundColor White
-        Write-Host "- Disabled $disabledTasks telemetry tasks" -ForegroundColor White
-        Write-Host "- Removed $removedPrograms third-party programs" -ForegroundColor White
-        Write-Host "- Removed $removedLenovo Lenovo apps" -ForegroundColor White
-        Write-Host "- Disabled $disabledSuggestions suggestion settings" -ForegroundColor White
-        Write-Host "- Processed Lenovo services, tasks, folders, and devices" -ForegroundColor White
-        Write-Host "Note: Some changes may require a system restart to take effect" -ForegroundColor Yellow
+        Write-Information -MessageData "`nBloatware removal completed!" -InformationAction Continue
+        Write-Information -MessageData "Summary:" -InformationAction Continue
+        Write-Information -MessageData " -InformationAction Continue- Removed $removedCount Windows Store apps" -ForegroundColor White
+        Write-Information -MessageData " -InformationAction Continue- Disabled $disabledFeatures Windows features" -ForegroundColor White
+        Write-Information -MessageData " -InformationAction Continue- Disabled $disabledTasks telemetry tasks" -ForegroundColor White
+        Write-Information -MessageData " -InformationAction Continue- Removed $removedPrograms third-party programs" -ForegroundColor White
+        Write-Information -MessageData " -InformationAction Continue- Removed $removedLenovo Lenovo apps" -ForegroundColor White
+        Write-Information -MessageData " -InformationAction Continue- Disabled $disabledSuggestions suggestion settings" -ForegroundColor White
+        Write-Information -MessageData " -InformationAction Continue- Processed Lenovo services, tasks, folders, and devices" -ForegroundColor White
+        Write-Warning -Message "Note: Some changes may require a system restart to take effect"
         return $true
 
     } catch {
-        Write-Host "Failed to remove bloatware: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to remove bloatware: $($_.Exception.Message)"
         return $false
     }
 }
+
 

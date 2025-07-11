@@ -86,7 +86,7 @@ BeforeAll {
     # Get all template files
     $script:AllTemplates = Get-ChildItem -Path $script:TemplatesPath -Filter "*.yaml" | Sort-Object Name
 
-    Write-Host "Found $($script:AllTemplates.Count) templates to validate" -ForegroundColor Green
+    Write-Information -MessageData "Found $($script:AllTemplates.Count) templates to validate" -InformationAction Continue
 
     # Define template categories for organized testing
     $script:TemplateCategories = @{
@@ -195,7 +195,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should find all expected templates" {
             $script:AllTemplates.Count | Should -Be 32
-            Write-Host "Templates found: $($script:AllTemplates.Name -join ', ')" -ForegroundColor Cyan
+            Write-Information -MessageData "Templates found: $($script:AllTemplates.Name -join ', ')" -InformationAction Continue
         }
 
         It "Should have all templates in expected categories" {
@@ -207,7 +207,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                 $allTemplateNames | Should -Contain $template
             }
 
-            Write-Host "All templates properly categorized" -ForegroundColor Green
+            Write-Information -MessageData "All templates properly categorized" -InformationAction Continue
         }
 
         It "Should have templates accessible from Templates/System directory" {
@@ -277,7 +277,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                 $yamlContent | Should -Not -Match "description\s*:\s*[\"']?Template description[\"']?"
                 $yamlContent | Should -Match "author\s*:\s*[\"']?Windows Melody Recovery[\"']?"
 
-                Write-Host "$($template.BaseName): Metadata validation passed" -ForegroundColor Gray
+                Write-Verbose -Message "$($template.BaseName): Metadata validation passed"
             }
         }
     }
@@ -291,7 +291,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should have templates with prerequisites" {
             $prerequisiteTemplates.Count | Should -BeGreaterThan 0
-            Write-Host "Templates with prerequisites: $($prerequisiteTemplates.Count)" -ForegroundColor Cyan
+            Write-Information -MessageData "Templates with prerequisites: $($prerequisiteTemplates.Count)" -InformationAction Continue
         }
 
         foreach ($template in $prerequisiteTemplates) {
@@ -326,7 +326,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should have templates with registry sections" {
             $registryTemplates.Count | Should -BeGreaterThan 0
-            Write-Host "Templates with registry sections: $($registryTemplates.Count)" -ForegroundColor Cyan
+            Write-Information -MessageData "Templates with registry sections: $($registryTemplates.Count)" -InformationAction Continue
         }
 
         foreach ($template in $registryTemplates) {
@@ -342,7 +342,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                 # Validate registry path format (should contain HKEY references)
                 $yamlContent | Should -Match "HK(LM|CU|CR|U|CC):"
 
-                Write-Host "$($template.BaseName): Registry validation passed" -ForegroundColor Gray
+                Write-Verbose -Message "$($template.BaseName): Registry validation passed"
             }
         }
     }
@@ -356,7 +356,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should have templates with file sections" {
             $fileTemplates.Count | Should -BeGreaterThan 0
-            Write-Host "Templates with file sections: $($fileTemplates.Count)" -ForegroundColor Cyan
+            Write-Information -MessageData "Templates with file sections: $($fileTemplates.Count)" -InformationAction Continue
         }
 
         foreach ($template in $fileTemplates) {
@@ -369,7 +369,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                 $yamlContent | Should -Match "path\s*:"
                 $yamlContent | Should -Match "dynamic_state_path\s*:"
 
-                Write-Host "$($template.BaseName): File validation passed" -ForegroundColor Gray
+                Write-Verbose -Message "$($template.BaseName): File validation passed"
             }
         }
     }
@@ -383,7 +383,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should have templates with application sections" {
             $appTemplates.Count | Should -BeGreaterThan 0
-            Write-Host "Templates with application sections: $($appTemplates.Count)" -ForegroundColor Cyan
+            Write-Information -MessageData "Templates with application sections: $($appTemplates.Count)" -InformationAction Continue
         }
 
         foreach ($template in $appTemplates) {
@@ -401,7 +401,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                     $yamlContent | Should -Match "parse_script\s*:"
                 }
 
-                Write-Host "$($template.BaseName): Application validation passed" -ForegroundColor Gray
+                Write-Verbose -Message "$($template.BaseName): Application validation passed"
             }
         }
     }
@@ -463,14 +463,14 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
                     # Verify backup created some files
                     $backupFiles = Get-ChildItem -Path $backupPath -Recurse -File
-                    Write-Host "$templateName backup created $($backupFiles.Count) files" -ForegroundColor Gray
+                    Write-Verbose -Message "$templateName backup created $($backupFiles.Count) files"
 
                     # Test restore operation (should not throw)
                     {
                         Invoke-WmrTemplate -TemplatePath $template.FullName -Operation "Restore" -StateFilesDirectory $backupPath
                     } | Should -Not -Throw
 
-                    Write-Host "$templateName round-trip test completed" -ForegroundColor Green
+                    Write-Information -MessageData "$templateName round-trip test completed" -InformationAction Continue
                 }
             }
         }
@@ -490,7 +490,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                     Test-Path $template.FullName | Should -Be $true
                 }
 
-                Write-Host "$category: $($categoryTemplates.Count) templates" -ForegroundColor Cyan
+                Write-Information -MessageData "$category: $($categoryTemplates.Count) templates" -InformationAction Continue
             }
         }
     }
@@ -519,13 +519,13 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                 }).Count
             }
 
-            Write-Host "=== Template Coverage Report ===" -ForegroundColor Yellow
-            Write-Host "Total Templates: $($report.TotalTemplates)" -ForegroundColor Green
-            Write-Host "Categories: $($report.Categories)" -ForegroundColor Green
-            Write-Host "Templates with Registry: $($report.TemplatesWithRegistry)" -ForegroundColor Green
-            Write-Host "Templates with Files: $($report.TemplatesWithFiles)" -ForegroundColor Green
-            Write-Host "Templates with Applications: $($report.TemplatesWithApplications)" -ForegroundColor Green
-            Write-Host "Templates with Prerequisites: $($report.TemplatesWithPrerequisites)" -ForegroundColor Green
+            Write-Warning -Message "=== Template Coverage Report ==="
+            Write-Information -MessageData "Total Templates: $($report.TotalTemplates)" -InformationAction Continue
+            Write-Information -MessageData "Categories: $($report.Categories)" -InformationAction Continue
+            Write-Information -MessageData "Templates with Registry: $($report.TemplatesWithRegistry)" -InformationAction Continue
+            Write-Information -MessageData "Templates with Files: $($report.TemplatesWithFiles)" -InformationAction Continue
+            Write-Information -MessageData "Templates with Applications: $($report.TemplatesWithApplications)" -InformationAction Continue
+            Write-Information -MessageData "Templates with Prerequisites: $($report.TemplatesWithPrerequisites)" -InformationAction Continue
 
             # Verify we have comprehensive coverage
             $report.TotalTemplates | Should -Be 32
@@ -542,7 +542,7 @@ AfterAll {
     try {
         if (Test-Path $script:TestRoot) {
             Remove-Item $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "Cleaned up template test directory: $script:TestRoot" -ForegroundColor Yellow
+            Write-Warning -Message "Cleaned up template test directory: $script:TestRoot"
         }
     } catch {
         Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"

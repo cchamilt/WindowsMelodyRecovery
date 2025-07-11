@@ -99,7 +99,7 @@ function Setup-ApplicationDiscovery {
     )
 
     begin {
-        Write-Host "Setting up Application Discovery and Management..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up Application Discovery and Management..." -InformationAction Continue
 
         # Check if running as administrator for full discovery
         $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
@@ -137,42 +137,42 @@ function Setup-ApplicationDiscovery {
     process {
         try {
             # Step 1: Discover unmanaged applications
-            Write-Host "Step 1: Discovering unmanaged applications..." -ForegroundColor Cyan
+            Write-Information -MessageData "Step 1: Discovering unmanaged applications..." -InformationAction Continue
             $unmanagedApps = Invoke-UnmanagedApplicationDiscovery -Mode $DiscoveryMode
 
             if ($unmanagedApps) {
-                Write-Host "Found $($unmanagedApps.Count) unmanaged applications" -ForegroundColor Green
+                Write-Information -MessageData "Found $($unmanagedApps.Count) unmanaged applications" -InformationAction Continue
 
                 # Save unmanaged applications list
                 $unmanagedPath = Join-Path $outputPath "unmanaged-applications.$($OutputFormat.ToLower())"
                 Save-ApplicationList -Applications $unmanagedApps -Path $unmanagedPath -Format $OutputFormat
             } else {
-                Write-Host "No unmanaged applications found or discovery was skipped" -ForegroundColor Yellow
+                Write-Warning -Message "No unmanaged applications found or discovery was skipped"
             }
 
             # Step 2: Document installation methods
             if ($DocumentInstallation) {
-                Write-Host "Step 2: Documenting installation methods..." -ForegroundColor Cyan
+                Write-Information -MessageData "Step 2: Documenting installation methods..." -InformationAction Continue
                 $installationDocs = New-InstallationDocumentation -Applications $unmanagedApps
 
                 if ($installationDocs) {
                     $docsPath = Join-Path $outputPath "installation-documentation.$($OutputFormat.ToLower())"
                     Save-InstallationDocumentation -Documentation $installationDocs -Path $docsPath -Format $OutputFormat
-                    Write-Host "Installation documentation saved to: $docsPath" -ForegroundColor Green
+                    Write-Information -MessageData "Installation documentation saved to: $docsPath" -InformationAction Continue
                 }
             }
 
             # Step 3: Create user-editable lists
             if ($CreateUserLists) {
-                Write-Host "Step 3: Creating user-editable application lists..." -ForegroundColor Cyan
+                Write-Information -MessageData "Step 3: Creating user-editable application lists..." -InformationAction Continue
                 New-UserEditableApplicationLists -OutputPath $outputPath -Format $OutputFormat
             }
 
             # Step 4: Configure decision workflows
-            Write-Host "Step 4: Configuring application management workflows..." -ForegroundColor Cyan
+            Write-Information -MessageData "Step 4: Configuring application management workflows..." -InformationAction Continue
             Initialize-ApplicationDecisionWorkflows -OutputPath $outputPath
 
-            Write-Host "Application discovery and management setup completed successfully!" -ForegroundColor Green
+            Write-Information -MessageData "Application discovery and management setup completed successfully!" -InformationAction Continue
             return $true
 
         } catch {
@@ -191,7 +191,7 @@ function Invoke-UnmanagedApplicationDiscovery {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would discover unmanaged applications in $Mode mode" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would discover unmanaged applications in $Mode mode"
         return @()
     }
 
@@ -199,7 +199,7 @@ function Invoke-UnmanagedApplicationDiscovery {
         # Use existing analyze-unmanaged.ps1 script
         $analyzeScript = Join-Path $PSScriptRoot "..\backup\analyze-unmanaged.ps1"
         if (Test-Path $analyzeScript) {
-            Write-Host "Running unmanaged application analysis..." -ForegroundColor Gray
+            Write-Verbose -Message "Running unmanaged application analysis..."
             $result = & $analyzeScript -WhatIf:$WhatIfPreference
             return $result
         } else {
@@ -227,7 +227,7 @@ function Save-ApplicationList {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would save $($Applications.Count) applications to $Path in $Format format" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would save $($Applications.Count) applications to $Path in $Format format"
         return
     }
 
@@ -253,7 +253,7 @@ function Save-ApplicationList {
                 $yamlContent | Out-File -FilePath $Path -Encoding UTF8
             }
         }
-        Write-Host "Application list saved to: $Path" -ForegroundColor Green
+        Write-Information -MessageData "Application list saved to: $Path" -InformationAction Continue
     } catch {
         Write-Warning "Failed to save application list: $_"
     }
@@ -267,7 +267,7 @@ function New-InstallationDocumentation {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would create installation documentation for $($Applications.Count) applications" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would create installation documentation for $($Applications.Count) applications"
         return @()
     }
 
@@ -323,7 +323,7 @@ function Save-InstallationDocumentation {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would save installation documentation to $Path in $Format format" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would save installation documentation to $Path in $Format format"
         return
     }
 
@@ -372,7 +372,7 @@ function Save-InstallationDocumentation {
                 $yamlContent | Out-File -FilePath $Path -Encoding UTF8
             }
         }
-        Write-Host "Installation documentation saved to: $Path" -ForegroundColor Green
+        Write-Information -MessageData "Installation documentation saved to: $Path" -InformationAction Continue
     } catch {
         Write-Warning "Failed to save installation documentation: $_"
     }
@@ -390,7 +390,7 @@ function New-UserEditableApplicationLists {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would create user-editable application lists in $OutputPath" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would create user-editable application lists in $OutputPath"
         return
     }
 
@@ -508,10 +508,10 @@ Tips:
 
         $instructions | Out-File -FilePath $instructionsPath -Encoding UTF8
 
-        Write-Host "User-editable lists created:" -ForegroundColor Green
-        Write-Host "  Applications: $appsPath" -ForegroundColor Gray
-        Write-Host "  Games: $gamesPath" -ForegroundColor Gray
-        Write-Host "  Instructions: $instructionsPath" -ForegroundColor Gray
+        Write-Information -MessageData "User-editable lists created:" -InformationAction Continue
+        Write-Verbose -Message "  Applications: $appsPath"
+        Write-Verbose -Message "  Games: $gamesPath"
+        Write-Verbose -Message "  Instructions: $instructionsPath"
 
     } catch {
         Write-Warning "Failed to create user-editable lists: $_"
@@ -526,7 +526,7 @@ function Initialize-ApplicationDecisionWorkflows {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would initialize application decision workflows in $OutputPath" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would initialize application decision workflows in $OutputPath"
         return
     }
 
@@ -593,7 +593,7 @@ function Initialize-ApplicationDecisionWorkflows {
         $workflowPath = Join-Path $OutputPath "application-decision-workflows.json"
         $workflowConfig | ConvertTo-Json -Depth 10 | Out-File -FilePath $workflowPath -Encoding UTF8
 
-        Write-Host "Application decision workflows initialized: $workflowPath" -ForegroundColor Green
+        Write-Information -MessageData "Application decision workflows initialized: $workflowPath" -InformationAction Continue
 
     } catch {
         Write-Warning "Failed to initialize application decision workflows: $_"

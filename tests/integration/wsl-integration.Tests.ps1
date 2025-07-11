@@ -51,12 +51,12 @@ BeforeAll {
     }
 
     # Test WSL container connectivity
-    Write-Host "Testing WSL container connectivity..." -ForegroundColor Cyan
+    Write-Information -MessageData "Testing WSL container connectivity..." -InformationAction Continue
     $script:WSLConnectivity = Test-WSLDockerConnectivity -ContainerName $script:ContainerName
     if ($script:WSLConnectivity) {
-        Write-Host "WSL Docker container connectivity: PASSED" -ForegroundColor Green
+        Write-Information -MessageData "WSL Docker container connectivity: PASSED" -InformationAction Continue
     } else {
-        Write-Host "WSL Docker container connectivity: FAILED" -ForegroundColor Red
+        Write-Error -Message "WSL Docker container connectivity: FAILED"
     }
 }
 

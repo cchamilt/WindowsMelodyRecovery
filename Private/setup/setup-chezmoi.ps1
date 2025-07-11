@@ -10,11 +10,11 @@ function Setup-Chezmoi {
     }
 
     try {
-        Write-Host "Setting up chezmoi for dotfile management..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up chezmoi for dotfile management..." -InformationAction Continue
 
         # Check if WSL is available
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-            Write-Host "WSL is not available on this system. chezmoi setup requires WSL." -ForegroundColor Red
+            Write-Error -Message "WSL is not available on this system. chezmoi setup requires WSL."
             return $false
         }
 
@@ -22,63 +22,63 @@ function Setup-Chezmoi {
         try {
             $wslDistros = wsl --list --quiet 2>$null
             if (!$wslDistros -or $wslDistros.Count -eq 0) {
-                Write-Host "No WSL distributions found. Please install WSL first." -ForegroundColor Red
+                Write-Error -Message "No WSL distributions found. Please install WSL first."
                 return $false
             }
         } catch {
-            Write-Host "Could not access WSL distributions." -ForegroundColor Red
+            Write-Error -Message "Could not access WSL distributions."
             return $false
         }
 
-        Write-Host "Found WSL distributions. Setting up chezmoi..." -ForegroundColor Green
+        Write-Information -MessageData "Found WSL distributions. Setting up chezmoi..." -InformationAction Continue
 
         # Ask user for dotfiles repository
         $gitRepo = Read-Host "Enter your dotfiles git repository URL (or press Enter to create empty repository)"
 
         if ($gitRepo) {
-            Write-Host "Setting up chezmoi with repository: $gitRepo" -ForegroundColor Yellow
+            Write-Warning -Message "Setting up chezmoi with repository: $gitRepo"
             try {
                 Setup-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
-                Write-Host "✅ chezmoi setup completed with repository" -ForegroundColor Green
+                Write-Information -MessageData "✅ chezmoi setup completed with repository" -InformationAction Continue
             } catch {
-                Write-Host "❌ Failed to setup chezmoi with repository: $($_.Exception.Message)" -ForegroundColor Red
-                Write-Host "Falling back to empty repository setup..." -ForegroundColor Yellow
+                Write-Error -Message "❌ Failed to setup chezmoi with repository: $($_.Exception.Message)"
+                Write-Warning -Message "Falling back to empty repository setup..."
                 Setup-WSLChezmoi
             }
         } else {
-            Write-Host "Setting up empty chezmoi repository..." -ForegroundColor Yellow
+            Write-Warning -Message "Setting up empty chezmoi repository..."
             try {
                 Setup-WSLChezmoi
-                Write-Host "✅ chezmoi setup completed (empty repository)" -ForegroundColor Green
+                Write-Information -MessageData "✅ chezmoi setup completed (empty repository)" -InformationAction Continue
             } catch {
-                Write-Host "❌ Failed to setup chezmoi: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "❌ Failed to setup chezmoi: $($_.Exception.Message)"
                 return $false
             }
         }
 
         # Provide guidance on next steps
-        Write-Host "`nchezmoi Setup Complete! 🎉" -ForegroundColor Green
-        Write-Host "`nNext steps for dotfile management:" -ForegroundColor Cyan
-        Write-Host "• Add files to chezmoi: wsl chezmoi add ~/.bashrc" -ForegroundColor Yellow
-        Write-Host "• Edit managed files: wsl chezmoi edit ~/.bashrc" -ForegroundColor Yellow
-        Write-Host "• Apply changes: wsl chezmoi apply" -ForegroundColor Yellow
-        Write-Host "• Check status: wsl chezmoi status" -ForegroundColor Yellow
-        Write-Host "• View differences: wsl chezmoi diff" -ForegroundColor Yellow
-        Write-Host "• Go to source directory: wsl chezmoi cd" -ForegroundColor Yellow
-        Write-Host "`nUseful aliases (available in WSL after restarting shell):" -ForegroundColor Cyan
-        Write-Host "• cm (chezmoi), cma (apply), cme (edit), cms (status), cmd (diff)" -ForegroundColor Yellow
+        Write-Information -MessageData "`nchezmoi Setup Complete! 🎉" -InformationAction Continue
+        Write-Information -MessageData "`nNext steps for dotfile management:" -InformationAction Continue
+        Write-Warning -Message "• Add files to chezmoi: wsl chezmoi add ~/.bashrc"
+        Write-Warning -Message "• Edit managed files: wsl chezmoi edit ~/.bashrc"
+        Write-Warning -Message "• Apply changes: wsl chezmoi apply"
+        Write-Warning -Message "• Check status: wsl chezmoi status"
+        Write-Warning -Message "• View differences: wsl chezmoi diff"
+        Write-Warning -Message "• Go to source directory: wsl chezmoi cd"
+        Write-Information -MessageData "`nUseful aliases (available in WSL after restarting shell):" -InformationAction Continue
+        Write-Warning -Message "• cm (chezmoi), cma (apply), cme (edit), cms (status), cmd (diff)"
 
         if (!$gitRepo) {
-            Write-Host "`n💡 To sync with a git repository later:" -ForegroundColor Cyan
-            Write-Host "• wsl chezmoi cd" -ForegroundColor Yellow
-            Write-Host "• wsl git remote add origin <your-repo-url>" -ForegroundColor Yellow
-            Write-Host "• wsl git push -u origin main" -ForegroundColor Yellow
+            Write-Information -MessageData "`n💡 To sync with a git repository later:" -InformationAction Continue
+            Write-Warning -Message "• wsl chezmoi cd"
+            Write-Warning -Message "• wsl git remote add origin <your-repo-url>"
+            Write-Warning -Message "• wsl git push -u origin main"
         }
 
         return $true
 
     } catch {
-        Write-Host "Failed to setup chezmoi: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to setup chezmoi: $($_.Exception.Message)"
         return $false
     }
 }

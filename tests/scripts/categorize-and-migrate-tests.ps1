@@ -32,7 +32,7 @@ function Initialize-DirectoryStructure {
     [CmdletBinding()]
     param([switch]$WhatIf)
 
-    Write-Host "📁 Creating target directory structure..." -ForegroundColor Cyan
+    Write-Information -MessageData "📁 Creating target directory structure..." -InformationAction Continue
 
     foreach ($envType in $TargetDirectories.Keys) {
         foreach ($testType in $TargetDirectories[$envType].Keys) {
@@ -40,13 +40,13 @@ function Initialize-DirectoryStructure {
 
             if (-not (Test-Path $targetPath)) {
                 if ($WhatIf) {
-                    Write-Host "  Would create: $targetPath" -ForegroundColor Yellow
+                    Write-Warning -Message "  Would create: $targetPath"
                 } else {
                     New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
-                    Write-Host "  ✅ Created: $targetPath" -ForegroundColor Green
+                    Write-Information -MessageData "  ✅ Created: $targetPath" -InformationAction Continue
                 }
             } else {
-                Write-Host "  ✓ Exists: $targetPath" -ForegroundColor Gray
+                Write-Verbose -Message "  ✓ Exists: $targetPath"
             }
         }
     }
@@ -160,20 +160,20 @@ function Move-TestFile {
     $targetDir = Split-Path $TargetPath -Parent
     if (-not (Test-Path $targetDir)) {
         if ($WhatIf) {
-            Write-Host "    Would create directory: $targetDir" -ForegroundColor Yellow
+            Write-Warning -Message "    Would create directory: $targetDir"
         } else {
             New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
         }
     }
 
     if ($WhatIf) {
-        Write-Host "    Would move: $SourcePath → $TargetPath" -ForegroundColor Yellow
-        Write-Host "    Action: $Action" -ForegroundColor Yellow
+        Write-Warning -Message "    Would move: $SourcePath → $TargetPath"
+        Write-Warning -Message "    Action: $Action"
     } else {
         try {
             Move-Item -Path $SourcePath -Destination $TargetPath -Force
-            Write-Host "    ✅ Moved: $SourcePath → $TargetPath" -ForegroundColor Green
-            Write-Host "    Action: $Action" -ForegroundColor Cyan
+            Write-Information -MessageData "    ✅ Moved: $SourcePath → $TargetPath" -InformationAction Continue
+            Write-Information -MessageData "    Action: $Action" -InformationAction Continue
             return $true
         } catch {
             Write-Error "Failed to move $SourcePath to $TargetPath`: $($_.Exception.Message)"
@@ -204,7 +204,7 @@ BeforeAll {
 
     if (-not $isCI -and -not $isAuthorized) {
         Write-Warning "Windows-only tests should only run in CI/CD environments or with explicit authorization"
-        Write-Host "To run locally, set environment variable: `$env:WMR_ALLOW_WINDOWS_TESTS = 'true'"
+        Write-Information -MessageData "To run locally, set environment variable: `$env:WMR_ALLOW_WINDOWS_TESTS = 'true'" -InformationAction Continue
         return
     }
 
@@ -212,7 +212,7 @@ BeforeAll {
     if ($env:WMR_CREATE_RESTORE_POINT -eq 'true') {
         try {
             $restorePoint = Checkpoint-Computer -Description "WindowsMelodyRecovery Test Restore Point" -RestorePointType "MODIFY_SETTINGS"
-            Write-Host "Created restore point: $restorePoint" -ForegroundColor Green
+            Write-Information -MessageData "Created restore point: $restorePoint" -InformationAction Continue
         } catch {
             Write-Warning "Failed to create restore point: $($_.Exception.Message)"
         }
@@ -222,7 +222,7 @@ BeforeAll {
 AfterAll {
     # Cleanup operations after Windows-only tests
     if ($PSVersionTable.Platform -ne 'Unix') {
-        Write-Host "Windows-only test cleanup completed" -ForegroundColor Green
+        Write-Information -MessageData "Windows-only test cleanup completed" -InformationAction Continue
     }
 }
 '@
@@ -230,10 +230,10 @@ AfterAll {
     $safeguardPath = $TargetDirectories.Windows.Unit + "/WindowsTestSafeguards.ps1"
 
     if ($WhatIf) {
-        Write-Host "Would create Windows test safeguards at: $safeguardPath" -ForegroundColor Yellow
+        Write-Warning -Message "Would create Windows test safeguards at: $safeguardPath"
     } else {
         $safeguardScript | Out-File -FilePath $safeguardPath -Encoding UTF8
-        Write-Host "✅ Created Windows test safeguards: $safeguardPath" -ForegroundColor Green
+        Write-Information -MessageData "✅ Created Windows test safeguards: $safeguardPath" -InformationAction Continue
     }
 }
 
@@ -279,10 +279,10 @@ BeforeAll {
     $enhancementPath = $TargetDirectories.Docker.Unit + "/DockerTestEnhancements.ps1"
 
     if ($WhatIf) {
-        Write-Host "Would create Docker test enhancements at: $enhancementPath" -ForegroundColor Yellow
+        Write-Warning -Message "Would create Docker test enhancements at: $enhancementPath"
     } else {
         $enhancementScript | Out-File -FilePath $enhancementPath -Encoding UTF8
-        Write-Host "✅ Created Docker test enhancements: $enhancementPath" -ForegroundColor Green
+        Write-Information -MessageData "✅ Created Docker test enhancements: $enhancementPath" -InformationAction Continue
     }
 }
 
@@ -307,11 +307,11 @@ function Export-MigrationReport {
     }
 
     $report | ConvertTo-Json -Depth 10 | Out-File -FilePath $OutputPath -Encoding UTF8
-    Write-Host "✅ Migration report exported to: $OutputPath" -ForegroundColor Green
+    Write-Information -MessageData "✅ Migration report exported to: $OutputPath" -InformationAction Continue
 }
 
 # Main execution
-Write-Host "🚀 Starting test categorization and migration..." -ForegroundColor Green
+Write-Information -MessageData "🚀 Starting test categorization and migration..." -InformationAction Continue
 
 # Initialize directory structure
 if ($CreateDirectories) {
@@ -319,34 +319,34 @@ if ($CreateDirectories) {
 }
 
 # Get migration plan
-Write-Host "`n📋 Analyzing test migration requirements..." -ForegroundColor Cyan
+Write-Information -MessageData "`n📋 Analyzing test migration requirements..." -InformationAction Continue
 $migrationPlan = Get-TestMigrationPlan -AnalysisFilePath $AnalysisFile
 
 # Display migration summary
-Write-Host "`n📊 MIGRATION SUMMARY" -ForegroundColor Green
-Write-Host "===================" -ForegroundColor Green
-Write-Host "Total Test Files to Migrate: $($migrationPlan.Summary.TotalFiles)" -ForegroundColor White
-Write-Host "Docker Environment: $($migrationPlan.Summary.DockerFiles) files" -ForegroundColor Cyan
-Write-Host "Windows CI/CD: $($migrationPlan.Summary.WindowsFiles) files" -ForegroundColor Magenta
+Write-Information -MessageData "`n📊 MIGRATION SUMMARY" -InformationAction Continue
+Write-Information -MessageData "===================" -InformationAction Continue
+Write-Information -MessageData "Total Test Files to Migrate: $($migrationPlan.Summary.TotalFiles)"  -InformationAction Continue-ForegroundColor White
+Write-Information -MessageData "Docker Environment: $($migrationPlan.Summary.DockerFiles) files" -InformationAction Continue
+Write-Verbose -Message "Windows CI/CD: $($migrationPlan.Summary.WindowsFiles) files"
 
 # Execute Docker migrations
-Write-Host "`n🐳 DOCKER ENVIRONMENT MIGRATIONS" -ForegroundColor Cyan
+Write-Information -MessageData "`n🐳 DOCKER ENVIRONMENT MIGRATIONS" -InformationAction Continue
 foreach ($migration in $migrationPlan.DockerMigrations) {
-    Write-Host "📝 $($migration.TestFile)" -ForegroundColor White
-    Write-Host "  Strategy: $($migration.Strategy)" -ForegroundColor Cyan
+    Write-Information -MessageData "📝 $($migration.TestFile)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "  Strategy: $($migration.Strategy)" -InformationAction Continue
     $success = Move-TestFile -SourcePath $migration.SourceFile -TargetPath $migration.TargetPath -Action $migration.Action -WhatIf:$WhatIf
 }
 
 # Execute Windows migrations
-Write-Host "`n🪟 WINDOWS CI/CD MIGRATIONS" -ForegroundColor Magenta
+Write-Verbose -Message "`n🪟 WINDOWS CI/CD MIGRATIONS"
 foreach ($migration in $migrationPlan.WindowsMigrations) {
-    Write-Host "📝 $($migration.TestFile)" -ForegroundColor White
-    Write-Host "  Strategy: $($migration.Strategy)" -ForegroundColor Magenta
+    Write-Information -MessageData "📝 $($migration.TestFile)"  -InformationAction Continue-ForegroundColor White
+    Write-Verbose -Message "  Strategy: $($migration.Strategy)"
     $success = Move-TestFile -SourcePath $migration.SourceFile -TargetPath $migration.TargetPath -Action $migration.Action -WhatIf:$WhatIf
 }
 
 # Create safeguards and enhancements
-Write-Host "`n🛡️ Creating test environment safeguards..." -ForegroundColor Yellow
+Write-Warning -Message "`n🛡️ Creating test environment safeguards..."
 Create-WindowsOnlyTestSafeguards -WhatIf:$WhatIf
 Create-DockerTestEnhancements -WhatIf:$WhatIf
 
@@ -354,14 +354,14 @@ Create-DockerTestEnhancements -WhatIf:$WhatIf
 Export-MigrationReport -MigrationPlan $migrationPlan
 
 # Display next steps
-Write-Host "`n🎯 NEXT STEPS:" -ForegroundColor Green
-Write-Host "1. Fix remaining Docker-compatible tests for 100% pass rate" -ForegroundColor White
-Write-Host "2. Validate Docker environment: docker exec wmr-test-runner pwsh -Command 'Invoke-Pester tests/docker/unit/'" -ForegroundColor White
-Write-Host "3. Create GitHub Actions workflows for dual CI/CD" -ForegroundColor White
-Write-Host "4. Test Windows environment with safeguards" -ForegroundColor White
+Write-Information -MessageData "`n🎯 NEXT STEPS:" -InformationAction Continue
+Write-Information -MessageData "1. Fix remaining Docker -InformationAction Continue-compatible tests for 100% pass rate" -ForegroundColor White
+Write-Information -MessageData "2. Validate Docker environment: docker exec wmr -InformationAction Continue-test-runner pwsh -Command 'Invoke-Pester tests/docker/unit/'" -ForegroundColor White
+Write-Information -MessageData "3. Create GitHub Actions workflows for dual CI/CD"  -InformationAction Continue-ForegroundColor White
+Write-Information -MessageData "4. Test Windows environment with safeguards"  -InformationAction Continue-ForegroundColor White
 
-Write-Host "`n✅ Test categorization and migration completed!" -ForegroundColor Green
+Write-Information -MessageData "`n✅ Test categorization and migration completed!" -InformationAction Continue
 
 if ($WhatIf) {
-    Write-Host "`n⚠️  This was a dry run. Use -WhatIf:`$false to execute the migration." -ForegroundColor Yellow
+    Write-Warning -Message "`n⚠️  This was a dry run. Use -WhatIf:`$false to execute the migration."
 }

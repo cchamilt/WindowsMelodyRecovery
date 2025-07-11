@@ -76,8 +76,8 @@ function Initialize-MockEnvironment {
         [string]$Scope = "Standard"
     )
 
-    Write-Host "🚀 Initializing enhanced mock environment: $Environment" -ForegroundColor Cyan
-    Write-Host "   Test Type: $TestType | Scope: $Scope" -ForegroundColor Gray
+    Write-Information -MessageData "🚀 Initializing enhanced mock environment: $Environment" -InformationAction Continue
+    Write-Verbose -Message "   Test Type: $TestType | Scope: $Scope"
 
     # Use enhanced mock infrastructure
     Initialize-EnhancedMockInfrastructure -TestType $TestType -Scope $Scope
@@ -93,11 +93,11 @@ function Initialize-MockEnvironment {
     foreach ($dir in $legacyDirs) {
         if (-not (Test-Path $dir)) {
             New-Item -Path $dir -ItemType Directory -Force | Out-Null
-            Write-Host "  ✓ Created legacy compatibility directory: $dir" -ForegroundColor Gray
+            Write-Verbose -Message "  ✓ Created legacy compatibility directory: $dir"
         }
     }
 
-    Write-Host "✅ Enhanced mock environment initialized successfully!" -ForegroundColor Green
+    Write-Information -MessageData "✅ Enhanced mock environment initialized successfully!" -InformationAction Continue
 }
 
 function Get-MockRegistryValue {
@@ -136,5 +136,5 @@ function Set-MockRegistryValue {
     $valueFile = Join-Path $fullPath "$ValueName.txt"
     $Value | Out-File -FilePath $valueFile -Encoding UTF8
 
-    Write-Host "✓ Set mock registry value: $KeyPath\$ValueName = $Value" -ForegroundColor Green
+    Write-Information -MessageData "✓ Set mock registry value: $KeyPath\$ValueName = $Value" -InformationAction Continue
 }

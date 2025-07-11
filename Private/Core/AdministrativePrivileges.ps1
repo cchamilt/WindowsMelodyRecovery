@@ -201,9 +201,9 @@ function Invoke-WmrWithElevation {
     $privilegeInfo = Test-WmrAdministrativePrivileges -Quiet
 
     if ($WhatIfPreference) {
-        Write-Host "What if: Would execute script block with elevation" -ForegroundColor Yellow
-        Write-Host "Current elevation status: $($privilegeInfo.IsElevated)" -ForegroundColor Gray
-        Write-Host "Can elevate: $($privilegeInfo.CanElevate)" -ForegroundColor Gray
+        Write-Warning -Message "What if: Would execute script block with elevation"
+        Write-Verbose -Message "Current elevation status: $($privilegeInfo.IsElevated)"
+        Write-Verbose -Message "Can elevate: $($privilegeInfo.CanElevate)"
         return @{ WhatIf = $true; WouldElevate = (-not $privilegeInfo.IsElevated) }
     }
 

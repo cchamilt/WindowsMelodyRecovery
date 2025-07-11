@@ -215,15 +215,15 @@ if ($script:IsDockerEnvironment) {
 }
 
 # Environment information output
-Write-Host "🧪 Test environment loaded" -ForegroundColor Green
-Write-Host "Available commands: Test-Environment, Start-TestRun, Install-TestModule" -ForegroundColor Gray
+Write-Information -MessageData "🧪 Test environment loaded" -InformationAction Continue
+Write-Verbose -Message "Available commands: Test-Environment, Start-TestRun, Install-TestModule"
 
 if ($script:IsCICDEnvironment) {
-    Write-Host "🏗️ CI/CD test environment initialized with user temp directory" -ForegroundColor Yellow
+    Write-Warning -Message "🏗️ CI/CD test environment initialized with user temp directory"
 } elseif ($script:IsDockerEnvironment) {
-    Write-Host "🐳 Docker test environment initialized with project temp directory" -ForegroundColor Cyan
+    Write-Information -MessageData "🐳 Docker test environment initialized with project temp directory" -InformationAction Continue
 } else {
-    Write-Host "🪟 Local development test environment initialized with project temp directory" -ForegroundColor Cyan
+    Write-Information -MessageData "🪟 Local development test environment initialized with project temp directory" -InformationAction Continue
 }
 
 function Initialize-TestEnvironment {
@@ -247,7 +247,7 @@ function Initialize-TestEnvironment {
         [switch]$Force
     )
 
-    Write-Host "Initializing test environment..." -ForegroundColor Cyan
+    Write-Information -MessageData "Initializing test environment..." -InformationAction Continue
 
     # Clean up existing directories if Force is specified
     if ($Force) {
@@ -272,10 +272,10 @@ function Initialize-TestEnvironment {
         }
 
         if (-not (Test-Path $dirPath)) {
-            Write-Host "  ✓ Created $dirName directory: $dirPath" -ForegroundColor Green
+            Write-Information -MessageData "  ✓ Created $dirName directory: $dirPath" -InformationAction Continue
             New-Item -Path $dirPath -ItemType Directory -Force | Out-Null
         } else {
-            Write-Host "  ✓ $dirName directory exists: $dirPath" -ForegroundColor Gray
+            Write-Verbose -Message "  ✓ $dirName directory exists: $dirPath"
         }
     }
 
@@ -286,7 +286,7 @@ function Initialize-TestEnvironment {
     foreach ($dir in @($machineBackup, $sharedBackup)) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
-            Write-Host "  ✓ Created backup directory: $dir" -ForegroundColor Green
+            Write-Information -MessageData "  ✓ Created backup directory: $dir" -InformationAction Continue
         }
     }
 
@@ -304,7 +304,7 @@ function Initialize-TestEnvironment {
         }
     }
 
-    Write-Host "✓ Test environment initialized successfully" -ForegroundColor Green
+    Write-Information -MessageData "✓ Test environment initialized successfully" -InformationAction Continue
 
     return @{
         ModuleRoot = $script:ModuleRoot
@@ -338,7 +338,7 @@ function Remove-TestEnvironment {
     [CmdletBinding()]
     param()
 
-    Write-Host "Cleaning up test environment..." -ForegroundColor Cyan
+    Write-Information -MessageData "Cleaning up test environment..." -InformationAction Continue
 
     foreach ($dirName in @('TestRestore', 'TestBackup', 'Temp')) {
         $dirPath = $script:TestEnvironment[$dirName]
@@ -382,16 +382,16 @@ function Remove-TestEnvironment {
         if ($dirPath -and (Test-Path $dirPath)) {
             try {
                 Remove-Item -Path $dirPath -Recurse -Force -ErrorAction Stop
-                Write-Host "  ✓ Removed $dirName directory: $dirPath" -ForegroundColor Green
+                Write-Information -MessageData "  ✓ Removed $dirName directory: $dirPath" -InformationAction Continue
             } catch {
                 Write-Warning "Failed to remove $dirName directory: $_"
             }
         } else {
-            Write-Host "  ✓ $dirName directory already clean: $dirPath" -ForegroundColor Yellow
+            Write-Warning -Message "  ✓ $dirName directory already clean: $dirPath"
         }
     }
 
-    Write-Host "✓ Test environment cleaned successfully" -ForegroundColor Green
+    Write-Information -MessageData "✓ Test environment cleaned successfully" -InformationAction Continue
 }
 
 function Get-TestPaths {

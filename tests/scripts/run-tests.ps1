@@ -76,12 +76,12 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 function Write-TestHeader {
     param([string]$Title, [string]$Level)
     $border = "=" * 80
-    Write-Host ""
-    Write-Host $border -ForegroundColor Cyan
-    Write-Host "  $Title" -ForegroundColor Yellow
-    Write-Host "  Level: $Level" -ForegroundColor Gray
-    Write-Host $border -ForegroundColor Cyan
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData $border  -InformationAction Continue-ForegroundColor Cyan
+    Write-Warning -Message "  $Title"
+    Write-Verbose -Message "  Level: $Level"
+    Write-Information -MessageData $border  -InformationAction Continue-ForegroundColor Cyan
+    Write-Information -MessageData "" -InformationAction Continue
 }
 
 function Write-TestResult {
@@ -90,10 +90,10 @@ function Write-TestResult {
     $status = if ($Success) { "✅ PASSED" } else { "❌ FAILED" }
     $color = if ($Success) { "Green" } else { "Red" }
 
-    Write-Host "$status $TestName" -ForegroundColor $color
-    Write-Host "  Tests: $Passed passed, $Failed failed" -ForegroundColor Gray
-    Write-Host "  Duration: $([math]::Round($Duration, 2))s" -ForegroundColor Gray
-    Write-Host ""
+    Write-Information -MessageData "$status $TestName"  -InformationAction Continue-ForegroundColor $color
+    Write-Verbose -Message "  Tests: $Passed passed, $Failed failed"
+    Write-Verbose -Message "  Duration: $([math]::Round($Duration, 2))s"
+    Write-Information -MessageData "" -InformationAction Continue
 }
 
 function Parse-TestResults {
@@ -116,7 +116,7 @@ function Parse-TestResults {
 
 function Invoke-UnitTests {
     Write-TestHeader "Unit Tests - Logic Only" "1"
-    Write-Host "Running pure logic tests with mock data..." -ForegroundColor Cyan
+    Write-Information -MessageData "Running pure logic tests with mock data..." -InformationAction Continue
 
     $startTime = Get-Date
     try {
@@ -141,7 +141,7 @@ function Invoke-UnitTests {
         }
     } catch {
         $duration = (Get-Date) - $startTime
-        Write-Host "❌ Unit tests crashed: $_" -ForegroundColor Red
+        Write-Error -Message "❌ Unit tests crashed: $_"
         Write-TestResult "Unit Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
@@ -156,7 +156,7 @@ function Invoke-UnitTests {
 
 function Invoke-FileOperationTests {
     Write-TestHeader "File Operation Tests - Safe Directories Only" "2"
-    Write-Host "Running file operation tests in safe test directories..." -ForegroundColor Cyan
+    Write-Information -MessageData "Running file operation tests in safe test directories..." -InformationAction Continue
 
     $startTime = Get-Date
     try {
@@ -186,7 +186,7 @@ function Invoke-FileOperationTests {
         }
     } catch {
         $duration = (Get-Date) - $startTime
-        Write-Host "❌ File operation tests crashed: $_" -ForegroundColor Red
+        Write-Error -Message "❌ File operation tests crashed: $_"
         Write-TestResult "File Operation Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
@@ -201,7 +201,7 @@ function Invoke-FileOperationTests {
 
 function Invoke-IntegrationTests {
     Write-TestHeader "Integration Tests - Docker-based System Testing" "3"
-    Write-Host "Running Docker-based integration tests..." -ForegroundColor Cyan
+    Write-Information -MessageData "Running Docker-based integration tests..." -InformationAction Continue
 
     $startTime = Get-Date
     try {
@@ -209,7 +209,7 @@ function Invoke-IntegrationTests {
         . "$PSScriptRoot/../utilities/Docker-Management.ps1"
 
         # Ensure Docker environment is ready
-        Write-Host "🐳 Initializing Docker environment for integration tests..." -ForegroundColor Cyan
+        Write-Information -MessageData "🐳 Initializing Docker environment for integration tests..." -InformationAction Continue
         $dockerReady = Initialize-DockerEnvironment -ForceRebuild:$ForceDockerRebuild -Clean:$CleanDocker
         if (-not $dockerReady) {
             throw "Failed to initialize Docker environment for integration tests"
@@ -238,33 +238,33 @@ function Invoke-IntegrationTests {
         $failed = if ($failedMatch) { [int]$failedMatch.Matches[0].Groups[1].Value } else { 0 }
 
         # Debug output for troubleshooting
-        Write-Host "🔍 Integration test parsing debug:" -ForegroundColor Yellow
-        Write-Host "  Exit code: $LASTEXITCODE" -ForegroundColor Gray
-        Write-Host "  Total output lines: $($outputLines.Count)" -ForegroundColor Gray
-        Write-Host "  First 10 lines of captured output:" -ForegroundColor Gray
-        $outputLines | Select-Object -First 10 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
-        Write-Host "  Last 10 lines of captured output:" -ForegroundColor Gray
-        $outputLines | Select-Object -Last 10 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
-        Write-Host "  Lines containing 'Total Tests':" -ForegroundColor Gray
+        Write-Warning -Message "🔍 Integration test parsing debug:"
+        Write-Verbose -Message "  Exit code: $LASTEXITCODE"
+        Write-Verbose -Message "  Total output lines: $($outputLines.Count)"
+        Write-Verbose -Message "  First 10 lines of captured output:"
+        $outputLines | Select-Object -First 10 | ForEach-Object { Write-Verbose -Message "    $_" }
+        Write-Verbose -Message "  Last 10 lines of captured output:"
+        $outputLines | Select-Object -Last 10 | ForEach-Object { Write-Verbose -Message "    $_" }
+        Write-Verbose -Message "  Lines containing 'Total Tests':"
         $totalTestsLines = $outputLines | Where-Object { $_ -like "*Total Tests*" }
         if ($totalTestsLines) {
-            $totalTestsLines | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+            $totalTestsLines | ForEach-Object { Write-Verbose -Message "    $_" }
         } else {
-            Write-Host "    (none found)" -ForegroundColor Gray
+            Write-Verbose -Message "    (none found)"
         }
-        Write-Host "  Lines containing 'Total':" -ForegroundColor Gray
+        Write-Verbose -Message "  Lines containing 'Total':"
         $totalLines = $outputLines | Where-Object { $_ -like "*Total*" }
         if ($totalLines) {
-            $totalLines | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+            $totalLines | ForEach-Object { Write-Verbose -Message "    $_" }
         } else {
-            Write-Host "    (none found)" -ForegroundColor Gray
+            Write-Verbose -Message "    (none found)"
         }
-        Write-Host "  Passed match: $($passedMatch -ne $null)" -ForegroundColor Gray
-        Write-Host "  Failed match: $($failedMatch -ne $null)" -ForegroundColor Gray
-        if ($passedMatch) { Write-Host "  Passed match text: '$($passedMatch.Line)'" -ForegroundColor Gray }
-        if ($failedMatch) { Write-Host "  Failed match text: '$($failedMatch.Line)'" -ForegroundColor Gray }
-        Write-Host "  Parsed passed: $passed" -ForegroundColor Gray
-        Write-Host "  Parsed failed: $failed" -ForegroundColor Gray
+        Write-Verbose -Message "  Passed match: $($passedMatch -ne $null)"
+        Write-Verbose -Message "  Failed match: $($failedMatch -ne $null)"
+        if ($passedMatch) { Write-Verbose -Message "  Passed match text: '$($passedMatch.Line)'" }
+        if ($failedMatch) { Write-Verbose -Message "  Failed match text: '$($failedMatch.Line)'" }
+        Write-Verbose -Message "  Parsed passed: $passed"
+        Write-Verbose -Message "  Parsed failed: $failed"
 
         $duration = (Get-Date) - $startTime
         Write-TestResult "Integration Tests" $success $passed $failed $duration.TotalSeconds
@@ -278,7 +278,7 @@ function Invoke-IntegrationTests {
         }
     } catch {
         $duration = (Get-Date) - $startTime
-        Write-Host "❌ Integration tests crashed: $_" -ForegroundColor Red
+        Write-Error -Message "❌ Integration tests crashed: $_"
         Write-TestResult "Integration Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
@@ -295,7 +295,7 @@ function Invoke-WindowsTests {
     Write-TestHeader "Windows-specific Tests" "4"
 
     if (-not $IsWindows) {
-        Write-Host "⏭️  Skipping Windows-specific tests (not running on Windows)" -ForegroundColor Yellow
+        Write-Warning -Message "⏭️  Skipping Windows-specific tests (not running on Windows)"
         return @{
             Success = $true
             Passed = 0
@@ -305,7 +305,7 @@ function Invoke-WindowsTests {
         }
     }
 
-    Write-Host "Running Windows-specific tests..." -ForegroundColor Cyan
+    Write-Information -MessageData "Running Windows-specific tests..." -InformationAction Continue
 
     $startTime = Get-Date
     try {
@@ -332,7 +332,7 @@ function Invoke-WindowsTests {
         }
     } catch {
         $duration = (Get-Date) - $startTime
-        Write-Host "❌ Windows tests crashed: $_" -ForegroundColor Red
+        Write-Error -Message "❌ Windows tests crashed: $_"
         Write-TestResult "Windows Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
@@ -349,11 +349,11 @@ function Write-FinalSummary {
     param([hashtable]$Results)
 
     $border = "=" * 80
-    Write-Host ""
-    Write-Host $border -ForegroundColor Magenta
-    Write-Host "  FINAL TEST SUMMARY" -ForegroundColor Yellow
-    Write-Host $border -ForegroundColor Magenta
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData $border  -InformationAction Continue-ForegroundColor Magenta
+    Write-Warning -Message "  FINAL TEST SUMMARY"
+    Write-Information -MessageData $border  -InformationAction Continue-ForegroundColor Magenta
+    Write-Information -MessageData "" -InformationAction Continue
 
     $totalPassed = 0
     $totalFailed = 0
@@ -371,30 +371,30 @@ function Write-FinalSummary {
             $status = if ($result.Success) { "✅" } else { "❌" }
             $color = if ($result.Success) { "Green" } else { "Red" }
 
-            Write-Host "$status $level Tests: $($result.Passed) passed, $($result.Failed) failed" -ForegroundColor $color
+            Write-Information -MessageData "$status $level Tests: $($result.Passed) passed, $($result.Failed) failed"  -InformationAction Continue-ForegroundColor $color
         }
     }
 
-    Write-Host ""
-    Write-Host "📊 OVERALL RESULTS:" -ForegroundColor Cyan
-    Write-Host "  Total Tests Passed: $totalPassed" -ForegroundColor Green
-    Write-Host "  Total Tests Failed: $totalFailed" -ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
-    Write-Host "  Total Duration: $([math]::Round($totalDuration, 2))s" -ForegroundColor Gray
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "📊 OVERALL RESULTS:" -InformationAction Continue
+    Write-Information -MessageData "  Total Tests Passed: $totalPassed" -InformationAction Continue
+    Write-Information -MessageData "  Total Tests Failed: $totalFailed"  -InformationAction Continue-ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+    Write-Verbose -Message "  Total Duration: $([math]::Round($totalDuration, 2))s"
 
     $successRate = if (($totalPassed + $totalFailed) -gt 0) {
         [math]::Round(($totalPassed / ($totalPassed + $totalFailed)) * 100, 1)
     } else { 0 }
 
-    Write-Host "  Success Rate: $successRate%" -ForegroundColor $(if ($successRate -eq 100) { "Green" } else { "Yellow" })
+    Write-Information -MessageData "  Success Rate: $successRate%"  -InformationAction Continue-ForegroundColor $(if ($successRate -eq 100) { "Green" } else { "Yellow" })
 
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
     if ($allSuccess) {
-        Write-Host "🎉 ALL TEST LEVELS PASSED!" -ForegroundColor Green
+        Write-Information -MessageData "🎉 ALL TEST LEVELS PASSED!" -InformationAction Continue
     } else {
-        Write-Host "❌ Some test levels failed" -ForegroundColor Red
+        Write-Error -Message "❌ Some test levels failed"
     }
 
-    Write-Host $border -ForegroundColor Magenta
+    Write-Information -MessageData $border  -InformationAction Continue-ForegroundColor Magenta
 
     return $allSuccess
 }
@@ -406,7 +406,7 @@ function Save-TestReport {
         return
     }
 
-    Write-Host "📋 Generating test report..." -ForegroundColor Cyan
+    Write-Information -MessageData "📋 Generating test report..." -InformationAction Continue
 
     $reportDir = "test-results/reports"
     if (-not (Test-Path $reportDir)) {
@@ -434,15 +434,15 @@ function Save-TestReport {
     }
 
     $report | ConvertTo-Json -Depth 4 | Out-File -FilePath $reportPath -Encoding UTF8
-    Write-Host "📊 Test report saved: $reportPath" -ForegroundColor Green
+    Write-Information -MessageData "📊 Test report saved: $reportPath" -InformationAction Continue
 }
 
 # Main execution
 try {
-    Write-Host "🧪 Windows Melody Recovery - Master Test Runner" -ForegroundColor Magenta
-    Write-Host "Test Level: $TestLevel" -ForegroundColor Gray
-    Write-Host "Platform: $(if ($IsWindows) { 'Windows' } else { 'Non-Windows' })" -ForegroundColor Gray
-    Write-Host ""
+    Write-Verbose -Message "🧪 Windows Melody Recovery - Master Test Runner"
+    Write-Verbose -Message "Test Level: $TestLevel"
+    Write-Verbose -Message "Platform: $(if ($IsWindows) { 'Windows' } else { 'Non-Windows' })"
+    Write-Information -MessageData "" -InformationAction Continue
 
     $results = @{}
     $overallSuccess = $true
@@ -482,7 +482,7 @@ try {
             if ($StopOnFailure) {
                 foreach ($result in $results.Values) {
                     if (-not $result.Success) {
-                        Write-Host "⏹️  Stopping execution due to test failure (StopOnFailure enabled)" -ForegroundColor Yellow
+                        Write-Warning -Message "⏹️  Stopping execution due to test failure (StopOnFailure enabled)"
                         break
                     }
                 }
@@ -504,7 +504,8 @@ try {
     }
 
 } catch {
-    Write-Host "💥 Master test runner failed: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor Red
+    Write-Error -Message "💥 Master test runner failed: $($_.Exception.Message)"
+    Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1
 }
+

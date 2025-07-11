@@ -27,28 +27,28 @@ function Setup-WindowsBackup {
     }
 
     try {
-        Write-Host "Configuring Windows Backup Service..." -ForegroundColor Blue
+        Write-Information -MessageData "Configuring Windows Backup Service..." -InformationAction Continue
 
         # Check Windows Backup service availability
-        Write-Host "Checking Windows Backup service availability..." -ForegroundColor Yellow
+        Write-Warning -Message "Checking Windows Backup service availability..."
         $backupService = Get-Service -Name "SDRSVC" -ErrorAction SilentlyContinue
         if (-not $backupService) {
             Write-Warning "Windows Server Backup service (SDRSVC) is not available on this system."
-            Write-Host "Checking for Windows Backup and Restore (Windows 7) feature..." -ForegroundColor Yellow
+            Write-Warning -Message "Checking for Windows Backup and Restore (Windows 7) feature..."
 
             # Check for Windows Backup feature
             $backupFeature = Get-WindowsOptionalFeature -Online -FeatureName "WindowsBackup" -ErrorAction SilentlyContinue
             if (-not $backupFeature -or $backupFeature.State -ne "Enabled") {
                 Write-Warning "Windows Backup feature is not enabled. This is normal for Windows 10/11 client versions."
-                Write-Host "Windows 10/11 uses File History and System Image Backup instead." -ForegroundColor Yellow
+                Write-Warning -Message "Windows 10/11 uses File History and System Image Backup instead."
             }
         } else {
-            Write-Host "  Windows Backup service found: $($backupService.Status)" -ForegroundColor Green
+            Write-Information -MessageData "  Windows Backup service found: $($backupService.Status)" -InformationAction Continue
             if ($backupService.Status -ne "Running") {
-                Write-Host "  Starting Windows Backup service..." -ForegroundColor Yellow
+                Write-Warning -Message "  Starting Windows Backup service..."
                 try {
                     Start-Service -Name "SDRSVC" -ErrorAction Stop
-                    Write-Host "  Windows Backup service started successfully" -ForegroundColor Green
+                    Write-Information -MessageData "  Windows Backup service started successfully" -InformationAction Continue
                 } catch {
                     Write-Warning "  Failed to start Windows Backup service: $($_.Exception.Message)"
                 }
@@ -57,30 +57,30 @@ function Setup-WindowsBackup {
 
         # Configure File History if enabled
         if ($EnableFileHistory) {
-            Write-Host "Configuring File History..." -ForegroundColor Yellow
+            Write-Warning -Message "Configuring File History..."
             try {
                 # Check if File History is available
                 $fileHistoryConfig = Get-WmiObject -Class "MSFT_FileHistoryConfig" -Namespace "root\Microsoft\Windows\FileHistory" -ErrorAction SilentlyContinue
                 if ($fileHistoryConfig) {
-                    Write-Host "  File History is available" -ForegroundColor Green
+                    Write-Information -MessageData "  File History is available" -InformationAction Continue
 
                     # Configure File History target if backup location is specified
                     if ($BackupLocation) {
                         if (-not (Test-Path $BackupLocation)) {
-                            Write-Host "  Creating backup location: $BackupLocation" -ForegroundColor Yellow
+                            Write-Warning -Message "  Creating backup location: $BackupLocation"
                             New-Item -Path $BackupLocation -ItemType Directory -Force | Out-Null
                         }
 
                         # Set File History target
-                        Write-Host "  Setting File History target to: $BackupLocation" -ForegroundColor Yellow
+                        Write-Warning -Message "  Setting File History target to: $BackupLocation"
                         $fileHistoryConfig.TargetUrl = $BackupLocation
                         $fileHistoryConfig.Put() | Out-Null
 
                         # Enable File History
-                        Write-Host "  Enabling File History..." -ForegroundColor Yellow
+                        Write-Warning -Message "  Enabling File History..."
                         $fileHistoryConfig.SetState(1) | Out-Null # 1 = Enabled
 
-                        Write-Host "  File History configured successfully" -ForegroundColor Green
+                        Write-Information -MessageData "  File History configured successfully" -InformationAction Continue
                     } else {
                         Write-Warning "  BackupLocation not specified. File History requires a target location."
                     }
@@ -94,18 +94,18 @@ function Setup-WindowsBackup {
 
         # Configure System Image Backup if enabled
         if ($EnableSystemImageBackup) {
-            Write-Host "Configuring System Image Backup..." -ForegroundColor Yellow
+            Write-Warning -Message "Configuring System Image Backup..."
             try {
                 if ($BackupLocation) {
                     if (-not (Test-Path $BackupLocation)) {
-                        Write-Host "  Creating backup location: $BackupLocation" -ForegroundColor Yellow
+                        Write-Warning -Message "  Creating backup location: $BackupLocation"
                         New-Item -Path $BackupLocation -ItemType Directory -Force | Out-Null
                     }
 
                     # Create system image backup using wbadmin
-                    Write-Host "  System image backup location set to: $BackupLocation" -ForegroundColor Yellow
-                    Write-Host "  To create a system image backup, use:" -ForegroundColor Cyan
-                    Write-Host "    wbadmin start backup -backupTarget:$BackupLocation -include:$env:SystemDrive -allCritical -quiet" -ForegroundColor Cyan
+                    Write-Warning -Message "  System image backup location set to: $BackupLocation"
+                    Write-Information -MessageData "  To create a system image backup, use:" -InformationAction Continue
+                    Write-Information -MessageData "    wbadmin start backup -backupTarget:$BackupLocation -include:$env:SystemDrive -allCritical -quiet" -InformationAction Continue
 
                     # Configure backup policy through registry
                     $backupPolicyPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsBackup"
@@ -117,7 +117,7 @@ function Setup-WindowsBackup {
                     Set-ItemProperty -Path $backupPolicyPath -Name "BackupFrequency" -Value $BackupFrequency -Type String -ErrorAction SilentlyContinue
                     Set-ItemProperty -Path $backupPolicyPath -Name "RetentionDays" -Value $RetentionDays -Type DWord -ErrorAction SilentlyContinue
 
-                    Write-Host "  System image backup configuration saved" -ForegroundColor Green
+                    Write-Information -MessageData "  System image backup configuration saved" -InformationAction Continue
                 } else {
                     Write-Warning "  BackupLocation not specified. System image backup requires a target location."
                 }
@@ -127,7 +127,7 @@ function Setup-WindowsBackup {
         }
 
         # Configure backup schedule through Task Scheduler
-        Write-Host "Configuring backup schedule..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring backup schedule..."
         try {
             $taskName = "WindowsMelodyRecovery_SystemBackup"
             $taskPath = "\Microsoft\Windows\WindowsMelodyRecovery\"
@@ -135,13 +135,13 @@ function Setup-WindowsBackup {
             # Remove existing task if it exists
             $existingTask = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
             if ($existingTask) {
-                Write-Host "  Removing existing backup task..." -ForegroundColor Yellow
+                Write-Warning -Message "  Removing existing backup task..."
                 Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
             }
 
             # Create new backup task
             if ($BackupLocation) {
-                Write-Host "  Creating new backup task..." -ForegroundColor Yellow
+                Write-Warning -Message "  Creating new backup task..."
 
                 # Create task action
                 $backupScript = @"
@@ -214,10 +214,10 @@ try {
                 # Register the task
                 Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Windows Melody Recovery System Backup Task"
 
-                Write-Host "  Backup task created successfully" -ForegroundColor Green
-                Write-Host "  Task Name: $taskName" -ForegroundColor Cyan
-                Write-Host "  Frequency: $BackupFrequency" -ForegroundColor Cyan
-                Write-Host "  Next Run: $((Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath).NextRunTime)" -ForegroundColor Cyan
+                Write-Information -MessageData "  Backup task created successfully" -InformationAction Continue
+                Write-Information -MessageData "  Task Name: $taskName" -InformationAction Continue
+                Write-Information -MessageData "  Frequency: $BackupFrequency" -InformationAction Continue
+                Write-Information -MessageData "  Next Run: $((Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath).NextRunTime)" -InformationAction Continue
             } else {
                 Write-Warning "  BackupLocation not specified. Cannot create backup task."
             }
@@ -226,7 +226,7 @@ try {
         }
 
         # Configure backup retention policy
-        Write-Host "Configuring backup retention policy..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring backup retention policy..."
         try {
             if ($BackupLocation -and (Test-Path $BackupLocation)) {
                 # Create cleanup script for old backups
@@ -256,14 +256,14 @@ try {
 
                 Register-ScheduledTask -TaskName $cleanupTaskName -TaskPath $taskPath -Action $cleanupAction -Trigger $cleanupTrigger -Settings $cleanupSettings -Principal $cleanupPrincipal -Description "Windows Melody Recovery Backup Cleanup Task"
 
-                Write-Host "  Backup retention policy configured (${RetentionDays} days)" -ForegroundColor Green
+                Write-Information -MessageData "  Backup retention policy configured (${RetentionDays} days)" -InformationAction Continue
             }
         } catch {
             Write-Warning "  Failed to configure backup retention policy: $($_.Exception.Message)"
         }
 
         # Final verification
-        Write-Host "Verifying Windows Backup configuration..." -ForegroundColor Yellow
+        Write-Warning -Message "Verifying Windows Backup configuration..."
         $configSummary = @{
             BackupLocation = $BackupLocation
             FileHistoryEnabled = $EnableFileHistory
@@ -272,15 +272,13 @@ try {
             RetentionDays = $RetentionDays
         }
 
-        Write-Host "Configuration Summary:" -ForegroundColor Green
-        $configSummary | Format-Table -AutoSize | Out-String | Write-Host
-
-        Write-Host "Windows Backup configuration completed successfully!" -ForegroundColor Green
+        Write-Information -MessageData "Configuration Summary:" -InformationAction Continue
+        $configSummary | Format-Table -AutoSize | Out-String | Write-Information -MessageData Write -InformationAction Continue-Information -MessageData "Windows Backup configuration completed successfully!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to configure Windows Backup: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Stack Trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+        Write-Error -Message "Failed to configure Windows Backup: $($_.Exception.Message)"
+        Write-Error -Message "Stack Trace: $($_.ScriptStackTrace)"
         return $false
     }
 }
@@ -331,24 +329,24 @@ function Start-WindowsBackupManual {
     )
 
     try {
-        Write-Host "Starting manual Windows Backup..." -ForegroundColor Blue
+        Write-Information -MessageData "Starting manual Windows Backup..." -InformationAction Continue
 
         if (-not (Test-Path $BackupLocation)) {
             New-Item -Path $BackupLocation -ItemType Directory -Force | Out-Null
         }
 
         if ($SystemImageOnly) {
-            Write-Host "Creating system image backup..." -ForegroundColor Yellow
+            Write-Warning -Message "Creating system image backup..."
             $wbadminCmd = "wbadmin start backup -backupTarget:$BackupLocation -include:$env:SystemDrive -allCritical -quiet"
             Invoke-Expression $wbadminCmd
         } elseif ($FileHistoryOnly) {
-            Write-Host "Starting File History backup..." -ForegroundColor Yellow
+            Write-Warning -Message "Starting File History backup..."
             # File History backup is automatic when enabled
-            Write-Host "File History backup is managed automatically by Windows" -ForegroundColor Green
+            Write-Information -MessageData "File History backup is managed automatically by Windows" -InformationAction Continue
         } else {
-            Write-Host "Starting comprehensive backup..." -ForegroundColor Yellow
+            Write-Warning -Message "Starting comprehensive backup..."
             # Perform both system and file backup
-            Write-Host "Manual backup completed. Check backup location: $BackupLocation" -ForegroundColor Green
+            Write-Information -MessageData "Manual backup completed. Check backup location: $BackupLocation" -InformationAction Continue
         }
 
         return $true

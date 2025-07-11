@@ -65,17 +65,17 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 # Validate Windows environment
 if (-not $IsWindows -and -not $Force) {
-    Write-Host "✗ This script requires Windows environment" -ForegroundColor Red
-    Write-Host "  Use -Force to override this check for testing" -ForegroundColor Yellow
+    Write-Error -Message "✗ This script requires Windows environment"
+    Write-Warning -Message "  Use -Force to override this check for testing"
     exit 1
 }
 
 # Detect CI/CD environment
 $isCICD = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
 if (-not $isCICD -and -not $Force) {
-    Write-Host "⚠️  This script is designed for CI/CD environments" -ForegroundColor Yellow
-    Write-Host "   Use -Force to run in development environment" -ForegroundColor Gray
-    Write-Host "   Consider using regular test scripts for development" -ForegroundColor Gray
+    Write-Warning -Message "⚠️  This script is designed for CI/CD environments"
+    Write-Verbose -Message "   Use -Force to run in development environment"
+    Write-Verbose -Message "   Consider using regular test scripts for development"
     if (-not (Read-Host "Continue? (y/N)").ToLower().StartsWith('y')) {
         exit 0
     }
@@ -95,26 +95,26 @@ $isAdmin = Test-AdminPrivileges
 $needsAdmin = $RequireAdmin -or $Category -in @('integration', 'end-to-end')
 
 if ($needsAdmin -and -not $isAdmin) {
-    Write-Host "✗ Administrative privileges required for $Category tests" -ForegroundColor Red
-    Write-Host "  Please run PowerShell as Administrator" -ForegroundColor Yellow
+    Write-Error -Message "✗ Administrative privileges required for $Category tests"
+    Write-Warning -Message "  Please run PowerShell as Administrator"
     exit 1
 }
 
-Write-Host "🪟 Windows-Only Test Runner" -ForegroundColor Cyan
-Write-Host "Category: $Category" -ForegroundColor White
-Write-Host "Environment: $(if ($isCICD) { 'CI/CD' } else { 'Development' })" -ForegroundColor Gray
-Write-Host "Admin Rights: $(if ($isAdmin) { 'Yes' } else { 'No' })" -ForegroundColor Gray
+Write-Information -MessageData "🪟 Windows-Only Test Runner" -InformationAction Continue
+Write-Information -MessageData "Category: $Category"  -InformationAction Continue-ForegroundColor White
+Write-Verbose -Message "Environment: $(if ($isCICD) { 'CI/CD' } else { 'Development' })"
+Write-Verbose -Message "Admin Rights: $(if ($isAdmin) { 'Yes' } else { 'No' })"
 
 # Create restore point for destructive tests
 if ($CreateRestorePoint -and $needsAdmin -and $isAdmin) {
-    Write-Host "Creating system restore point..." -ForegroundColor Yellow
+    Write-Warning -Message "Creating system restore point..."
     try {
         $restorePoint = "WMR-Tests-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
         Checkpoint-Computer -Description $restorePoint -RestorePointType "MODIFY_SETTINGS"
-        Write-Host "✓ Restore point created: $restorePoint" -ForegroundColor Green
+        Write-Information -MessageData "✓ Restore point created: $restorePoint" -InformationAction Continue
     } catch {
-        Write-Host "⚠️  Failed to create restore point: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "   Continuing without restore point..." -ForegroundColor Gray
+        Write-Warning -Message "⚠️  Failed to create restore point: $($_.Exception.Message)"
+        Write-Verbose -Message "   Continuing without restore point..."
     }
 }
 
@@ -124,7 +124,7 @@ try {
     if (Test-Path $testEnvPath) {
         . $testEnvPath
     } else {
-        Write-Host "✗ Test environment not found at: $testEnvPath" -ForegroundColor Red
+        Write-Error -Message "✗ Test environment not found at: $testEnvPath"
         exit 1
     }
 
@@ -151,25 +151,25 @@ try {
                 if (Test-Path $specificTest) {
                     $testPaths += $specificTest
                 } else {
-                    Write-Host "✗ Test file not found: $specificTest" -ForegroundColor Red
+                    Write-Error -Message "✗ Test file not found: $specificTest"
                     exit 1
                 }
             } else {
                 $testPaths += $categoryPath
             }
         } else {
-            Write-Host "✗ Test category not found: $categoryPath" -ForegroundColor Red
-            Write-Host "Available categories:" -ForegroundColor Yellow
+            Write-Error -Message "✗ Test category not found: $categoryPath"
+            Write-Warning -Message "Available categories:"
             Get-ChildItem -Path (Join-Path $PSScriptRoot ".." "windows-only") -Directory | ForEach-Object {
-                Write-Host "  - $($_.Name)" -ForegroundColor Gray
+                Write-Verbose -Message "  - $($_.Name)"
             }
             exit 1
         }
     }
 
     # Run tests
-    Write-Host "Executing Windows-only tests..." -ForegroundColor Cyan
-    Write-Host "Test paths: $($testPaths -join ', ')" -ForegroundColor Gray
+    Write-Information -MessageData "Executing Windows-only tests..." -InformationAction Continue
+    Write-Verbose -Message "Test paths: $($testPaths -join ', ')"
 
     $pesterConfig = @{
         Run = @{
@@ -200,25 +200,25 @@ try {
     }
 
     # Report results
-    Write-Host "" -ForegroundColor White
-    Write-Host "=== Windows-Only Test Results ===" -ForegroundColor Cyan
-    Write-Host "Tests Passed: $($result.PassedCount)" -ForegroundColor Green
-    Write-Host "Tests Failed: $($result.FailedCount)" -ForegroundColor Red
-    Write-Host "Tests Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
-    Write-Host "Total Tests: $($result.TotalCount)" -ForegroundColor White
+    Write-Information -MessageData ""  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "=== Windows-Only Test Results ===" -InformationAction Continue
+    Write-Information -MessageData "Tests Passed: $($result.PassedCount)" -InformationAction Continue
+    Write-Error -Message "Tests Failed: $($result.FailedCount)"
+    Write-Warning -Message "Tests Skipped: $($result.SkippedCount)"
+    Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue-ForegroundColor White
 
     if ($result.FailedCount -gt 0) {
-        Write-Host "✗ Some Windows-only tests failed" -ForegroundColor Red
+        Write-Error -Message "✗ Some Windows-only tests failed"
         exit 1
     } else {
-        Write-Host "✓ All Windows-only tests passed!" -ForegroundColor Green
+        Write-Information -MessageData "✓ All Windows-only tests passed!" -InformationAction Continue
         exit 0
     }
 
 } catch {
-    Write-Host "✗ Error running Windows-only tests: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Stack trace:" -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor Red
+    Write-Error -Message "✗ Error running Windows-only tests: $($_.Exception.Message)"
+    Write-Error -Message "Stack trace:"
+    Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1
 }
 

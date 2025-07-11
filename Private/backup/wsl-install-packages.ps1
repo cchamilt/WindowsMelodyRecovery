@@ -12,7 +12,7 @@ function Install-WSLAptPackages {
     param([array]$AptPackages)
 
     if ($AptPackages.Count -eq 0) {
-        Write-Host "No APT packages to restore" -ForegroundColor Yellow
+        Write-Warning -Message "No APT packages to restore"
         return
     }
 
@@ -20,11 +20,11 @@ function Install-WSLAptPackages {
     if ($installedPackages.Count -gt 0) {
         $packageNames = $installedPackages | ForEach-Object { $_.Name }
         $packageList = $packageNames -join " "
-        Write-Host "Restoring $($installedPackages.Count) APT packages in WSL..." -ForegroundColor Yellow
+        Write-Warning -Message "Restoring $($installedPackages.Count) APT packages in WSL..."
 
         try {
             wsl --exec bash -c "sudo apt-get update && sudo apt-get install -y $packageList"
-            Write-Host "Successfully restored APT packages" -ForegroundColor Green
+            Write-Information -MessageData "Successfully restored APT packages" -InformationAction Continue
         } catch {
             Write-Warning "Failed to restore some APT packages: $($_.Exception.Message)"
         }
@@ -35,17 +35,17 @@ function Install-WSLNpmPackages {
     param([array]$NpmPackages)
 
     if ($NpmPackages.Count -eq 0) {
-        Write-Host "No NPM packages to restore" -ForegroundColor Yellow
+        Write-Warning -Message "No NPM packages to restore"
         return
     }
 
-    Write-Host "Restoring $($NpmPackages.Count) NPM global packages in WSL..." -ForegroundColor Yellow
+    Write-Warning -Message "Restoring $($NpmPackages.Count) NPM global packages in WSL..."
 
     foreach ($pkg in $NpmPackages) {
         try {
             $packageSpec = if ($pkg.Version) { "$($pkg.Name)@$($pkg.Version)" } else { $pkg.Name }
             wsl --exec bash -c "npm install -g $packageSpec"
-            Write-Host "  Installed $packageSpec" -ForegroundColor Green
+            Write-Information -MessageData "  Installed $packageSpec" -InformationAction Continue
         } catch {
             Write-Warning "  Failed to install $($pkg.Name): $($_.Exception.Message)"
         }
@@ -56,17 +56,17 @@ function Install-WSLPipPackages {
     param([array]$PipPackages)
 
     if ($PipPackages.Count -eq 0) {
-        Write-Host "No PIP packages to restore" -ForegroundColor Yellow
+        Write-Warning -Message "No PIP packages to restore"
         return
     }
 
-    Write-Host "Restoring $($PipPackages.Count) PIP packages in WSL..." -ForegroundColor Yellow
+    Write-Warning -Message "Restoring $($PipPackages.Count) PIP packages in WSL..."
 
     foreach ($pkg in $PipPackages) {
         try {
             $packageSpec = if ($pkg.Version) { "$($pkg.Name)==$($pkg.Version)" } else { $pkg.Name }
             wsl --exec bash -c "pip install $packageSpec"
-            Write-Host "  Installed $packageSpec" -ForegroundColor Green
+            Write-Information -MessageData "  Installed $packageSpec" -InformationAction Continue
         } catch {
             Write-Warning "  Failed to install $($pkg.Name): $($_.Exception.Message)"
         }
@@ -83,7 +83,7 @@ try {
     $packages = $StateJson | ConvertFrom-Json
 
     if ($packages.Count -eq 0) {
-        Write-Host "No packages found in backup to restore" -ForegroundColor Yellow
+        Write-Warning -Message "No packages found in backup to restore"
         return
     }
 
@@ -97,7 +97,7 @@ try {
     Install-WSLNpmPackages -NpmPackages $npmPackages
     Install-WSLPipPackages -PipPackages $pipPackages
 
-    Write-Host "WSL package restoration completed" -ForegroundColor Green
+    Write-Information -MessageData "WSL package restoration completed" -InformationAction Continue
 
 } catch {
     Write-Error "Failed to restore WSL packages: $($_.Exception.Message)"

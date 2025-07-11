@@ -97,7 +97,7 @@ function Setup-ConfigurationSelection {
     )
 
     begin {
-        Write-Host "Setting up Configuration Selection and Setup Script Management..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up Configuration Selection and Setup Script Management..." -InformationAction Continue
 
         # Get module configuration
         try {
@@ -130,7 +130,7 @@ function Setup-ConfigurationSelection {
     process {
         try {
             # Step 1: Load or create configuration profile
-            Write-Host "Step 1: Managing configuration profile '$ProfileName'..." -ForegroundColor Cyan
+            Write-Information -MessageData "Step 1: Managing configuration profile '$ProfileName'..." -InformationAction Continue
 
             if ($CreateProfile -or -not (Test-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath)) {
                 $profile = New-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath -AvailableScripts $availableScripts
@@ -139,7 +139,7 @@ function Setup-ConfigurationSelection {
             }
 
             # Step 2: Configure setup scripts based on mode
-            Write-Host "Step 2: Configuring setup scripts in $ConfigurationMode mode..." -ForegroundColor Cyan
+            Write-Information -MessageData "Step 2: Configuring setup scripts in $ConfigurationMode mode..." -InformationAction Continue
 
             switch ($ConfigurationMode) {
                 'Interactive' {
@@ -155,7 +155,7 @@ function Setup-ConfigurationSelection {
 
             # Step 3: Update configuration profile
             if ($selectedScripts) {
-                Write-Host "Step 3: Updating configuration profile..." -ForegroundColor Cyan
+                Write-Information -MessageData "Step 3: Updating configuration profile..." -InformationAction Continue
                 $profile.setup_scripts = $selectedScripts
                 $profile.last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
 
@@ -163,7 +163,7 @@ function Setup-ConfigurationSelection {
             }
 
             # Step 4: Create execution plan
-            Write-Host "Step 4: Creating setup execution plan..." -ForegroundColor Cyan
+            Write-Information -MessageData "Step 4: Creating setup execution plan..." -InformationAction Continue
             $executionPlan = New-SetupExecutionPlan -Profile $profile -AvailableScripts $availableScripts
 
             if ($executionPlan) {
@@ -171,10 +171,10 @@ function Setup-ConfigurationSelection {
                 Save-ExecutionPlan -ExecutionPlan $executionPlan -Path $planPath
             }
 
-            Write-Host "Configuration selection setup completed successfully!" -ForegroundColor Green
-            Write-Host "Profile: $ProfileName" -ForegroundColor Gray
-            Write-Host "Selected Scripts: $($selectedScripts.Count)" -ForegroundColor Gray
-            Write-Host "Output Path: $OutputPath" -ForegroundColor Gray
+            Write-Information -MessageData "Configuration selection setup completed successfully!" -InformationAction Continue
+            Write-Verbose -Message "Profile: $ProfileName"
+            Write-Verbose -Message "Selected Scripts: $($selectedScripts.Count)"
+            Write-Verbose -Message "Output Path: $OutputPath"
 
             return $true
 
@@ -296,7 +296,7 @@ function New-ConfigurationProfile {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would create configuration profile '$ProfileName' in $OutputPath" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would create configuration profile '$ProfileName' in $OutputPath"
         return @{}
     }
 
@@ -376,14 +376,14 @@ function Save-ConfigurationProfile {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would save configuration profile '$ProfileName' to $OutputPath" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would save configuration profile '$ProfileName' to $OutputPath"
         return
     }
 
     try {
         $profilePath = Join-Path $OutputPath "$ProfileName-profile.json"
         $Profile | ConvertTo-Json -Depth 10 | Out-File -FilePath $profilePath -Encoding UTF8
-        Write-Host "Configuration profile saved: $profilePath" -ForegroundColor Green
+        Write-Information -MessageData "Configuration profile saved: $profilePath" -InformationAction Continue
     } catch {
         Write-Warning "Failed to save configuration profile: $_"
     }
@@ -424,31 +424,31 @@ function Invoke-InteractiveScriptSelection {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would prompt for interactive script selection from $($AvailableScripts.Count) available scripts" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would prompt for interactive script selection from $($AvailableScripts.Count) available scripts"
         return @()
     }
 
     try {
         $selectedScripts = @()
 
-        Write-Host "`nAvailable Setup Scripts:" -ForegroundColor Green
-        Write-Host "========================" -ForegroundColor Green
+        Write-Information -MessageData "`nAvailable Setup Scripts:" -InformationAction Continue
+        Write-Information -MessageData "========================" -InformationAction Continue
 
         for ($i = 0; $i -lt $AvailableScripts.Count; $i++) {
             $script = $AvailableScripts[$i]
             $isSelected = $CurrentProfile.setup_scripts -contains $script.Name
             $status = if ($isSelected) { "[X]" } else { "[ ]" }
 
-            Write-Host "$($i + 1). $status $($script.Name)" -ForegroundColor White
-            Write-Host "   Category: $($script.Category)" -ForegroundColor Gray
-            Write-Host "   Description: $($script.Description)" -ForegroundColor Gray
+            Write-Information -MessageData "$($i + 1). $status $($script.Name)"  -InformationAction Continue-ForegroundColor White
+            Write-Verbose -Message "   Category: $($script.Category)"
+            Write-Verbose -Message "   Description: $($script.Description)"
             if ($script.RequiresAdmin) {
-                Write-Host "   Requires Admin: Yes" -ForegroundColor Yellow
+                Write-Warning -Message "   Requires Admin: Yes"
             }
-            Write-Host ""
+            Write-Information -MessageData "" -InformationAction Continue
         }
 
-        Write-Host "Enter script numbers to toggle selection (e.g., 1,3,5) or 'all' for all scripts:" -ForegroundColor Cyan
+        Write-Information -MessageData "Enter script numbers to toggle selection (e.g., 1,3,5) or 'all' for all scripts:" -InformationAction Continue
         $input = Read-Host
 
         if ($input -eq 'all') {
@@ -474,7 +474,7 @@ function Invoke-AutomaticScriptSelection {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would automatically select scripts based on system detection" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would automatically select scripts based on system detection"
         return @()
     }
 
@@ -516,7 +516,7 @@ function Invoke-AutomaticScriptSelection {
         $availableNames = $AvailableScripts.Name
         $selectedScripts = $selectedScripts | Where-Object { $availableNames -contains $_ }
 
-        Write-Host "Automatically selected $($selectedScripts.Count) scripts based on system detection" -ForegroundColor Green
+        Write-Information -MessageData "Automatically selected $($selectedScripts.Count) scripts based on system detection" -InformationAction Continue
 
         return $selectedScripts
 
@@ -534,7 +534,7 @@ function Get-ProfileScriptSelection {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would get script selection from profile '$($Profile.metadata.name)'" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would get script selection from profile '$($Profile.metadata.name)'"
         return @()
     }
 
@@ -617,7 +617,7 @@ function New-SetupExecutionPlan {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would create setup execution plan for profile '$($Profile.metadata.name)'" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would create setup execution plan for profile '$($Profile.metadata.name)'"
         return @{}
     }
 
@@ -694,13 +694,13 @@ function Save-ExecutionPlan {
     )
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would save execution plan to $Path" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would save execution plan to $Path"
         return
     }
 
     try {
         $ExecutionPlan | ConvertTo-Json -Depth 10 | Out-File -FilePath $Path -Encoding UTF8
-        Write-Host "Execution plan saved: $Path" -ForegroundColor Green
+        Write-Information -MessageData "Execution plan saved: $Path" -InformationAction Continue
     } catch {
         Write-Warning "Failed to save execution plan: $_"
     }

@@ -693,7 +693,7 @@ if ($script:IsDockerEnvironment) {
         }
     }
 
-    Write-Host "🐳 Docker test environment initialized with comprehensive mocks" -ForegroundColor Cyan
+    Write-Information -MessageData "🐳 Docker test environment initialized with comprehensive mocks" -InformationAction Continue
 } else {
     Write-Verbose "Native Windows environment detected, using standard functionality"
 }

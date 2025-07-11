@@ -7,7 +7,7 @@
     This script performs health checks for the test runner environment.
 #>
 
-Write-Host "🏥 Performing health checks..." -ForegroundColor Cyan
+Write-Information -MessageData "🏥 Performing health checks..." -InformationAction Continue
 
 $healthStatus = @{
     PowerShell = $false
@@ -19,32 +19,32 @@ $healthStatus = @{
 # Check PowerShell
 try {
     $psVersion = $PSVersionTable.PSVersion
-    Write-Host "✓ PowerShell $psVersion is available" -ForegroundColor Green
+    Write-Information -MessageData "✓ PowerShell $psVersion is available" -InformationAction Continue
     $healthStatus.PowerShell = $true
 } catch {
-    Write-Host "✗ PowerShell check failed" -ForegroundColor Red
+    Write-Error -Message "✗ PowerShell check failed"
 }
 
 # Check Pester
 try {
     $pesterVersion = (Get-Module Pester -ListAvailable | Select-Object -First 1).Version
-    Write-Host "✓ Pester $pesterVersion is available" -ForegroundColor Green
+    Write-Information -MessageData "✓ Pester $pesterVersion is available" -InformationAction Continue
     $healthStatus.Pester = $true
 } catch {
-    Write-Host "✗ Pester check failed" -ForegroundColor Red
+    Write-Error -Message "✗ Pester check failed"
 }
 
 # Check Docker CLI
 try {
     $dockerVersion = docker --version 2>$null
     if ($dockerVersion) {
-        Write-Host "✓ Docker CLI is available: $dockerVersion" -ForegroundColor Green
+        Write-Information -MessageData "✓ Docker CLI is available: $dockerVersion" -InformationAction Continue
         $healthStatus.Docker = $true
     } else {
-        Write-Host "✗ Docker CLI not available" -ForegroundColor Red
+        Write-Error -Message "✗ Docker CLI not available"
     }
 } catch {
-    Write-Host "✗ Docker CLI check failed" -ForegroundColor Red
+    Write-Error -Message "✗ Docker CLI check failed"
 }
 
 # Check test directories
@@ -53,9 +53,9 @@ $allDirsExist = $true
 
 foreach ($dir in $requiredDirs) {
     if (Test-Path $dir) {
-        Write-Host "✓ Directory exists: $dir" -ForegroundColor Green
+        Write-Information -MessageData "✓ Directory exists: $dir" -InformationAction Continue
     } else {
-        Write-Host "✗ Directory missing: $dir" -ForegroundColor Red
+        Write-Error -Message "✗ Directory missing: $dir"
         $allDirsExist = $false
     }
 }
@@ -66,9 +66,9 @@ $healthStatus.TestDirectories = $allDirsExist
 $overallHealth = $healthStatus.Values -notcontains $false
 
 if ($overallHealth) {
-    Write-Host "✅ All health checks passed!" -ForegroundColor Green
+    Write-Information -MessageData "✅ All health checks passed!" -InformationAction Continue
     exit 0
 } else {
-    Write-Host "❌ Some health checks failed" -ForegroundColor Red
+    Write-Error -Message "❌ Some health checks failed"
     exit 1
 }

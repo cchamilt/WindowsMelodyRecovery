@@ -55,7 +55,7 @@ BeforeAll {
 
         # Handle empty backup paths gracefully
         if ([string]::IsNullOrWhiteSpace($MACHINE_BACKUP) -and [string]::IsNullOrWhiteSpace($SHARED_BACKUP)) {
-            Write-Host "No backup paths provided" -ForegroundColor Yellow
+            Write-Warning -Message "No backup paths provided"
             return $null
         }
 
@@ -63,7 +63,7 @@ BeforeAll {
         if (-not [string]::IsNullOrWhiteSpace($MACHINE_BACKUP)) {
             $machinePath = Join-Path $MACHINE_BACKUP $Path
             if (Test-Path $machinePath) {
-                Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
+                Write-Information -MessageData "Using machine-specific $BackupType backup from: $machinePath" -InformationAction Continue
                 return $machinePath
             }
         }
@@ -72,12 +72,12 @@ BeforeAll {
         if (-not [string]::IsNullOrWhiteSpace($SHARED_BACKUP)) {
             $sharedPath = Join-Path $SHARED_BACKUP $Path
             if (Test-Path $sharedPath) {
-                Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
+                Write-Information -MessageData "Using shared $BackupType backup from: $sharedPath" -InformationAction Continue
                 return $sharedPath
             }
         }
 
-        Write-Host "No $BackupType backup found" -ForegroundColor Yellow
+        Write-Warning -Message "No $BackupType backup found"
         return $null
     }
 }
@@ -280,4 +280,5 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
         }
     }
 }
+
 

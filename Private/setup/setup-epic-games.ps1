@@ -19,7 +19,7 @@ function Setup-EpicGames {
             return $true
         }
 
-        Write-Host "Installing Legendary CLI..." -ForegroundColor Yellow
+        Write-Warning -Message "Installing Legendary CLI..."
 
         try {
             # Try to install via pip
@@ -53,7 +53,7 @@ function Setup-EpicGames {
             }
         }
         catch {
-            Write-Host "Failed to install Legendary: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "Failed to install Legendary: $($_.Exception.Message)"
             return $false
         }
 
@@ -62,7 +62,7 @@ function Setup-EpicGames {
 
     function Get-InstalledGames {
         if (!(Get-Command legendary -ErrorAction SilentlyContinue)) {
-            Write-Host "Legendary CLI not found" -ForegroundColor Red
+            Write-Error -Message "Legendary CLI not found"
             return @()
         }
 
@@ -81,7 +81,7 @@ function Setup-EpicGames {
             }
         }
         catch {
-            Write-Host "Error getting installed games: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "Error getting installed games: $($_.Exception.Message)"
         }
 
         return $installedGames
@@ -96,41 +96,41 @@ function Setup-EpicGames {
         try {
             $status = legendary status --json | ConvertFrom-Json
             if (!$status.account) {
-                Write-Host "`nYou need to login to Epic Games first" -ForegroundColor Yellow
+                Write-Warning -Message "`nYou need to login to Epic Games first"
                 legendary auth
                 if ($LASTEXITCODE -ne 0) {
-                    Write-Host "Failed to authenticate with Epic Games" -ForegroundColor Red
+                    Write-Error -Message "Failed to authenticate with Epic Games"
                     return
                 }
             }
         }
         catch {
-            Write-Host "Error checking Epic Games login status: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "Error checking Epic Games login status: $($_.Exception.Message)"
             return
         }
 
         foreach ($game in $Games) {
-            Write-Host "Installing $($game.Name) (AppID: $($game.AppId))..." -ForegroundColor Yellow
+            Write-Warning -Message "Installing $($game.Name) (AppID: $($game.AppId))..."
 
             try {
                 # Install game
                 legendary install $game.AppId --base-path "C:\Epic Games" --yes
 
                 if ($LASTEXITCODE -eq 0) {
-                    Write-Host "Successfully installed $($game.Name)" -ForegroundColor Green
+                    Write-Information -MessageData "Successfully installed $($game.Name)" -InformationAction Continue
                 }
                 else {
-                    Write-Host "Failed to install $($game.Name)" -ForegroundColor Red
+                    Write-Error -Message "Failed to install $($game.Name)"
                 }
             }
             catch {
-                Write-Host "Error installing $($game.Name): $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Error installing $($game.Name): $($_.Exception.Message)"
             }
         }
     }
 
     try {
-        Write-Host "Setting up Epic Games..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up Epic Games..." -InformationAction Continue
 
         # Determine games list path
         if (!$GamesListPath) {
@@ -142,16 +142,16 @@ function Setup-EpicGames {
                 if ($applications.Epic) {
                     $gamesList = $applications.Epic
                 } else {
-                    Write-Host "No Epic games found in backup" -ForegroundColor Yellow
+                    Write-Warning -Message "No Epic games found in backup"
                     $gamesList = @()
                 }
             } else {
-                Write-Host "No games list found in backup location" -ForegroundColor Yellow
+                Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         } else {
             if (!(Test-Path $GamesListPath)) {
-                Write-Host "Games list not found at: $GamesListPath" -ForegroundColor Red
+                Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
             }
             $gamesList = Get-Content $GamesListPath | ConvertFrom-Json
@@ -159,35 +159,35 @@ function Setup-EpicGames {
 
         # Install Legendary if needed
         if (!(Install-Legendary)) {
-            Write-Host "Failed to install Legendary CLI" -ForegroundColor Red
-            Write-Host "You can install it manually:" -ForegroundColor Yellow
-            Write-Host "  1. Install Python: https://python.org" -ForegroundColor White
-            Write-Host "  2. Run: pip install legendary-gl" -ForegroundColor White
-            Write-Host "  3. Or download from: https://github.com/derrod/legendary" -ForegroundColor White
+            Write-Error -Message "Failed to install Legendary CLI"
+            Write-Warning -Message "You can install it manually:"
+            Write-Information -MessageData "  1. Install Python: https://python.org"  -InformationAction Continue-ForegroundColor White
+            Write-Information -MessageData "  2. Run: pip install legendary -InformationAction Continue-gl" -ForegroundColor White
+            Write-Information -MessageData "  3. Or download from: https://github.com/derrod/legendary"  -InformationAction Continue-ForegroundColor White
             return $false
         }
 
         $installedGames = Get-InstalledGames
 
         # Show current status
-        Write-Host "`nInstalled Epic Games:" -ForegroundColor Blue
+        Write-Information -MessageData "`nInstalled Epic Games:" -InformationAction Continue
         if ($installedGames.Count -gt 0) {
             $installedGames | ForEach-Object {
-                Write-Host "- $($_.Name) (AppID: $($_.AppId))" -ForegroundColor Green
+                Write-Information -MessageData "- $($_.Name) (AppID: $($_.AppId))" -InformationAction Continue
             }
         } else {
-            Write-Host "No Epic games currently installed" -ForegroundColor Gray
+            Write-Verbose -Message "No Epic games currently installed"
         }
 
         if ($gamesList.Count -gt 0) {
-            Write-Host "`nGames to Install:" -ForegroundColor Blue
+            Write-Information -MessageData "`nGames to Install:" -InformationAction Continue
             $gamesToInstall = $gamesList | Where-Object { $_.AppId -notin $installedGames.AppId }
             if ($gamesToInstall.Count -gt 0) {
                 $gamesToInstall | ForEach-Object {
-                    Write-Host "- $($_.Name) (AppID: $($_.AppId))" -ForegroundColor Yellow
+                    Write-Warning -Message "- $($_.Name) (AppID: $($_.AppId))"
                 }
             } else {
-                Write-Host "All games from backup are already installed!" -ForegroundColor Green
+                Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
             if ($Install -and $gamesToInstall.Count -gt 0) {
@@ -195,17 +195,18 @@ function Setup-EpicGames {
                 Install-EpicGames -Games $gamesToInstall
             }
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
-                Write-Host "`nRun with -Install to install missing games" -ForegroundColor Yellow
+                Write-Warning -Message "`nRun with -Install to install missing games"
             }
         } else {
-            Write-Host "`nNo games list found to install from" -ForegroundColor Gray
+            Write-Verbose -Message "`nNo games list found to install from"
         }
 
-        Write-Host "`nEpic Games setup completed!" -ForegroundColor Green
+        Write-Information -MessageData "`nEpic Games setup completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to setup Epic Games: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to setup Epic Games: $($_.Exception.Message)"
         return $false
     }
 }
+

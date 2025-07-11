@@ -10,45 +10,45 @@ function Setup-WSL {
     }
 
     try {
-        Write-Host "Setting up WSL (Windows Subsystem for Linux)..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up WSL (Windows Subsystem for Linux)..." -InformationAction Continue
 
         # Check if WSL is available
         $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -ErrorAction SilentlyContinue
 
         if (!$wslFeature) {
-            Write-Host "WSL feature not available on this system." -ForegroundColor Red
+            Write-Error -Message "WSL feature not available on this system."
             return $false
         }
 
         # 1. Enable WSL if not already enabled
         if ($wslFeature.State -ne "Enabled") {
-            Write-Host "Enabling WSL feature..." -ForegroundColor Yellow
+            Write-Warning -Message "Enabling WSL feature..."
             try {
                 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -All -NoRestart
-                Write-Host "✅ WSL feature enabled (restart may be required)" -ForegroundColor Green
+                Write-Information -MessageData "✅ WSL feature enabled (restart may be required)" -InformationAction Continue
             } catch {
-                Write-Host "❌ Failed to enable WSL feature: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "❌ Failed to enable WSL feature: $($_.Exception.Message)"
                 return $false
             }
         } else {
-            Write-Host "✅ WSL feature is already enabled" -ForegroundColor Green
+            Write-Information -MessageData "✅ WSL feature is already enabled" -InformationAction Continue
         }
 
         # 2. Enable Virtual Machine Platform for WSL2
         $vmFeature = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -ErrorAction SilentlyContinue
         if ($vmFeature -and $vmFeature.State -ne "Enabled") {
-            Write-Host "Enabling Virtual Machine Platform for WSL2..." -ForegroundColor Yellow
+            Write-Warning -Message "Enabling Virtual Machine Platform for WSL2..."
             try {
                 Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -All -NoRestart
-                Write-Host "✅ Virtual Machine Platform enabled" -ForegroundColor Green
+                Write-Information -MessageData "✅ Virtual Machine Platform enabled" -InformationAction Continue
             } catch {
-                Write-Host "❌ Failed to enable Virtual Machine Platform: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "❌ Failed to enable Virtual Machine Platform: $($_.Exception.Message)"
             }
         }
 
         # 3. Check if WSL command is available
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-            Write-Host "WSL command not available. Please restart your computer and run this setup again." -ForegroundColor Yellow
+            Write-Warning -Message "WSL command not available. Please restart your computer and run this setup again."
             return $false
         }
 
@@ -56,43 +56,43 @@ function Setup-WSL {
         try {
             $wslVersion = wsl --version 2>$null
             if ($wslVersion) {
-                Write-Host "Current WSL version:" -ForegroundColor Green
-                Write-Host $wslVersion -ForegroundColor Gray
+                Write-Information -MessageData "Current WSL version:" -InformationAction Continue
+                Write-Information -MessageData $wslVersion  -InformationAction Continue-ForegroundColor Gray
 
                 # Set default version to WSL2
                 wsl --set-default-version 2 2>$null
-                Write-Host "✅ Default WSL version set to WSL2" -ForegroundColor Green
+                Write-Information -MessageData "✅ Default WSL version set to WSL2" -InformationAction Continue
             }
         } catch {
-            Write-Host "Could not determine WSL version" -ForegroundColor Yellow
+            Write-Warning -Message "Could not determine WSL version"
         }
 
         # 5. List installed distributions
         try {
             $distros = wsl --list --verbose 2>$null
             if ($distros) {
-                Write-Host "`nInstalled WSL distributions:" -ForegroundColor Green
-                Write-Host $distros -ForegroundColor Gray
+                Write-Information -MessageData "`nInstalled WSL distributions:" -InformationAction Continue
+                Write-Information -MessageData $distros  -InformationAction Continue-ForegroundColor Gray
             } else {
-                Write-Host "`nNo WSL distributions installed." -ForegroundColor Yellow
-                Write-Host "You can install Ubuntu with: wsl --install -d Ubuntu" -ForegroundColor Cyan
-                Write-Host "Or browse available distributions with: wsl --list --online" -ForegroundColor Cyan
+                Write-Warning -Message "`nNo WSL distributions installed."
+                Write-Information -MessageData "You can install Ubuntu with: wsl --install -d Ubuntu" -InformationAction Continue
+                Write-Information -MessageData "Or browse available distributions with: wsl --list --online" -InformationAction Continue
             }
         } catch {
-            Write-Host "Could not list WSL distributions" -ForegroundColor Yellow
+            Write-Warning -Message "Could not list WSL distributions"
         }
 
         # 6. Offer to install Ubuntu if no distributions are present
         if (!$distros -or $distros.Count -eq 0) {
             $response = Read-Host "`nWould you like to install Ubuntu? (Y/N)"
             if ($response -eq 'Y') {
-                Write-Host "Installing Ubuntu..." -ForegroundColor Yellow
+                Write-Warning -Message "Installing Ubuntu..."
                 try {
                     wsl --install -d Ubuntu
-                    Write-Host "✅ Ubuntu installation started" -ForegroundColor Green
-                    Write-Host "Note: You'll need to complete the Ubuntu setup when it launches" -ForegroundColor Cyan
+                    Write-Information -MessageData "✅ Ubuntu installation started" -InformationAction Continue
+                    Write-Information -MessageData "Note: You'll need to complete the Ubuntu setup when it launches" -InformationAction Continue
                 } catch {
-                    Write-Host "❌ Failed to install Ubuntu: $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "❌ Failed to install Ubuntu: $($_.Exception.Message)"
                 }
             }
         }
@@ -100,7 +100,7 @@ function Setup-WSL {
         # 7. Setup WSL configuration file
         $wslConfigPath = "$env:USERPROFILE\.wslconfig"
         if (!(Test-Path $wslConfigPath)) {
-            Write-Host "`nCreating WSL configuration file..." -ForegroundColor Yellow
+            Write-Warning -Message "`nCreating WSL configuration file..."
             $wslConfig = @"
 [wsl2]
 # Limits VM memory to use no more than 4 GB
@@ -138,19 +138,19 @@ swap=8GB
 sparseVhd=true
 "@
             $wslConfig | Out-File -FilePath $wslConfigPath -Encoding UTF8
-            Write-Host "✅ WSL configuration file created at: $wslConfigPath" -ForegroundColor Green
+            Write-Information -MessageData "✅ WSL configuration file created at: $wslConfigPath" -InformationAction Continue
         } else {
-            Write-Host "✅ WSL configuration file already exists" -ForegroundColor Green
+            Write-Information -MessageData "✅ WSL configuration file already exists" -InformationAction Continue
         }
 
         # 8. Setup repository checking functionality
-        Write-Host "`nSetting up WSL development tools..." -ForegroundColor Blue
+        Write-Information -MessageData "`nSetting up WSL development tools..." -InformationAction Continue
 
         # Check if we have any WSL distributions to work with
         try {
             $activeDistros = wsl --list --quiet 2>$null | Where-Object { $_ -and $_.Trim() -ne "" }
             if ($activeDistros) {
-                Write-Host "Setting up repository checking tools..." -ForegroundColor Yellow
+                Write-Warning -Message "Setting up repository checking tools..."
 
                 # Create a script for checking git repositories
                 $repoCheckScript = @"
@@ -270,18 +270,18 @@ echo "Repository checker installed successfully!"
 echo "Usage: check-repos"
 "@
                     Invoke-WSLScript -ScriptContent $installScript
-                    Write-Host "✅ Repository checking tool installed in WSL" -ForegroundColor Green
-                    Write-Host "   Use 'wsl check-repos' from PowerShell or 'check-repos' from within WSL" -ForegroundColor Cyan
+                    Write-Information -MessageData "✅ Repository checking tool installed in WSL" -InformationAction Continue
+                    Write-Information -MessageData "   Use 'wsl check-repos' from PowerShell or 'check-repos' from within WSL" -InformationAction Continue
                 } catch {
-                    Write-Host "❌ Failed to install repository checking tool: $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "❌ Failed to install repository checking tool: $($_.Exception.Message)"
                 }
             }
         } catch {
-            Write-Host "Could not setup WSL development tools (no active distributions)" -ForegroundColor Yellow
+            Write-Warning -Message "Could not setup WSL development tools (no active distributions)"
         }
 
         # 9. Setup chezmoi for dotfile management
-        Write-Host "`nSetting up chezmoi for dotfile management..." -ForegroundColor Blue
+        Write-Information -MessageData "`nSetting up chezmoi for dotfile management..." -InformationAction Continue
         try {
             $activeDistros = wsl --list --quiet 2>$null | Where-Object { $_ -and $_.Trim() -ne "" }
             if ($activeDistros) {
@@ -293,30 +293,30 @@ echo "Usage: check-repos"
                     } else {
                         Setup-WSLChezmoi
                     }
-                    Write-Host "✅ chezmoi setup completed" -ForegroundColor Green
+                    Write-Information -MessageData "✅ chezmoi setup completed" -InformationAction Continue
                 } else {
-                    Write-Host "⏭️ Skipped chezmoi setup" -ForegroundColor Gray
+                    Write-Verbose -Message "⏭️ Skipped chezmoi setup"
                 }
             }
         } catch {
-            Write-Host "❌ Failed to setup chezmoi: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "❌ Failed to setup chezmoi: $($_.Exception.Message)"
         }
 
         # 10. Final recommendations
-        Write-Host "`nWSL Setup Complete! 🎉" -ForegroundColor Green
-        Write-Host "`nNext steps:" -ForegroundColor Cyan
-        Write-Host "• If you installed a new distribution, complete its initial setup" -ForegroundColor Yellow
-        Write-Host "• Install development tools: sudo apt update && sudo apt install git curl wget" -ForegroundColor Yellow
-        Write-Host "• Configure Git: git config --global user.name 'Your Name'" -ForegroundColor Yellow
-        Write-Host "• Configure Git: git config --global user.email 'your.email@example.com'" -ForegroundColor Yellow
-        Write-Host "• Use 'wsl check-repos' to check your git repositories" -ForegroundColor Yellow
-        Write-Host "• Use 'Sync-WSLPackages' and 'Sync-WSLHome' to backup your WSL environment" -ForegroundColor Yellow
-        Write-Host "• Use chezmoi to manage your dotfiles: 'chezmoi add ~/.bashrc'" -ForegroundColor Yellow
+        Write-Information -MessageData "`nWSL Setup Complete! 🎉" -InformationAction Continue
+        Write-Information -MessageData "`nNext steps:" -InformationAction Continue
+        Write-Warning -Message "• If you installed a new distribution, complete its initial setup"
+        Write-Warning -Message "• Install development tools: sudo apt update && sudo apt install git curl wget"
+        Write-Warning -Message "• Configure Git: git config --global user.name 'Your Name'"
+        Write-Warning -Message "• Configure Git: git config --global user.email 'your.email@example.com'"
+        Write-Warning -Message "• Use 'wsl check-repos' to check your git repositories"
+        Write-Warning -Message "• Use 'Sync-WSLPackages' and 'Sync-WSLHome' to backup your WSL environment"
+        Write-Warning -Message "• Use chezmoi to manage your dotfiles: 'chezmoi add ~/.bashrc'"
 
         return $true
 
     } catch {
-        Write-Host "Failed to setup WSL: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to setup WSL: $($_.Exception.Message)"
         return $false
     }
 }

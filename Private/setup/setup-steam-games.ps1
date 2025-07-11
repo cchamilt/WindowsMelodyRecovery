@@ -15,7 +15,7 @@ function Setup-SteamGames {
     }
 
     try {
-        Write-Host "Setting up Steam games..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up Steam games..." -InformationAction Continue
 
         # Determine games list path
         if (!$GamesListPath) {
@@ -27,26 +27,27 @@ function Setup-SteamGames {
                 if ($applications.Steam) {
                     $gamesList = $applications.Steam
                 } else {
-                    Write-Host "No Steam games found in backup" -ForegroundColor Yellow
+                    Write-Warning -Message "No Steam games found in backup"
                     $gamesList = @()
                 }
             } else {
-                Write-Host "No games list found in backup location" -ForegroundColor Yellow
+                Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         } else {
             if (!(Test-Path $GamesListPath)) {
-                Write-Host "Games list not found at: $GamesListPath" -ForegroundColor Red
+                Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
             }
             $gamesList = Get-Content $GamesListPath | ConvertFrom-Json
         }
 
-        Write-Host "Steam games setup completed!" -ForegroundColor Green
+        Write-Information -MessageData "Steam games setup completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Error setting up Steam games: $_" -ForegroundColor Red
+        Write-Error -Message "Error setting up Steam games: $_"
         return $false
     }
 }
+

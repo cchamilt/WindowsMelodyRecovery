@@ -26,12 +26,12 @@ function Initialize-MockEnvironment {
         [string]$Environment = "Enhanced"
     )
 
-    Write-Host "🔗 Initializing mock environment (legacy compatibility)" -ForegroundColor Yellow
+    Write-Warning -Message "🔗 Initializing mock environment (legacy compatibility)"
 
     # Use enhanced infrastructure with integration test scope
     Initialize-EnhancedMockInfrastructure -TestType "Integration" -Scope "Standard"
 
-    Write-Host "✓ Legacy mock environment initialized with enhanced infrastructure" -ForegroundColor Green
+    Write-Information -MessageData "✓ Legacy mock environment initialized with enhanced infrastructure" -InformationAction Continue
 }
 
 function Get-MockDataPath {
@@ -93,9 +93,9 @@ function Initialize-MockForTestType {
         [string]$Scope = 'Standard'
     )
 
-    Write-Host "🎯 Initializing mock data for $TestType tests" -ForegroundColor Cyan
+    Write-Information -MessageData "🎯 Initializing mock data for $TestType tests" -InformationAction Continue
     if ($TestContext) {
-        Write-Host "   Context: $TestContext" -ForegroundColor Gray
+        Write-Verbose -Message "   Context: $TestContext"
     }
 
     # Initialize base enhanced infrastructure
@@ -130,7 +130,7 @@ function Initialize-MockForTestType {
         }
     }
 
-    Write-Host "✓ Mock data initialized for $TestType/$TestContext" -ForegroundColor Green
+    Write-Information -MessageData "✓ Mock data initialized for $TestType/$TestContext" -InformationAction Continue
 }
 
 function Enhance-ApplicationMockData {
@@ -193,7 +193,7 @@ function Enhance-ApplicationMockData {
         }
     }
 
-    Write-Host "    ✓ Enhanced application configurations" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Enhanced application configurations"
 }
 
 function Enhance-GamingMockData {
@@ -257,7 +257,7 @@ function Enhance-GamingMockData {
 
     $localConfig | Set-Content -Path (Join-Path $userDataPath "localconfig.vdf") -Encoding UTF8
 
-    Write-Host "    ✓ Enhanced gaming configurations and libraries" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Enhanced gaming configurations and libraries"
 }
 
 function Enhance-CloudMockData {
@@ -338,7 +338,7 @@ function Enhance-CloudMockData {
         $providerSettings | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $providerPath "settings.json") -Encoding UTF8
     }
 
-    Write-Host "    ✓ Enhanced cloud provider settings and sync logs" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Enhanced cloud provider settings and sync logs"
 }
 
 function Enhance-WSLMockData {
@@ -451,7 +451,7 @@ syntax on
         $vimrc | Set-Content -Path (Join-Path $dotfilesPath ".vimrc") -Encoding UTF8
     }
 
-    Write-Host "    ✓ Enhanced WSL packages, dotfiles, and configurations" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Enhanced WSL packages, dotfiles, and configurations"
 }
 
 function Enhance-SystemSettingsMockData {
@@ -550,7 +550,7 @@ function Enhance-SystemSettingsMockData {
 
     $environmentVariables | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $systemPath "environment-variables.json") -Encoding UTF8
 
-    Write-Host "    ✓ Enhanced system settings: features, capabilities, startup, environment" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Enhanced system settings: features, capabilities, startup, environment"
 }
 
 function Get-MockDataForTest {
@@ -640,7 +640,7 @@ function Validate-MockDataIntegrity {
         [string]$TestType = 'All'
     )
 
-    Write-Host "🔍 Validating mock data integrity for $TestType tests..." -ForegroundColor Cyan
+    Write-Information -MessageData "🔍 Validating mock data integrity for $TestType tests..." -InformationAction Continue
 
     $testPaths = Get-StandardTestPaths
     $mockDataRoot = $testPaths.TestMockData
@@ -721,15 +721,15 @@ function Validate-MockDataIntegrity {
 
     # Report results
     if ($validation.Valid) {
-        Write-Host "✅ Mock data validation passed" -ForegroundColor Green
-        Write-Host "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)" -ForegroundColor Gray
+        Write-Information -MessageData "✅ Mock data validation passed" -InformationAction Continue
+        Write-Verbose -Message "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)"
     } else {
-        Write-Host "❌ Mock data validation failed" -ForegroundColor Red
-        Write-Host "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)" -ForegroundColor Gray
-        Write-Host "   Issues: $($validation.Summary.IssuesFound)" -ForegroundColor Red
+        Write-Error -Message "❌ Mock data validation failed"
+        Write-Verbose -Message "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)"
+        Write-Error -Message "   Issues: $($validation.Summary.IssuesFound)"
 
         foreach ($issue in $validation.Issues) {
-            Write-Host "     • $issue" -ForegroundColor Red
+            Write-Error -Message "     • $issue"
         }
     }
 

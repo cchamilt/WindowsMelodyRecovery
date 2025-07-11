@@ -45,7 +45,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $configFile = Join-Path $setupPath "Config\windows.env"
             Test-Path $configFile | Should -Be $true
 
-            Write-Host "✅ New user setup completed successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ New user setup completed successfully" -InformationAction Continue
         }
 
         It "Should create user-friendly backup structure" {
@@ -64,7 +64,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $latestBackup = Get-ChildItem -Path $userBackupPath -Directory | Sort-Object CreationTime -Descending | Select-Object -First 1
             Test-Path $latestBackup.FullName | Should -Be $true
 
-            Write-Host "✅ User-friendly backup structure created" -ForegroundColor Green
+            Write-Information -MessageData "✅ User-friendly backup structure created" -InformationAction Continue
         }
 
         It "Should provide clear backup status information" {
@@ -78,7 +78,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $status.Configuration.ModuleVersion | Should -Not -BeNullOrEmpty
             $status.Initialization.Initialized | Should -Be $true
 
-            Write-Host "✅ Clear status information provided to user" -ForegroundColor Green
+            Write-Information -MessageData "✅ Clear status information provided to user" -InformationAction Continue
         }
     }
 
@@ -90,7 +90,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
 
             # Create multiple backups simulating daily use
             for ($day = 1; $day -le 3; $day++) {
-                Write-Host "  Simulating day $day backup..." -ForegroundColor Gray
+                Write-Verbose -Message "  Simulating day $day backup..."
 
                 # Simulate some system changes
                 $testFile = Join-Path $script:HomeDir "day$day-changes.txt"
@@ -108,7 +108,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $backups = Get-ChildItem -Path $userBackupPath -Directory | Sort-Object CreationTime
             $backups.Count | Should -BeGreaterOrEqual 3
 
-            Write-Host "✅ Daily backup routine working correctly ($($backups.Count) backups)" -ForegroundColor Green
+            Write-Information -MessageData "✅ Daily backup routine working correctly ($($backups.Count) backups)" -InformationAction Continue
         }
 
         It "Should manage backup storage efficiently" {
@@ -130,7 +130,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $totalSize = (Get-ChildItem -Path $userBackupPath -Recurse -File | Measure-Object -Property Length -Sum).Sum
             $totalSize | Should -BeGreaterThan 0
 
-            Write-Host "✅ Backup storage managed efficiently ($([math]::Round($totalSize/1KB, 1)) KB total)" -ForegroundColor Green
+            Write-Information -MessageData "✅ Backup storage managed efficiently ($([math]::Round($totalSize/1KB, 1)) KB total)" -InformationAction Continue
         }
     }
 
@@ -155,7 +155,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
                 Test-Path $targetBackupPath | Should -Be $true
             }
 
-            Write-Host "✅ Work machine setup and backup import completed" -ForegroundColor Green
+            Write-Information -MessageData "✅ Work machine setup and backup import completed" -InformationAction Continue
         }
 
         It "Should restore user preferences on work machine" {
@@ -174,7 +174,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
                 Test-Path $workConfigPath | Should -Be $true
             }
 
-            Write-Host "✅ User preferences restored on work machine" -ForegroundColor Green
+            Write-Information -MessageData "✅ User preferences restored on work machine" -InformationAction Continue
         }
 
         It "Should maintain user data consistency across machines" {
@@ -190,7 +190,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $homeStatus = Get-WindowsMelodyRecoveryStatus
             $homeStatus.Configuration.ModuleVersion | Should -Not -BeNullOrEmpty
 
-            Write-Host "✅ Data consistency maintained across machines" -ForegroundColor Green
+            Write-Information -MessageData "✅ Data consistency maintained across machines" -InformationAction Continue
         }
     }
 
@@ -217,7 +217,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
                 $availableBackups | Should -Not -BeNullOrEmpty
             }
 
-            Write-Host "✅ System recovery environment initialized" -ForegroundColor Green
+            Write-Information -MessageData "✅ System recovery environment initialized" -InformationAction Continue
         }
 
         It "Should restore critical user data after crash" {
@@ -235,7 +235,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $recoveryStatus = Get-WindowsMelodyRecoveryStatus
             $recoveryStatus.Initialization.Initialized | Should -Be $true
 
-            Write-Host "✅ Critical user data restored successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ Critical user data restored successfully" -InformationAction Continue
         }
     }
 
@@ -258,7 +258,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
                 Test-Path $userSetupPath | Should -Be $true
             }
 
-            Write-Host "✅ Multi-user family setup completed for $($familyUsers.Count) users" -ForegroundColor Green
+            Write-Information -MessageData "✅ Multi-user family setup completed for $($familyUsers.Count) users" -InformationAction Continue
         }
 
         It "Should maintain separate user configurations" {
@@ -291,7 +291,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             # All users should have their own backups
             $backupCounts | Should -Not -Contain 0
 
-            Write-Host "✅ Separate user configurations maintained successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ Separate user configurations maintained successfully" -InformationAction Continue
         }
     }
 
@@ -323,7 +323,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             $backups = Get-ChildItem -Path $userBackupPath -Directory
             $backups.Count | Should -BeGreaterOrEqual 5
 
-            Write-Host "✅ Extended usage patterns handled successfully ($($backups.Count) backups)" -ForegroundColor Green
+            Write-Information -MessageData "✅ Extended usage patterns handled successfully ($($backups.Count) backups)" -InformationAction Continue
         }
 
         It "Should maintain performance with large backup history" {
@@ -347,15 +347,15 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             # Backup should complete in reasonable time
             $backupTime.TotalSeconds | Should -BeLessThan 30
 
-            Write-Host "✅ Performance maintained with large backup history" -ForegroundColor Green
-            Write-Host "  Status: $([math]::Round($statusTime.TotalSeconds, 2))s, Backup: $([math]::Round($backupTime.TotalSeconds, 2))s" -ForegroundColor Gray
+            Write-Information -MessageData "✅ Performance maintained with large backup history" -InformationAction Continue
+            Write-Verbose -Message "  Status: $([math]::Round($statusTime.TotalSeconds, 2))s, Backup: $([math]::Round($backupTime.TotalSeconds, 2))s"
         }
     }
 }
 
 AfterAll {
     # Comprehensive cleanup
-    Write-Host "🧹 Cleaning up user journey test environment..." -ForegroundColor Yellow
+    Write-Warning -Message "🧹 Cleaning up user journey test environment..."
 
     if (Test-Path $script:UserRoot) {
         Remove-Item -Path $script:UserRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -366,5 +366,5 @@ AfterAll {
         Remove-Item -Path "env:$_" -ErrorAction SilentlyContinue
     }
 
-    Write-Host "✅ User journey test cleanup completed" -ForegroundColor Green
+    Write-Information -MessageData "✅ User journey test cleanup completed" -InformationAction Continue
 }

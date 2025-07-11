@@ -18,11 +18,11 @@ function Setup-RestorePoints {
     }
 
     try {
-        Write-Host "Configuring System Restore..." -ForegroundColor Blue
+        Write-Information -MessageData "Configuring System Restore..." -InformationAction Continue
 
         # Enable System Protection (System Restore)
         $systemDrive = $env:SystemDrive
-        Write-Host "Enabling System Protection for $systemDrive..." -ForegroundColor Yellow
+        Write-Warning -Message "Enabling System Protection for $systemDrive..."
         Enable-ComputerRestore -Drive $systemDrive
 
         # Enable through registry as well (equivalent to GUI toggle)
@@ -34,7 +34,7 @@ function Setup-RestorePoints {
         $driveSize = [math]::Round($drive.Capacity / 1GB)
         $maxSize = [math]::Max([math]::Round($driveSize * 0.1), 50) # 10% of drive or 50GB, whichever is larger
 
-        Write-Host "Setting System Protection storage to $maxSize GB..." -ForegroundColor Yellow
+        Write-Warning -Message "Setting System Protection storage to $maxSize GB..."
         vssadmin resize shadowstorage /for=$systemDrive /on=$systemDrive /maxsize="$maxSize`GB" | Out-Null
 
         # Check if we can create a restore point
@@ -45,18 +45,18 @@ function Setup-RestorePoints {
                 $timeSinceLastRestore = (Get-Date) - $lastRestore.CreationTime
                 $minInterval = 1440 # 24 hours in minutes
                 if ($timeSinceLastRestore.TotalMinutes -lt $minInterval) {
-                    Write-Host "Skipping initial restore point - one was created in the last 24 hours" -ForegroundColor Yellow
+                    Write-Warning -Message "Skipping initial restore point - one was created in the last 24 hours"
                     $canCreate = $false
                 }
             }
         } catch {
-            Write-Host "Warning: Could not check last restore point time: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Warning -Message "Warning: Could not check last restore point time: $($_.Exception.Message)"
         }
 
         # Create an initial restore point
         if ($canCreate) {
             $description = "Windows Configuration Initial Restore Point"
-            Write-Host "Creating initial restore point: $description" -ForegroundColor Yellow
+            Write-Warning -Message "Creating initial restore point: $description"
             Checkpoint-Computer -Description $description -RestorePointType "MODIFY_SETTINGS"
         }
 
@@ -65,7 +65,7 @@ function Setup-RestorePoints {
         $taskExists = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 
         if (!$taskExists) {
-            Write-Host "Creating monthly System Restore point schedule..." -ForegroundColor Yellow
+            Write-Warning -Message "Creating monthly System Restore point schedule..."
             $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' `
                 -Argument '-NoProfile -ExecutionPolicy Bypass -Command "Checkpoint-Computer -Description \"Monthly System Restore Point\" -RestorePointType MODIFY_SETTINGS"'
 
@@ -87,18 +87,19 @@ function Setup-RestorePoints {
         }
 
         # Enable automatic restore points before Windows Updates
-        Write-Host "Enabling automatic restore points before Windows Updates..." -ForegroundColor Yellow
+        Write-Warning -Message "Enabling automatic restore points before Windows Updates..."
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore" -Name "SystemRestorePointCreationFrequency" -Value 0 -Type DWord
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore" -Name "CreateRestorePointBeforeInstall" -Value 1 -Type DWord
 
-        Write-Host "System Restore configuration completed!" -ForegroundColor Green
+        Write-Information -MessageData "System Restore configuration completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to configure System Restore: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to configure System Restore: $($_.Exception.Message)"
         return $false
     }
 }
+
 
 
 

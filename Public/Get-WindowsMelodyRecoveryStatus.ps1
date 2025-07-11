@@ -230,129 +230,129 @@ function Show-WindowsMelodyRecoveryStatus {
     $status = Get-WindowsMelodyRecoveryStatus -Detailed:$Detailed
 
     $separator = "=" * 60
-    Write-Host ""
-    Write-Host $separator -ForegroundColor Cyan
-    Write-Host "Windows Melody Recovery - Module Status Report" -ForegroundColor Cyan
-    Write-Host $separator -ForegroundColor Cyan
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData $separator  -InformationAction Continue-ForegroundColor Cyan
+    Write-Information -MessageData "Windows Melody Recovery - Module Status Report" -InformationAction Continue
+    Write-Information -MessageData $separator  -InformationAction Continue-ForegroundColor Cyan
 
     # Module Information
-    Write-Host ""
-    Write-Host "Module Information:" -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "Module Information:"
     if ($status.ModuleInfo.Loaded) {
-        Write-Host "  Module loaded successfully" -ForegroundColor Green
-        Write-Host "  Name: $($status.ModuleInfo.Name)" -ForegroundColor White
-        Write-Host "  Version: $($status.ModuleInfo.Version)" -ForegroundColor White
-        Write-Host "  Path: $($status.ModuleInfo.Path)" -ForegroundColor Gray
+        Write-Information -MessageData "  Module loaded successfully" -InformationAction Continue
+        Write-Information -MessageData "  Name: $($status.ModuleInfo.Name)"  -InformationAction Continue-ForegroundColor White
+        Write-Information -MessageData "  Version: $($status.ModuleInfo.Version)"  -InformationAction Continue-ForegroundColor White
+        Write-Verbose -Message "  Path: $($status.ModuleInfo.Path)"
     } else {
-        Write-Host "  Module not loaded" -ForegroundColor Red
+        Write-Error -Message "  Module not loaded"
     }
 
     # Initialization Status
-    Write-Host ""
-    Write-Host "Initialization Status:" -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "Initialization Status:"
     if ($status.Initialization.Initialized) {
-        Write-Host "  Module initialized successfully" -ForegroundColor Green
-        Write-Host "  Loaded Components: $($status.Initialization.LoadedComponents.Count)" -ForegroundColor White
+        Write-Information -MessageData "  Module initialized successfully" -InformationAction Continue
+        Write-Information -MessageData "  Loaded Components: $($status.Initialization.LoadedComponents.Count)"  -InformationAction Continue-ForegroundColor White
         if ($status.Initialization.LoadedComponents.Count -gt 0) {
-            Write-Host "  Components: $($status.Initialization.LoadedComponents -join ', ')" -ForegroundColor Gray
+            Write-Verbose -Message "  Components: $($status.Initialization.LoadedComponents -join ', ')"
         }
     } else {
-        Write-Host "  Module not initialized" -ForegroundColor Red
+        Write-Error -Message "  Module not initialized"
     }
 
     # Configuration
-    Write-Host ""
-    Write-Host "Configuration:" -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "Configuration:"
     if ($status.Configuration.IsInitialized) {
-        Write-Host "  Configuration loaded" -ForegroundColor Green
-        Write-Host "  Backup Root: $($status.Configuration.BackupRoot)" -ForegroundColor White
-        Write-Host "  Machine Name: $($status.Configuration.MachineName)" -ForegroundColor White
-        Write-Host "  Cloud Provider: $($status.Configuration.CloudProvider)" -ForegroundColor White
-        Write-Host "  Last Configured: $($status.Configuration.LastConfigured)" -ForegroundColor Gray
+        Write-Information -MessageData "  Configuration loaded" -InformationAction Continue
+        Write-Information -MessageData "  Backup Root: $($status.Configuration.BackupRoot)"  -InformationAction Continue-ForegroundColor White
+        Write-Information -MessageData "  Machine Name: $($status.Configuration.MachineName)"  -InformationAction Continue-ForegroundColor White
+        Write-Information -MessageData "  Cloud Provider: $($status.Configuration.CloudProvider)"  -InformationAction Continue-ForegroundColor White
+        Write-Verbose -Message "  Last Configured: $($status.Configuration.LastConfigured)"
     } else {
-        Write-Host "  Configuration not initialized" -ForegroundColor Yellow
+        Write-Warning -Message "  Configuration not initialized"
     }
 
     # Functions
-    Write-Host ""
-    Write-Host "Functions:" -ForegroundColor Yellow
-    Write-Host "  Available: $($status.Functions.Available.Count)/$($status.Functions.Available.Count + $status.Functions.Missing.Count)" -ForegroundColor White
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "Functions:"
+    Write-Information -MessageData "  Available: $($status.Functions.Available.Count)/$($status.Functions.Available.Count + $status.Functions.Missing.Count)"  -InformationAction Continue-ForegroundColor White
     if ($status.Functions.Available.Count -gt 0) {
-        Write-Host "  Loaded: $($status.Functions.Available -join ', ')" -ForegroundColor Green
+        Write-Information -MessageData "  Loaded: $($status.Functions.Available -join ', ')" -InformationAction Continue
     }
     if ($status.Functions.Missing.Count -gt 0) {
-        Write-Host "  Missing: $($status.Functions.Missing -join ', ')" -ForegroundColor Red
+        Write-Error -Message "  Missing: $($status.Functions.Missing -join ', ')"
     }
 
     # Dependencies
-    Write-Host ""
-    Write-Host "Dependencies:" -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "Dependencies:"
     if ($status.Dependencies.Pester) {
-        Write-Host "  Pester module available" -ForegroundColor Green
+        Write-Information -MessageData "  Pester module available" -InformationAction Continue
     } else {
-        Write-Host "  Pester module not found" -ForegroundColor Red
+        Write-Error -Message "  Pester module not found"
     }
     if ($status.Dependencies.PowerShellVersion) {
-        Write-Host "  PowerShell version compatible" -ForegroundColor Green
+        Write-Information -MessageData "  PowerShell version compatible" -InformationAction Continue
     } else {
-        Write-Host "  PowerShell 5.1+ recommended" -ForegroundColor Yellow
+        Write-Warning -Message "  PowerShell 5.1+ recommended"
     }
 
     # Environment
-    Write-Host ""
-    Write-Host "Environment:" -ForegroundColor Yellow
-    Write-Host "  PowerShell: $($status.Environment.PowerShellVersion)" -ForegroundColor White
-    Write-Host "  OS: $($status.Environment.OS)" -ForegroundColor White
-    Write-Host "  Platform: $($status.Environment.Platform)" -ForegroundColor White
-    Write-Host "  User: $($status.Environment.CurrentUser)" -ForegroundColor White
-    Write-Host "  Computer: $($status.Environment.ComputerName)" -ForegroundColor White
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "Environment:"
+    Write-Information -MessageData "  PowerShell: $($status.Environment.PowerShellVersion)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "  OS: $($status.Environment.OS)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "  Platform: $($status.Environment.Platform)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "  User: $($status.Environment.CurrentUser)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "  Computer: $($status.Environment.ComputerName)"  -InformationAction Continue-ForegroundColor White
 
     # Detailed Configuration
     if ($Detailed -and $status.Configuration.Detailed) {
-        Write-Host ""
-        Write-Host "Detailed Configuration:" -ForegroundColor Yellow
+        Write-Information -MessageData "" -InformationAction Continue
+        Write-Warning -Message "Detailed Configuration:"
 
         # Email Settings
-        Write-Host "  Email Settings:" -ForegroundColor Cyan
+        Write-Information -MessageData "  Email Settings:" -InformationAction Continue
         $email = $status.Configuration.Detailed.EmailSettings
-        Write-Host "    From: $($email.FromAddress)" -ForegroundColor Gray
-        Write-Host "    To: $($email.ToAddress)" -ForegroundColor Gray
-        Write-Host "    SMTP: $($email.SmtpServer):$($email.SmtpPort)" -ForegroundColor Gray
+        Write-Verbose -Message "    From: $($email.FromAddress)"
+        Write-Verbose -Message "    To: $($email.ToAddress)"
+        Write-Verbose -Message "    SMTP: $($email.SmtpServer):$($email.SmtpPort)"
 
         # Backup Settings
-        Write-Host "  Backup Settings:" -ForegroundColor Cyan
+        Write-Information -MessageData "  Backup Settings:" -InformationAction Continue
         $backup = $status.Configuration.Detailed.BackupSettings
-        Write-Host "    Retention: $($backup.RetentionDays) days" -ForegroundColor Gray
-        Write-Host "    Exclude Paths: $($backup.ExcludePaths.Count)" -ForegroundColor Gray
-        Write-Host "    Include Paths: $($backup.IncludePaths.Count)" -ForegroundColor Gray
+        Write-Verbose -Message "    Retention: $($backup.RetentionDays) days"
+        Write-Verbose -Message "    Exclude Paths: $($backup.ExcludePaths.Count)"
+        Write-Verbose -Message "    Include Paths: $($backup.IncludePaths.Count)"
 
         # Logging Settings
-        Write-Host "  Logging Settings:" -ForegroundColor Cyan
+        Write-Information -MessageData "  Logging Settings:" -InformationAction Continue
         $logging = $status.Configuration.Detailed.LoggingSettings
-        Write-Host "    Path: $($logging.Path)" -ForegroundColor Gray
-        Write-Host "    Level: $($logging.Level)" -ForegroundColor Gray
+        Write-Verbose -Message "    Path: $($logging.Path)"
+        Write-Verbose -Message "    Level: $($logging.Level)"
     }
 
     # Errors and Warnings
     if ($status.Initialization.Errors.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Errors:" -ForegroundColor Red
+        Write-Information -MessageData "" -InformationAction Continue
+        Write-Error -Message "Errors:"
         foreach ($errorMessage in $status.Initialization.Errors) {
-            Write-Host "  $errorMessage" -ForegroundColor Red
+            Write-Error -Message "  $errorMessage"
         }
     }
 
     # Summary
     $separator = "=" * 60
-    Write-Host ""
-    Write-Host $separator -ForegroundColor Cyan
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData $separator  -InformationAction Continue-ForegroundColor Cyan
     if ($status.Initialization.Initialized -and $status.Functions.Missing.Count -eq 0) {
-        Write-Host "Module is ready for use!" -ForegroundColor Green
+        Write-Information -MessageData "Module is ready for use!" -InformationAction Continue
     } elseif ($status.Initialization.Initialized) {
-        Write-Host "Module is initialized but some functions are missing" -ForegroundColor Yellow
+        Write-Warning -Message "Module is initialized but some functions are missing"
     } else {
-        Write-Host "Module needs initialization" -ForegroundColor Red
+        Write-Error -Message "Module needs initialization"
     }
-    Write-Host $separator -ForegroundColor Cyan
-    Write-Host ""
+    Write-Information -MessageData $separator  -InformationAction Continue-ForegroundColor Cyan
+    Write-Information -MessageData "" -InformationAction Continue
 }

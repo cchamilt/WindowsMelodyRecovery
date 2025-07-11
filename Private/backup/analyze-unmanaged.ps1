@@ -26,7 +26,7 @@ $loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath
 } else {
-    Write-Host "Cannot find load-environment.ps1 at: $loadEnvPath" -ForegroundColor Red
+    Write-Error -Message "Cannot find load-environment.ps1 at: $loadEnvPath"
 }
 
 # Get module configuration
@@ -67,9 +67,9 @@ function Initialize-BackupDirectory {
     if (!(Test-Path -Path $backupPath)) {
         try {
             New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
-            Write-Host "Created backup directory for $BackupType at: $backupPath" -ForegroundColor Green
+            Write-Information -MessageData "Created backup directory for $BackupType at: $backupPath" -InformationAction Continue
         } catch {
-            Write-Host "Failed to create backup directory for $BackupType : $_" -ForegroundColor Red
+            Write-Error -Message "Failed to create backup directory for $BackupType : $_"
             return $null
         }
     }
@@ -179,7 +179,7 @@ function Analyze-UnmanagedApplications {
     process {
         try {
             Write-Verbose "Starting analysis of Unmanaged Applications..."
-            Write-Host "Analyzing Unmanaged Applications..." -ForegroundColor Blue
+            Write-Information -MessageData "Analyzing Unmanaged Applications..." -InformationAction Continue
 
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
@@ -199,7 +199,7 @@ function Analyze-UnmanagedApplications {
 
             if ($backupPath -and $sharedBackupPath) {
                 # Step 1: Get all Windows installed applications
-                Write-Host "Scanning all Windows installed applications..." -ForegroundColor Blue
+                Write-Information -MessageData "Scanning all Windows installed applications..." -InformationAction Continue
                 $uninstallKeys = @(
                     "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
                     "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
@@ -232,7 +232,7 @@ function Analyze-UnmanagedApplications {
 
                 $allWindowsApps = @()
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would scan Windows registry for installed applications"
+                    Write-Information -MessageData "WhatIf: Would scan Windows registry for installed applications" -InformationAction Continue
                 } else {
                     try {
                         $allWindowsApps = Get-ItemProperty $uninstallKeys -ErrorAction SilentlyContinue |
@@ -250,15 +250,15 @@ function Analyze-UnmanagedApplications {
                                         @{N='InstallDate';E={$_.InstallDate}},
                                         @{N='UninstallString';E={$_.UninstallString}}
 
-                        Write-Host "Found $($allWindowsApps.Count) Windows applications" -ForegroundColor Green
+                        Write-Information -MessageData "Found $($allWindowsApps.Count) Windows applications" -InformationAction Continue
                     } catch {
                         $errors += "Failed to scan Windows applications: $_"
-                        Write-Host "Error: Failed to scan Windows applications" -ForegroundColor Red
+                        Write-Error -Message "Error: Failed to scan Windows applications"
                     }
                 }
 
                 # Step 2: Load managed applications from package managers
-                Write-Host "Loading package manager data..." -ForegroundColor Blue
+                Write-Information -MessageData "Loading package manager data..." -InformationAction Continue
                 $managedApps = @()
 
                 # Try machine backup path first, then shared
@@ -271,7 +271,7 @@ function Analyze-UnmanagedApplications {
                 foreach ($path in $applicationsPaths) {
                     if (Test-Path $path) {
                         $foundApplicationsPath = $path
-                        Write-Host "Found package manager data at: $path" -ForegroundColor Green
+                        Write-Information -MessageData "Found package manager data at: $path" -InformationAction Continue
                         break
                     }
                 }
@@ -289,7 +289,7 @@ function Analyze-UnmanagedApplications {
                                     Manager = "Windows Store"
                                 }
                             }
-                            Write-Host "Loaded $($storeApps.Count) Store apps" -ForegroundColor Cyan
+                            Write-Information -MessageData "Loaded $($storeApps.Count) Store apps" -InformationAction Continue
                         } catch {
                             $errors += "Failed to load Store apps: $_"
                         }
@@ -307,7 +307,7 @@ function Analyze-UnmanagedApplications {
                                     Manager = "Scoop"
                                 }
                             }
-                            Write-Host "Loaded $($scoopApps.Count) Scoop packages" -ForegroundColor Cyan
+                            Write-Information -MessageData "Loaded $($scoopApps.Count) Scoop packages" -InformationAction Continue
                         } catch {
                             $errors += "Failed to load Scoop packages: $_"
                         }
@@ -325,7 +325,7 @@ function Analyze-UnmanagedApplications {
                                     Manager = "Chocolatey"
                                 }
                             }
-                            Write-Host "Loaded $($chocoApps.Count) Chocolatey packages" -ForegroundColor Cyan
+                            Write-Information -MessageData "Loaded $($chocoApps.Count) Chocolatey packages" -InformationAction Continue
                         } catch {
                             $errors += "Failed to load Chocolatey packages: $_"
                         }
@@ -343,18 +343,18 @@ function Analyze-UnmanagedApplications {
                                     Manager = "Winget"
                                 }
                             }
-                            Write-Host "Loaded $($wingetApps.Count) Winget packages" -ForegroundColor Cyan
+                            Write-Information -MessageData "Loaded $($wingetApps.Count) Winget packages" -InformationAction Continue
                         } catch {
                             $errors += "Failed to load Winget packages: $_"
                         }
                     }
                 } else {
-                    Write-Host "Warning: No package manager data found. Run backup-applications.ps1 first." -ForegroundColor Yellow
+                    Write-Warning -Message "Warning: No package manager data found. Run backup-applications.ps1 first."
                     $errors += "No package manager data found"
                 }
 
                 # Step 3: Load managed games from game managers
-                Write-Host "Loading game manager data..." -ForegroundColor Blue
+                Write-Information -MessageData "Loading game manager data..." -InformationAction Continue
 
                 $gameManagerPaths = @(
                     Join-Path $MachineBackupPath "GameManagers"
@@ -365,7 +365,7 @@ function Analyze-UnmanagedApplications {
                 foreach ($path in $gameManagerPaths) {
                     if (Test-Path $path) {
                         $foundGameManagerPath = $path
-                        Write-Host "Found game manager data at: $path" -ForegroundColor Green
+                        Write-Information -MessageData "Found game manager data at: $path" -InformationAction Continue
                         break
                     }
                 }
@@ -384,23 +384,23 @@ function Analyze-UnmanagedApplications {
                                         Manager = "$($manager.Substring(0,1).ToUpper() + $manager.Substring(1)) Games"
                                     }
                                 }
-                                Write-Host "Loaded $($games.Count) $manager games" -ForegroundColor Cyan
+                                Write-Information -MessageData "Loaded $($games.Count) $manager games" -InformationAction Continue
                             } catch {
                                 $errors += "Failed to load $manager games: $_"
                             }
                         }
                     }
                 } else {
-                    Write-Host "Warning: No game manager data found. Run backup-gamemanagers.ps1 first." -ForegroundColor Yellow
+                    Write-Warning -Message "Warning: No game manager data found. Run backup-gamemanagers.ps1 first."
                     $errors += "No game manager data found"
                 }
 
                 # Step 4: Analyze unmanaged applications
-                Write-Host "Analyzing unmanaged applications..." -ForegroundColor Blue
+                Write-Information -MessageData "Analyzing unmanaged applications..." -InformationAction Continue
                 $unmanagedApps = @()
 
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would analyze $($allWindowsApps.Count) Windows apps against $($managedApps.Count) managed apps"
+                    Write-Information -MessageData "WhatIf: Would analyze $($allWindowsApps.Count) Windows apps against $($managedApps.Count) managed apps" -InformationAction Continue
                 } else {
                     foreach ($windowsApp in $allWindowsApps) {
                         $isManaged = $false
@@ -431,7 +431,7 @@ function Analyze-UnmanagedApplications {
                 }
 
                 # Step 5: Categorize and prioritize unmanaged apps
-                Write-Host "Categorizing unmanaged applications..." -ForegroundColor Blue
+                Write-Information -MessageData "Categorizing unmanaged applications..." -InformationAction Continue
                 if (!$WhatIf) {
                     foreach ($app in $unmanagedApps) {
                         # Categorize by publisher
@@ -496,7 +496,7 @@ function Analyze-UnmanagedApplications {
 
                 # Export main analysis
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export unmanaged applications analysis"
+                    Write-Information -MessageData "WhatIf: Would export unmanaged applications analysis" -InformationAction Continue
                 } else {
                     $analysisJson = $analysis | ConvertTo-Json -Depth 10
                     $machineOutputPath = Join-Path $backupPath "unmanaged-analysis.json"
@@ -509,7 +509,7 @@ function Analyze-UnmanagedApplications {
 
                 # Export user-friendly unmanaged apps list
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export user-friendly unmanaged apps list"
+                    Write-Information -MessageData "WhatIf: Would export user-friendly unmanaged apps list" -InformationAction Continue
                 } else {
                     $userFriendlyList = $unmanagedApps | Sort-Object Priority, Category, Name | Select-Object Name, Publisher, Category, Priority, Version, InstallDate
                     $userListJson = $userFriendlyList | ConvertTo-Json -Depth 5
@@ -523,7 +523,7 @@ function Analyze-UnmanagedApplications {
 
                 # Export CSV for easy viewing in Excel
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export CSV file for Excel"
+                    Write-Information -MessageData "WhatIf: Would export CSV file for Excel" -InformationAction Continue
                 } else {
                     $csvPath = Join-Path $backupPath "unmanaged-apps.csv"
                     $sharedCsvPath = Join-Path $sharedBackupPath "unmanaged-apps.csv"
@@ -537,24 +537,24 @@ function Analyze-UnmanagedApplications {
                 }
 
                 # Output summary
-                Write-Host "`nUnmanaged Applications Analysis:" -ForegroundColor Green
-                Write-Host "Total Windows Apps: $($analysis.Summary.TotalWindowsApps)" -ForegroundColor Yellow
-                Write-Host "Managed Apps: $($analysis.Summary.TotalManagedApps)" -ForegroundColor Yellow
-                Write-Host "Unmanaged Apps: $($analysis.Summary.TotalUnmanagedApps)" -ForegroundColor Yellow
-                Write-Host "Managed Percentage: $($analysis.Summary.ManagedPercentage)%" -ForegroundColor Yellow
+                Write-Information -MessageData "`nUnmanaged Applications Analysis:" -InformationAction Continue
+                Write-Warning -Message "Total Windows Apps: $($analysis.Summary.TotalWindowsApps)"
+                Write-Warning -Message "Managed Apps: $($analysis.Summary.TotalManagedApps)"
+                Write-Warning -Message "Unmanaged Apps: $($analysis.Summary.TotalUnmanagedApps)"
+                Write-Warning -Message "Managed Percentage: $($analysis.Summary.ManagedPercentage)%"
 
                 if ($analysis.Categories.Count -gt 0) {
-                    Write-Host "`nUnmanaged Apps by Category:" -ForegroundColor Cyan
+                    Write-Information -MessageData "`nUnmanaged Apps by Category:" -InformationAction Continue
                     $analysis.Categories.GetEnumerator() | Sort-Object Key | ForEach-Object {
-                        Write-Host "  $($_.Key): $($_.Value.Count)" -ForegroundColor White
+                        Write-Information -MessageData "  $($_.Key): $($_.Value.Count)"  -InformationAction Continue-ForegroundColor White
                     }
                 }
 
                 if ($unmanagedApps.Count -gt 0) {
-                    Write-Host "`nTop 10 High-Priority Unmanaged Apps:" -ForegroundColor Magenta
+                    Write-Verbose -Message "`nTop 10 High-Priority Unmanaged Apps:"
                     $unmanagedApps | Where-Object { $_.Priority -eq "high" } |
                         Sort-Object Name | Select-Object -First 10 | ForEach-Object {
-                        Write-Host "  - $($_.Name) ($($_.Publisher))" -ForegroundColor White
+                        Write-Information -MessageData "   -InformationAction Continue- $($_.Name) ($($_.Publisher))" -ForegroundColor White
                     }
                 }
 
@@ -570,10 +570,10 @@ function Analyze-UnmanagedApplications {
                     Analysis = $analysis
                 }
 
-                Write-Host "Unmanaged Applications analysis completed successfully!" -ForegroundColor Green
-                Write-Host "Results saved to: $backupPath" -ForegroundColor Green
-                Write-Host "Shared results saved to: $sharedBackupPath" -ForegroundColor Green
-                Write-Host "`nIMPORTANT: Review 'unmanaged-apps.json' to see what you need to manually install!" -ForegroundColor Yellow
+                Write-Information -MessageData "Unmanaged Applications analysis completed successfully!" -InformationAction Continue
+                Write-Information -MessageData "Results saved to: $backupPath" -InformationAction Continue
+                Write-Information -MessageData "Shared results saved to: $sharedBackupPath" -InformationAction Continue
+                Write-Warning -Message "`nIMPORTANT: Review 'unmanaged-apps.json' to see what you need to manually install!"
                 Write-Verbose "Analysis completed successfully"
                 return $result
             }
@@ -628,7 +628,7 @@ function Compare-PostRestoreApplications {
     process {
         try {
             Write-Verbose "Starting post-restore analysis..."
-            Write-Host "Analyzing post-restore application status..." -ForegroundColor Blue
+            Write-Information -MessageData "Analyzing post-restore application status..." -InformationAction Continue
 
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
@@ -655,37 +655,37 @@ function Compare-PostRestoreApplications {
                 $analysisFile = Join-Path $path "unmanaged-analysis.json"
                 if (Test-Path $analysisFile) {
                     $originalAnalysisPath = $analysisFile
-                    Write-Host "Found original unmanaged analysis at: $analysisFile" -ForegroundColor Green
+                    Write-Information -MessageData "Found original unmanaged analysis at: $analysisFile" -InformationAction Continue
                     break
                 }
             }
 
             if (!$originalAnalysisPath) {
-                Write-Host "No original unmanaged analysis found - running fresh analysis instead" -ForegroundColor Yellow
+                Write-Warning -Message "No original unmanaged analysis found - running fresh analysis instead"
                 # Fall back to running a fresh analysis
                 return Analyze-UnmanagedApplications -BackupRootPath $BackupRootPath -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath -Force:$Force -WhatIf:$WhatIf
             }
 
             # Load the original unmanaged analysis
             if ($WhatIf) {
-                Write-Host "WhatIf: Would load original unmanaged analysis"
+                Write-Information -MessageData "WhatIf: Would load original unmanaged analysis" -InformationAction Continue
             } else {
                 try {
                     $originalAnalysis = Get-Content $originalAnalysisPath | ConvertFrom-Json
                     $originalUnmanagedApps = $originalAnalysis.UnmanagedApps
-                    Write-Host "Loaded $($originalUnmanagedApps.Count) originally unmanaged applications" -ForegroundColor Cyan
+                    Write-Information -MessageData "Loaded $($originalUnmanagedApps.Count) originally unmanaged applications" -InformationAction Continue
                 } catch {
                     $errors += "Failed to load original unmanaged analysis: $_"
-                    Write-Host "Failed to load original unmanaged analysis: $_" -ForegroundColor Red
+                    Write-Error -Message "Failed to load original unmanaged analysis: $_"
                     return $false
                 }
             }
 
             # Get current Windows installed applications
-            Write-Host "Scanning current Windows installed applications..." -ForegroundColor Blue
+            Write-Information -MessageData "Scanning current Windows installed applications..." -InformationAction Continue
             $currentWindowsApps = @()
             if ($WhatIf) {
-                Write-Host "WhatIf: Would scan current Windows applications"
+                Write-Information -MessageData "WhatIf: Would scan current Windows applications" -InformationAction Continue
             } else {
                 try {
                     $uninstallKeys = @(
@@ -733,20 +733,20 @@ function Compare-PostRestoreApplications {
                                     @{N='InstallDate';E={$_.InstallDate}},
                                     @{N='UninstallString';E={$_.UninstallString}}
 
-                    Write-Host "Found $($currentWindowsApps.Count) current Windows applications" -ForegroundColor Green
+                    Write-Information -MessageData "Found $($currentWindowsApps.Count) current Windows applications" -InformationAction Continue
                 } catch {
                     $errors += "Failed to scan current Windows applications: $_"
-                    Write-Host "Error: Failed to scan current Windows applications" -ForegroundColor Red
+                    Write-Error -Message "Error: Failed to scan current Windows applications"
                 }
             }
 
             # Compare original unmanaged apps against current system
-            Write-Host "Comparing original unmanaged apps against current system..." -ForegroundColor Blue
+            Write-Information -MessageData "Comparing original unmanaged apps against current system..." -InformationAction Continue
             $restoredApps = @()
             $stillUnmanagedApps = @()
 
             if ($WhatIf) {
-                Write-Host "WhatIf: Would compare $($originalUnmanagedApps.Count) originally unmanaged apps against current system"
+                Write-Information -MessageData "WhatIf: Would compare $($originalUnmanagedApps.Count) originally unmanaged apps against current system" -InformationAction Continue
             } else {
                 foreach ($originalApp in $originalUnmanagedApps) {
                     $isNowInstalled = $false
@@ -799,7 +799,7 @@ function Compare-PostRestoreApplications {
             if ($outputPath -and $sharedOutputPath) {
                 # Export post-restore analysis
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export post-restore analysis"
+                    Write-Information -MessageData "WhatIf: Would export post-restore analysis" -InformationAction Continue
                 } else {
                     $analysisJson = $postRestoreAnalysis | ConvertTo-Json -Depth 10
                     $machineOutputFile = Join-Path $outputPath "post-restore-analysis.json"
@@ -812,7 +812,7 @@ function Compare-PostRestoreApplications {
 
                 # Export still unmanaged apps (what the user still needs to install manually)
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export still unmanaged apps list"
+                    Write-Information -MessageData "WhatIf: Would export still unmanaged apps list" -InformationAction Continue
                 } else {
                     $stillUnmanagedList = $stillUnmanagedApps | Sort-Object Priority, Category, Name | Select-Object Name, Publisher, Category, Priority, Version, InstallDate
                     $stillUnmanagedJson = $stillUnmanagedList | ConvertTo-Json -Depth 5
@@ -826,7 +826,7 @@ function Compare-PostRestoreApplications {
 
                 # Export CSV for easy viewing in Excel
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export CSV file for Excel"
+                    Write-Information -MessageData "WhatIf: Would export CSV file for Excel" -InformationAction Continue
                 } else {
                     $csvPath = Join-Path $outputPath "still-unmanaged-apps.csv"
                     $sharedCsvPath = Join-Path $sharedOutputPath "still-unmanaged-apps.csv"
@@ -841,7 +841,7 @@ function Compare-PostRestoreApplications {
 
                 # Export restored apps list
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export restored apps list"
+                    Write-Information -MessageData "WhatIf: Would export restored apps list" -InformationAction Continue
                 } else {
                     $restoredList = $restoredApps | Sort-Object Category, Priority, OriginalName | Select-Object OriginalName, CurrentName, Publisher, Category, Priority, RestoreMethod
                     $restoredJson = $restoredList | ConvertTo-Json -Depth 5
@@ -854,20 +854,20 @@ function Compare-PostRestoreApplications {
                 }
 
                 # Output summary
-                Write-Host "`nPost-Restore Analysis Results:" -ForegroundColor Green
-                Write-Host "Original Unmanaged Apps: $($postRestoreAnalysis.Summary.OriginalUnmanagedApps)" -ForegroundColor Yellow
-                Write-Host "Successfully Restored: $($postRestoreAnalysis.Summary.RestoredApps)" -ForegroundColor Green
-                Write-Host "Still Need Manual Install: $($postRestoreAnalysis.Summary.StillUnmanagedApps)" -ForegroundColor Red
-                Write-Host "Restore Success Rate: $($postRestoreAnalysis.Summary.RestoreSuccessRate)%" -ForegroundColor Cyan
+                Write-Information -MessageData "`nPost-Restore Analysis Results:" -InformationAction Continue
+                Write-Warning -Message "Original Unmanaged Apps: $($postRestoreAnalysis.Summary.OriginalUnmanagedApps)"
+                Write-Information -MessageData "Successfully Restored: $($postRestoreAnalysis.Summary.RestoredApps)" -InformationAction Continue
+                Write-Error -Message "Still Need Manual Install: $($postRestoreAnalysis.Summary.StillUnmanagedApps)"
+                Write-Information -MessageData "Restore Success Rate: $($postRestoreAnalysis.Summary.RestoreSuccessRate)%" -InformationAction Continue
 
                 if ($stillUnmanagedApps.Count -gt 0) {
-                    Write-Host "`nTop 10 High-Priority Apps Still Needing Manual Installation:" -ForegroundColor Magenta
+                    Write-Verbose -Message "`nTop 10 High-Priority Apps Still Needing Manual Installation:"
                     $stillUnmanagedApps | Where-Object { $_.Priority -eq "high" } |
                         Sort-Object Name | Select-Object -First 10 | ForEach-Object {
-                        Write-Host "  - $($_.Name) ($($_.Publisher))" -ForegroundColor White
+                        Write-Information -MessageData "   -InformationAction Continue- $($_.Name) ($($_.Publisher))" -ForegroundColor White
                     }
                 } else {
-                    Write-Host "`nAll originally unmanaged applications have been successfully restored!" -ForegroundColor Green
+                    Write-Information -MessageData "`nAll originally unmanaged applications have been successfully restored!" -InformationAction Continue
                 }
 
                 # Return object for better testing and validation
@@ -882,13 +882,13 @@ function Compare-PostRestoreApplications {
                     Analysis = $postRestoreAnalysis
                 }
 
-                Write-Host "Post-restore analysis completed successfully!" -ForegroundColor Green
-                Write-Host "Results saved to: $outputPath" -ForegroundColor Green
-                Write-Host "Shared results saved to: $sharedOutputPath" -ForegroundColor Green
+                Write-Information -MessageData "Post-restore analysis completed successfully!" -InformationAction Continue
+                Write-Information -MessageData "Results saved to: $outputPath" -InformationAction Continue
+                Write-Information -MessageData "Shared results saved to: $sharedOutputPath" -InformationAction Continue
                 if ($stillUnmanagedApps.Count -gt 0) {
-                    Write-Host "`nIMPORTANT: Review 'still-unmanaged-apps.json' and 'still-unmanaged-apps.csv' for remaining manual installations!" -ForegroundColor Yellow
+                    Write-Warning -Message "`nIMPORTANT: Review 'still-unmanaged-apps.json' and 'still-unmanaged-apps.csv' for remaining manual installations!"
                 } else {
-                    Write-Host "`nCONGRATULATIONS: All applications have been successfully restored!" -ForegroundColor Green
+                    Write-Information -MessageData "`nCONGRATULATIONS: All applications have been successfully restored!" -InformationAction Continue
                 }
                 Write-Verbose "Post-restore analysis completed successfully"
                 return $result
@@ -944,7 +944,7 @@ function Compare-PostRestoreApplications {
     process {
         try {
             Write-Verbose "Starting post-restore analysis..."
-            Write-Host "Analyzing post-restore application status..." -ForegroundColor Blue
+            Write-Information -MessageData "Analyzing post-restore application status..." -InformationAction Continue
 
             # Validate inputs before proceeding
             if (!(Test-Path $BackupRootPath)) {
@@ -971,37 +971,37 @@ function Compare-PostRestoreApplications {
                 $analysisFile = Join-Path $path "unmanaged-analysis.json"
                 if (Test-Path $analysisFile) {
                     $originalAnalysisPath = $analysisFile
-                    Write-Host "Found original unmanaged analysis at: $analysisFile" -ForegroundColor Green
+                    Write-Information -MessageData "Found original unmanaged analysis at: $analysisFile" -InformationAction Continue
                     break
                 }
             }
 
             if (!$originalAnalysisPath) {
-                Write-Host "No original unmanaged analysis found - running fresh analysis instead" -ForegroundColor Yellow
+                Write-Warning -Message "No original unmanaged analysis found - running fresh analysis instead"
                 # Fall back to running a fresh analysis
                 return Analyze-UnmanagedApplications -BackupRootPath $BackupRootPath -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath -Force:$Force -WhatIf:$WhatIf
             }
 
             # Load the original unmanaged analysis
             if ($WhatIf) {
-                Write-Host "WhatIf: Would load original unmanaged analysis"
+                Write-Information -MessageData "WhatIf: Would load original unmanaged analysis" -InformationAction Continue
             } else {
                 try {
                     $originalAnalysis = Get-Content $originalAnalysisPath | ConvertFrom-Json
                     $originalUnmanagedApps = $originalAnalysis.UnmanagedApps
-                    Write-Host "Loaded $($originalUnmanagedApps.Count) originally unmanaged applications" -ForegroundColor Cyan
+                    Write-Information -MessageData "Loaded $($originalUnmanagedApps.Count) originally unmanaged applications" -InformationAction Continue
                 } catch {
                     $errors += "Failed to load original unmanaged analysis: $_"
-                    Write-Host "Failed to load original unmanaged analysis: $_" -ForegroundColor Red
+                    Write-Error -Message "Failed to load original unmanaged analysis: $_"
                     return $false
                 }
             }
 
             # Get current Windows installed applications
-            Write-Host "Scanning current Windows installed applications..." -ForegroundColor Blue
+            Write-Information -MessageData "Scanning current Windows installed applications..." -InformationAction Continue
             $currentWindowsApps = @()
             if ($WhatIf) {
-                Write-Host "WhatIf: Would scan current Windows applications"
+                Write-Information -MessageData "WhatIf: Would scan current Windows applications" -InformationAction Continue
             } else {
                 try {
                     $uninstallKeys = @(
@@ -1049,20 +1049,20 @@ function Compare-PostRestoreApplications {
                                     @{N='InstallDate';E={$_.InstallDate}},
                                     @{N='UninstallString';E={$_.UninstallString}}
 
-                    Write-Host "Found $($currentWindowsApps.Count) current Windows applications" -ForegroundColor Green
+                    Write-Information -MessageData "Found $($currentWindowsApps.Count) current Windows applications" -InformationAction Continue
                 } catch {
                     $errors += "Failed to scan current Windows applications: $_"
-                    Write-Host "Error: Failed to scan current Windows applications" -ForegroundColor Red
+                    Write-Error -Message "Error: Failed to scan current Windows applications"
                 }
             }
 
             # Compare original unmanaged apps against current system
-            Write-Host "Comparing original unmanaged apps against current system..." -ForegroundColor Blue
+            Write-Information -MessageData "Comparing original unmanaged apps against current system..." -InformationAction Continue
             $restoredApps = @()
             $stillUnmanagedApps = @()
 
             if ($WhatIf) {
-                Write-Host "WhatIf: Would compare $($originalUnmanagedApps.Count) originally unmanaged apps against current system"
+                Write-Information -MessageData "WhatIf: Would compare $($originalUnmanagedApps.Count) originally unmanaged apps against current system" -InformationAction Continue
             } else {
                 foreach ($originalApp in $originalUnmanagedApps) {
                     $isNowInstalled = $false
@@ -1115,7 +1115,7 @@ function Compare-PostRestoreApplications {
             if ($outputPath -and $sharedOutputPath) {
                 # Export post-restore analysis
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export post-restore analysis"
+                    Write-Information -MessageData "WhatIf: Would export post-restore analysis" -InformationAction Continue
                 } else {
                     $analysisJson = $postRestoreAnalysis | ConvertTo-Json -Depth 10
                     $machineOutputFile = Join-Path $outputPath "post-restore-analysis.json"
@@ -1128,7 +1128,7 @@ function Compare-PostRestoreApplications {
 
                 # Export still unmanaged apps (what the user still needs to install manually)
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export still unmanaged apps list"
+                    Write-Information -MessageData "WhatIf: Would export still unmanaged apps list" -InformationAction Continue
                 } else {
                     $stillUnmanagedList = $stillUnmanagedApps | Sort-Object Priority, Category, Name | Select-Object Name, Publisher, Category, Priority, Version, InstallDate
                     $stillUnmanagedJson = $stillUnmanagedList | ConvertTo-Json -Depth 5
@@ -1142,7 +1142,7 @@ function Compare-PostRestoreApplications {
 
                 # Export CSV for easy viewing in Excel
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export CSV file for Excel"
+                    Write-Information -MessageData "WhatIf: Would export CSV file for Excel" -InformationAction Continue
                 } else {
                     $csvPath = Join-Path $outputPath "still-unmanaged-apps.csv"
                     $sharedCsvPath = Join-Path $sharedOutputPath "still-unmanaged-apps.csv"
@@ -1157,7 +1157,7 @@ function Compare-PostRestoreApplications {
 
                 # Export restored apps list
                 if ($WhatIf) {
-                    Write-Host "WhatIf: Would export restored apps list"
+                    Write-Information -MessageData "WhatIf: Would export restored apps list" -InformationAction Continue
                 } else {
                     $restoredList = $restoredApps | Sort-Object Category, Priority, OriginalName | Select-Object OriginalName, CurrentName, Publisher, Category, Priority, RestoreMethod
                     $restoredJson = $restoredList | ConvertTo-Json -Depth 5
@@ -1170,20 +1170,20 @@ function Compare-PostRestoreApplications {
                 }
 
                 # Output summary
-                Write-Host "`nPost-Restore Analysis Results:" -ForegroundColor Green
-                Write-Host "Original Unmanaged Apps: $($postRestoreAnalysis.Summary.OriginalUnmanagedApps)" -ForegroundColor Yellow
-                Write-Host "Successfully Restored: $($postRestoreAnalysis.Summary.RestoredApps)" -ForegroundColor Green
-                Write-Host "Still Need Manual Install: $($postRestoreAnalysis.Summary.StillUnmanagedApps)" -ForegroundColor Red
-                Write-Host "Restore Success Rate: $($postRestoreAnalysis.Summary.RestoreSuccessRate)%" -ForegroundColor Cyan
+                Write-Information -MessageData "`nPost-Restore Analysis Results:" -InformationAction Continue
+                Write-Warning -Message "Original Unmanaged Apps: $($postRestoreAnalysis.Summary.OriginalUnmanagedApps)"
+                Write-Information -MessageData "Successfully Restored: $($postRestoreAnalysis.Summary.RestoredApps)" -InformationAction Continue
+                Write-Error -Message "Still Need Manual Install: $($postRestoreAnalysis.Summary.StillUnmanagedApps)"
+                Write-Information -MessageData "Restore Success Rate: $($postRestoreAnalysis.Summary.RestoreSuccessRate)%" -InformationAction Continue
 
                 if ($stillUnmanagedApps.Count -gt 0) {
-                    Write-Host "`nTop 10 High-Priority Apps Still Needing Manual Installation:" -ForegroundColor Magenta
+                    Write-Verbose -Message "`nTop 10 High-Priority Apps Still Needing Manual Installation:"
                     $stillUnmanagedApps | Where-Object { $_.Priority -eq "high" } |
                         Sort-Object Name | Select-Object -First 10 | ForEach-Object {
-                        Write-Host "  - $($_.Name) ($($_.Publisher))" -ForegroundColor White
+                        Write-Information -MessageData "   -InformationAction Continue- $($_.Name) ($($_.Publisher))" -ForegroundColor White
                     }
                 } else {
-                    Write-Host "`nAll originally unmanaged applications have been successfully restored!" -ForegroundColor Green
+                    Write-Information -MessageData "`nAll originally unmanaged applications have been successfully restored!" -InformationAction Continue
                 }
 
                 # Return object for better testing and validation
@@ -1198,13 +1198,13 @@ function Compare-PostRestoreApplications {
                     Analysis = $postRestoreAnalysis
                 }
 
-                Write-Host "Post-restore analysis completed successfully!" -ForegroundColor Green
-                Write-Host "Results saved to: $outputPath" -ForegroundColor Green
-                Write-Host "Shared results saved to: $sharedOutputPath" -ForegroundColor Green
+                Write-Information -MessageData "Post-restore analysis completed successfully!" -InformationAction Continue
+                Write-Information -MessageData "Results saved to: $outputPath" -InformationAction Continue
+                Write-Information -MessageData "Shared results saved to: $sharedOutputPath" -InformationAction Continue
                 if ($stillUnmanagedApps.Count -gt 0) {
-                    Write-Host "`nIMPORTANT: Review 'still-unmanaged-apps.json' and 'still-unmanaged-apps.csv' for remaining manual installations!" -ForegroundColor Yellow
+                    Write-Warning -Message "`nIMPORTANT: Review 'still-unmanaged-apps.json' and 'still-unmanaged-apps.csv' for remaining manual installations!"
                 } else {
-                    Write-Host "`nCONGRATULATIONS: All applications have been successfully restored!" -ForegroundColor Green
+                    Write-Information -MessageData "`nCONGRATULATIONS: All applications have been successfully restored!" -InformationAction Continue
                 }
                 Write-Verbose "Post-restore analysis completed successfully"
                 return $result

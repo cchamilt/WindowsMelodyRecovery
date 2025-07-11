@@ -40,7 +40,7 @@ function Global:Setup-Chezmoi {
         [string]$ConfigPath,
         [switch]$Force
     )
-    Write-Host "Mock Setup-Chezmoi completed" -ForegroundColor Green
+    Write-Information -MessageData "Mock Setup-Chezmoi completed" -InformationAction Continue
     return @{ Success = $true; Message = "Chezmoi setup completed" }
 }
 
@@ -82,7 +82,7 @@ function Global:Invoke-WSLScript {
         }
     }
 
-    Write-Host $output -ForegroundColor Green
+    Write-Information -MessageData $output  -InformationAction Continue-ForegroundColor Green
 }
 
 # Function to simulate module installation
@@ -93,38 +93,38 @@ function Install-TestModule {
         [switch]$Verbose
     )
 
-    Write-Host "🔧 Installing WindowsMelodyRecovery module for testing..." -ForegroundColor Cyan
+    Write-Information -MessageData "🔧 Installing WindowsMelodyRecovery module for testing..." -InformationAction Continue
 
     # Run the installation simulation script
     $installResult = & "/tests/scripts/simulate-installation.ps1" -Force:$Force -CleanInstall:$CleanInstall -Verbose:$Verbose
 
     if ($installResult.Success) {
-        Write-Host "✅ Module installed successfully for testing" -ForegroundColor Green
+        Write-Information -MessageData "✅ Module installed successfully for testing" -InformationAction Continue
         return $true
     } else {
-        Write-Host "❌ Module installation failed" -ForegroundColor Red
+        Write-Error -Message "❌ Module installation failed"
         return $false
     }
 }
 
 # Function to run quick health check
 function Test-Environment {
-    Write-Host "🔍 Testing test environment..." -ForegroundColor Cyan
+    Write-Information -MessageData "🔍 Testing test environment..." -InformationAction Continue
 
     # Check if we're in Docker
     if (Test-Path "/.dockerenv") {
-        Write-Host "✓ Running in Docker container" -ForegroundColor Green
+        Write-Information -MessageData "✓ Running in Docker container" -InformationAction Continue
     } else {
-        Write-Host "⚠ Not running in Docker container" -ForegroundColor Yellow
+        Write-Warning -Message "⚠ Not running in Docker container"
     }
 
     # Check test directories
     $testDirs = @("/tests/unit", "/tests/integration", "/test-results")
     foreach ($dir in $testDirs) {
         if (Test-Path $dir) {
-            Write-Host "✓ $dir exists" -ForegroundColor Green
+            Write-Information -MessageData "✓ $dir exists" -InformationAction Continue
         } else {
-            Write-Host "✗ $dir missing" -ForegroundColor Red
+            Write-Error -Message "✗ $dir missing"
         }
     }
 
@@ -133,17 +133,17 @@ function Test-Environment {
     foreach ($module in $modules) {
         if (Get-Module -ListAvailable -Name $module) {
             $version = (Get-Module -ListAvailable -Name $module | Select-Object -First 1).Version
-            Write-Host "✓ $module $version available" -ForegroundColor Green
+            Write-Information -MessageData "✓ $module $version available" -InformationAction Continue
         } else {
-            Write-Host "✗ $module not available" -ForegroundColor Red
+            Write-Error -Message "✗ $module not available"
         }
     }
 
     # Check if WindowsMelodyRecovery module is installed
     if (Get-Module -ListAvailable -Name "WindowsMelodyRecovery") {
-        Write-Host "✓ WindowsMelodyRecovery module installed" -ForegroundColor Green
+        Write-Information -MessageData "✓ WindowsMelodyRecovery module installed" -InformationAction Continue
     } else {
-        Write-Host "⚠ WindowsMelodyRecovery module not installed (run Install-TestModule)" -ForegroundColor Yellow
+        Write-Warning -Message "⚠ WindowsMelodyRecovery module not installed (run Install-TestModule)"
     }
 }
 
@@ -160,21 +160,21 @@ function Start-TestRun {
     try {
         $pesterModule = Get-Module -ListAvailable Pester -ErrorAction SilentlyContinue
         if (-not $pesterModule) {
-            Write-Host "⚠ Pester module not available - attempting installation..." -ForegroundColor Yellow
+            Write-Warning -Message "⚠ Pester module not available - attempting installation..."
             Install-Module -Name Pester -Force -Scope CurrentUser -ErrorAction SilentlyContinue
         }
         Import-Module Pester -Force -ErrorAction SilentlyContinue
         Write-Verbose "✓ Pester module loaded for test run"
     } catch {
-        Write-Host "❌ Failed to load Pester module: $_" -ForegroundColor Red
-        Write-Host "Tests may not run properly without Pester" -ForegroundColor Yellow
+        Write-Error -Message "❌ Failed to load Pester module: $_"
+        Write-Warning -Message "Tests may not run properly without Pester"
     }
 
     # Install module if requested or if not already installed
     if ($InstallModule -or -not (Get-Module -ListAvailable -Name "WindowsMelodyRecovery")) {
-        Write-Host "📦 Installing module for test run..." -ForegroundColor Cyan
+        Write-Information -MessageData "📦 Installing module for test run..." -InformationAction Continue
         if (-not (Install-TestModule -Force -Verbose:$Verbose)) {
-            Write-Host "❌ Failed to install module, aborting test run" -ForegroundColor Red
+            Write-Error -Message "❌ Failed to install module, aborting test run"
             return
         }
     }
@@ -190,7 +190,7 @@ function Start-TestRun {
     }
 
     # Run the tests
-    Write-Host "🧪 Running tests from: $TestPath" -ForegroundColor Cyan
+    Write-Information -MessageData "🧪 Running tests from: $TestPath" -InformationAction Continue
     $results = Invoke-Pester @params
 
     if ($GenerateReport) {
@@ -204,21 +204,21 @@ function Start-TestRun {
         $failed = $results.FailedCount
         $skipped = $results.SkippedCount
 
-        Write-Host "`n📊 Test Summary:" -ForegroundColor Cyan
-        Write-Host "  Total: $total" -ForegroundColor White
-        Write-Host "  Passed: $passed" -ForegroundColor Green
-        Write-Host "  Failed: $failed" -ForegroundColor $(if ($failed -eq 0) { 'Green' } else { 'Red' })
-        Write-Host "  Skipped: $skipped" -ForegroundColor Yellow
+        Write-Information -MessageData "`n📊 Test Summary:" -InformationAction Continue
+        Write-Information -MessageData "  Total: $total"  -InformationAction Continue-ForegroundColor White
+        Write-Information -MessageData "  Passed: $passed" -InformationAction Continue
+        Write-Information -MessageData "  Failed: $failed"  -InformationAction Continue-ForegroundColor $(if ($failed -eq 0) { 'Green' } else { 'Red' })
+        Write-Warning -Message "  Skipped: $skipped"
 
         if ($failed -eq 0) {
-            Write-Host "✅ All tests passed!" -ForegroundColor Green
+            Write-Information -MessageData "✅ All tests passed!" -InformationAction Continue
         } else {
-            Write-Host "⚠️ Some tests failed" -ForegroundColor Yellow
+            Write-Warning -Message "⚠️ Some tests failed"
         }
     }
 
     return $results
 }
 
-Write-Host "🧪 Test Runner environment loaded" -ForegroundColor Green
-Write-Host "Available commands: Test-Environment, Start-TestRun, Install-TestModule" -ForegroundColor Cyan
+Write-Information -MessageData "🧪 Test Runner environment loaded" -InformationAction Continue
+Write-Information -MessageData "Available commands: Test-Environment, Start-TestRun, Install-TestModule" -InformationAction Continue

@@ -6,17 +6,17 @@ param(
     [switch]$GenerateReport
 )
 
-Write-Host "🧪 Running Pester Tests - Suite: $TestSuite" -ForegroundColor Cyan
+Write-Information -MessageData "🧪 Running Pester Tests - Suite: $TestSuite" -InformationAction Continue
 
 # Check platform compatibility
 if ($TestSuite -eq "WindowsOnly" -and -not $IsWindows) {
-    Write-Host "❌ WindowsOnly test suite can only run on Windows systems" -ForegroundColor Red
+    Write-Error -Message "❌ WindowsOnly test suite can only run on Windows systems"
     exit 1
 }
 
 # Import Pester
 Import-Module Pester -Force -ErrorAction Stop
-Write-Host "✓ Pester imported" -ForegroundColor Green
+Write-Information -MessageData "✓ Pester imported" -InformationAction Continue
 
 # Environment detection for path configuration
 $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
@@ -78,14 +78,14 @@ $config.CodeCoverage.CoveragePercentTarget = 80
 switch ($TestSuite) {
     "Installation" {
         $config.Run.Path = @((Join-Path $basePath "tests/integration/installation-integration.Tests.ps1"))
-        Write-Host "🎯 Running Installation Integration Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Installation Integration Tests"
     }
     "Backup" {
         $config.Run.Path = @(
             (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"),
             (Join-Path $basePath "tests/integration/Template-Coverage-Validation.Tests.ps1")
         )
-        Write-Host "🎯 Running Backup Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Backup Tests"
     }
     "WSL" {
         $config.Run.Path = @(
@@ -96,11 +96,11 @@ switch ($TestSuite) {
             (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"),
             (Join-Path $basePath "tests/integration/chezmoi-wsl-integration.Tests.ps1")
         )
-        Write-Host "🎯 Running WSL Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running WSL Tests"
     }
     "Gaming" {
         $config.Run.Path = @((Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1"))
-        Write-Host "🎯 Running Gaming Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Gaming Tests"
     }
     "Cloud" {
         $config.Run.Path = @(
@@ -110,64 +110,64 @@ switch ($TestSuite) {
             (Join-Path $basePath "tests/integration/cloud-failover.Tests.ps1"),
             (Join-Path $basePath "tests/integration/cloud-provider-detection.Tests.ps1")
         )
-        Write-Host "🎯 Running Cloud Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Cloud Tests"
     }
     "Restore" {
         $config.Run.Path = @((Join-Path $basePath "tests/integration/restore-system-settings.Tests.ps1"))
-        Write-Host "🎯 Running Restore Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Restore Tests"
     }
     "FileOperations" {
         $config.Run.Path = @((Join-Path $basePath "tests/file-operations/FileState-FileOperations.Tests.ps1"))
-        Write-Host "🎯 Running File Operations Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running File Operations Tests"
     }
     "Chezmoi" {
         $config.Run.Path = @(
             (Join-Path $basePath "tests/integration/chezmoi-integration.Tests.ps1"),
             (Join-Path $basePath "tests/integration/chezmoi-wsl-integration.Tests.ps1")
         )
-        Write-Host "🎯 Running Chezmoi Integration Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Chezmoi Integration Tests"
     }
     "Template" {
         $config.Run.Path = @(
             (Join-Path $basePath "tests/integration/TemplateIntegration.Tests.ps1"),
             (Join-Path $basePath "tests/integration/Template-Coverage-Validation.Tests.ps1")
         )
-        Write-Host "🎯 Running Template Integration Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Template Integration Tests"
     }
     "Application" {
         $config.Run.Path = @(
             (Join-Path $basePath "tests/integration/application-backup-restore.Tests.ps1"),
             (Join-Path $basePath "tests/integration/Backup-Unified.Tests.ps1")
         )
-        Write-Host "🎯 Running Application Backup/Restore Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Application Backup/Restore Tests"
     }
     "Pester" {
         $config.Run.Path = @((Join-Path $basePath "tests/unit"))
-        Write-Host "🎯 Running Unit Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Unit Tests"
     }
     "WindowsOnly" {
         $config.Run.Path = @((Join-Path $basePath "tests/unit/Windows-Only.Tests.ps1"))
-        Write-Host "🎯 Running Windows-only Tests" -ForegroundColor Yellow
+        Write-Warning -Message "🎯 Running Windows-only Tests"
     }
     "All" {
         if ($IsWindows) {
             # On Windows, include all tests including Windows-only tests
             $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
-            Write-Host "🎯 Running All Tests (including Windows-only tests)" -ForegroundColor Yellow
+            Write-Warning -Message "🎯 Running All Tests (including Windows-only tests)"
         } else {
             # On non-Windows, exclude Windows-only tests by excluding the specific file
             $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
             $config.Run.ExcludePath = @((Join-Path $basePath "tests/unit/Windows-Only.Tests.ps1"))
-            Write-Host "🎯 Running All Tests (excluding Windows-only tests)" -ForegroundColor Yellow
+            Write-Warning -Message "🎯 Running All Tests (excluding Windows-only tests)"
         }
     }
 }
 
 # Display configuration
-Write-Host "📋 Test Configuration:" -ForegroundColor Cyan
-Write-Host "  Test Paths: $($config.Run.Path.Value -join ', ')" -ForegroundColor Gray
-Write-Host "  JUnit Output: $($config.TestResult.OutputPath.Value)" -ForegroundColor Gray
-Write-Host "  PassThru Enabled: $($config.Run.PassThru.Value)" -ForegroundColor Gray
+Write-Information -MessageData "📋 Test Configuration:" -InformationAction Continue
+Write-Verbose -Message "  Test Paths: $($config.Run.Path.Value -join ', ')"
+Write-Verbose -Message "  JUnit Output: $($config.TestResult.OutputPath.Value)"
+Write-Verbose -Message "  PassThru Enabled: $($config.Run.PassThru.Value)"
 
 # Verify test files exist
 $missingFiles = @()
@@ -178,27 +178,27 @@ foreach ($path in $config.Run.Path.Value) {
 }
 
 if ($missingFiles.Count -gt 0) {
-    Write-Host "❌ Missing test files:" -ForegroundColor Red
-    $missingFiles | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+    Write-Error -Message "❌ Missing test files:"
+    $missingFiles | ForEach-Object { Write-Error -Message "  - $_" }
     exit 1
 }
 
-Write-Host "✓ All test files exist" -ForegroundColor Green
+Write-Information -MessageData "✓ All test files exist" -InformationAction Continue
 
 # Run the tests
-Write-Host "🚀 Executing Pester tests..." -ForegroundColor Cyan
+Write-Information -MessageData "🚀 Executing Pester tests..." -InformationAction Continue
 
 try {
     $results = Invoke-Pester -Configuration $config
 
     # Display results
-    Write-Host ""
-    Write-Host "📊 Test Results Summary:" -ForegroundColor Yellow
-    Write-Host "  Total Tests: $($results.TotalCount)" -ForegroundColor White
-    Write-Host "  Passed: $($results.PassedCount)" -ForegroundColor Green
-    Write-Host "  Failed: $($results.FailedCount)" -ForegroundColor $(if ($results.FailedCount -gt 0) { "Red" } else { "Green" })
-    Write-Host "  Skipped: $($results.SkippedCount)" -ForegroundColor Yellow
-    Write-Host "  Duration: $($results.Duration)" -ForegroundColor White
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "📊 Test Results Summary:"
+    Write-Information -MessageData "  Total Tests: $($results.TotalCount)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "  Passed: $($results.PassedCount)" -InformationAction Continue
+    Write-Information -MessageData "  Failed: $($results.FailedCount)"  -InformationAction Continue-ForegroundColor $(if ($results.FailedCount -gt 0) { "Red" } else { "Green" })
+    Write-Warning -Message "  Skipped: $($results.SkippedCount)"
+    Write-Information -MessageData "  Duration: $($results.Duration)"  -InformationAction Continue-ForegroundColor White
 
     # Save detailed JSON results
     $jsonPath = Join-Path $testResultsPath "reports/pester-results.json"
@@ -214,36 +214,36 @@ try {
             Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         }
         $simplifiedResults | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-        Write-Host "💾 JSON results saved to: $jsonPath" -ForegroundColor Green
+        Write-Information -MessageData "💾 JSON results saved to: $jsonPath" -InformationAction Continue
     } catch {
-        Write-Host "⚠️ Warning: Could not save JSON results: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Warning -Message "⚠️ Warning: Could not save JSON results: $($_.Exception.Message)"
     }
 
     # Verify files were created
     if (Test-Path (Join-Path $testResultsPath "junit/test-results.xml")) {
         $xmlSize = (Get-Item (Join-Path $testResultsPath "junit/test-results.xml")).Length
-        Write-Host "💾 JUnit XML created: $xmlSize bytes" -ForegroundColor Green
+        Write-Information -MessageData "💾 JUnit XML created: $xmlSize bytes" -InformationAction Continue
     } else {
-        Write-Host "❌ JUnit XML not created" -ForegroundColor Red
+        Write-Error -Message "❌ JUnit XML not created"
     }
 
     # Generate additional report if requested
     if ($GenerateReport) {
-        Write-Host "📋 Generating additional reports..." -ForegroundColor Cyan
+        Write-Information -MessageData "📋 Generating additional reports..." -InformationAction Continue
         # Add HTML report generation here if needed
     }
 
     # Return appropriate exit code
     if ($results.FailedCount -gt 0) {
-        Write-Host "❌ Some tests failed!" -ForegroundColor Red
+        Write-Error -Message "❌ Some tests failed!"
         exit 1
     } else {
-        Write-Host "✅ All tests passed!" -ForegroundColor Green
+        Write-Information -MessageData "✅ All tests passed!" -InformationAction Continue
         exit 0
     }
 
 } catch {
-    Write-Host "❌ Test execution failed: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor Red
+    Write-Error -Message "❌ Test execution failed: $($_.Exception.Message)"
+    Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1
 }

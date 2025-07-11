@@ -299,7 +299,7 @@ Describe "Windows Scheduled Tasks Integration Tests" -Tag "Windows", "Integratio
                 name = "WMR-Test-Task"
                 description = "Test task for Windows Melody Recovery"
                 action = "powershell.exe"
-                arguments = "-Command Write-Host 'Test'"
+                arguments = "-Command Write-Information -MessageData 'Test'" -InformationAction Continue
                 trigger = @{
                     type = "Daily"
                     time = "02:00"

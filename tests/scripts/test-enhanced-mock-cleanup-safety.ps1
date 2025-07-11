@@ -8,17 +8,17 @@
     only remove dynamic data and preserve all static mock data.
 #>
 
-Write-Host "🛡️  Testing Enhanced Mock Infrastructure Cleanup Safety" -ForegroundColor Cyan
-Write-Host "=================================================" -ForegroundColor Cyan
+Write-Information -MessageData "🛡️  Testing Enhanced Mock Infrastructure Cleanup Safety" -InformationAction Continue
+Write-Information -MessageData "=================================================" -InformationAction Continue
 
 try {
     # Load the utilities
     . "$PSScriptRoot/../utilities/Test-Environment-Standard.ps1"
     . "$PSScriptRoot/../utilities/Enhanced-Mock-Infrastructure.ps1"
-    Write-Host "✅ Loaded test utilities" -ForegroundColor Green
+    Write-Information -MessageData "✅ Loaded test utilities" -InformationAction Continue
 
     # Initialize test environment
-    Write-Host "`n📁 Initializing test environment..." -ForegroundColor Yellow
+    Write-Warning -Message "`n📁 Initializing test environment..."
     Initialize-StandardTestEnvironment -TestType Unit -IsolationLevel Basic -Force
 
     # Count existing static mock data files
@@ -29,8 +29,8 @@ try {
     }
     $beforeCount = $beforeFiles.Count
 
-    Write-Host "`n📊 Before cleanup:" -ForegroundColor Yellow
-    Write-Host "  Static mock data files: $beforeCount" -ForegroundColor Gray
+    Write-Warning -Message "`n📊 Before cleanup:"
+    Write-Verbose -Message "  Static mock data files: $beforeCount"
 
     # List some key static files to verify they exist
     $keyStaticFiles = @(
@@ -41,26 +41,26 @@ try {
         "epic\config.json"
     )
 
-    Write-Host "`n🔍 Verifying key static files exist before cleanup:" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Verifying key static files exist before cleanup:"
     foreach ($file in $keyStaticFiles) {
         $fullPath = Join-Path $mockDataPath $file
         if (Test-Path $fullPath) {
-            Write-Host "  ✅ $file" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ $file" -InformationAction Continue
         } else {
-            Write-Host "  ❌ $file - MISSING" -ForegroundColor Red
+            Write-Error -Message "  ❌ $file - MISSING"
         }
     }
 
     # Initialize enhanced mock infrastructure (creates dynamic data)
-    Write-Host "`n🚀 Initializing enhanced mock infrastructure..." -ForegroundColor Yellow
+    Write-Warning -Message "`n🚀 Initializing enhanced mock infrastructure..."
     Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
 
     # Test component-specific reset (should be safe)
-    Write-Host "`n🧪 Testing component-specific reset (applications)..." -ForegroundColor Yellow
+    Write-Warning -Message "`n🧪 Testing component-specific reset (applications)..."
     Reset-EnhancedMockData -Component "applications" -Scope "Minimal"
 
     # Test full reset (should be safe)
-    Write-Host "`n🧪 Testing full reset (should preserve static data)..." -ForegroundColor Yellow
+    Write-Warning -Message "`n🧪 Testing full reset (should preserve static data)..."
     Reset-EnhancedMockData -Scope "Minimal"
 
     # Count files after cleanup
@@ -70,36 +70,36 @@ try {
     }
     $afterCount = $afterFiles.Count
 
-    Write-Host "`n📊 After cleanup:" -ForegroundColor Yellow
-    Write-Host "  Static mock data files: $afterCount" -ForegroundColor Gray
-    Write-Host "  Files difference: $($afterCount - $beforeCount)" -ForegroundColor Gray
+    Write-Warning -Message "`n📊 After cleanup:"
+    Write-Verbose -Message "  Static mock data files: $afterCount"
+    Write-Verbose -Message "  Files difference: $($afterCount - $beforeCount)"
 
     # Verify key static files still exist
-    Write-Host "`n🔍 Verifying key static files preserved after cleanup:" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Verifying key static files preserved after cleanup:"
     $allPreserved = $true
     foreach ($file in $keyStaticFiles) {
         $fullPath = Join-Path $mockDataPath $file
         if (Test-Path $fullPath) {
-            Write-Host "  ✅ $file - PRESERVED" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ $file - PRESERVED" -InformationAction Continue
         } else {
-            Write-Host "  ❌ $file - DELETED" -ForegroundColor Red
+            Write-Error -Message "  ❌ $file - DELETED"
             $allPreserved = $false
         }
     }
 
     # Results
     if ($allPreserved -and $afterCount -ge $beforeCount) {
-        Write-Host "`n🎉 SUCCESS: Enhanced mock cleanup safety working correctly!" -ForegroundColor Green
-        Write-Host "  ✅ All static mock data preserved" -ForegroundColor Green
-        Write-Host "  ✅ Only dynamic data cleaned" -ForegroundColor Green
-        Write-Host "  ✅ No production files deleted" -ForegroundColor Green
+        Write-Information -MessageData "`n🎉 SUCCESS: Enhanced mock cleanup safety working correctly!" -InformationAction Continue
+        Write-Information -MessageData "  ✅ All static mock data preserved" -InformationAction Continue
+        Write-Information -MessageData "  ✅ Only dynamic data cleaned" -InformationAction Continue
+        Write-Information -MessageData "  ✅ No production files deleted" -InformationAction Continue
     } else {
-        Write-Host "`n❌ FAILURE: Enhanced mock cleanup still has safety issues!" -ForegroundColor Red
+        Write-Error -Message "`n❌ FAILURE: Enhanced mock cleanup still has safety issues!"
         if (-not $allPreserved) {
-            Write-Host "  ❌ Static mock data was deleted" -ForegroundColor Red
+            Write-Error -Message "  ❌ Static mock data was deleted"
         }
         if ($afterCount -lt $beforeCount) {
-            Write-Host "  ❌ File count decreased (files deleted)" -ForegroundColor Red
+            Write-Error -Message "  ❌ File count decreased (files deleted)"
         }
     }
 
@@ -108,10 +108,10 @@ try {
     Write-Error "   Line: $($_.InvocationInfo.ScriptLineNumber)"
 } finally {
     # Clean up test environment safely
-    Write-Host "`n🧹 Cleaning up test environment..." -ForegroundColor Gray
+    Write-Verbose -Message "`n🧹 Cleaning up test environment..."
     try {
         Remove-StandardTestEnvironment -Confirm:$false
-        Write-Host "✅ Test environment cleaned up safely" -ForegroundColor Green
+        Write-Information -MessageData "✅ Test environment cleaned up safely" -InformationAction Continue
     } catch {
         Write-Warning "⚠️  Cleanup warning: $_"
     }

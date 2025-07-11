@@ -49,7 +49,7 @@ if ($IsWindows) {
 # Import the unified test environment utilities
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-Write-Host "📁 Running File Operation Tests for Windows Melody Recovery" -ForegroundColor Cyan
+Write-Information -MessageData "📁 Running File Operation Tests for Windows Melody Recovery" -InformationAction Continue
 
 # Environment Detection and Safety Assessment
 $script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
@@ -57,30 +57,30 @@ $script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILD
 $script:IsWindowsLocal = $IsWindows -and -not $script:IsCICDEnvironment -and -not $script:IsDockerEnvironment
 
 # Show environment information
-Write-Host "🔍 Environment Detection:" -ForegroundColor Yellow
-Write-Host "  • Platform: $($IsWindows ? 'Windows' : 'Non-Windows')" -ForegroundColor Gray
-Write-Host "  • Docker: $($script:IsDockerEnvironment ? 'Yes' : 'No')" -ForegroundColor Gray
-Write-Host "  • CI/CD: $($script:IsCICDEnvironment ? 'Yes' : 'No')" -ForegroundColor Gray
-Write-Host "  • Local Windows: $($script:IsWindowsLocal ? 'Yes' : 'No')" -ForegroundColor Gray
+Write-Warning -Message "🔍 Environment Detection:"
+Write-Verbose -Message "  • Platform: $($IsWindows ? 'Windows' : 'Non-Windows')"
+Write-Verbose -Message "  • Docker: $($script:IsDockerEnvironment ? 'Yes' : 'No')"
+Write-Verbose -Message "  • CI/CD: $($script:IsCICDEnvironment ? 'Yes' : 'No')"
+Write-Verbose -Message "  • Local Windows: $($script:IsWindowsLocal ? 'Yes' : 'No')"
 
 # Determine test execution mode
 if ($script:IsDockerEnvironment) {
-    Write-Host "🐳 Mode: Docker Cross-Platform (safe operations with mocking)" -ForegroundColor Cyan
+    Write-Information -MessageData "🐳 Mode: Docker Cross-Platform (safe operations with mocking)" -InformationAction Continue
     $script:AllowDestructiveTests = $false
 } elseif ($script:IsCICDEnvironment -and $IsWindows) {
-    Write-Host "🏭 Mode: CI/CD Windows (all operations including destructive)" -ForegroundColor Green
+    Write-Information -MessageData "🏭 Mode: CI/CD Windows (all operations including destructive)" -InformationAction Continue
     $script:AllowDestructiveTests = $true
 } elseif ($script:IsWindowsLocal) {
     if ($Force) {
-        Write-Host "⚠️  Mode: Local Windows FORCED (destructive tests enabled - USE WITH CAUTION!)" -ForegroundColor Red
-        Write-Host "   This may modify your system registry and files!" -ForegroundColor Red
+        Write-Error -Message "⚠️  Mode: Local Windows FORCED (destructive tests enabled - USE WITH CAUTION!)"
+        Write-Error -Message "   This may modify your system registry and files!"
         $script:AllowDestructiveTests = $true
     } else {
-        Write-Host "🏠 Mode: Local Windows Safe (destructive tests will be skipped)" -ForegroundColor Yellow
+        Write-Warning -Message "🏠 Mode: Local Windows Safe (destructive tests will be skipped)"
         $script:AllowDestructiveTests = $false
     }
 } else {
-    Write-Host "🌐 Mode: Non-Windows (Windows-only tests will be skipped)" -ForegroundColor Yellow
+    Write-Warning -Message "🌐 Mode: Non-Windows (Windows-only tests will be skipped)"
     $script:AllowDestructiveTests = $false
 }
 
@@ -89,10 +89,10 @@ $env:WMR_ALLOW_DESTRUCTIVE_TESTS = $script:AllowDestructiveTests.ToString()
 $env:WMR_IS_CICD = $script:IsCICDEnvironment.ToString()
 $env:WMR_IS_DOCKER = $script:IsDockerEnvironment.ToString()
 
-Write-Host ""
+Write-Information -MessageData "" -InformationAction Continue
 
 # Initialize test environment using the unified system
-Write-Host "🧹 Initializing test environment..." -ForegroundColor Yellow
+Write-Warning -Message "🧹 Initializing test environment..."
 $testEnvironment = Initialize-TestEnvironment
 
 # Ensure TestState directory exists for registry and other state tests
@@ -101,11 +101,11 @@ if (-not $testEnvironment.TestState) {
 }
 if (-not (Test-Path $testEnvironment.TestState)) {
     New-Item -Path $testEnvironment.TestState -ItemType Directory -Force | Out-Null
-    Write-Host "  ✓ Created TestState directory: $($testEnvironment.TestState)" -ForegroundColor Green
+    Write-Information -MessageData "  ✓ Created TestState directory: $($testEnvironment.TestState)" -InformationAction Continue
 }
 
-Write-Host "✅ Test environment ready" -ForegroundColor Green
-Write-Host ""
+Write-Information -MessageData "✅ Test environment ready" -InformationAction Continue
+Write-Information -MessageData "" -InformationAction Continue
 
 # Get all available file operation tests
 $fileOperationsPath = Join-Path $PSScriptRoot "..\file-operations"
@@ -113,11 +113,11 @@ $availableTests = Get-ChildItem -Path $fileOperationsPath -Filter "*.Tests.ps1" 
     $_.BaseName -replace '\.Tests$', ''
 }
 
-Write-Host "📋 Available file operation tests: $($availableTests.Count)" -ForegroundColor Gray
+Write-Verbose -Message "📋 Available file operation tests: $($availableTests.Count)"
 foreach ($test in $availableTests) {
-    Write-Host "  • $test" -ForegroundColor Gray
+    Write-Verbose -Message "  • $test"
 }
-Write-Host ""
+Write-Information -MessageData "" -InformationAction Continue
 
 # Determine which tests to run
 $testsToRun = if ($TestName) {
@@ -132,13 +132,13 @@ $testsToRun = if ($TestName) {
 }
 
 # Enhanced Safety check - ensure we're only operating in safe directories
-Write-Host "🔒 Enhanced Safety Check - Verifying test directories..." -ForegroundColor Yellow
+Write-Warning -Message "🔒 Enhanced Safety Check - Verifying test directories..."
 $safeDirs = @($testEnvironment.TestRestore, $testEnvironment.TestBackup, $testEnvironment.Temp, $testEnvironment.TestState)
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
-Write-Host "Debug: Checking directories:" -ForegroundColor Magenta
+Write-Verbose -Message "Debug: Checking directories:"
 foreach ($dir in $safeDirs) {
-    Write-Host "  • $dir" -ForegroundColor Gray
+    Write-Verbose -Message "  • $dir"
 }
 
 foreach ($dir in $safeDirs) {
@@ -200,12 +200,12 @@ foreach ($dir in $safeDirs) {
 
 # Additional safety for local Windows without CI/CD
 if ($script:IsWindowsLocal -and -not $Force) {
-    Write-Host "🛡️  Local Windows Safety: Destructive tests will be automatically skipped" -ForegroundColor Yellow
-    Write-Host "   (Use -Force to override, but this may modify your system!)" -ForegroundColor Yellow
+    Write-Warning -Message "🛡️  Local Windows Safety: Destructive tests will be automatically skipped"
+    Write-Warning -Message "   (Use -Force to override, but this may modify your system!)"
 }
 
-Write-Host "✅ All test directories are safe" -ForegroundColor Green
-Write-Host ""
+Write-Information -MessageData "✅ All test directories are safe" -InformationAction Continue
+Write-Information -MessageData "" -InformationAction Continue
 
 # Run the tests
 $totalPassed = 0
@@ -221,7 +221,7 @@ foreach ($test in $testsToRun) {
         continue
     }
 
-    Write-Host "🔍 Running $test file operation tests..." -ForegroundColor Cyan
+    Write-Information -MessageData "🔍 Running $test file operation tests..." -InformationAction Continue
 
     try {
         $startTime = Get-Date
@@ -279,55 +279,56 @@ foreach ($test in $testsToRun) {
                 $statusMsg += ", $($result.SkippedCount) skipped"
             }
             $statusMsg += ", $([math]::Round($testTime, 2))s)"
-            Write-Host $statusMsg -ForegroundColor Green
+            Write-Information -MessageData $statusMsg  -InformationAction Continue-ForegroundColor Green
         } else {
-            Write-Host "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)" -ForegroundColor Red
+            Write-Error -Message "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)"
 
             # Show failed test details
             if ($result.Failed.Count -gt 0) {
-                Write-Host "   Failed tests:" -ForegroundColor Red
+                Write-Error -Message "   Failed tests:"
                 foreach ($failedTest in $result.Failed) {
-                    Write-Host "     • $($failedTest.Name): $($failedTest.ErrorRecord.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "     • $($failedTest.Name): $($failedTest.ErrorRecord.Exception.Message)"
                 }
             }
         }
     } catch {
-        Write-Host "💥 $test tests crashed: $_" -ForegroundColor Red
+        Write-Error -Message "💥 $test tests crashed: $_"
         $totalFailed++
     }
 
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
 }
 
 # Cleanup unless skipped
 if (-not $SkipCleanup) {
-    Write-Host "🧹 Cleaning up test directories..." -ForegroundColor Yellow
+    Write-Warning -Message "🧹 Cleaning up test directories..."
     Remove-TestEnvironment
-    Write-Host "✅ Cleanup complete" -ForegroundColor Green
+    Write-Information -MessageData "✅ Cleanup complete" -InformationAction Continue
 } else {
-    Write-Host "⚠️  Skipping cleanup - test files remain in:" -ForegroundColor Yellow
-    Write-Host "  • $($testEnvironment.TestRestore)" -ForegroundColor Gray
-    Write-Host "  • $($testEnvironment.TestBackup)" -ForegroundColor Gray
-    Write-Host "  • $($testEnvironment.Temp)" -ForegroundColor Gray
-    Write-Host "  • $($testEnvironment.TestState)" -ForegroundColor Gray
+    Write-Warning -Message "⚠️  Skipping cleanup - test files remain in:"
+    Write-Verbose -Message "  • $($testEnvironment.TestRestore)"
+    Write-Verbose -Message "  • $($testEnvironment.TestBackup)"
+    Write-Verbose -Message "  • $($testEnvironment.Temp)"
+    Write-Verbose -Message "  • $($testEnvironment.TestState)"
 }
 
 # Enhanced Summary
-Write-Host ""
-Write-Host "📊 File Operation Test Summary:" -ForegroundColor Cyan
-Write-Host "  • Total Passed: $totalPassed" -ForegroundColor Green
-Write-Host "  • Total Failed: $totalFailed" -ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
-Write-Host "  • Total Skipped: $totalSkipped" -ForegroundColor Yellow
-Write-Host "  • Total Time: $([math]::Round($totalTime, 2))s" -ForegroundColor Gray
-Write-Host "  • Environment: $($script:IsDockerEnvironment ? 'Docker' : $script:IsCICDEnvironment ? 'CI/CD' : 'Local')" -ForegroundColor Gray
-Write-Host "  • Destructive Tests: $($script:AllowDestructiveTests ? 'Enabled' : 'Disabled')" -ForegroundColor Gray
+Write-Information -MessageData "" -InformationAction Continue
+Write-Information -MessageData "📊 File Operation Test Summary:" -InformationAction Continue
+Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAction Continue
+Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue-ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+Write-Warning -Message "  • Total Skipped: $totalSkipped"
+Write-Verbose -Message "  • Total Time: $([math]::Round($totalTime, 2))s"
+Write-Verbose -Message "  • Environment: $($script:IsDockerEnvironment ? 'Docker' : $script:IsCICDEnvironment ? 'CI/CD' : 'Local')"
+Write-Verbose -Message "  • Destructive Tests: $($script:AllowDestructiveTests ? 'Enabled' : 'Disabled')"
 
 if ($totalFailed -eq 0) {
-    Write-Host ""
-    Write-Host "🎉 All file operation tests passed!" -ForegroundColor Green
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🎉 All file operation tests passed!" -InformationAction Continue
     exit 0
 } else {
-    Write-Host ""
-    Write-Host "⚠️  Some file operation tests failed. Check the output above for details." -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "⚠️  Some file operation tests failed. Check the output above for details."
     exit 1
 }
+

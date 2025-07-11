@@ -54,7 +54,7 @@ function Import-EnvFile {
         }
         return $true
     } else {
-        Write-Host "Base configuration file not found: $Path" -ForegroundColor Yellow
+        Write-Warning -Message "Base configuration file not found: $Path"
         return $false
     }
 }
@@ -76,11 +76,11 @@ if ($configLoaded) {
 
     if ($missingVars.Count -gt 0) {
         Write-Warning "Missing required variables in configuration: $($missingVars -join ', ')"
-        Write-Host "Please update your configuration file: $DEFAULT_CONFIG_FILE" -ForegroundColor Yellow
+        Write-Warning -Message "Please update your configuration file: $DEFAULT_CONFIG_FILE"
         $configLoaded = $false
     }
 } else {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Yellow
+    Write-Warning -Message "Failed to load environment configuration"
 }
 
 # Set backup paths
@@ -93,7 +93,7 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
     foreach ($path in $DEFAULT_ONEDRIVE_PATHS) {
         if ($path -and (Test-Path $path)) {
             $BACKUP_ROOT = $path
-            Write-Host "Using default backup path: $BACKUP_ROOT\WindowsMelodyRecovery\$MACHINE_NAME" -ForegroundColor Yellow
+            Write-Warning -Message "Using default backup path: $BACKUP_ROOT\WindowsMelodyRecovery\$MACHINE_NAME"
             $foundOneDrive = $true
             break
         }

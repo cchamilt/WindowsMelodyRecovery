@@ -11,7 +11,7 @@ function Restore-WindowsMelodyRecovery {
     # Get configuration from the module
     $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
+        Write-Warning -Message "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first."
         return
     }
 
@@ -19,7 +19,7 @@ function Restore-WindowsMelodyRecovery {
     Start-Transcript -Path (Join-Path $logPath "Restore-WindowsMelodyRecovery-$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Append -Force
 
     try {
-        Write-Host "Starting Windows Melody Recovery Restore..." -ForegroundColor Cyan
+        Write-Information -MessageData "Starting Windows Melody Recovery Restore..." -InformationAction Continue
 
         # Define proper backup paths using config values
         $BACKUP_ROOT = $config.BackupRoot
@@ -29,15 +29,15 @@ function Restore-WindowsMelodyRecovery {
 
         # Ensure necessary backup directories exist (for consistency, though restore might not create them)
         if (-not (Test-Path -Path $MACHINE_BACKUP -PathType Container)) {
-            Write-Host "Machine backup directory does not exist: $MACHINE_BACKUP" -ForegroundColor Yellow
+            Write-Warning -Message "Machine backup directory does not exist: $MACHINE_BACKUP"
         }
         if (-not (Test-Path -Path $SHARED_BACKUP -PathType Container)) {
-            Write-Host "Shared backup directory does not exist: $SHARED_BACKUP" -ForegroundColor Yellow
+            Write-Warning -Message "Shared backup directory does not exist: $SHARED_BACKUP"
         }
 
         if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('TemplatePath')) {
             # New template-based restore logic
-            Write-Host "Performing template-based restore using template: $TemplatePath from $RestoreFromDirectory"
+            Write-Information -MessageData "Performing template-based restore using template: $TemplatePath from $RestoreFromDirectory" -InformationAction Continue
 
             # Validate that the restore directory exists
             if (-not (Test-Path $RestoreFromDirectory -PathType Container)) {
@@ -48,11 +48,11 @@ function Restore-WindowsMelodyRecovery {
             . (Join-Path $PSScriptRoot "..\Private\Core\InvokeWmrTemplate.ps1")
 
             Invoke-WmrTemplate -TemplatePath $TemplatePath -Operation "Restore" -StateFilesDirectory $RestoreFromDirectory
-            Write-Host "Template-based restore operation completed successfully."
+            Write-Information -MessageData "Template-based restore operation completed successfully." -InformationAction Continue
 
         } else {
             # Original script-based restore logic
-            Write-Host "Performing script-based restore..."
+            Write-Information -MessageData "Performing script-based restore..." -InformationAction Continue
 
             # Load restore scripts on demand
             Import-PrivateScripts -Category 'restore'
@@ -76,18 +76,18 @@ function Restore-WindowsMelodyRecovery {
                 # First check machine-specific backup
                 $machinePath = Join-Path $MACHINE_BACKUP $Path
                 if (Test-Path $machinePath) {
-                    Write-Host "Using machine-specific $BackupType backup from: $machinePath" -ForegroundColor Green
+                    Write-Information -MessageData "Using machine-specific $BackupType backup from: $machinePath" -InformationAction Continue
                     return $machinePath
                 }
 
                 # Fall back to shared backup
                 $sharedPath = Join-Path $SHARED_BACKUP $Path
                 if (Test-Path $sharedPath) {
-                    Write-Host "Using shared $BackupType backup from: $sharedPath" -ForegroundColor Green
+                    Write-Information -MessageData "Using shared $BackupType backup from: $sharedPath" -InformationAction Continue
                     return $sharedPath
                 }
 
-                Write-Host "No $BackupType backup found" -ForegroundColor Yellow
+                Write-Warning -Message "No $BackupType backup found"
                 return $null
             }
 
@@ -114,7 +114,7 @@ function Restore-WindowsMelodyRecovery {
                         $availableRestores++
                         Write-Verbose "Successfully executed $($restore.function)"
                     } catch {
-                        Write-Host "Failed to execute $($restore.function) : $_" -ForegroundColor Red
+                        Write-Error -Message "Failed to execute $($restore.function) : $_"
                     }
                 } else {
                     Write-Verbose "Restore function $($restore.function) not available"
@@ -122,12 +122,12 @@ function Restore-WindowsMelodyRecovery {
             }
 
             if ($availableRestores -eq 0) {
-                Write-Host "No restore functions were found. Check that restore scripts exist in the Private\restore directory." -ForegroundColor Yellow
+                Write-Warning -Message "No restore functions were found. Check that restore scripts exist in the Private\restore directory."
             } else {
-                Write-Host "Script-based restoration completed! ($availableRestores functions executed)" -ForegroundColor Green
+                Write-Information -MessageData "Script-based restoration completed! ($availableRestores functions executed)" -InformationAction Continue
 
                 # Run final post-restore applications analysis
-                Write-Host "`nRunning final post-restore applications analysis..." -ForegroundColor Blue
+                Write-Information -MessageData "`nRunning final post-restore applications analysis..." -InformationAction Continue
                 try {
                     $modulePath = (Get-Module -Name WindowsMelodyRecovery -ErrorAction SilentlyContinue).Path | Split-Path
                     $analyzeScript = Join-Path $modulePath "Private\backup\analyze-unmanaged.ps1"
@@ -141,38 +141,38 @@ function Restore-WindowsMelodyRecovery {
                             }
                             $analysisResult = & Compare-PostRestoreApplications @params -ErrorAction Stop
                             if ($analysisResult.Success) {
-                                Write-Host "`n=== RESTORE COMPLETE - POST-RESTORE ANALYSIS ===" -ForegroundColor Yellow
-                                Write-Host "Post-restore analysis saved to: $($analysisResult.BackupPath)" -ForegroundColor Green
+                                Write-Warning -Message "`n=== RESTORE COMPLETE - POST-RESTORE ANALYSIS ==="
+                                Write-Information -MessageData "Post-restore analysis saved to: $($analysisResult.BackupPath)" -InformationAction Continue
 
                                 # Show summary if available
                                 if ($analysisResult.Analysis -and $analysisResult.Analysis.Summary) {
                                     $summary = $analysisResult.Analysis.Summary
-                                    Write-Host "`nFinal Application Restore Summary:" -ForegroundColor Green
-                                    Write-Host "  Original Unmanaged Apps: $($summary.OriginalUnmanagedApps)" -ForegroundColor White
-                                    Write-Host "  Successfully Restored: $($summary.RestoredApps)" -ForegroundColor Green
-                                    Write-Host "  Still Need Manual Install: $($summary.StillUnmanagedApps)" -ForegroundColor Red
-                                    Write-Host "  Restore Success Rate: $($summary.RestoreSuccessRate)%" -ForegroundColor Cyan
+                                    Write-Information -MessageData "`nFinal Application Restore Summary:" -InformationAction Continue
+                                    Write-Information -MessageData "  Original Unmanaged Apps: $($summary.OriginalUnmanagedApps)"  -InformationAction Continue-ForegroundColor White
+                                    Write-Information -MessageData "  Successfully Restored: $($summary.RestoredApps)" -InformationAction Continue
+                                    Write-Error -Message "  Still Need Manual Install: $($summary.StillUnmanagedApps)"
+                                    Write-Information -MessageData "  Restore Success Rate: $($summary.RestoreSuccessRate)%" -InformationAction Continue
 
                                     if ($summary.StillUnmanagedApps -gt 0) {
-                                        Write-Host "`nIMPORTANT: Check the following files for applications that still need manual installation:" -ForegroundColor Yellow
-                                        Write-Host "  - still-unmanaged-apps.json: Technical details for scripts" -ForegroundColor Cyan
-                                        Write-Host "  - still-unmanaged-apps.csv: Excel-friendly format for review" -ForegroundColor Cyan
-                                        Write-Host "  - restored-apps.json: List of successfully restored applications" -ForegroundColor Green
-                                        Write-Host "`nThese applications were not restored by any package manager and must be installed manually." -ForegroundColor Yellow
+                                        Write-Warning -Message "`nIMPORTANT: Check the following files for applications that still need manual installation:"
+                                        Write-Information -MessageData "  - still-unmanaged-apps.json: Technical details for scripts" -InformationAction Continue
+                                        Write-Information -MessageData "  - still-unmanaged-apps.csv: Excel-friendly format for review" -InformationAction Continue
+                                        Write-Information -MessageData "  - restored-apps.json: List of successfully restored applications" -InformationAction Continue
+                                        Write-Warning -Message "`nThese applications were not restored by any package manager and must be installed manually."
                                     } else {
-                                        Write-Host "`n🎉 CONGRATULATIONS: All originally unmanaged applications have been successfully restored!" -ForegroundColor Green
-                                        Write-Host "Check 'restored-apps.json' to see what was automatically restored." -ForegroundColor Cyan
+                                        Write-Information -MessageData "`n🎉 CONGRATULATIONS: All originally unmanaged applications have been successfully restored!" -InformationAction Continue
+                                        Write-Information -MessageData "Check 'restored-apps.json' to see what was automatically restored." -InformationAction Continue
                                     }
                                 }
                             }
                         } else {
-                            Write-Host "Compare-PostRestoreApplications function not found" -ForegroundColor Yellow
+                            Write-Warning -Message "Compare-PostRestoreApplications function not found"
                         }
                     } else {
-                        Write-Host "Analysis script not found - skipping final post-restore analysis" -ForegroundColor Yellow
+                        Write-Warning -Message "Analysis script not found - skipping final post-restore analysis"
                     }
                 } catch {
-                    Write-Host "Failed to run final post-restore applications analysis: $_" -ForegroundColor Red
+                    Write-Error -Message "Failed to run final post-restore applications analysis: $_"
                 }
             }
         }

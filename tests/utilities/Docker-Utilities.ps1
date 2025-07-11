@@ -68,7 +68,7 @@ function Wait-ForContainerReady {
         [string]$HealthCheckCommand = "echo 'ready'"
     )
 
-    Write-Host "Waiting for container $ContainerName to be ready..." -ForegroundColor Yellow
+    Write-Warning -Message "Waiting for container $ContainerName to be ready..."
 
     $startTime = Get-Date
     $ready = $false
@@ -87,9 +87,9 @@ function Wait-ForContainerReady {
     }
 
     if ($ready) {
-        Write-Host "✓ Container $ContainerName is ready" -ForegroundColor Green
+        Write-Information -MessageData "✓ Container $ContainerName is ready" -InformationAction Continue
     } else {
-        Write-Host "✗ Container $ContainerName failed to become ready within $TimeoutSeconds seconds" -ForegroundColor Red
+        Write-Error -Message "✗ Container $ContainerName failed to become ready within $TimeoutSeconds seconds"
     }
 
     return $ready
@@ -113,9 +113,9 @@ function Test-AllContainersHealthy {
     foreach ($container in $containers) {
         if (Test-ContainerHealth -ContainerName $container -TimeoutSeconds 10) {
             $healthyCount++
-            Write-Host "✓ $container is healthy" -ForegroundColor Green
+            Write-Information -MessageData "✓ $container is healthy" -InformationAction Continue
         } else {
-            Write-Host "✗ $container is not healthy" -ForegroundColor Red
+            Write-Error -Message "✗ $container is not healthy"
         }
     }
 

@@ -78,7 +78,7 @@ function Get-TestFailureAnalysis {
         [string]$TestDirectory
     )
 
-    Write-Host "🔍 Analyzing test failures in: $TestDirectory" -ForegroundColor Cyan
+    Write-Information -MessageData "🔍 Analyzing test failures in: $TestDirectory" -InformationAction Continue
 
     # Run tests and capture detailed failure information
     $testResults = @{
@@ -103,7 +103,7 @@ function Get-TestFailureAnalysis {
     $testFiles = Get-ChildItem -Path $TestDirectory -Filter "*.Tests.ps1" -Recurse
 
     foreach ($testFile in $testFiles) {
-        Write-Host "📝 Analyzing: $($testFile.Name)" -ForegroundColor Yellow
+        Write-Warning -Message "📝 Analyzing: $($testFile.Name)"
 
         try {
             # Run individual test file to get specific failures
@@ -238,21 +238,21 @@ function Export-AnalysisResults {
     }
 
     $exportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $OutputFile -Encoding UTF8
-    Write-Host "✅ Analysis results exported to: $OutputFile" -ForegroundColor Green
+    Write-Information -MessageData "✅ Analysis results exported to: $OutputFile" -InformationAction Continue
 }
 
 # Main execution
-Write-Host "🚀 Starting comprehensive test failure analysis..." -ForegroundColor Green
+Write-Information -MessageData "🚀 Starting comprehensive test failure analysis..." -InformationAction Continue
 
 # Ensure we're in Docker environment for consistent testing
 if (-not (Test-Path '/.dockerenv') -and $env:DOCKER_TEST -ne 'true') {
-    Write-Host "⚠️  Running analysis in Docker environment for consistency..." -ForegroundColor Yellow
+    Write-Warning -Message "⚠️  Running analysis in Docker environment for consistency..."
 
     # Check if Docker containers are running
     try {
-        $containerStatus = docker exec wmr-test-runner pwsh -Command "Write-Host 'Docker environment ready'"
+        $containerStatus = docker exec wmr-test-runner pwsh -Command "Write-Information -MessageData 'Docker environment ready'" -InformationAction Continue
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "🐳 Starting Docker test environment..." -ForegroundColor Cyan
+            Write-Information -MessageData "🐳 Starting Docker test environment..." -InformationAction Continue
             docker-compose -f docker-compose.test.yml up -d
             Start-Sleep -Seconds 10
         }
@@ -260,7 +260,7 @@ if (-not (Test-Path '/.dockerenv') -and $env:DOCKER_TEST -ne 'true') {
         # Run analysis in Docker
         docker exec wmr-test-runner pwsh -Command "cd /workspace && pwsh -File 'tests/scripts/analyze-test-failures.ps1' -OutputPath '/workspace/$OutputPath'"
 
-        Write-Host "✅ Analysis completed in Docker environment" -ForegroundColor Green
+        Write-Information -MessageData "✅ Analysis completed in Docker environment" -InformationAction Continue
         return
 
     } catch {
@@ -273,40 +273,40 @@ $analysisResults = Get-TestFailureAnalysis -TestDirectory $TestPath
 $migrationPlan = Generate-MigrationPlan -AnalysisResults $analysisResults
 
 # Display summary
-Write-Host "`n📊 ANALYSIS SUMMARY" -ForegroundColor Green
-Write-Host "===================" -ForegroundColor Green
-Write-Host "Total Tests Analyzed: $($analysisResults.TotalTests)" -ForegroundColor White
-Write-Host "Currently Passing: $($analysisResults.PassedTests)" -ForegroundColor Green
-Write-Host "Currently Failing: $($analysisResults.FailedTests)" -ForegroundColor Red
+Write-Information -MessageData "`n📊 ANALYSIS SUMMARY" -InformationAction Continue
+Write-Information -MessageData "===================" -InformationAction Continue
+Write-Information -MessageData "Total Tests Analyzed: $($analysisResults.TotalTests)"  -InformationAction Continue-ForegroundColor White
+Write-Information -MessageData "Currently Passing: $($analysisResults.PassedTests)" -InformationAction Continue
+Write-Error -Message "Currently Failing: $($analysisResults.FailedTests)"
 
-Write-Host "`n🐳 DOCKER ENVIRONMENT TARGET" -ForegroundColor Cyan
-Write-Host "Docker-Fixable Tests: $($migrationPlan.DockerFixable.TotalTests)" -ForegroundColor Yellow
-Write-Host "Current Passing: $($analysisResults.PassedTests)" -ForegroundColor Green
-Write-Host "Target Docker Tests: $($migrationPlan.Summary.DockerTargetTests)" -ForegroundColor Cyan
-Write-Host "Target Pass Rate: 100%" -ForegroundColor Green
+Write-Information -MessageData "`n🐳 DOCKER ENVIRONMENT TARGET" -InformationAction Continue
+Write-Warning -Message "Docker-Fixable Tests: $($migrationPlan.DockerFixable.TotalTests)"
+Write-Information -MessageData "Current Passing: $($analysisResults.PassedTests)" -InformationAction Continue
+Write-Information -MessageData "Target Docker Tests: $($migrationPlan.Summary.DockerTargetTests)" -InformationAction Continue
+Write-Information -MessageData "Target Pass Rate: 100%" -InformationAction Continue
 
-Write-Host "`n🪟 WINDOWS CI/CD TARGET" -ForegroundColor Magenta
-Write-Host "Windows-Only Tests: $($migrationPlan.WindowsOnly.TotalTests)" -ForegroundColor Yellow
-Write-Host "Target Pass Rate: 90%+" -ForegroundColor Green
+Write-Verbose -Message "`n🪟 WINDOWS CI/CD TARGET"
+Write-Warning -Message "Windows-Only Tests: $($migrationPlan.WindowsOnly.TotalTests)"
+Write-Information -MessageData "Target Pass Rate: 90%+" -InformationAction Continue
 
-Write-Host "`n📂 CATEGORY BREAKDOWN" -ForegroundColor Yellow
+Write-Warning -Message "`n📂 CATEGORY BREAKDOWN"
 foreach ($category in $migrationPlan.DockerFixable.Categories.Keys) {
     $count = $migrationPlan.DockerFixable.Categories[$category].Count
-    Write-Host "  🔧 $category (Docker-Fixable): $count tests" -ForegroundColor Cyan
+    Write-Information -MessageData "  🔧 $category (Docker-Fixable): $count tests" -InformationAction Continue
 }
 foreach ($category in $migrationPlan.WindowsOnly.Categories.Keys) {
     $count = $migrationPlan.WindowsOnly.Categories[$category].Count
-    Write-Host "  🪟 $category (Windows-Only): $count tests" -ForegroundColor Magenta
+    Write-Verbose -Message "  🪟 $category (Windows-Only): $count tests"
 }
 
 # Export results
 Export-AnalysisResults -AnalysisResults $analysisResults -MigrationPlan $migrationPlan -OutputFile $OutputPath
 
-Write-Host "`n🎯 NEXT STEPS:" -ForegroundColor Green
-Write-Host "1. Review detailed analysis in $OutputPath" -ForegroundColor White
-Write-Host "2. Run test categorization script to begin segregation" -ForegroundColor White
-Write-Host "3. Fix Docker-compatible tests for 100% pass rate" -ForegroundColor White
-Write-Host "4. Move Windows-only tests to separate directory" -ForegroundColor White
-Write-Host "5. Implement GitHub Actions dual-environment workflows" -ForegroundColor White
+Write-Information -MessageData "`n🎯 NEXT STEPS:" -InformationAction Continue
+Write-Information -MessageData "1. Review detailed analysis in $OutputPath"  -InformationAction Continue-ForegroundColor White
+Write-Information -MessageData "2. Run test categorization script to begin segregation"  -InformationAction Continue-ForegroundColor White
+Write-Information -MessageData "3. Fix Docker -InformationAction Continue-compatible tests for 100% pass rate" -ForegroundColor White
+Write-Information -MessageData "4. Move Windows -InformationAction Continue-only tests to separate directory" -ForegroundColor White
+Write-Information -MessageData "5. Implement GitHub Actions dual -InformationAction Continue-environment workflows" -ForegroundColor White
 
-Write-Host "`n✅ Analysis completed successfully!" -ForegroundColor Green
+Write-Information -MessageData "`n✅ Analysis completed successfully!" -InformationAction Continue

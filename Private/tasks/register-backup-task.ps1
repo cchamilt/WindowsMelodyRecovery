@@ -6,7 +6,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
 if (!(Load-Environment)) {
-    Write-Host "Failed to load environment configuration" -ForegroundColor Red
+    Write-Error -Message "Failed to load environment configuration"
     exit 1
 }
 
@@ -26,7 +26,7 @@ foreach ($configFile in $configLocations) {
 
 # Only prompt for email settings if no config.env found
 if (!$configFound) {
-    Write-Host "`nNo email configuration found. Please configure notification settings:" -ForegroundColor Blue
+    Write-Information -MessageData "`nNo email configuration found. Please configure notification settings:" -InformationAction Continue
     $fromAddress = Read-Host "Enter sender email address (Office 365)"
     $toAddress = Read-Host "Enter recipient email address"
     $emailPassword = Read-Host "Enter email app password" -AsSecureString
@@ -52,7 +52,7 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
 
     # Reload environment to get new settings
     if (!(Load-Environment)) {
-        Write-Host "Failed to load updated configuration" -ForegroundColor Red
+        Write-Error -Message "Failed to load updated configuration"
         exit 1
     }
 }
@@ -76,7 +76,7 @@ if ($existingTask) {
     $triggerTime = $currentTrigger.StartBoundary.Split('T')[1].Substring(0, 5)
     $dayOfWeek = $currentTrigger.DaysOfWeek
 
-    Write-Host "Current schedule: Every $dayOfWeek at $triggerTime" -ForegroundColor Yellow
+    Write-Warning -Message "Current schedule: Every $dayOfWeek at $triggerTime"
     $changeSchedule = Read-Host "Would you like to change the schedule? (y/N)"
 
     if ($changeSchedule -eq 'y') {
@@ -128,7 +128,7 @@ try {
     # Remove existing task if it exists
     if ($existingTask) {
         Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
-        Write-Host "Existing backup task removed" -ForegroundColor Yellow
+        Write-Warning -Message "Existing backup task removed"
     }
 
     # Register the new task
@@ -144,18 +144,18 @@ try {
 
     # Verify task was created
     if ($task) {
-        Write-Host "Backup task registered successfully!" -ForegroundColor Green
-        Write-Host "Task Details:" -ForegroundColor Yellow
-        Write-Host "  Name: $taskName"
-        Write-Host "  Path: $taskPath"
-        Write-Host "  Script: $backupScript"
-        Write-Host "  Schedule: Every $dayOfWeek at $triggerTime"
-        Write-Host "  User: $currentUser"
+        Write-Information -MessageData "Backup task registered successfully!" -InformationAction Continue
+        Write-Warning -Message "Task Details:"
+        Write-Information -MessageData "  Name: $taskName" -InformationAction Continue
+        Write-Information -MessageData "  Path: $taskPath" -InformationAction Continue
+        Write-Information -MessageData "  Script: $backupScript" -InformationAction Continue
+        Write-Information -MessageData "  Schedule: Every $dayOfWeek at $triggerTime" -InformationAction Continue
+        Write-Information -MessageData "  User: $currentUser" -InformationAction Continue
     } else {
         throw "Failed to register task"
     }
 
 } catch {
-    Write-Host "Failed to register backup task: $_" -ForegroundColor Red
+    Write-Error -Message "Failed to register backup task: $_"
     exit 1
 }

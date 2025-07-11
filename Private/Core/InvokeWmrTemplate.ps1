@@ -24,9 +24,9 @@ function Invoke-WmrTemplate {
         [string]$StateFilesDirectory # Base directory for storing/reading dynamic state files
     )
 
-    Write-Host "Invoking template: $TemplatePath for $Operation operation..." -ForegroundColor Cyan
+    Write-Information -MessageData "Invoking template: $TemplatePath for $Operation operation..." -InformationAction Continue
     if ($WhatIfPreference) {
-        Write-Host "*** RUNNING IN WHATIF MODE - NO ACTUAL CHANGES WILL BE MADE ***" -ForegroundColor Yellow -BackgroundColor DarkRed
+        Write-Warning -Message "*** RUNNING IN WHATIF MODE - NO ACTUAL CHANGES WILL BE MADE ***" -BackgroundColor DarkRed
     }
 
     # 1. Import necessary modules/functions
@@ -55,7 +55,7 @@ function Invoke-WmrTemplate {
         $usesInheritance = $templateConfig.shared -or $templateConfig.machine_specific -or $templateConfig.inheritance_rules -or $templateConfig.conditional_sections
 
         if ($usesInheritance) {
-            Write-Host "Template uses inheritance features - resolving configuration..." -ForegroundColor Yellow
+            Write-Warning -Message "Template uses inheritance features - resolving configuration..."
 
             # Import inheritance processing module
             . (Join-Path $PSScriptRoot "TemplateInheritance.ps1")
@@ -66,7 +66,7 @@ function Invoke-WmrTemplate {
             # Resolve template inheritance
             $templateConfig = Resolve-WmrTemplateInheritance -TemplateConfig $templateConfig -MachineContext $machineContext
 
-            Write-Host "Template inheritance resolved successfully" -ForegroundColor Green
+            Write-Information -MessageData "Template inheritance resolved successfully" -InformationAction Continue
         }
     } catch {
         throw "Template validation failed: $($_.Exception.Message)"
@@ -80,7 +80,7 @@ function Invoke-WmrTemplate {
     # Ensure the template's scoped state directory exists
     if (-not (Test-Path $templateStateDirectory -PathType Container)) {
         New-Item -ItemType Directory -Path $templateStateDirectory -Force | Out-Null
-        Write-Host "Created template state directory: $templateStateDirectory"
+        Write-Information -MessageData "Created template state directory: $templateStateDirectory" -InformationAction Continue
     }
 
     # 4. Check prerequisites
@@ -94,7 +94,7 @@ function Invoke-WmrTemplate {
 
     # 5. Execute pre-update stages (if applicable)
     if ($templateConfig.stages.prereqs -and ($Operation -eq "Restore" -or $Operation -eq "Sync")) {
-        Write-Host "Running pre-update stages..."
+        Write-Information -MessageData "Running pre-update stages..." -InformationAction Continue
         foreach ($stageItem in $templateConfig.stages.prereqs) {
             Invoke-WmrStageItem -StageItem $stageItem -Operation $Operation
         }
@@ -102,7 +102,7 @@ function Invoke-WmrTemplate {
 
     # 6. Process files, registry, and applications based on operation
     if ($Operation -eq "Backup" -or $Operation -eq "Sync") {
-        Write-Host "Performing backup/sync operations..."
+        Write-Information -MessageData "Performing backup/sync operations..." -InformationAction Continue
         if ($templateConfig.files) {
             foreach ($file in $templateConfig.files) {
                 if ($file.action -eq "backup" -or $file.action -eq "sync") {
@@ -125,7 +125,7 @@ function Invoke-WmrTemplate {
     }
 
     if ($Operation -eq "Restore" -or $Operation -eq "Sync") {
-        Write-Host "Performing restore/sync operations..."
+        Write-Information -MessageData "Performing restore/sync operations..." -InformationAction Continue
         if ($templateConfig.files) {
             foreach ($file in $templateConfig.files) {
                 if ($file.action -eq "restore" -or $file.action -eq "sync") {
@@ -148,7 +148,7 @@ function Invoke-WmrTemplate {
     }
 
     if ($Operation -eq "Uninstall") {
-        Write-Host "Performing uninstall operations..."
+        Write-Information -MessageData "Performing uninstall operations..." -InformationAction Continue
         if ($templateConfig.applications) {
             foreach ($app in $templateConfig.applications) {
                 Uninstall-WmrApplicationState -AppConfig $app -StateFilesDirectory $templateStateDirectory -WhatIf:$WhatIfPreference
@@ -158,7 +158,7 @@ function Invoke-WmrTemplate {
 
     # 7. Execute post-update stages (if applicable)
     if ($templateConfig.stages.post_update -and ($Operation -eq "Restore" -or $Operation -eq "Sync")) {
-        Write-Host "Running post-update stages..."
+        Write-Information -MessageData "Running post-update stages..." -InformationAction Continue
         foreach ($stageItem in $templateConfig.stages.post_update) {
             Invoke-WmrStageItem -StageItem $stageItem -Operation $Operation
         }
@@ -166,13 +166,13 @@ function Invoke-WmrTemplate {
 
     # 8. Execute cleanup stages (if applicable)
     if ($templateConfig.stages.cleanup) {
-        Write-Host "Running cleanup stages..."
+        Write-Information -MessageData "Running cleanup stages..." -InformationAction Continue
         foreach ($stageItem in $templateConfig.stages.cleanup) {
             Invoke-WmrStageItem -StageItem $stageItem -Operation $Operation
         }
     }
 
-    Write-Host "Template invocation completed for $Operation operation."
+    Write-Information -MessageData "Template invocation completed for $Operation operation." -InformationAction Continue
 }
 
 function Invoke-WmrStageItem {
@@ -184,7 +184,7 @@ function Invoke-WmrStageItem {
         [string]$Operation
     )
 
-    Write-Host "    Executing stage item: $($StageItem.name) (Type: $($StageItem.type))"
+    Write-Information -MessageData "    Executing stage item: $($StageItem.name) (Type: $($StageItem.type))" -InformationAction Continue
 
     try {
         $scriptOutput = ""
@@ -208,7 +208,7 @@ function Invoke-WmrStageItem {
                 throw "Check `'$($StageItem.name)`' failed. Expected output did not match. Output: `n$scriptOutput`n"
             }
         }
-        Write-Host "    Stage item `'$($StageItem.name)`' completed successfully."
+        Write-Information -MessageData "    Stage item `'$($StageItem.name)`' completed successfully." -InformationAction Continue
     } catch {
         Write-Warning "    Stage item `'$($StageItem.name)`' failed: $($_.Exception.Message)"
         # Depending on severity, we might want to throw here to stop the whole process.

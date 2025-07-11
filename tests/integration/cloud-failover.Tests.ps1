@@ -162,7 +162,7 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                 # Response time might be higher or connectivity might be affected
                 if ($result.ResponseTime -gt 1000) {
-                    Write-Host "Provider $($primaryProvider.Name) showing high latency - potential failure detected" -ForegroundColor Yellow
+                    Write-Warning -Message "Provider $($primaryProvider.Name) showing high latency - potential failure detected"
                 }
             } finally {
                 # Clean up failure simulation
@@ -275,7 +275,7 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                 # High latency should be reflected in response time
                 if ($result.ResponseTime -gt 1000) {
-                    Write-Host "High latency detected for $($testProvider.Name): $($result.ResponseTime)ms" -ForegroundColor Yellow
+                    Write-Warning -Message "High latency detected for $($testProvider.Name): $($result.ResponseTime)ms"
                 }
 
             } finally {
@@ -300,7 +300,7 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                 # Packet loss might affect connectivity
                 if ($result.ResponseTime -gt 2000) {
-                    Write-Host "Packet loss detected for $($testProvider.Name)" -ForegroundColor Yellow
+                    Write-Warning -Message "Packet loss detected for $($testProvider.Name)"
                 }
 
             } finally {
@@ -367,11 +367,11 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                         # If directory creation succeeds, the quota simulation isn't blocking
                         # In a real scenario, this would fail or trigger failover
-                        Write-Host "Quota exceeded simulation - would trigger failover in real scenario" -ForegroundColor Yellow
+                        Write-Warning -Message "Quota exceeded simulation - would trigger failover in real scenario"
 
                     } catch {
                         # Expected behavior when quota is exceeded
-                        Write-Host "Quota exceeded - backup operation blocked as expected" -ForegroundColor Green
+                        Write-Information -MessageData "Quota exceeded - backup operation blocked as expected" -InformationAction Continue
                     }
 
                 } finally {

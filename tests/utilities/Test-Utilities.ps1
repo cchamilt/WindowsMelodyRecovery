@@ -23,7 +23,7 @@ function Invoke-TestWithRetry {
             if ($i -eq $MaxRetries) {
                 throw "Test failed after $MaxRetries attempts: $($_.Exception.Message)"
             }
-            Write-Host "Test attempt $i failed, retrying in $RetryDelaySeconds seconds..." -ForegroundColor Yellow
+            Write-Warning -Message "Test attempt $i failed, retrying in $RetryDelaySeconds seconds..."
             Start-Sleep -Seconds $RetryDelaySeconds
         }
     }
@@ -40,12 +40,12 @@ function Write-TestResult {
     $status = if ($Passed) { "✓ PASS" } else { "✗ FAIL" }
     $color = if ($Passed) { "Green" } else { "Red" }
 
-    Write-Host "$status $TestName" -ForegroundColor $color
+    Write-Information -MessageData "$status $TestName"  -InformationAction Continue-ForegroundColor $color
     if ($Message) {
-        Write-Host "  $Message" -ForegroundColor Gray
+        Write-Verbose -Message "  $Message"
     }
     if ($Details) {
-        Write-Host "  Details: $($Details | ConvertTo-Json -Compress)" -ForegroundColor Gray
+        Write-Verbose -Message "  Details: $($Details | ConvertTo-Json -Compress)"
     }
 }
 

@@ -13,7 +13,7 @@ function Convert-ToWinget {
     # Get configuration from the module
     $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
+        Write-Warning -Message "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first."
         return $false
     }
 
@@ -36,13 +36,13 @@ function Convert-ToWinget {
                 }
             }
         } catch {
-            Write-Host "Failed to search for $AppName in winget: $_" -ForegroundColor Red
+            Write-Error -Message "Failed to search for $AppName in winget: $_"
         }
         return $null
     }
 
     try {
-        Write-Host "Scanning for installed applications..." -ForegroundColor Blue
+        Write-Information -MessageData "Scanning for installed applications..." -InformationAction Continue
 
         # Get all installed programs from registry
         $regPaths = @(
@@ -70,7 +70,7 @@ function Convert-ToWinget {
         $nonWingetApps = $applications | Where-Object { $_.DisplayName -notin $wingetApps }
 
         if ($nonWingetApps.Count -eq 0) {
-            Write-Host "No applications found that need conversion to winget" -ForegroundColor Green
+            Write-Information -MessageData "No applications found that need conversion to winget" -InformationAction Continue
             return $true
         }
 
@@ -80,7 +80,7 @@ function Convert-ToWinget {
 
         # Check each application for winget availability
         foreach ($app in $nonWingetApps) {
-            Write-Host "`nChecking $($app.DisplayName)..." -ForegroundColor Yellow
+            Write-Warning -Message "`nChecking $($app.DisplayName)..."
             $wingetInfo = Get-WingetId -AppName $app.DisplayName
 
             if ($wingetInfo) {
@@ -91,27 +91,27 @@ function Convert-ToWinget {
                     Source = $wingetInfo.Source
                     UninstallString = $app.UninstallString
                 }
-                Write-Host "Found in winget: $($wingetInfo.Id) from $($wingetInfo.Source)" -ForegroundColor Green
+                Write-Information -MessageData "Found in winget: $($wingetInfo.Id) from $($wingetInfo.Source)" -InformationAction Continue
             } else {
                 $nonConvertible += $app
-                Write-Host "Not found in winget" -ForegroundColor Red
+                Write-Error -Message "Not found in winget"
             }
         }
 
         # Display summary and prompt for action
-        Write-Host "`nConversion Summary:" -ForegroundColor Blue
-        Write-Host "Convertible to winget: $($convertible.Count)" -ForegroundColor Green
-        Write-Host "Non-convertible: $($nonConvertible.Count)" -ForegroundColor Yellow
+        Write-Information -MessageData "`nConversion Summary:" -InformationAction Continue
+        Write-Information -MessageData "Convertible to winget: $($convertible.Count)" -InformationAction Continue
+        Write-Warning -Message "Non-convertible: $($nonConvertible.Count)"
 
         if ($convertible.Count -gt 0) {
             $response = Read-Host "`nWould you like to convert the available applications to winget? (Y/N)"
             if ($response -eq "Y" -or $response -eq "y") {
                 foreach ($app in $convertible) {
-                    Write-Host "`nProcessing $($app.Name)..." -ForegroundColor Blue
+                    Write-Information -MessageData "`nProcessing $($app.Name)..." -InformationAction Continue
 
                     # Attempt uninstallation
                     try {
-                        Write-Host "Uninstalling current version..." -ForegroundColor Yellow
+                        Write-Warning -Message "Uninstalling current version..."
                         if ($app.UninstallString -match "msiexec") {
                             $uninstallString = $app.UninstallString -replace "msiexec.exe", "" -replace "/I", "/X" -replace "/i", "/x"
                             Start-Process "msiexec.exe" -ArgumentList "$uninstallString /quiet" -Wait
@@ -123,27 +123,27 @@ function Convert-ToWinget {
                         }
 
                         # Install via winget
-                        Write-Host "Installing via winget..." -ForegroundColor Yellow
+                        Write-Warning -Message "Installing via winget..."
                         winget install --id $app.WingetId --source $app.Source --accept-package-agreements --accept-source-agreements
 
-                        Write-Host "Successfully converted $($app.Name) to winget" -ForegroundColor Green
+                        Write-Information -MessageData "Successfully converted $($app.Name) to winget" -InformationAction Continue
                     } catch {
-                        Write-Host "Failed to convert $($app.Name): $_" -ForegroundColor Red
+                        Write-Error -Message "Failed to convert $($app.Name): $_"
                     }
                 }
             }
         }
 
         if ($nonConvertible.Count -gt 0) {
-            Write-Host "`nThe following applications cannot be converted to winget:" -ForegroundColor Yellow
+            Write-Warning -Message "`nThe following applications cannot be converted to winget:"
             foreach ($app in $nonConvertible) {
-                Write-Host "- $($app.DisplayName) ($($app.DisplayVersion))" -ForegroundColor White
+                Write-Information -MessageData " -InformationAction Continue- $($app.DisplayName) ($($app.DisplayVersion))" -ForegroundColor White
             }
         }
 
         return $true
     } catch {
-        Write-Host "Failed to convert applications to winget: $_" -ForegroundColor Red
+        Write-Error -Message "Failed to convert applications to winget: $_"
         return $false
     }
 }

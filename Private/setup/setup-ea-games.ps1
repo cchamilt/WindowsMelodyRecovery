@@ -20,7 +20,7 @@ function Setup-EAGames {
             return $true
         }
 
-        Write-Host "EA app not found. Would you like to install it? (Y/N)" -ForegroundColor Yellow
+        Write-Warning -Message "EA app not found. Would you like to install it? (Y/N)"
         $response = Read-Host
         if ($response -eq 'Y' -or $response -eq 'y') {
             try {
@@ -28,18 +28,18 @@ function Setup-EAGames {
                 $installerUrl = "https://origin-a.akamaihd.net/EA-Desktop-Client-Download/installer-releases/EAappInstaller.exe"
                 $installerPath = Join-Path $env:TEMP "EAappInstaller.exe"
 
-                Write-Host "Downloading EA app installer..." -ForegroundColor Yellow
+                Write-Warning -Message "Downloading EA app installer..."
                 Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
 
                 # Install EA app
-                Write-Host "Installing EA app..." -ForegroundColor Yellow
+                Write-Warning -Message "Installing EA app..."
                 Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
 
                 Remove-Item $installerPath
                 return $true
             }
             catch {
-                Write-Host "Failed to install EA app: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to install EA app: $($_.Exception.Message)"
                 return $false
             }
         }
@@ -66,7 +66,7 @@ function Setup-EAGames {
                     }
                 }
                 catch {
-                    Write-Host "Error reading EA game info: $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "Error reading EA game info: $($_.Exception.Message)"
                 }
             }
         }
@@ -75,7 +75,7 @@ function Setup-EAGames {
     }
 
     try {
-        Write-Host "Setting up EA Games..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up EA Games..." -InformationAction Continue
 
         # Determine games list path
         if (!$GamesListPath) {
@@ -87,16 +87,16 @@ function Setup-EAGames {
                 if ($applications.EA) {
                     $gamesList = $applications.EA
                 } else {
-                    Write-Host "No EA games found in backup" -ForegroundColor Yellow
+                    Write-Warning -Message "No EA games found in backup"
                     $gamesList = @()
                 }
             } else {
-                Write-Host "No games list found in backup location" -ForegroundColor Yellow
+                Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         } else {
             if (!(Test-Path $GamesListPath)) {
-                Write-Host "Games list not found at: $GamesListPath" -ForegroundColor Red
+                Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
             }
             $gamesList = Get-Content $GamesListPath | ConvertFrom-Json
@@ -104,55 +104,56 @@ function Setup-EAGames {
 
         # Install EA app if needed
         if (!(Install-EAApp)) {
-            Write-Host "EA app is required to install games" -ForegroundColor Red
+            Write-Error -Message "EA app is required to install games"
             return $false
         }
 
         $installedGames = Get-InstalledGames
 
         # Show current status
-        Write-Host "`nInstalled EA Games:" -ForegroundColor Blue
+        Write-Information -MessageData "`nInstalled EA Games:" -InformationAction Continue
         if ($installedGames.Count -gt 0) {
             $installedGames | ForEach-Object {
-                Write-Host "- $($_.Name) (ID: $($_.Id))" -ForegroundColor Green
+                Write-Information -MessageData "- $($_.Name) (ID: $($_.Id))" -InformationAction Continue
             }
         } else {
-            Write-Host "No EA games currently installed" -ForegroundColor Gray
+            Write-Verbose -Message "No EA games currently installed"
         }
 
         if ($gamesList.Count -gt 0) {
-            Write-Host "`nGames to Install:" -ForegroundColor Blue
+            Write-Information -MessageData "`nGames to Install:" -InformationAction Continue
             $gamesToInstall = $gamesList | Where-Object { $_.Id -notin $installedGames.Id }
             if ($gamesToInstall.Count -gt 0) {
                 $gamesToInstall | ForEach-Object {
-                    Write-Host "- $($_.Name) (ID: $($_.Id))" -ForegroundColor Yellow
+                    Write-Warning -Message "- $($_.Name) (ID: $($_.Id))"
                 }
             } else {
-                Write-Host "All games from backup are already installed!" -ForegroundColor Green
+                Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
             if ($Install -and $gamesToInstall.Count -gt 0) {
                 # Launch EA app for installation
-                Write-Host "`nLaunching EA app..." -ForegroundColor Yellow
-                Write-Host "Please install the following games manually:" -ForegroundColor Yellow
+                Write-Warning -Message "`nLaunching EA app..."
+                Write-Warning -Message "Please install the following games manually:"
                 $gamesToInstall | ForEach-Object {
-                    Write-Host "- $($_.Name)" -ForegroundColor Cyan
+                    Write-Information -MessageData "- $($_.Name)" -InformationAction Continue
                 }
 
                 Start-Process "$env:LOCALAPPDATA\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe"
             }
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
-                Write-Host "`nRun with -Install to begin installation process" -ForegroundColor Yellow
+                Write-Warning -Message "`nRun with -Install to begin installation process"
             }
         } else {
-            Write-Host "`nNo games list found to install from" -ForegroundColor Gray
+            Write-Verbose -Message "`nNo games list found to install from"
         }
 
-        Write-Host "`nEA Games setup completed!" -ForegroundColor Green
+        Write-Information -MessageData "`nEA Games setup completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to setup EA Games: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to setup EA Games: $($_.Exception.Message)"
         return $false
     }
 }
+

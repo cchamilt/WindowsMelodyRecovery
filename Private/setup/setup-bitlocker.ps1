@@ -24,16 +24,16 @@ function Setup-BitLocker {
     }
 
     try {
-        Write-Host "Configuring BitLocker Drive Encryption..." -ForegroundColor Blue
+        Write-Information -MessageData "Configuring BitLocker Drive Encryption..." -InformationAction Continue
 
         # Check if BitLocker is available
-        Write-Host "Checking BitLocker availability..." -ForegroundColor Yellow
+        Write-Warning -Message "Checking BitLocker availability..."
         $bitlockerFeature = Get-WindowsOptionalFeature -Online -FeatureName "BitLocker" -ErrorAction SilentlyContinue
         if (-not $bitlockerFeature -or $bitlockerFeature.State -ne "Enabled") {
             Write-Warning "BitLocker feature is not enabled. Attempting to enable..."
             try {
                 Enable-WindowsOptionalFeature -Online -FeatureName "BitLocker" -All -NoRestart
-                Write-Host "BitLocker feature enabled. A restart may be required." -ForegroundColor Yellow
+                Write-Warning -Message "BitLocker feature enabled. A restart may be required."
             } catch {
                 Write-Error "Failed to enable BitLocker feature: $($_.Exception.Message)"
                 return $false
@@ -41,11 +41,11 @@ function Setup-BitLocker {
         }
 
         # Check TPM status
-        Write-Host "Checking TPM (Trusted Platform Module) status..." -ForegroundColor Yellow
+        Write-Warning -Message "Checking TPM (Trusted Platform Module) status..."
         try {
             $tpm = Get-Tpm -ErrorAction Stop
             if ($tpm.TpmPresent) {
-                Write-Host "  TPM is present and ready: $($tpm.TpmReady)" -ForegroundColor Green
+                Write-Information -MessageData "  TPM is present and ready: $($tpm.TpmReady)" -InformationAction Continue
                 if (-not $tpm.TpmReady) {
                     Write-Warning "  TPM is present but not ready. BitLocker may require additional configuration."
                 }
@@ -60,27 +60,27 @@ function Setup-BitLocker {
         }
 
         # Check current BitLocker status
-        Write-Host "Checking current BitLocker status for drive $Drive..." -ForegroundColor Yellow
+        Write-Warning -Message "Checking current BitLocker status for drive $Drive..."
         $bitlockerStatus = Get-BitLockerVolume -MountPoint $Drive -ErrorAction SilentlyContinue
 
         if ($bitlockerStatus) {
-            Write-Host "  Current protection status: $($bitlockerStatus.ProtectionStatus)" -ForegroundColor Cyan
-            Write-Host "  Current encryption percentage: $($bitlockerStatus.EncryptionPercentage)%" -ForegroundColor Cyan
-            Write-Host "  Current volume status: $($bitlockerStatus.VolumeStatus)" -ForegroundColor Cyan
+            Write-Information -MessageData "  Current protection status: $($bitlockerStatus.ProtectionStatus)" -InformationAction Continue
+            Write-Information -MessageData "  Current encryption percentage: $($bitlockerStatus.EncryptionPercentage)%" -InformationAction Continue
+            Write-Information -MessageData "  Current volume status: $($bitlockerStatus.VolumeStatus)" -InformationAction Continue
 
             if ($bitlockerStatus.KeyProtector) {
-                Write-Host "  Current key protectors:" -ForegroundColor Cyan
+                Write-Information -MessageData "  Current key protectors:" -InformationAction Continue
                 foreach ($protector in $bitlockerStatus.KeyProtector) {
-                    Write-Host "    - $($protector.KeyProtectorType): $($protector.KeyProtectorId)" -ForegroundColor Gray
+                    Write-Verbose -Message "    - $($protector.KeyProtectorType): $($protector.KeyProtectorId)"
                 }
             }
         } else {
-            Write-Host "  BitLocker is not currently configured for drive $Drive" -ForegroundColor Yellow
+            Write-Warning -Message "  BitLocker is not currently configured for drive $Drive"
         }
 
         # Configure BitLocker based on current status
         if (-not $bitlockerStatus -or $bitlockerStatus.ProtectionStatus -eq "Off") {
-            Write-Host "Configuring BitLocker for drive $Drive..." -ForegroundColor Yellow
+            Write-Warning -Message "Configuring BitLocker for drive $Drive..."
 
             # Prepare protector configuration
             $protectorParams = @{
@@ -92,9 +92,9 @@ function Setup-BitLocker {
                 try {
                     $tpm = Get-Tpm -ErrorAction Stop
                     if ($tpm.TpmPresent -and $tpm.TpmReady -and $tpm.TpmEnabled) {
-                        Write-Host "  Adding TPM key protector..." -ForegroundColor Yellow
+                        Write-Warning -Message "  Adding TPM key protector..."
                         Add-BitLockerKeyProtector -MountPoint $Drive -TpmProtector | Out-Null
-                        Write-Host "  TPM key protector added successfully" -ForegroundColor Green
+                        Write-Information -MessageData "  TPM key protector added successfully" -InformationAction Continue
                     } else {
                         Write-Warning "  TPM is not ready. Skipping TPM protector."
                     }
@@ -105,11 +105,11 @@ function Setup-BitLocker {
 
             # Add recovery key protector if requested
             if ($ProtectorTypes -contains 'RecoveryKey') {
-                Write-Host "  Adding recovery key protector..." -ForegroundColor Yellow
+                Write-Warning -Message "  Adding recovery key protector..."
                 try {
                     $recoveryKey = Add-BitLockerKeyProtector -MountPoint $Drive -RecoveryKeyProtector
-                    Write-Host "  Recovery key protector added successfully" -ForegroundColor Green
-                    Write-Host "  Recovery Key ID: $($recoveryKey.KeyProtectorId)" -ForegroundColor Cyan
+                    Write-Information -MessageData "  Recovery key protector added successfully" -InformationAction Continue
+                    Write-Information -MessageData "  Recovery Key ID: $($recoveryKey.KeyProtectorId)" -InformationAction Continue
 
                     # Save recovery key to a secure location
                     $recoveryKeyPath = Join-Path $env:USERPROFILE "Documents\BitLocker_Recovery_Key_$($env:COMPUTERNAME)_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
@@ -123,7 +123,7 @@ function Setup-BitLocker {
                             "Recovery Key:" | Out-File -FilePath $recoveryKeyPath -Append -Encoding UTF8
                             (Get-BitLockerVolume -MountPoint $Drive).KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryKey' } | ForEach-Object { $_.RecoveryKey } | Out-File -FilePath $recoveryKeyPath -Append -Encoding UTF8
 
-                            Write-Host "  Recovery key saved to: $recoveryKeyPath" -ForegroundColor Green
+                            Write-Information -MessageData "  Recovery key saved to: $recoveryKeyPath" -InformationAction Continue
                             Write-Warning "  IMPORTANT: Store this recovery key in a secure location!"
                         }
                     } catch {
@@ -136,12 +136,12 @@ function Setup-BitLocker {
 
             # Add password protector if requested
             if ($ProtectorTypes -contains 'Password') {
-                Write-Host "  Password protector requested but not implemented in this version" -ForegroundColor Yellow
-                Write-Host "  Use: Add-BitLockerKeyProtector -MountPoint $Drive -PasswordProtector" -ForegroundColor Cyan
+                Write-Warning -Message "  Password protector requested but not implemented in this version"
+                Write-Information -MessageData "  Use: Add-BitLockerKeyProtector -MountPoint $Drive -PasswordProtector" -InformationAction Continue
             }
 
             # Enable BitLocker encryption
-            Write-Host "  Starting BitLocker encryption..." -ForegroundColor Yellow
+            Write-Warning -Message "  Starting BitLocker encryption..."
             try {
                 $encryptionParams = @{
                     MountPoint = $Drive
@@ -154,22 +154,22 @@ function Setup-BitLocker {
                 }
 
                 Enable-BitLocker @encryptionParams
-                Write-Host "  BitLocker encryption started successfully" -ForegroundColor Green
-                Write-Host "  Encryption will continue in the background" -ForegroundColor Yellow
+                Write-Information -MessageData "  BitLocker encryption started successfully" -InformationAction Continue
+                Write-Warning -Message "  Encryption will continue in the background"
             } catch {
                 Write-Error "  Failed to start BitLocker encryption: $($_.Exception.Message)"
                 return $false
             }
 
         } elseif ($bitlockerStatus.ProtectionStatus -eq "On") {
-            Write-Host "BitLocker is already enabled and protecting drive $Drive" -ForegroundColor Green
+            Write-Information -MessageData "BitLocker is already enabled and protecting drive $Drive" -InformationAction Continue
 
             # Configure auto-unlock for additional drives if requested
             if ($EnableAutoUnlock -and $Drive -ne $env:SystemDrive) {
-                Write-Host "  Configuring auto-unlock for drive $Drive..." -ForegroundColor Yellow
+                Write-Warning -Message "  Configuring auto-unlock for drive $Drive..."
                 try {
                     Enable-BitLockerAutoUnlock -MountPoint $Drive
-                    Write-Host "  Auto-unlock enabled for drive $Drive" -ForegroundColor Green
+                    Write-Information -MessageData "  Auto-unlock enabled for drive $Drive" -InformationAction Continue
                 } catch {
                     Write-Warning "  Failed to enable auto-unlock: $($_.Exception.Message)"
                 }
@@ -177,7 +177,7 @@ function Setup-BitLocker {
         }
 
         # Configure BitLocker policies through registry
-        Write-Host "Configuring BitLocker policies..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring BitLocker policies..."
         try {
             $bitlockerPolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\FVE"
             if (-not (Test-Path $bitlockerPolicyPath)) {
@@ -190,21 +190,21 @@ function Setup-BitLocker {
             Set-ItemProperty -Path $bitlockerPolicyPath -Name "OSRecoveryPassword" -Value 2 -Type DWord -ErrorAction SilentlyContinue
             Set-ItemProperty -Path $bitlockerPolicyPath -Name "OSRecoveryKey" -Value 2 -Type DWord -ErrorAction SilentlyContinue
 
-            Write-Host "  BitLocker policies configured" -ForegroundColor Green
+            Write-Information -MessageData "  BitLocker policies configured" -InformationAction Continue
         } catch {
             Write-Warning "  Failed to configure BitLocker policies: $($_.Exception.Message)"
         }
 
         # Final status check
-        Write-Host "Verifying BitLocker configuration..." -ForegroundColor Yellow
+        Write-Warning -Message "Verifying BitLocker configuration..."
         $finalStatus = Get-BitLockerVolume -MountPoint $Drive -ErrorAction SilentlyContinue
         if ($finalStatus) {
-            Write-Host "  Protection Status: $($finalStatus.ProtectionStatus)" -ForegroundColor Green
-            Write-Host "  Encryption Percentage: $($finalStatus.EncryptionPercentage)%" -ForegroundColor Green
-            Write-Host "  Volume Status: $($finalStatus.VolumeStatus)" -ForegroundColor Green
+            Write-Information -MessageData "  Protection Status: $($finalStatus.ProtectionStatus)" -InformationAction Continue
+            Write-Information -MessageData "  Encryption Percentage: $($finalStatus.EncryptionPercentage)%" -InformationAction Continue
+            Write-Information -MessageData "  Volume Status: $($finalStatus.VolumeStatus)" -InformationAction Continue
 
             if ($finalStatus.ProtectionStatus -eq "On") {
-                Write-Host "BitLocker configuration completed successfully!" -ForegroundColor Green
+                Write-Information -MessageData "BitLocker configuration completed successfully!" -InformationAction Continue
                 return $true
             } else {
                 Write-Warning "BitLocker configuration may not be complete. Check the status manually."
@@ -216,8 +216,8 @@ function Setup-BitLocker {
         }
 
     } catch {
-        Write-Host "Failed to configure BitLocker: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Stack Trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+        Write-Error -Message "Failed to configure BitLocker: $($_.Exception.Message)"
+        Write-Error -Message "Stack Trace: $($_.ScriptStackTrace)"
         return $false
     }
 }

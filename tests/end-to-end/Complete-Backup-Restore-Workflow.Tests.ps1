@@ -185,7 +185,7 @@ function Initialize-MockSourceSystem {
     New-Item -Path $cloudPath -ItemType Directory -Force | Out-Null
     $cloudConfig | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $cloudPath "config.json") -Encoding UTF8
 
-    Write-Host "✅ Initialized mock source system with realistic configuration data" -ForegroundColor Green
+    Write-Information -MessageData "✅ Initialized mock source system with realistic configuration data" -InformationAction Continue
 }
 
 function Test-BackupCompleteness {
@@ -282,7 +282,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $configFile = Join-Path $script:InstallPath "Config\windows.env"
             Test-Path $configFile | Should -Be $true
 
-            Write-Host "✅ Installation and initialization completed successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ Installation and initialization completed successfully" -InformationAction Continue
         }
 
         It "Should create proper module configuration" {
@@ -293,7 +293,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $status.Configuration.ModuleVersion | Should -Not -BeNullOrEmpty
             $status.Initialization.Initialized | Should -Be $true
 
-            Write-Host "✅ Module configuration verified" -ForegroundColor Green
+            Write-Information -MessageData "✅ Module configuration verified" -InformationAction Continue
         }
 
         It "Should validate all templates are available" {
@@ -311,7 +311,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
                 Test-Path $templatePath | Should -Be $true
             }
 
-            Write-Host "✅ All required templates are available" -ForegroundColor Green
+            Write-Information -MessageData "✅ All required templates are available" -InformationAction Continue
         }
     }
 
@@ -334,7 +334,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $manifest.BackupType | Should -Not -BeNullOrEmpty
             $manifest.Timestamp | Should -Not -BeNullOrEmpty
 
-            Write-Host "✅ Complete system backup completed successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ Complete system backup completed successfully" -InformationAction Continue
         }
 
         It "Should backup all system components" {
@@ -357,7 +357,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
                 $componentFiles.Count | Should -BeGreaterThan 0
             }
 
-            Write-Host "✅ All system components backed up successfully ($($completeness.BackupSize) bytes)" -ForegroundColor Green
+            Write-Information -MessageData "✅ All system components backed up successfully ($($completeness.BackupSize) bytes)" -InformationAction Continue
         }
 
         It "Should create valid backup metadata" {
@@ -383,7 +383,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
                 $component.Files | Should -BeGreaterThan 0
             }
 
-            Write-Host "✅ Backup metadata is complete and valid" -ForegroundColor Green
+            Write-Information -MessageData "✅ Backup metadata is complete and valid" -InformationAction Continue
         }
     }
 
@@ -408,7 +408,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
             $manifest.MachineName | Should -Be $env:COMPUTERNAME
 
-            Write-Host "✅ Backup successfully transferred to new system" -ForegroundColor Green
+            Write-Information -MessageData "✅ Backup successfully transferred to new system" -InformationAction Continue
         }
 
         It "Should validate backup integrity on target system" {
@@ -427,7 +427,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $manifest = Get-Content (Join-Path $latestBackup.FullName "manifest.json") -Raw | ConvertFrom-Json
             $manifest.Components.Count | Should -BeGreaterThan 0
 
-            Write-Host "✅ Backup integrity validated on target system" -ForegroundColor Green
+            Write-Information -MessageData "✅ Backup integrity validated on target system" -InformationAction Continue
         }
     }
 
@@ -444,7 +444,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             # Verify restore directory creation
             Test-Path $targetRestorePath | Should -Be $true
 
-            Write-Host "✅ Complete system restore initiated successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ Complete system restore initiated successfully" -InformationAction Continue
         }
 
         It "Should restore all system components accurately" {
@@ -470,14 +470,14 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
                     $overallAccuracy += $accuracy.MatchPercentage
                     $componentCount++
 
-                    Write-Host "  ✅ $component restored with $([math]::Round($accuracy.MatchPercentage, 1))% accuracy" -ForegroundColor Green
+                    Write-Information -MessageData "  ✅ $component restored with $([math]::Round($accuracy.MatchPercentage, 1))% accuracy" -InformationAction Continue
                 }
             }
 
             $averageAccuracy = $overallAccuracy / $componentCount
             $averageAccuracy | Should -BeGreaterThan 95
 
-            Write-Host "✅ Overall restoration accuracy: $([math]::Round($averageAccuracy, 1))%" -ForegroundColor Green
+            Write-Information -MessageData "✅ Overall restoration accuracy: $([math]::Round($averageAccuracy, 1))%" -InformationAction Continue
         }
 
         It "Should create restore verification report" {
@@ -513,7 +513,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $report.OverallSuccess | Should -Be $true
             $report.ComponentsRestored.Count | Should -BeGreaterThan 0
 
-            Write-Host "✅ Restore verification report created successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ Restore verification report created successfully" -InformationAction Continue
         }
     }
 
@@ -540,7 +540,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
 
             $missingPaths | Should -BeNullOrEmpty
 
-            Write-Host "✅ All critical system configuration files restored successfully" -ForegroundColor Green
+            Write-Information -MessageData "✅ All critical system configuration files restored successfully" -InformationAction Continue
         }
 
         It "Should demonstrate configuration data preservation" {
@@ -555,7 +555,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $restoredAppsConfig.Winget.Count | Should -BeGreaterThan 0
             $restoredAppsConfig.Steam.Games.Count | Should -BeGreaterThan 0
 
-            Write-Host "✅ Configuration data integrity verified" -ForegroundColor Green
+            Write-Information -MessageData "✅ Configuration data integrity verified" -InformationAction Continue
         }
 
         It "Should complete within reasonable time limits" {
@@ -565,7 +565,7 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             # End-to-end process should complete within reasonable time
             $totalTestDuration.TotalMinutes | Should -BeLessThan 10
 
-            Write-Host "✅ Complete workflow completed in $([math]::Round($totalTestDuration.TotalSeconds, 1)) seconds" -ForegroundColor Green
+            Write-Information -MessageData "✅ Complete workflow completed in $([math]::Round($totalTestDuration.TotalSeconds, 1)) seconds" -InformationAction Continue
         }
     }
 }
@@ -576,7 +576,7 @@ BeforeAll {
 
 AfterAll {
     # Comprehensive cleanup
-    Write-Host "🧹 Cleaning up end-to-end test environment..." -ForegroundColor Yellow
+    Write-Warning -Message "🧹 Cleaning up end-to-end test environment..."
 
     if (Test-Path $script:TestRoot) {
         Remove-Item -Path $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -588,5 +588,5 @@ AfterAll {
     }
 
     $testDuration = (Get-Date) - $script:TestStartTime
-    Write-Host "✅ End-to-end test cleanup completed in $([math]::Round($testDuration.TotalSeconds, 1)) seconds" -ForegroundColor Green
+    Write-Information -MessageData "✅ End-to-end test cleanup completed in $([math]::Round($testDuration.TotalSeconds, 1)) seconds" -InformationAction Continue
 }

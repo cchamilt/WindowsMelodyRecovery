@@ -188,12 +188,12 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             # Most templates should be available
             $availableTemplates.Count | Should -BeGreaterThan 5
-            Write-Host "Available templates: $($availableTemplates -join ', ')" -ForegroundColor Green
+            Write-Information -MessageData "Available templates: $($availableTemplates -join ', ')" -InformationAction Continue
 
             # Verify all 32 templates exist
             $allTemplates = Get-ChildItem -Path $script:TemplatesPath -Filter "*.yaml"
             $allTemplates.Count | Should -Be 32
-            Write-Host "Total templates found: $($allTemplates.Count)" -ForegroundColor Cyan
+            Write-Information -MessageData "Total templates found: $($allTemplates.Count)" -InformationAction Continue
         }
 
         It "Should create backup directory structure" {
@@ -1030,7 +1030,7 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             # At least one cloud provider should be synced
             $syncedProviders | Should -BeGreaterThan 0
-            Write-Host "Successfully synced to $syncedProviders cloud providers" -ForegroundColor Green
+            Write-Information -MessageData "Successfully synced to $syncedProviders cloud providers" -InformationAction Continue
         }
     }
 }
@@ -1040,7 +1040,7 @@ AfterAll {
     try {
         if (Test-Path $script:TestBackupRoot) {
             Remove-Item $script:TestBackupRoot -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "Cleaned up test backup directory: $script:TestBackupRoot" -ForegroundColor Yellow
+            Write-Warning -Message "Cleaned up test backup directory: $script:TestBackupRoot"
         }
 
         # Reset environment variables
@@ -1051,3 +1051,4 @@ AfterAll {
         Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"
     }
 }
+

@@ -20,7 +20,7 @@ function Setup-GOGGames {
             return $true
         }
 
-        Write-Host "GOG Galaxy not found. Would you like to install it? (Y/N)" -ForegroundColor Yellow
+        Write-Warning -Message "GOG Galaxy not found. Would you like to install it? (Y/N)"
         $response = Read-Host
         if ($response -eq 'Y' -or $response -eq 'y') {
             try {
@@ -28,18 +28,18 @@ function Setup-GOGGames {
                 $installerUrl = "https://content-system.gog.com/open_link/download?path=/open/galaxy/client/2.0.0/setup_galaxy_2.0.0.exe"
                 $installerPath = Join-Path $env:TEMP "setup_galaxy.exe"
 
-                Write-Host "Downloading GOG Galaxy installer..." -ForegroundColor Yellow
+                Write-Warning -Message "Downloading GOG Galaxy installer..."
                 Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
 
                 # Install GOG Galaxy
-                Write-Host "Installing GOG Galaxy..." -ForegroundColor Yellow
+                Write-Warning -Message "Installing GOG Galaxy..."
                 Start-Process -FilePath $installerPath -ArgumentList "/SILENT" -Wait
 
                 Remove-Item $installerPath
                 return $true
             }
             catch {
-                Write-Host "Failed to install GOG Galaxy: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to install GOG Galaxy: $($_.Exception.Message)"
                 return $false
             }
         }
@@ -56,11 +56,11 @@ function Setup-GOGGames {
                 $dbPath = "$env:ProgramData\GOG.com\Galaxy\storage\galaxy-2.0.db"
                 if (Test-Path $dbPath) {
                     if (!(Get-Command sqlite3 -ErrorAction SilentlyContinue)) {
-                        Write-Host "Installing SQLite..." -ForegroundColor Yellow
+                        Write-Warning -Message "Installing SQLite..."
                         if (Get-Command scoop -ErrorAction SilentlyContinue) {
                             scoop install sqlite
                         } else {
-                            Write-Host "SQLite not available. Cannot read GOG Galaxy database." -ForegroundColor Yellow
+                            Write-Warning -Message "SQLite not available. Cannot read GOG Galaxy database."
                             return $installedGames
                         }
                     }
@@ -78,7 +78,7 @@ function Setup-GOGGames {
                 }
             }
             catch {
-                Write-Host "Error reading GOG Galaxy database: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Error reading GOG Galaxy database: $($_.Exception.Message)"
             }
         }
 
@@ -86,7 +86,7 @@ function Setup-GOGGames {
     }
 
     try {
-        Write-Host "Setting up GOG Games..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up GOG Games..." -InformationAction Continue
 
         # Determine games list path
         if (!$GamesListPath) {
@@ -98,16 +98,16 @@ function Setup-GOGGames {
                 if ($applications.GOG) {
                     $gamesList = $applications.GOG
                 } else {
-                    Write-Host "No GOG games found in backup" -ForegroundColor Yellow
+                    Write-Warning -Message "No GOG games found in backup"
                     $gamesList = @()
                 }
             } else {
-                Write-Host "No games list found in backup location" -ForegroundColor Yellow
+                Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         } else {
             if (!(Test-Path $GamesListPath)) {
-                Write-Host "Games list not found at: $GamesListPath" -ForegroundColor Red
+                Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
             }
             $gamesList = Get-Content $GamesListPath | ConvertFrom-Json
@@ -115,56 +115,57 @@ function Setup-GOGGames {
 
         # Install GOG Galaxy if needed
         if (!(Install-GogGalaxy)) {
-            Write-Host "GOG Galaxy is required to install games" -ForegroundColor Red
-            Write-Host "You can install it manually from: https://www.gog.com/galaxy" -ForegroundColor Yellow
+            Write-Error -Message "GOG Galaxy is required to install games"
+            Write-Warning -Message "You can install it manually from: https://www.gog.com/galaxy"
             return $false
         }
 
         $installedGames = Get-InstalledGames
 
         # Show current status
-        Write-Host "`nInstalled GOG Games:" -ForegroundColor Blue
+        Write-Information -MessageData "`nInstalled GOG Games:" -InformationAction Continue
         if ($installedGames.Count -gt 0) {
             $installedGames | ForEach-Object {
-                Write-Host "- $($_.Name) (ID: $($_.Id))" -ForegroundColor Green
+                Write-Information -MessageData "- $($_.Name) (ID: $($_.Id))" -InformationAction Continue
             }
         } else {
-            Write-Host "No GOG games currently installed" -ForegroundColor Gray
+            Write-Verbose -Message "No GOG games currently installed"
         }
 
         if ($gamesList.Count -gt 0) {
-            Write-Host "`nGames to Install:" -ForegroundColor Blue
+            Write-Information -MessageData "`nGames to Install:" -InformationAction Continue
             $gamesToInstall = $gamesList | Where-Object { $_.Id -notin $installedGames.Id }
             if ($gamesToInstall.Count -gt 0) {
                 $gamesToInstall | ForEach-Object {
-                    Write-Host "- $($_.Name) (ID: $($_.Id))" -ForegroundColor Yellow
+                    Write-Warning -Message "- $($_.Name) (ID: $($_.Id))"
                 }
             } else {
-                Write-Host "All games from backup are already installed!" -ForegroundColor Green
+                Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
             if ($Install -and $gamesToInstall.Count -gt 0) {
                 # Launch GOG Galaxy for installation
-                Write-Host "`nLaunching GOG Galaxy..." -ForegroundColor Yellow
-                Write-Host "Please install the following games manually:" -ForegroundColor Yellow
+                Write-Warning -Message "`nLaunching GOG Galaxy..."
+                Write-Warning -Message "Please install the following games manually:"
                 $gamesToInstall | ForEach-Object {
-                    Write-Host "- $($_.Name)" -ForegroundColor Cyan
+                    Write-Information -MessageData "- $($_.Name)" -InformationAction Continue
                 }
 
                 Start-Process "C:\Program Files (x86)\GOG Galaxy\GalaxyClient.exe"
             }
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
-                Write-Host "`nRun with -Install to begin installation process" -ForegroundColor Yellow
+                Write-Warning -Message "`nRun with -Install to begin installation process"
             }
         } else {
-            Write-Host "`nNo games list found to install from" -ForegroundColor Gray
+            Write-Verbose -Message "`nNo games list found to install from"
         }
 
-        Write-Host "`nGOG Games setup completed!" -ForegroundColor Green
+        Write-Information -MessageData "`nGOG Games setup completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to setup GOG Games: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to setup GOG Games: $($_.Exception.Message)"
         return $false
     }
 }
+

@@ -31,21 +31,21 @@ function Invoke-WSLDockerCommand {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Command,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$User = "testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$WorkingDirectory = "/home/testuser",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ContainerName = "wmr-wsl-mock"
     )
-    
+
     try {
         # Set basic environment variables for the command
         $envCommand = "export HOME=/home/$User USER=$User SHELL=/bin/bash PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; $Command"
-        
+
         # Build the docker exec command with basic bash shell
         $dockerArgs = @(
             "exec"
@@ -55,13 +55,13 @@ function Invoke-WSLDockerCommand {
             $ContainerName
             "bash", "-c", $envCommand
         )
-        
+
         Write-Verbose "Executing: docker $($dockerArgs -join ' ')"
-        
+
         # Execute the command
         $result = & docker @dockerArgs 2>&1
         $exitCode = $LASTEXITCODE
-        
+
         return @{
             Success = ($exitCode -eq 0)
             ExitCode = $exitCode
@@ -99,11 +99,11 @@ function Test-WSLDockerConnectivity {
         [Parameter(Mandatory = $false)]
         [string]$ContainerName = "wmr-wsl-mock"
     )
-    
+
     try {
         # Test basic connectivity
         $result = Invoke-WSLDockerCommand -Command "echo 'CONNECTIVITY_TEST_PASSED'" -ContainerName $ContainerName
-        
+
         if ($result.Success -and $result.Output -match "CONNECTIVITY_TEST_PASSED") {
             Write-Verbose "WSL Docker connectivity test passed"
             return @{
@@ -153,19 +153,19 @@ function Get-WSLDockerDistributions {
         [Parameter(Mandatory = $false)]
         [string]$ContainerName = "wmr-wsl-mock"
     )
-    
+
     try {
         # Check if container is running
         $containerStatus = & docker ps --filter "name=$ContainerName" --format "{{.Status}}" 2>$null
-        
+
         if ($containerStatus -match "Up") {
             # Get distribution info from container
             $distroInfo = Invoke-WSLDockerCommand -Command "cat /etc/os-release | grep -E '^(NAME|VERSION)='" -ContainerName $ContainerName
-            
+
             if ($distroInfo.Success) {
                 $distroName = "Ubuntu-22.04"  # Default for our mock
                 $status = "Running"
-                
+
                 return @{
                     Name = $distroName
                     Status = $status
@@ -174,7 +174,7 @@ function Get-WSLDockerDistributions {
                 }
             }
         }
-        
+
         return $null
     }
     catch {
@@ -212,28 +212,28 @@ function Invoke-WSLDockerScript {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ScriptContent,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ContainerName = "wmr-wsl-mock",
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ScriptType = "bash"
     )
-    
+
     try {
         # Create a temporary script file in the container
         $scriptFile = "/tmp/script-$(Get-Random).sh"
-        
+
         # Clean up the script content - remove Windows line endings and fix paths
         $cleanContent = $ScriptContent -replace "`r`n", "`n" -replace "`r", "`n"
-        
+
         # Write the script content to the container using printf to handle line endings properly
         $lines = $cleanContent -split "`n"
         $createCommands = @()
-        
+
         # Clear the file first
         $createCommands += "printf '' > $scriptFile"
-        
+
         # Add each line with proper line ending
         foreach ($line in $lines) {
             if ($line.Trim() -ne "") {
@@ -243,7 +243,7 @@ function Invoke-WSLDockerScript {
                 $createCommands += "printf '\n' >> $scriptFile"
             }
         }
-        
+
         # Execute all create commands
         $createScript = $createCommands -join " && "
         $createResult = docker exec $ContainerName bash -c $createScript
@@ -255,7 +255,7 @@ function Invoke-WSLDockerScript {
                 Method = "Docker"
             }
         }
-        
+
         # Make the script executable
         $chmodResult = docker exec $ContainerName chmod +x $scriptFile
         if ($LASTEXITCODE -ne 0) {
@@ -266,15 +266,15 @@ function Invoke-WSLDockerScript {
                 Method = "Docker"
             }
         }
-        
+
         # Execute the script with proper environment
         $executeCommand = "cd /home/testuser && export HOME=/home/testuser && export USER=testuser && export SHELL=/bin/bash && bash $scriptFile"
         $result = docker exec $ContainerName bash -c $executeCommand
         $exitCode = $LASTEXITCODE
-        
+
         # Clean up the script file
         docker exec $ContainerName rm -f $scriptFile | Out-Null
-        
+
         return @{
             Success = ($exitCode -eq 0)
             Output = if ($result) { $result -join "`n" } else { "" }
@@ -316,25 +316,25 @@ function Get-WSLDockerPackages {
         [Parameter(Mandatory = $true)]
         [ValidateSet("apt", "pip3", "npm")]
         [string]$PackageManager,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ContainerName = "wmr-wsl-mock"
     )
-    
+
     $commands = @{
         "apt" = "dpkg --get-selections | grep -v deinstall"
         "pip3" = "pip3 list --format=freeze"
         "npm" = "npm list -g --depth=0 --json"
     }
-    
+
     $command = $commands[$PackageManager]
     if (-not $command) {
         throw "Unsupported package manager: $PackageManager"
     }
-    
+
     try {
         $result = Invoke-WSLDockerCommand -Command $command -ContainerName $ContainerName
-        
+
         if ($result.Success) {
             return @{
                 PackageManager = $PackageManager
@@ -383,11 +383,11 @@ function Backup-WSLDockerConfiguration {
     param(
         [Parameter(Mandatory = $true)]
         [string]$BackupPath,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$ContainerName = "wmr-wsl-mock"
     )
-    
+
     $configFiles = @(
         "/etc/wsl.conf",
         "/etc/fstab",
@@ -397,30 +397,30 @@ function Backup-WSLDockerConfiguration {
         "/home/testuser/.gitconfig",
         "/home/testuser/.config/chezmoi/chezmoi.toml"
     )
-    
+
     $backupResults = @()
-    
+
     foreach ($configFile in $configFiles) {
         try {
             # Check if file exists
             $checkResult = Invoke-WSLDockerCommand -Command "test -f '$configFile' && echo 'exists' || echo 'missing'" -ContainerName $ContainerName
-            
+
             if ($checkResult.Success -and $checkResult.Output -match "exists") {
                 # Create backup directory structure
                 $relativePath = $configFile.TrimStart('/')
                 $backupFilePath = Join-Path $BackupPath $relativePath
                 $backupDir = Split-Path $backupFilePath -Parent
-                
+
                 if (-not (Test-Path $backupDir)) {
                     New-Item -Path $backupDir -ItemType Directory -Force | Out-Null
                 }
-                
+
                 # Copy file content
                 $contentResult = Invoke-WSLDockerCommand -Command "cat '$configFile'" -ContainerName $ContainerName
-                
+
                 if ($contentResult.Success) {
                     $contentResult.Output | Out-File -FilePath $backupFilePath -Encoding UTF8
-                    
+
                     # Get file size safely
                     $fileSize = 0
                     try {
@@ -432,7 +432,7 @@ function Backup-WSLDockerConfiguration {
                         # If we can't get file size, just use 0
                         $fileSize = 0
                     }
-                    
+
                     $backupResults += @{
                         File = $configFile
                         BackupPath = $backupFilePath
@@ -464,9 +464,9 @@ function Backup-WSLDockerConfiguration {
             }
         }
     }
-    
+
     return $backupResults
 }
 
 # Functions are available for dot-sourcing in tests
-# Note: Export-ModuleMember cannot be used in dot-sourced scripts 
+# Note: Export-ModuleMember cannot be used in dot-sourced scripts

@@ -107,7 +107,7 @@ Describe "BitLocker Setup Script Tests" {
     Context "BitLocker Feature Availability" {
         It "Should check for BitLocker Windows feature" {
             Mock Get-WindowsOptionalFeature { return @{ State = "Enabled" } }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-BitLocker -Drive $script:TestDrive
@@ -130,7 +130,7 @@ Describe "BitLocker Setup Script Tests" {
     Context "TPM Status Checking" {
         It "Should check TPM availability" {
             Mock Get-Tpm { return $script:MockTPMStatus }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-BitLocker -Drive $script:TestDrive
@@ -154,7 +154,7 @@ Describe "BitLocker Setup Script Tests" {
             Mock Test-Path { return $true }
             Mock New-Item {}
             Mock Set-ItemProperty {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-BitLocker -Drive $script:TestDrive
@@ -220,7 +220,7 @@ Describe "Windows Backup Setup Script Tests" {
     Context "Backup Service Configuration" {
         It "Should check for Windows Backup service" {
             Mock Get-Service { return @{ Status = "Running" } }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
@@ -242,7 +242,7 @@ Describe "Windows Backup Setup Script Tests" {
         It "Should start stopped backup service" {
             Mock Get-Service { return @{ Status = "Stopped" } }
             Mock Start-Service {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
@@ -255,7 +255,7 @@ Describe "Windows Backup Setup Script Tests" {
         It "Should configure File History when enabled" {
             Mock Get-WmiObject { return @{ State = 0; TargetUrl = ""; SetState = { param($state) }; Put = {} } }
             Mock Test-Path { return $true }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
@@ -277,7 +277,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Test-Path { return $false }
             Mock New-Item {}
             Mock Get-WmiObject { return @{ State = 0; TargetUrl = ""; SetState = { param($state) }; Put = {} } }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableFileHistory
@@ -291,7 +291,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock Test-Path { return $true }
             Mock New-Item {}
             Mock Set-ItemProperty {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -EnableSystemImageBackup
@@ -319,7 +319,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock New-ScheduledTaskPrincipal { return @{} }
             Mock Register-ScheduledTask {}
             Mock Out-File {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
@@ -336,7 +336,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock New-ScheduledTaskPrincipal { return @{} }
             Mock Register-ScheduledTask {}
             Mock Out-File {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
@@ -365,7 +365,7 @@ Describe "Windows Backup Setup Script Tests" {
             Mock New-ScheduledTaskPrincipal { return @{} }
             Mock Register-ScheduledTask {}
             Mock Out-File {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-WindowsBackup -BackupLocation $script:TestBackupLocation -RetentionDays 7
@@ -394,7 +394,7 @@ Describe "Manual Backup Functionality Tests" {
         It "Should create backup location if it doesn't exist" {
             Mock Test-Path { return $false }
             Mock New-Item {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             $result = Start-WindowsBackupManual -BackupLocation $script:TestBackupLocation
             Should -Invoke New-Item -Times 1
@@ -403,7 +403,7 @@ Describe "Manual Backup Functionality Tests" {
         It "Should handle system image backup" {
             Mock Test-Path { return $true }
             Mock Invoke-Expression {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             $result = Start-WindowsBackupManual -BackupLocation $script:TestBackupLocation -SystemImageOnly
             Should -Invoke Invoke-Expression -Times 1
@@ -411,7 +411,7 @@ Describe "Manual Backup Functionality Tests" {
 
         It "Should handle File History backup" {
             Mock Test-Path { return $true }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             $result = Start-WindowsBackupManual -BackupLocation $script:TestBackupLocation -FileHistoryOnly
             $result | Should -Be $true
@@ -432,7 +432,7 @@ Describe "Setup Scripts Integration Tests" {
         It "Should load environment configuration" {
             Mock Load-Environment {}
             Mock Write-Verbose {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-BitLocker -Drive $script:TestDrive
@@ -443,7 +443,7 @@ Describe "Setup Scripts Integration Tests" {
         It "Should handle environment loading errors gracefully" {
             Mock Load-Environment { throw "Environment not found" }
             Mock Write-Verbose {}
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-BitLocker -Drive $script:TestDrive
@@ -455,7 +455,7 @@ Describe "Setup Scripts Integration Tests" {
     Context "Setup Script Error Handling" {
         It "Should handle general setup errors in BitLocker setup" {
             Mock Get-WindowsOptionalFeature { throw "Unexpected error" }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-BitLocker -Drive $script:TestDrive
@@ -465,7 +465,7 @@ Describe "Setup Scripts Integration Tests" {
 
         It "Should handle general setup errors in Windows Backup setup" {
             Mock Get-Service { throw "Unexpected error" }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
@@ -478,7 +478,7 @@ Describe "Setup Scripts Integration Tests" {
         It "Should return boolean values from BitLocker setup" {
             Mock Get-WindowsOptionalFeature { return @{ State = "Enabled" } }
             Mock Get-BitLockerVolume { return $null }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-BitLocker -Drive $script:TestDrive
@@ -489,7 +489,7 @@ Describe "Setup Scripts Integration Tests" {
         It "Should return boolean values from Windows Backup setup" {
             Mock Get-Service { return $null }
             Mock Get-WindowsOptionalFeature { return $null }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation
@@ -504,7 +504,7 @@ Describe "Setup Scripts Configuration Validation" {
         It "Should provide configuration summary for BitLocker" {
             Mock Get-WindowsOptionalFeature { return @{ State = "Enabled" } }
             Mock Get-BitLockerVolume { return @{ ProtectionStatus = "On"; EncryptionPercentage = 100; VolumeStatus = "FullyEncrypted" } }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-BitLocker -Drive $script:TestDrive
@@ -515,7 +515,7 @@ Describe "Setup Scripts Configuration Validation" {
         It "Should provide configuration summary for Windows Backup" {
             Mock Get-Service { return $null }
             Mock Format-Table { return "Configuration Summary" }
-            Mock Write-Host {}
+            Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 $result = Setup-WindowsBackup -BackupLocation $script:TestBackupLocation

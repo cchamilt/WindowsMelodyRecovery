@@ -250,7 +250,7 @@ function Enable-RegistryMocking {
 
     Initialize-MockRegistry
 
-    Write-Host "✓ Registry mocking enabled for testing" -ForegroundColor Green
+    Write-Information -MessageData "✓ Registry mocking enabled for testing" -InformationAction Continue
 }
 
 function Disable-RegistryMocking {
@@ -266,7 +266,7 @@ function Disable-RegistryMocking {
     Remove-Alias -Name "New-Item" -Scope Global -Force -ErrorAction SilentlyContinue
     Remove-Alias -Name "Remove-Item" -Scope Global -Force -ErrorAction SilentlyContinue
 
-    Write-Host "✓ Registry mocking disabled" -ForegroundColor Yellow
+    Write-Warning -Message "✓ Registry mocking disabled"
 }
 
 function Get-MockRegistryState {

@@ -382,10 +382,10 @@ echo "Package sync completed!"
 
     try {
         Invoke-WSLScript -ScriptContent $packageSyncScript
-        Write-Host "WSL packages synced to: $BackupPath" -ForegroundColor Green
+        Write-Information -MessageData "WSL packages synced to: $BackupPath" -InformationAction Continue
         return $true
     } catch {
-        Write-Host "Failed to sync WSL packages: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to sync WSL packages: $($_.Exception.Message)"
         return $false
     }
 }
@@ -441,10 +441,10 @@ echo "Home directory sync completed!"
 
     try {
         Invoke-WSLScript -ScriptContent $homeSyncScript
-        Write-Host "WSL home directory synced successfully" -ForegroundColor Green
+        Write-Information -MessageData "WSL home directory synced successfully" -InformationAction Continue
         return $true
     } catch {
-        Write-Host "Failed to sync WSL home directory: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to sync WSL home directory: $($_.Exception.Message)"
         return $false
     }
 }
@@ -525,7 +525,7 @@ echo "Repository check completed!"
         Invoke-WSLScript -ScriptContent $repoCheckScript
         return $true
     } catch {
-        Write-Host "Failed to check WSL repositories: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to check WSL repositories: $($_.Exception.Message)"
         return $false
     }
 }
@@ -655,11 +655,11 @@ echo "  cm, cma, cme, cms, cmd, cmu, cmcd"
 
         Invoke-WSLScript @params
 
-        Write-Host "✅ chezmoi setup completed in WSL" -ForegroundColor Green
+        Write-Information -MessageData "✅ chezmoi setup completed in WSL" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "❌ Failed to setup chezmoi in WSL: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "❌ Failed to setup chezmoi in WSL: $($_.Exception.Message)"
         return $false
     }
 }
@@ -686,7 +686,7 @@ function Backup-WSLChezmoi {
 
     # Check if WSL is available
     if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-        Write-Host "WSL is not available on this system" -ForegroundColor Yellow
+        Write-Warning -Message "WSL is not available on this system"
         return $false
     }
 
@@ -751,11 +751,11 @@ echo "✅ chezmoi backup completed!"
 '@
 
         Invoke-WSLScript -ScriptContent $chezmoiBackupScript
-        Write-Host "✅ chezmoi backup completed" -ForegroundColor Green
+        Write-Information -MessageData "✅ chezmoi backup completed" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "❌ Failed to backup chezmoi: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "❌ Failed to backup chezmoi: $($_.Exception.Message)"
         return $false
     }
 }
@@ -782,7 +782,7 @@ function Restore-WSLChezmoi {
 
     # Check if WSL is available
     if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-        Write-Host "WSL is not available on this system" -ForegroundColor Yellow
+        Write-Warning -Message "WSL is not available on this system"
         return $false
     }
 
@@ -852,11 +852,12 @@ echo "✅ chezmoi restore completed!"
 '@
 
         Invoke-WSLScript -ScriptContent $chezmoiRestoreScript
-        Write-Host "✅ chezmoi restore completed" -ForegroundColor Green
+        Write-Information -MessageData "✅ chezmoi restore completed" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "❌ Failed to restore chezmoi: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "❌ Failed to restore chezmoi: $($_.Exception.Message)"
         return $false
     }
 }
+

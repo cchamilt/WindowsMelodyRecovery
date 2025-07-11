@@ -11,7 +11,7 @@ function Sync-WindowsMelodyRecoveryScripts {
         [switch]$NoPrompt
     )
 
-    Write-Host "Syncing Scripts Configuration with Available Scripts..." -ForegroundColor Green
+    Write-Information -MessageData "Syncing Scripts Configuration with Available Scripts..." -InformationAction Continue
 
     # Get current module root - handle cases where PSScriptRoot might be empty
     $moduleRoot = $null
@@ -59,10 +59,10 @@ function Sync-WindowsMelodyRecoveryScripts {
     $currentConfig = $null
     if (Test-Path $configPath) {
         $currentConfig = Get-Content $configPath -Raw | ConvertFrom-Json
-        Write-Host "Found existing user configuration" -ForegroundColor Green
+        Write-Information -MessageData "Found existing user configuration" -InformationAction Continue
     } elseif (Test-Path $templatePath) {
         $currentConfig = Get-Content $templatePath -Raw | ConvertFrom-Json
-        Write-Host "Using template configuration as base" -ForegroundColor Yellow
+        Write-Warning -Message "Using template configuration as base"
     } else {
         Write-Error "No configuration template found"
         return
@@ -107,7 +107,7 @@ function Sync-WindowsMelodyRecoveryScripts {
 
                     if ($WhatIf) {
                         $status = if ($existingScript) { "EXISTS" } else { "NEW" }
-                        Write-Host "  [$status] $category`: $($discoveredScript.name) -> $functionName" -ForegroundColor $(if ($existingScript) { 'Green' } else { 'Cyan' })
+                        Write-Information -MessageData "  [$status] $category`: $($discoveredScript.name)  -InformationAction Continue-> $functionName" -ForegroundColor $(if ($existingScript) { 'Green' } else { 'Cyan' })
                     }
                 } else {
                     Write-Warning "Could not determine function name for script: $($script.Name)"
@@ -117,27 +117,27 @@ function Sync-WindowsMelodyRecoveryScripts {
     }
 
     if ($WhatIf) {
-        Write-Host "`nSummary:" -ForegroundColor Yellow
+        Write-Warning -Message "`nSummary:"
         foreach ($category in $categories) {
             $existing = @($currentConfig.$category.enabled).Count
             $discovered = @($discoveredScripts[$category]).Count
-            Write-Host "  $category`: $existing existing, $discovered discovered" -ForegroundColor Gray
+            Write-Verbose -Message "  $category`: $existing existing, $discovered discovered"
         }
-        Write-Host "`nUse -Force to apply changes" -ForegroundColor Cyan
+        Write-Information -MessageData "`nUse -Force to apply changes" -InformationAction Continue
         return
     }
 
     if (-not $Force -and -not $NoPrompt) {
-        Write-Host "`nChanges to be made:" -ForegroundColor Yellow
+        Write-Warning -Message "`nChanges to be made:"
         foreach ($category in $categories) {
             $existing = @($currentConfig.$category.enabled).Count
             $discovered = @($discoveredScripts[$category]).Count
-            Write-Host "  $category`: $existing -> $discovered scripts" -ForegroundColor Gray
+            Write-Verbose -Message "  $category`: $existing -> $discovered scripts"
         }
 
         $response = Read-Host "Apply these changes? (Y/N)"
         if ($response -ne 'Y') {
-            Write-Host "Operation cancelled" -ForegroundColor Yellow
+            Write-Warning -Message "Operation cancelled"
             return
         }
     }
@@ -155,12 +155,12 @@ function Sync-WindowsMelodyRecoveryScripts {
 
     $currentConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Force
 
-    Write-Host "`nScripts configuration successfully synced!" -ForegroundColor Green
-    Write-Host "Configuration saved to: $configPath" -ForegroundColor Cyan
+    Write-Information -MessageData "`nScripts configuration successfully synced!" -InformationAction Continue
+    Write-Information -MessageData "Configuration saved to: $configPath" -InformationAction Continue
 
     # Show summary
     foreach ($category in $categories) {
         $count = @($discoveredScripts[$category]).Count
-        Write-Host "  $category`: $count scripts configured" -ForegroundColor Gray
+        Write-Verbose -Message "  $category`: $count scripts configured"
     }
 }

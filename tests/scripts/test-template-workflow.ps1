@@ -118,10 +118,10 @@ function Invoke-TestBackup {
         [string]$TemplatePath
     )
 
-    Write-Host "=== TEMPLATE BACKUP TEST ===" -ForegroundColor Cyan
-    Write-Host "Template: $TemplatePath" -ForegroundColor Yellow
-    Write-Host "Test Backup Directory: $($testDirectories.BackupsRoot)" -ForegroundColor Yellow
-    Write-Host ""
+    Write-Information -MessageData "=== TEMPLATE BACKUP TEST ===" -InformationAction Continue
+    Write-Warning -Message "Template: $TemplatePath"
+    Write-Warning -Message "Test Backup Directory: $($testDirectories.BackupsRoot)"
+    Write-Information -MessageData "" -InformationAction Continue
 
     try {
         # Import module and set test config
@@ -132,7 +132,7 @@ function Invoke-TestBackup {
 
         if ($TemplatePath -eq "ALL") {
             # Test all templates
-            Write-Host "Testing all available templates..." -ForegroundColor Green
+            Write-Information -MessageData "Testing all available templates..." -InformationAction Continue
             $templatesPath = Join-Path $scriptRoot "Templates\System"
             $templateFiles = Get-ChildItem -Path $templatesPath -Filter "*.yaml" -ErrorAction SilentlyContinue
 
@@ -140,7 +140,7 @@ function Invoke-TestBackup {
             $failCount = 0
 
             foreach ($templateFile in $templateFiles) {
-                Write-Host "`n--- Testing: $($templateFile.Name) ---" -ForegroundColor Cyan
+                Write-Information -MessageData "`n--- Testing: $($templateFile.Name) ---" -InformationAction Continue
                 try {
                     . (Join-Path $scriptRoot "Private\Core\InvokeWmrTemplate.ps1")
 
@@ -150,18 +150,18 @@ function Invoke-TestBackup {
                     }
 
                     Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
-                    Write-Host "✓ $($templateFile.Name) backup completed successfully" -ForegroundColor Green
+                    Write-Information -MessageData "✓ $($templateFile.Name) backup completed successfully" -InformationAction Continue
                     $successCount++
                 } catch {
-                    Write-Host "✗ $($templateFile.Name) backup failed: $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "✗ $($templateFile.Name) backup failed: $($_.Exception.Message)"
                     $failCount++
                 }
             }
 
-            Write-Host "`n=== BACKUP SUMMARY ===" -ForegroundColor Cyan
-            Write-Host "Successful: $successCount" -ForegroundColor Green
-            Write-Host "Failed: $failCount" -ForegroundColor Red
-            Write-Host "Total: $($successCount + $failCount)" -ForegroundColor Yellow
+            Write-Information -MessageData "`n=== BACKUP SUMMARY ===" -InformationAction Continue
+            Write-Information -MessageData "Successful: $successCount" -InformationAction Continue
+            Write-Error -Message "Failed: $failCount"
+            Write-Warning -Message "Total: $($successCount + $failCount)"
 
         } else {
             # Test single template
@@ -181,19 +181,19 @@ function Invoke-TestBackup {
 
             # Pass the machine backup directory directly - templates handle their own subdirectories
             Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Backup" -StateFilesDirectory $testPaths.MachineBackup
-            Write-Host "✓ Template backup completed successfully" -ForegroundColor Green
+            Write-Information -MessageData "✓ Template backup completed successfully" -InformationAction Continue
 
             # Show what was backed up
-            Write-Host "`n=== BACKUP CONTENTS ===" -ForegroundColor Cyan
+            Write-Information -MessageData "`n=== BACKUP CONTENTS ===" -InformationAction Continue
             Show-DirectoryContents -Path $componentBackupDir -BasePathForDisplay $componentBackupDir
         }
 
-        Write-Host "`nTest backup completed! Use 'list' operation to see available backups." -ForegroundColor Green
+        Write-Information -MessageData "`nTest backup completed! Use 'list' operation to see available backups." -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Test backup failed: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host $_.ScriptStackTrace -ForegroundColor DarkRed
+        Write-Error -Message "Test backup failed: $($_.Exception.Message)"
+        Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor DarkRed
         return $false
     } finally {
         if ($originalConfig) {
@@ -210,14 +210,14 @@ function Invoke-TestRestore {
         [switch]$Force
     )
 
-    Write-Host "=== TEMPLATE RESTORE TEST ===" -ForegroundColor Cyan
-    Write-Host "Template: $TemplatePath" -ForegroundColor Yellow
-    Write-Host "Backup Name: $BackupName" -ForegroundColor Yellow
+    Write-Information -MessageData "=== TEMPLATE RESTORE TEST ===" -InformationAction Continue
+    Write-Warning -Message "Template: $TemplatePath"
+    Write-Warning -Message "Backup Name: $BackupName"
 
     if (-not $Force) {
-        Write-Host "*** RUNNING IN SAFE WHATIF MODE - NO SYSTEM CHANGES WILL BE MADE ***" -ForegroundColor Yellow -BackgroundColor DarkRed
-        Write-Host "*** Use -Force parameter to make actual changes (NOT RECOMMENDED for testing) ***" -ForegroundColor Yellow -BackgroundColor DarkRed
-        Write-Host ""
+        Write-Warning -Message "*** RUNNING IN SAFE WHATIF MODE - NO SYSTEM CHANGES WILL BE MADE ***" -BackgroundColor DarkRed
+        Write-Warning -Message "*** Use -Force parameter to make actual changes (NOT RECOMMENDED for testing) ***" -BackgroundColor DarkRed
+        Write-Information -MessageData "" -InformationAction Continue
     }
 
     try {
@@ -230,17 +230,17 @@ function Invoke-TestRestore {
         # Determine source directory - templates create their own subdirectories
         if ($UseTestData) {
             $sourceDir = $testPaths.TestData
-            Write-Host "Source: Test Data Directory" -ForegroundColor Yellow
+            Write-Warning -Message "Source: Test Data Directory"
         } else {
             $sourceDir = $testPaths.MachineBackup
-            Write-Host "Source: Backup Test Directory" -ForegroundColor Yellow
+            Write-Warning -Message "Source: Backup Test Directory"
         }
 
         $restoreStateDir = $testPaths.RestoreTarget
 
-        Write-Host "Source Directory: $sourceDir" -ForegroundColor Yellow
-        Write-Host "Restore State Directory: $restoreStateDir" -ForegroundColor Yellow
-        Write-Host ""
+        Write-Warning -Message "Source Directory: $sourceDir"
+        Write-Warning -Message "Restore State Directory: $restoreStateDir"
+        Write-Information -MessageData "" -InformationAction Continue
 
         # Validate source directory exists
         $componentSourceDir = Join-Path $sourceDir $BackupName
@@ -258,12 +258,12 @@ function Invoke-TestRestore {
         }
 
         # Show what's available to restore
-        Write-Host "=== AVAILABLE BACKUP DATA ===" -ForegroundColor Green
+        Write-Information -MessageData "=== AVAILABLE BACKUP DATA ===" -InformationAction Continue
         Show-DirectoryContents -Path $componentSourceDir -BasePathForDisplay $componentSourceDir
-        Write-Host ""
+        Write-Information -MessageData "" -InformationAction Continue
 
         # Copy source data to restore location with correct structure
-        Write-Host "Copying backup data to restore location..." -ForegroundColor Cyan
+        Write-Information -MessageData "Copying backup data to restore location..." -InformationAction Continue
 
         # Copy the component-specific directory from source to restore location
         $componentSourceDir = Join-Path $sourceDir $BackupName
@@ -288,7 +288,7 @@ function Invoke-TestRestore {
             throw "Template file not found: $templateFullPath"
         }
 
-        Write-Host "Testing template restore..." -ForegroundColor Green
+        Write-Information -MessageData "Testing template restore..." -InformationAction Continue
 
         # Dot-source the InvokeWmrTemplate module
         . (Join-Path $scriptRoot "Private\Core\InvokeWmrTemplate.ps1")
@@ -299,22 +299,22 @@ function Invoke-TestRestore {
         } else {
             Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir -WhatIf
         }
-        Write-Host "✓ Template restore completed successfully" -ForegroundColor Green
+        Write-Information -MessageData "✓ Template restore completed successfully" -InformationAction Continue
 
         # Show restore results
-        Write-Host "`n=== RESTORE SIMULATION RESULTS ===" -ForegroundColor Green
+        Write-Information -MessageData "`n=== RESTORE SIMULATION RESULTS ===" -InformationAction Continue
         if ($Force) {
-            Write-Host "Note: Actual restore operations were performed on the live system." -ForegroundColor Red
+            Write-Error -Message "Note: Actual restore operations were performed on the live system."
         } else {
-            Write-Host "Note: This was a safe simulation. No actual system changes were made." -ForegroundColor Green
+            Write-Information -MessageData "Note: This was a safe simulation. No actual system changes were made." -InformationAction Continue
         }
-        Write-Host "Restore data processed from: $restoreStateDir" -ForegroundColor Cyan
+        Write-Information -MessageData "Restore data processed from: $restoreStateDir" -InformationAction Continue
 
         return $true
 
     } catch {
-        Write-Host "Test restore failed: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host $_.ScriptStackTrace -ForegroundColor DarkRed
+        Write-Error -Message "Test restore failed: $($_.Exception.Message)"
+        Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor DarkRed
         return $false
     } finally {
         if ($originalConfig) {
@@ -329,30 +329,30 @@ function Invoke-TestWorkflow {
         [switch]$Force
     )
 
-    Write-Host "=== COMPLETE TEMPLATE WORKFLOW TEST ===" -ForegroundColor Magenta
-    Write-Host "Template: $TemplatePath" -ForegroundColor Yellow
+    Write-Verbose -Message "=== COMPLETE TEMPLATE WORKFLOW TEST ==="
+    Write-Warning -Message "Template: $TemplatePath"
 
     if (-not $Force) {
-        Write-Host "*** RESTORE WILL RUN IN SAFE WHATIF MODE ***" -ForegroundColor Yellow -BackgroundColor DarkRed
+        Write-Warning -Message "*** RESTORE WILL RUN IN SAFE WHATIF MODE ***" -BackgroundColor DarkRed
     }
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
 
     # Step 1: Backup
-    Write-Host "STEP 1: Performing backup..." -ForegroundColor Cyan
+    Write-Information -MessageData "STEP 1: Performing backup..." -InformationAction Continue
     $backupSuccess = Invoke-TestBackup -TemplatePath $TemplatePath
 
     if (-not $backupSuccess) {
-        Write-Host "❌ Workflow failed at backup step" -ForegroundColor Red
+        Write-Error -Message "❌ Workflow failed at backup step"
         return $false
     }
 
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
     Start-Sleep -Seconds 2
 
     # Step 2: Restore
-    Write-Host "STEP 2: Performing restore..." -ForegroundColor Cyan
+    Write-Information -MessageData "STEP 2: Performing restore..." -InformationAction Continue
     if ($TemplatePath -eq "ALL") {
-        Write-Host "❌ Workflow restore not supported for 'ALL' templates" -ForegroundColor Red
+        Write-Error -Message "❌ Workflow restore not supported for 'ALL' templates"
         return $false
     }
 
@@ -362,13 +362,13 @@ function Invoke-TestWorkflow {
     $restoreSuccess = Invoke-TestRestore -TemplatePath $TemplatePath -BackupName $templateName -Force:$Force
 
     if (-not $restoreSuccess) {
-        Write-Host "❌ Workflow failed at restore step" -ForegroundColor Red
+        Write-Error -Message "❌ Workflow failed at restore step"
         return $false
     }
 
-    Write-Host ""
-    Write-Host "🎉 COMPLETE WORKFLOW SUCCESS!" -ForegroundColor Green
-    Write-Host "Both backup and restore operations completed successfully." -ForegroundColor Green
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🎉 COMPLETE WORKFLOW SUCCESS!" -InformationAction Continue
+    Write-Information -MessageData "Both backup and restore operations completed successfully." -InformationAction Continue
     return $true
 }
 
@@ -382,57 +382,57 @@ function Show-DirectoryContents {
         Get-ChildItem $Path -Recurse | ForEach-Object {
             $relativePath = $_.FullName.Replace($BasePathForDisplay, "").TrimStart('\', '/')
             if ($_.PSIsContainer) {
-                Write-Host "📁 $relativePath" -ForegroundColor Blue
+                Write-Information -MessageData "📁 $relativePath" -InformationAction Continue
             } else {
                 $size = if ($_.Length -lt 1KB) { "$($_.Length) B" } elseif ($_.Length -lt 1MB) { "{0:N1} KB" -f ($_.Length / 1KB) } else { "{0:N1} MB" -f ($_.Length / 1MB) }
-                Write-Host "📄 $relativePath ($size)" -ForegroundColor Gray
+                Write-Verbose -Message "📄 $relativePath ($size)"
             }
         }
     }
 }
 
 function Invoke-CleanTest {
-    Write-Host "=== CLEANING TEST DIRECTORIES ===" -ForegroundColor Yellow
+    Write-Warning -Message "=== CLEANING TEST DIRECTORIES ==="
 
     foreach ($dir in $testDirectories.Values) {
         if (Test-Path $dir) {
-            Write-Host "Removing: $dir" -ForegroundColor Cyan
+            Write-Information -MessageData "Removing: $dir" -InformationAction Continue
             Remove-Item $dir -Recurse -Force
         }
     }
 
-    Write-Host "✓ All test directories cleaned" -ForegroundColor Green
+    Write-Information -MessageData "✓ All test directories cleaned" -InformationAction Continue
 }
 
 function Invoke-ListBackups {
-    Write-Host "=== AVAILABLE TEST BACKUPS ===" -ForegroundColor Cyan
+    Write-Information -MessageData "=== AVAILABLE TEST BACKUPS ===" -InformationAction Continue
 
     if (-not (Test-Path $testPaths.MachineBackup)) {
-        Write-Host "No test backups found. Run backup operation first." -ForegroundColor Yellow
+        Write-Warning -Message "No test backups found. Run backup operation first."
         return
     }
 
     $backups = Get-ChildItem $testPaths.MachineBackup -Directory -ErrorAction SilentlyContinue
 
     if ($backups.Count -eq 0) {
-        Write-Host "No test backups found. Run backup operation first." -ForegroundColor Yellow
+        Write-Warning -Message "No test backups found. Run backup operation first."
         return
     }
 
     foreach ($backup in $backups) {
-        Write-Host "`n📦 $($backup.Name)" -ForegroundColor Green
-        Write-Host "   Created: $($backup.CreationTime)" -ForegroundColor Gray
-        Write-Host "   Location: $($backup.FullName)" -ForegroundColor Gray
+        Write-Information -MessageData "`n📦 $($backup.Name)" -InformationAction Continue
+        Write-Verbose -Message "   Created: $($backup.CreationTime)"
+        Write-Verbose -Message "   Location: $($backup.FullName)"
 
         # Show contents summary
         $files = Get-ChildItem $backup.FullName -Recurse -File
         $totalSize = ($files | Measure-Object Length -Sum).Sum
         $sizeDisplay = if ($totalSize -lt 1KB) { "$totalSize B" } elseif ($totalSize -lt 1MB) { "{0:N1} KB" -f ($totalSize / 1KB) } else { "{0:N1} MB" -f ($totalSize / 1MB) }
 
-        Write-Host "   Files: $($files.Count), Total Size: $sizeDisplay" -ForegroundColor Gray
+        Write-Verbose -Message "   Files: $($files.Count), Total Size: $sizeDisplay"
 
         # Usage example
-        Write-Host "   Usage: .\test-template-workflow.ps1 -Operation restore -TemplatePath `"$($backup.Name).yaml`" -BackupName `"$($backup.Name)`"" -ForegroundColor DarkGray
+        Write-Information -MessageData "   Usage: .\test-template-workflow.ps1 -Operation restore -TemplatePath `" -InformationAction Continue$($backup.Name).yaml`" -BackupName `"$($backup.Name)`"" -ForegroundColor DarkGray
     }
 }
 
@@ -472,7 +472,7 @@ try {
     }
 
 } catch {
-    Write-Host "Operation failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Error -Message "Operation failed: $($_.Exception.Message)"
     exit 1
 } finally {
     Pop-Location

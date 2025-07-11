@@ -54,19 +54,19 @@ function Install-WindowsMelodyRecoveryTasks {
 
     # Prompt for confirmation
     if (!$NoPrompt) {
-        Write-Host "`nThe following scheduled tasks will be created:" -ForegroundColor Yellow
+        Write-Warning -Message "`nThe following scheduled tasks will be created:"
         foreach ($task in $tasks) {
-            Write-Host "`nTask: $($task.Name)" -ForegroundColor Cyan
-            Write-Host "Description: $($task.Description)" -ForegroundColor Cyan
-            Write-Host "Schedule: $($task.Trigger) at $($task.StartTime)" -ForegroundColor Cyan
+            Write-Information -MessageData "`nTask: $($task.Name)" -InformationAction Continue
+            Write-Information -MessageData "Description: $($task.Description)" -InformationAction Continue
+            Write-Information -MessageData "Schedule: $($task.Trigger) at $($task.StartTime)" -InformationAction Continue
             if ($task.DaysOfWeek) {
-                Write-Host "Days: $($task.DaysOfWeek)" -ForegroundColor Cyan
+                Write-Information -MessageData "Days: $($task.DaysOfWeek)" -InformationAction Continue
             }
         }
 
         $response = Read-Host "`nDo you want to create these scheduled tasks? (Y/N)"
         if ($response -ne "Y" -and $response -ne "y") {
-            Write-Host "Task creation cancelled." -ForegroundColor Yellow
+            Write-Warning -Message "Task creation cancelled."
             return
         }
     }
@@ -82,7 +82,7 @@ function Install-WindowsMelodyRecoveryTasks {
             if (!$NoPrompt) {
                 $response = Read-Host "Task '$taskName' already exists. Replace it? (Y/N)"
                 if ($response -ne "Y" -and $response -ne "y") {
-                    Write-Host "Skipping task '$taskName'" -ForegroundColor Yellow
+                    Write-Warning -Message "Skipping task '$taskName'"
                     continue
                 }
             }
@@ -114,11 +114,11 @@ function Install-WindowsMelodyRecoveryTasks {
         # Register the task
         try {
             Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description $task.Description -Force
-            Write-Host "Created scheduled task: $taskName" -ForegroundColor Green
+            Write-Information -MessageData "Created scheduled task: $taskName" -InformationAction Continue
         } catch {
             Write-Warning "Failed to create scheduled task '$taskName': $_"
         }
     }
 
-    Write-Host "`nScheduled tasks installation completed." -ForegroundColor Green
+    Write-Information -MessageData "`nScheduled tasks installation completed." -InformationAction Continue
 }

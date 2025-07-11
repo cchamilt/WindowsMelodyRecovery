@@ -15,25 +15,25 @@ function Setup-[Feature] {
     }
 
     try {
-        Write-Host "Setting up [Feature]..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up [Feature]..." -InformationAction Continue
 
         # Add your setup logic here
         # Example:
-        # Write-Host "Installing [Feature]..." -ForegroundColor Yellow
+        # Write-Warning -Message "Installing [Feature]..."
         #
         # try {
         #     # Try winget first
         #     $wingetResult = winget list [PackageName] 2>$null
         #     if ($LASTEXITCODE -ne 0) {
-        #         Write-Host "[Feature] not found, installing..." -ForegroundColor Yellow
+        #         Write-Warning -Message "[Feature] not found, installing..."
         #         winget install -e --id [PackageId]
         #     } else {
-        #         Write-Host "[Feature] is already installed" -ForegroundColor Green
+        #         Write-Information -MessageData "[Feature] is already installed" -InformationAction Continue
         #     }
         # } catch {
         #     # Fallback to chocolatey if winget fails
         #     if (Get-Command choco -ErrorAction SilentlyContinue) {
-        #         Write-Host "Attempting to install via Chocolatey..." -ForegroundColor Yellow
+        #         Write-Warning -Message "Attempting to install via Chocolatey..."
         #         choco install [package-name] -y
         #     } else {
         #         Write-Warning "Failed to install [Feature]. Please install manually."
@@ -42,7 +42,7 @@ function Setup-[Feature] {
         # }
 
         # Configuration steps
-        Write-Host "Configuring [Feature]..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring [Feature]..."
 
         # Add configuration logic here
         # Example:
@@ -51,11 +51,11 @@ function Setup-[Feature] {
         #     New-Item -ItemType Directory -Path $configPath -Force | Out-Null
         # }
 
-        Write-Host "[Feature] setup completed!" -ForegroundColor Green
+        Write-Information -MessageData "[Feature] setup completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to setup [Feature]: $_" -ForegroundColor Red
+        Write-Error -Message "Failed to setup [Feature]: $_"
         return $false
     }
 }

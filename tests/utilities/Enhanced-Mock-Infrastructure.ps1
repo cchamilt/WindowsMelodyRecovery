@@ -244,15 +244,15 @@ function Initialize-DockerEnvironment {
         }
         $script:EnhancedMockConfig.DockerEnvironment.DynamicMockRoot = $dynamicPaths['DYNAMIC_MOCK_ROOT']
 
-        Write-Host "🐳 Docker environment detected" -ForegroundColor Blue
-        Write-Host "   Dynamic mock root: $($dynamicPaths['DYNAMIC_MOCK_ROOT'])" -ForegroundColor Gray
-        Write-Host "   Indicators: $($dockerIndicators.Count)" -ForegroundColor Gray
+        Write-Information -MessageData "🐳 Docker environment detected" -InformationAction Continue
+        Write-Verbose -Message "   Dynamic mock root: $($dynamicPaths['DYNAMIC_MOCK_ROOT'])"
+        Write-Verbose -Message "   Indicators: $($dockerIndicators.Count)"
 
         # Create Docker environment lock file
         Set-DockerEnvironmentLock
     } else {
-        Write-Host "🖥️  Local environment detected" -ForegroundColor Green
-        Write-Host "   Enhanced mocks DISABLED for safety" -ForegroundColor Yellow
+        Write-Information -MessageData "🖥️  Local environment detected" -InformationAction Continue
+        Write-Warning -Message "   Enhanced mocks DISABLED for safety"
         # Clear any Unix-style paths that might cause Windows pollution
         $dynamicPaths.Clear()
     }
@@ -299,7 +299,7 @@ function Set-DockerEnvironmentLock {
         # Also set in environment for quick access
         $env:WMR_DOCKER_LOCK = $lockPath
 
-        Write-Host "   🔒 Docker environment lock created: $lockPath" -ForegroundColor Gray
+        Write-Verbose -Message "   🔒 Docker environment lock created: $lockPath"
 
     } catch {
         Write-Warning "⚠️  Could not create Docker environment lock: $_"
@@ -387,7 +387,7 @@ function Assert-DockerEnvironment {
         Throws an exception if not running in Docker environment.
     #>
 
-    Write-Host "🔒 Validating Docker environment..." -ForegroundColor Yellow
+    Write-Warning -Message "🔒 Validating Docker environment..."
 
     # Re-initialize Docker environment to ensure fresh detection
     Initialize-DockerEnvironment
@@ -396,20 +396,20 @@ function Assert-DockerEnvironment {
     $isValid = Test-DockerEnvironmentLock -ThrowOnFailure:$false
 
     if (-not $isValid) {
-        Write-Host "❌ SAFETY CHECK FAILED" -ForegroundColor Red
-        Write-Host "   Enhanced mock infrastructure requires Docker environment" -ForegroundColor Red
-        Write-Host "   This prevents source tree pollution and ensures proper isolation" -ForegroundColor Red
-        Write-Host "" -ForegroundColor Red
-        Write-Host "   To run enhanced mocks:" -ForegroundColor Yellow
-        Write-Host "   1. Use: docker-compose -f docker-compose.test.yml up test-runner" -ForegroundColor Yellow
-        Write-Host "   2. Or run tests inside Docker containers" -ForegroundColor Yellow
-        Write-Host "" -ForegroundColor Red
+        Write-Error -Message "❌ SAFETY CHECK FAILED"
+        Write-Error -Message "   Enhanced mock infrastructure requires Docker environment"
+        Write-Error -Message "   This prevents source tree pollution and ensures proper isolation"
+        Write-Information -MessageData ""  -InformationAction Continue-ForegroundColor Red
+        Write-Warning -Message "   To run enhanced mocks:"
+        Write-Warning -Message "   1. Use: docker-compose -f docker-compose.test.yml up test-runner"
+        Write-Warning -Message "   2. Or run tests inside Docker containers"
+        Write-Information -MessageData ""  -InformationAction Continue-ForegroundColor Red
 
         throw "🚫 SAFETY VIOLATION: Enhanced mock infrastructure can only run in Docker environments"
     }
 
-    Write-Host "✅ Docker environment validated" -ForegroundColor Green
-    Write-Host "   Safe to proceed with enhanced mock operations" -ForegroundColor Green
+    Write-Information -MessageData "✅ Docker environment validated" -InformationAction Continue
+    Write-Information -MessageData "   Safe to proceed with enhanced mock operations" -InformationAction Continue
 }
 
 function Get-DynamicMockPath {
@@ -542,17 +542,17 @@ function Initialize-EnhancedMockInfrastructure {
         [switch]$SkipSafetyCheck
     )
 
-    Write-Host "🚀 Initializing Enhanced Mock Infrastructure" -ForegroundColor Cyan
-    Write-Host "   Test Type: $TestType | Scope: $Scope | Force: $Force" -ForegroundColor Gray
-    Write-Host ""
+    Write-Information -MessageData "🚀 Initializing Enhanced Mock Infrastructure" -InformationAction Continue
+    Write-Verbose -Message "   Test Type: $TestType | Scope: $Scope | Force: $Force"
+    Write-Information -MessageData "" -InformationAction Continue
 
     # SAFETY CHECK: Ensure we're running in Docker environment
     if (-not $SkipSafetyCheck) {
         try {
             Assert-DockerEnvironment
         } catch {
-            Write-Host "🚫 Enhanced mock infrastructure initialization BLOCKED" -ForegroundColor Red
-            Write-Host "   Reason: $_" -ForegroundColor Red
+            Write-Error -Message "🚫 Enhanced mock infrastructure initialization BLOCKED"
+            Write-Error -Message "   Reason: $_"
             return $null
         }
     }
@@ -561,11 +561,11 @@ function Initialize-EnhancedMockInfrastructure {
     $dockerConfig = $script:EnhancedMockConfig.DockerEnvironment
     if ($dockerConfig.IsDockerEnvironment) {
         $mockDataRoot = $dockerConfig.DynamicMockRoot
-        Write-Host "   Environment: Docker (dynamic data in volumes)" -ForegroundColor Blue
+        Write-Information -MessageData "   Environment: Docker (dynamic data in volumes)" -InformationAction Continue
     } else {
         $testPaths = Get-StandardTestPaths
         $mockDataRoot = $testPaths.TestMockData
-        Write-Host "   Environment: Local (dynamic data in generated subdirectories)" -ForegroundColor Green
+        Write-Information -MessageData "   Environment: Local (dynamic data in generated subdirectories)" -InformationAction Continue
     }
 
     # Initialize mock data generators based on test type
@@ -590,11 +590,11 @@ function Initialize-EnhancedMockInfrastructure {
         }
     }
 
-    Write-Host ""
-    Write-Host "🎉 Enhanced mock infrastructure initialized successfully!" -ForegroundColor Green
-    Write-Host "   Root: $mockDataRoot" -ForegroundColor Gray
-    Write-Host "   Type: $TestType | Scope: $Scope" -ForegroundColor Gray
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🎉 Enhanced mock infrastructure initialized successfully!" -InformationAction Continue
+    Write-Verbose -Message "   Root: $mockDataRoot"
+    Write-Verbose -Message "   Type: $TestType | Scope: $Scope"
+    Write-Information -MessageData "" -InformationAction Continue
 }
 
 function Initialize-UnitMockData {
@@ -604,7 +604,7 @@ function Initialize-UnitMockData {
     #>
     param([string]$MockRoot, [string]$Scope, [bool]$Force)
 
-    Write-Host "📦 Generating unit test mock data..." -ForegroundColor Yellow
+    Write-Warning -Message "📦 Generating unit test mock data..."
 
     # Unit tests need minimal mock data - mostly configuration objects
     $unitMockPath = Join-Path $MockRoot "unit"
@@ -616,7 +616,7 @@ function Initialize-UnitMockData {
     # Generate sample template data
     Generate-MockTemplateData -OutputPath (Join-Path $unitMockPath "templates") -Scope $Scope
 
-    Write-Host "  ✓ Unit mock data generated" -ForegroundColor Green
+    Write-Information -MessageData "  ✓ Unit mock data generated" -InformationAction Continue
 }
 
 function Initialize-IntegrationMockData {
@@ -626,7 +626,7 @@ function Initialize-IntegrationMockData {
     #>
     param([string]$MockRoot, [string]$Scope, [bool]$Force)
 
-    Write-Host "🔧 Generating integration test mock data..." -ForegroundColor Yellow
+    Write-Warning -Message "🔧 Generating integration test mock data..."
 
     # Integration tests need realistic system data
     $components = @('applications', 'system-settings', 'gaming', 'cloud', 'wsl', 'registry')
@@ -656,7 +656,7 @@ function Initialize-IntegrationMockData {
             }
         }
 
-        Write-Host "  ✓ $component mock data generated" -ForegroundColor Green
+        Write-Information -MessageData "  ✓ $component mock data generated" -InformationAction Continue
     }
 }
 
@@ -667,7 +667,7 @@ function Initialize-FileOperationsMockData {
     #>
     param([string]$MockRoot, [string]$Scope, [bool]$Force)
 
-    Write-Host "📁 Generating file operations mock data..." -ForegroundColor Yellow
+    Write-Warning -Message "📁 Generating file operations mock data..."
 
     # File operations need realistic file structures
     $fileOpsMockPath = Join-Path $MockRoot "file-operations"
@@ -681,7 +681,7 @@ function Initialize-FileOperationsMockData {
     # Generate test configuration files
     Generate-ConfigurationFiles -OutputPath (Join-Path $fileOpsMockPath "configs") -Scope $Scope
 
-    Write-Host "  ✓ File operations mock data generated" -ForegroundColor Green
+    Write-Information -MessageData "  ✓ File operations mock data generated" -InformationAction Continue
 }
 
 function Initialize-EndToEndMockData {
@@ -691,7 +691,7 @@ function Initialize-EndToEndMockData {
     #>
     param([string]$MockRoot, [string]$Scope, [bool]$Force)
 
-    Write-Host "🌐 Generating end-to-end mock data..." -ForegroundColor Yellow
+    Write-Warning -Message "🌐 Generating end-to-end mock data..."
 
     # End-to-end tests need complete environment simulation
     $e2eMockPath = Join-Path $MockRoot "end-to-end"
@@ -705,7 +705,7 @@ function Initialize-EndToEndMockData {
     # Generate network and hardware configurations
     Generate-HardwareMockData -OutputPath (Join-Path $e2eMockPath "hardware") -Scope $Scope
 
-    Write-Host "  ✓ End-to-end mock data generated" -ForegroundColor Green
+    Write-Information -MessageData "  ✓ End-to-end mock data generated" -InformationAction Continue
 }
 
 function Generate-ApplicationMockData {
@@ -754,7 +754,7 @@ function Generate-ApplicationMockData {
 
     $scoopData | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $scoopPath "installed_packages.json") -Encoding UTF8
 
-    Write-Host "    ✓ Application mock data: winget, chocolatey, scoop" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Application mock data: winget, chocolatey, scoop"
 }
 
 function Generate-GamingMockData {
@@ -834,7 +834,7 @@ libraryPath=C:\Program Files (x86)\GOG Galaxy\Games
 
     $eaConfig | Set-Content -Path (Join-Path $eaPath "config.xml") -Encoding UTF8
 
-    Write-Host "    ✓ Gaming mock data: Steam, Epic, GOG, EA" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Gaming mock data: Steam, Epic, GOG, EA"
 }
 
 function Generate-SystemSettingsMockData {
@@ -883,7 +883,7 @@ function Generate-SystemSettingsMockData {
     }
     $inputData | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $OutputPath "input.json") -Encoding UTF8
 
-    Write-Host "    ✓ System settings mock data: display, power, network, sound, input" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ System settings mock data: display, power, network, sound, input"
 }
 
 function Generate-CloudMockData {
@@ -927,7 +927,7 @@ function Generate-CloudMockData {
         $backupManifest | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $wmrPath "backup-manifest.json") -Encoding UTF8
     }
 
-    Write-Host "    ✓ Cloud provider mock data: OneDrive, GoogleDrive, Dropbox, Box" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Cloud provider mock data: OneDrive, GoogleDrive, Dropbox, Box"
 }
 
 function Generate-WSLMockData {
@@ -1005,7 +1005,7 @@ default=$($distro.DefaultUser)
         $wslConfig | Set-Content -Path (Join-Path $distroPath "wsl.conf") -Encoding UTF8
     }
 
-    Write-Host "    ✓ WSL mock data: Ubuntu, Debian, packages, configurations" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ WSL mock data: Ubuntu, Debian, packages, configurations"
 }
 
 function Generate-RegistryMockData {
@@ -1047,7 +1047,7 @@ function Generate-RegistryMockData {
         $registryData[$keyPath] | ConvertTo-Json -Depth 10 | Set-Content -Path $keyDataPath -Encoding UTF8
     }
 
-    Write-Host "    ✓ Registry mock data: Explorer, Desktop, Themes, System" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Registry mock data: Explorer, Desktop, Themes, System"
 }
 
 function Generate-AppDataStructure {
@@ -1079,7 +1079,7 @@ function Generate-AppDataStructure {
         $content | Set-Content -Path $fullPath -Encoding UTF8
     }
 
-    Write-Host "    ✓ AppData structure: browser configs, app settings, user data" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ AppData structure: browser configs, app settings, user data"
 }
 
 function Generate-ProgramFilesStructure {
@@ -1108,7 +1108,7 @@ function Generate-ProgramFilesStructure {
         $exeInfo | ConvertTo-Json | Set-Content -Path "$fullPath.info" -Encoding UTF8
     }
 
-    Write-Host "    ✓ Program Files structure: applications, executables, metadata" -ForegroundColor Gray
+    Write-Verbose -Message "    ✓ Program Files structure: applications, executables, metadata"
 }
 
 function Generate-MockConfiguration {
@@ -1273,15 +1273,15 @@ function Reset-EnhancedMockData {
         [switch]$SkipSafetyCheck
     )
 
-    Write-Host "🔄 Resetting enhanced mock data..." -ForegroundColor Yellow
+    Write-Warning -Message "🔄 Resetting enhanced mock data..."
 
     # SAFETY CHECK: Ensure we're running in Docker environment
     if (-not $SkipSafetyCheck) {
         try {
             Assert-DockerEnvironment
         } catch {
-            Write-Host "🚫 Enhanced mock data reset BLOCKED" -ForegroundColor Red
-            Write-Host "   Reason: $_" -ForegroundColor Red
+            Write-Error -Message "🚫 Enhanced mock data reset BLOCKED"
+            Write-Error -Message "   Reason: $_"
             return $null
         }
     }
@@ -1292,18 +1292,18 @@ function Reset-EnhancedMockData {
         # Reset specific component
         if ($dockerConfig.IsDockerEnvironment) {
             # In Docker, simply regenerate in the volume (will overwrite existing)
-            Write-Host "  🐳 Docker environment: Regenerating $Component in volume" -ForegroundColor Blue
+            Write-Information -MessageData "  🐳 Docker environment: Regenerating $Component in volume" -InformationAction Continue
             $componentPath = Get-DynamicMockPath -Component $Component
         } else {
             # In local environment, clean only the generated subdirectory
-            Write-Host "  🖥️  Local environment: Cleaning $Component generated data" -ForegroundColor Green
+            Write-Information -MessageData "  🖥️  Local environment: Cleaning $Component generated data" -InformationAction Continue
             $componentPath = Get-DynamicMockPath -Component $Component
 
             if (Test-Path $componentPath) {
                 Remove-Item -Path $componentPath -Recurse -Force -ErrorAction SilentlyContinue
-                Write-Host "  ✓ Removed $Component dynamic data" -ForegroundColor Green
+                Write-Information -MessageData "  ✓ Removed $Component dynamic data" -InformationAction Continue
             } else {
-                Write-Host "  ✅ No $Component dynamic data to clean" -ForegroundColor Cyan
+                Write-Information -MessageData "  ✅ No $Component dynamic data to clean" -InformationAction Continue
             }
         }
 
@@ -1317,13 +1317,13 @@ function Reset-EnhancedMockData {
             'registry' { Generate-RegistryMockData -OutputPath $componentPath -Scope $Scope -Force:$true }
         }
 
-        Write-Host "  ✓ Regenerated $Component mock data" -ForegroundColor Green
+        Write-Information -MessageData "  ✓ Regenerated $Component mock data" -InformationAction Continue
     } else {
         # Reset all components
         if ($dockerConfig.IsDockerEnvironment) {
-            Write-Host "  🐳 Docker environment: Regenerating all components in volumes" -ForegroundColor Blue
+            Write-Information -MessageData "  🐳 Docker environment: Regenerating all components in volumes" -InformationAction Continue
         } else {
-            Write-Host "  🖥️  Local environment: Cleaning all generated data" -ForegroundColor Green
+            Write-Information -MessageData "  🖥️  Local environment: Cleaning all generated data" -InformationAction Continue
         }
 
         $components = @("applications", "gaming", "cloud", "wsl", "system-settings", "registry")
@@ -1332,7 +1332,7 @@ function Reset-EnhancedMockData {
         }
     }
 
-    Write-Host "🎉 Mock data reset completed safely!" -ForegroundColor Green
+    Write-Information -MessageData "🎉 Mock data reset completed safely!" -InformationAction Continue
 }
 
 # Functions are available when dot-sourced

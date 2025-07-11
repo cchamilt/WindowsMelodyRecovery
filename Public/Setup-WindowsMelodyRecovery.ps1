@@ -15,12 +15,12 @@ function Setup-WindowsMelodyRecovery {
     }
 
     try {
-        Write-Host "Starting Windows Recovery Setup..." -ForegroundColor Blue
+        Write-Information -MessageData "Starting Windows Recovery Setup..." -InformationAction Continue
 
         # Check if configuration is already initialized
         $config = Get-WindowsMelodyRecovery
         if (!$config.BackupRoot -or $Force) {
-            Write-Host "Configuration not found or Force specified. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
+            Write-Warning -Message "Configuration not found or Force specified. Please run Initialize-WindowsMelodyRecovery first."
             if (!$NoPrompt) {
                 $response = Read-Host "Would you like to run initialization now? (Y/N)"
                 if ($response -eq 'Y') {
@@ -35,21 +35,21 @@ function Setup-WindowsMelodyRecovery {
                 throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
             }
         } else {
-            Write-Host "Using existing configuration" -ForegroundColor Green
+            Write-Information -MessageData "Using existing configuration" -InformationAction Continue
         }
 
         # Load setup scripts on demand
-        Write-Host "Loading setup scripts..." -ForegroundColor Yellow
+        Write-Warning -Message "Loading setup scripts..."
         Import-PrivateScripts -Category 'setup'
 
         # Verify setup functions are loaded
         $loadedFunctions = Get-Command -Name "Setup-*" -ErrorAction SilentlyContinue
-        Write-Host "Found $($loadedFunctions.Count) setup functions: $($loadedFunctions.Name -join ', ')" -ForegroundColor Green
+        Write-Information -MessageData "Found $($loadedFunctions.Count) setup functions: $($loadedFunctions.Name -join ', ')" -InformationAction Continue
 
         # Step 2: Run setup scripts (configurable)
         $setupFunctions = Get-ScriptsConfig -Category 'setup'
         if ($setupFunctions) {
-            Write-Host "`nAvailable Setup Scripts:" -ForegroundColor Blue
+            Write-Information -MessageData "`nAvailable Setup Scripts:" -InformationAction Continue
             foreach ($setup in $setupFunctions) {
                 if ($setup.enabled) {
                     if ($NoPrompt -or $Force) {
@@ -59,11 +59,11 @@ function Setup-WindowsMelodyRecovery {
                     }
 
                     if ($response -eq 'Y') {
-                        Write-Host "Running $($setup.name)..." -ForegroundColor Yellow
+                        Write-Warning -Message "Running $($setup.name)..."
                         try {
                             if (Get-Command $setup.function -ErrorAction SilentlyContinue) {
                                 & $setup.function
-                                Write-Host "✅ Completed $($setup.name)" -ForegroundColor Green
+                                Write-Information -MessageData "✅ Completed $($setup.name)" -InformationAction Continue
                             } else {
                                 Write-Warning "Setup function $($setup.function) not available"
                             }
@@ -71,14 +71,14 @@ function Setup-WindowsMelodyRecovery {
                             Write-Warning "Failed to run $($setup.name): $_"
                         }
                     } else {
-                        Write-Host "⏭️ Skipped $($setup.name)" -ForegroundColor Gray
+                        Write-Verbose -Message "⏭️ Skipped $($setup.name)"
                     }
                 } else {
                     Write-Verbose "Setup script $($setup.name) is disabled in configuration"
                 }
             }
         } else {
-            Write-Host "No setup scripts configured or available." -ForegroundColor Yellow
+            Write-Warning -Message "No setup scripts configured or available."
         }
 
         # Step 3: Install scheduled tasks (if not disabled)
@@ -87,7 +87,7 @@ function Setup-WindowsMelodyRecovery {
                 $response = if ($NoPrompt) { 'Y' } else { Read-Host "Would you like to install scheduled tasks for backup and updates? (Y/N)" }
 
                 if ($response -eq 'Y') {
-                    Write-Host "Installing scheduled tasks..." -ForegroundColor Yellow
+                    Write-Warning -Message "Installing scheduled tasks..."
                     if (!(Install-WindowsMelodyRecoveryTasks -NoPrompt:$NoPrompt)) {
                         Write-Warning "Failed to install scheduled tasks"
                     }
@@ -96,7 +96,7 @@ function Setup-WindowsMelodyRecovery {
         }
 
         # Step 4: Verify installation
-        Write-Host "`nVerifying installation..." -ForegroundColor Blue
+        Write-Information -MessageData "`nVerifying installation..." -InformationAction Continue
         $verificationResults = @{
             Config = Test-Path (Join-Path $InstallPath "config.env")
             Tasks = if (!$NoScheduledTasks) {
@@ -108,17 +108,18 @@ function Setup-WindowsMelodyRecovery {
         }
 
         # Display verification results
-        Write-Host "`nSetup Verification:" -ForegroundColor Green
-        Write-Host "Configuration: $(if ($verificationResults.Config) { 'OK' } else { 'Missing' })" -ForegroundColor $(if ($verificationResults.Config) { 'Green' } else { 'Red' })
+        Write-Information -MessageData "`nSetup Verification:" -InformationAction Continue
+        Write-Information -MessageData "Configuration: $(if ($verificationResults.Config) { 'OK' } else { 'Missing' })"  -InformationAction Continue-ForegroundColor $(if ($verificationResults.Config) { 'Green' } else { 'Red' })
         if (!$NoScheduledTasks) {
-            Write-Host "Scheduled Tasks: $($verificationResults.Tasks.Count) installed" -ForegroundColor $(if ($verificationResults.Tasks.Count -eq 2) { 'Green' } else { 'Yellow' })
+            Write-Information -MessageData "Scheduled Tasks: $($verificationResults.Tasks.Count) installed"  -InformationAction Continue-ForegroundColor $(if ($verificationResults.Tasks.Count -eq 2) { 'Green' } else { 'Yellow' })
         }
 
-        Write-Host "`nWindows Recovery setup completed successfully!" -ForegroundColor Green
+        Write-Information -MessageData "`nWindows Recovery setup completed successfully!" -InformationAction Continue
         return $true
     } catch {
-        Write-Host "`nSetup failed: $_" -ForegroundColor Red
+        Write-Error -Message "`nSetup failed: $_"
         return $false
     }
 }
+
 

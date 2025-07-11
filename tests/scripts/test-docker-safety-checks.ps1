@@ -11,24 +11,24 @@
 # SAFETY CHECK: Prevent this script from running in local Windows environments
 # This script creates /test-dynamic-* paths which pollute C:\ on Windows
 if ($IsWindows -and -not ($env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv'))) {
-    Write-Host "🚫 This script is designed to run only in Docker environments" -ForegroundColor Red
-    Write-Host "   Running it locally would pollute the C:\ drive with /test-dynamic-* directories" -ForegroundColor Red
-    Write-Host "   Use: docker-compose -f docker-compose.test.yml up test-runner" -ForegroundColor Yellow
+    Write-Error -Message "🚫 This script is designed to run only in Docker environments"
+    Write-Error -Message "   Running it locally would pollute the C:\ drive with /test-dynamic-* directories"
+    Write-Warning -Message "   Use: docker-compose -f docker-compose.test.yml up test-runner"
     exit 1
 }
 
-Write-Host "🔒 Testing Docker Safety Checks" -ForegroundColor Cyan
-Write-Host "===============================" -ForegroundColor Cyan
+Write-Information -MessageData "🔒 Testing Docker Safety Checks" -InformationAction Continue
+Write-Information -MessageData "===============================" -InformationAction Continue
 
 try {
     # Load the utilities
     . "$PSScriptRoot/../utilities/Test-Environment-Standard.ps1"
     . "$PSScriptRoot/../utilities/Enhanced-Mock-Infrastructure.ps1"
-    Write-Host "✅ Loaded test utilities" -ForegroundColor Green
+    Write-Information -MessageData "✅ Loaded test utilities" -InformationAction Continue
 
     # Test 1: Safety checks in local environment (should fail)
-    Write-Host "`n🔍 Test 1: Safety Checks in Local Environment" -ForegroundColor Yellow
-    Write-Host "==============================================" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Test 1: Safety Checks in Local Environment"
+    Write-Warning -Message "=============================================="
 
     # Clear any Docker environment variables
     $originalEnvVars = @{}
@@ -38,128 +38,128 @@ try {
         [Environment]::SetEnvironmentVariable($envVar, $null)
     }
 
-    Write-Host "  Testing Initialize-EnhancedMockInfrastructure..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Initialize-EnhancedMockInfrastructure..." -InformationAction Continue
     try {
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
         if ($result -eq $null) {
-            Write-Host "  ✅ Initialize correctly blocked in local environment" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Initialize correctly blocked in local environment" -InformationAction Continue
         } else {
-            Write-Host "  ❌ Initialize should have been blocked" -ForegroundColor Red
+            Write-Error -Message "  ❌ Initialize should have been blocked"
         }
     } catch {
-        Write-Host "  ✅ Initialize correctly threw exception: $($_.Exception.Message)" -ForegroundColor Green
+        Write-Information -MessageData "  ✅ Initialize correctly threw exception: $($_.Exception.Message)" -InformationAction Continue
     }
 
-    Write-Host "  Testing Reset-EnhancedMockData..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Reset-EnhancedMockData..." -InformationAction Continue
     try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal
         if ($result -eq $null) {
-            Write-Host "  ✅ Reset correctly blocked in local environment" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Reset correctly blocked in local environment" -InformationAction Continue
         } else {
-            Write-Host "  ❌ Reset should have been blocked" -ForegroundColor Red
+            Write-Error -Message "  ❌ Reset should have been blocked"
         }
     } catch {
-        Write-Host "  ✅ Reset correctly threw exception: $($_.Exception.Message)" -ForegroundColor Green
+        Write-Information -MessageData "  ✅ Reset correctly threw exception: $($_.Exception.Message)" -InformationAction Continue
     }
 
     # Test 2: Safety checks with Docker environment (should pass)
-    Write-Host "`n🔍 Test 2: Safety Checks with Docker Environment" -ForegroundColor Yellow
-    Write-Host "=================================================" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Test 2: Safety Checks with Docker Environment"
+    Write-Warning -Message "================================================="
 
     # Mock Docker environment
     $env:DYNAMIC_MOCK_ROOT = "/test-dynamic-mock-data"
     $env:DYNAMIC_APPLICATIONS = "/test-dynamic-applications"
     $env:DYNAMIC_GAMING = "/test-dynamic-gaming"
 
-    Write-Host "  Testing Initialize-EnhancedMockInfrastructure..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Initialize-EnhancedMockInfrastructure..." -InformationAction Continue
     try {
         Initialize-StandardTestEnvironment -TestType Unit -IsolationLevel Basic -Force | Out-Null
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
         if ($result -ne $null -or $?) {
-            Write-Host "  ✅ Initialize correctly allowed in Docker environment" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Initialize correctly allowed in Docker environment" -InformationAction Continue
         } else {
-            Write-Host "  ❌ Initialize should have been allowed" -ForegroundColor Red
+            Write-Error -Message "  ❌ Initialize should have been allowed"
         }
     } catch {
-        Write-Host "  ⚠️  Initialize failed in Docker environment: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Warning -Message "  ⚠️  Initialize failed in Docker environment: $($_.Exception.Message)"
     }
 
-    Write-Host "  Testing Reset-EnhancedMockData..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Reset-EnhancedMockData..." -InformationAction Continue
     try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal
         if ($result -ne $null -or $?) {
-            Write-Host "  ✅ Reset correctly allowed in Docker environment" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Reset correctly allowed in Docker environment" -InformationAction Continue
         } else {
-            Write-Host "  ❌ Reset should have been allowed" -ForegroundColor Red
+            Write-Error -Message "  ❌ Reset should have been allowed"
         }
     } catch {
-        Write-Host "  ⚠️  Reset failed in Docker environment: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Warning -Message "  ⚠️  Reset failed in Docker environment: $($_.Exception.Message)"
     }
 
     # Test 3: SkipSafetyCheck parameter (should bypass checks)
-    Write-Host "`n🔍 Test 3: SkipSafetyCheck Parameter" -ForegroundColor Yellow
-    Write-Host "====================================" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Test 3: SkipSafetyCheck Parameter"
+    Write-Warning -Message "===================================="
 
     # Clear Docker environment again
     foreach ($envVar in $dockerEnvVars) {
         [Environment]::SetEnvironmentVariable($envVar, $null)
     }
 
-    Write-Host "  Testing Initialize with SkipSafetyCheck..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Initialize with SkipSafetyCheck..." -InformationAction Continue
     try {
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal -SkipSafetyCheck
-        Write-Host "  ✅ SkipSafetyCheck correctly bypassed safety checks" -ForegroundColor Green
+        Write-Information -MessageData "  ✅ SkipSafetyCheck correctly bypassed safety checks" -InformationAction Continue
     } catch {
-        Write-Host "  ❌ SkipSafetyCheck should have bypassed checks: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "  ❌ SkipSafetyCheck should have bypassed checks: $($_.Exception.Message)"
     }
 
-    Write-Host "  Testing Reset with SkipSafetyCheck..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Reset with SkipSafetyCheck..." -InformationAction Continue
     try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal -SkipSafetyCheck
-        Write-Host "  ✅ SkipSafetyCheck correctly bypassed safety checks" -ForegroundColor Green
+        Write-Information -MessageData "  ✅ SkipSafetyCheck correctly bypassed safety checks" -InformationAction Continue
     } catch {
-        Write-Host "  ❌ SkipSafetyCheck should have bypassed checks: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "  ❌ SkipSafetyCheck should have bypassed checks: $($_.Exception.Message)"
     }
 
     # Test 4: Docker environment lock validation
-    Write-Host "`n🔍 Test 4: Docker Environment Lock Validation" -ForegroundColor Yellow
-    Write-Host "==============================================" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Test 4: Docker Environment Lock Validation"
+    Write-Warning -Message "=============================================="
 
     # Test lock validation with mock environment
     $env:DYNAMIC_MOCK_ROOT = "/test-dynamic-mock-data"
     $env:DYNAMIC_APPLICATIONS = "/test-dynamic-applications"
 
-    Write-Host "  Testing Docker lock creation..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Docker lock creation..." -InformationAction Continue
     try {
         Initialize-DockerEnvironment
         $lockValid = Test-DockerEnvironmentLock
         if ($lockValid) {
-            Write-Host "  ✅ Docker environment lock created and validated" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Docker environment lock created and validated" -InformationAction Continue
         } else {
-            Write-Host "  ❌ Docker environment lock validation failed" -ForegroundColor Red
+            Write-Error -Message "  ❌ Docker environment lock validation failed"
         }
     } catch {
-        Write-Host "  ⚠️  Docker lock test failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Warning -Message "  ⚠️  Docker lock test failed: $($_.Exception.Message)"
     }
 
     # Test 5: Comprehensive safety validation
-    Write-Host "`n🔍 Test 5: Comprehensive Safety Validation" -ForegroundColor Yellow
-    Write-Host "==========================================" -ForegroundColor Yellow
+    Write-Warning -Message "`n🔍 Test 5: Comprehensive Safety Validation"
+    Write-Warning -Message "=========================================="
 
-    Write-Host "  Testing Assert-DockerEnvironment..." -ForegroundColor Cyan
+    Write-Information -MessageData "  Testing Assert-DockerEnvironment..." -InformationAction Continue
     try {
         Assert-DockerEnvironment
-        Write-Host "  ✅ Assert-DockerEnvironment passed with mock environment" -ForegroundColor Green
+        Write-Information -MessageData "  ✅ Assert-DockerEnvironment passed with mock environment" -InformationAction Continue
     } catch {
-        Write-Host "  ❌ Assert-DockerEnvironment failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "  ❌ Assert-DockerEnvironment failed: $($_.Exception.Message)"
     }
 
-    Write-Host "`n🎉 Docker Safety Check Test Results:" -ForegroundColor Green
-    Write-Host "  ✅ Local environment properly blocked" -ForegroundColor Green
-    Write-Host "  ✅ Docker environment properly allowed" -ForegroundColor Green
-    Write-Host "  ✅ SkipSafetyCheck parameter working" -ForegroundColor Green
-    Write-Host "  ✅ Docker lock validation working" -ForegroundColor Green
-    Write-Host "  ✅ Comprehensive safety validation working" -ForegroundColor Green
+    Write-Information -MessageData "`n🎉 Docker Safety Check Test Results:" -InformationAction Continue
+    Write-Information -MessageData "  ✅ Local environment properly blocked" -InformationAction Continue
+    Write-Information -MessageData "  ✅ Docker environment properly allowed" -InformationAction Continue
+    Write-Information -MessageData "  ✅ SkipSafetyCheck parameter working" -InformationAction Continue
+    Write-Information -MessageData "  ✅ Docker lock validation working" -InformationAction Continue
+    Write-Information -MessageData "  ✅ Comprehensive safety validation working" -InformationAction Continue
 
 } catch {
     Write-Error "❌ Test failed: $_"
@@ -171,10 +171,10 @@ try {
     }
 
     # Clean up test environment
-    Write-Host "`n🧹 Cleaning up test environment..." -ForegroundColor Gray
+    Write-Verbose -Message "`n🧹 Cleaning up test environment..."
     try {
         Remove-StandardTestEnvironment -Confirm:$false
-        Write-Host "✅ Test environment cleaned up" -ForegroundColor Green
+        Write-Information -MessageData "✅ Test environment cleaned up" -InformationAction Continue
     } catch {
         Write-Warning "⚠️  Cleanup warning: $_"
     }

@@ -10,23 +10,23 @@ function Setup-KeePassXC {
     }
 
     try {
-        Write-Host "Setting up KeePassXC..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up KeePassXC..." -InformationAction Continue
 
         # Install KeePassXC
-        Write-Host "Installing KeePassXC..." -ForegroundColor Yellow
+        Write-Warning -Message "Installing KeePassXC..."
         try {
             # Try winget first
             $wingetResult = winget list KeePassXC 2>$null
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "KeePassXC not found, installing..." -ForegroundColor Yellow
+                Write-Warning -Message "KeePassXC not found, installing..."
                 winget install -e --id KeePassXCTeam.KeePassXC
             } else {
-                Write-Host "KeePassXC is already installed" -ForegroundColor Green
+                Write-Information -MessageData "KeePassXC is already installed" -InformationAction Continue
             }
         } catch {
             # Fallback to chocolatey if winget fails
             if (Get-Command choco -ErrorAction SilentlyContinue) {
-                Write-Host "Attempting to install via Chocolatey..." -ForegroundColor Yellow
+                Write-Warning -Message "Attempting to install via Chocolatey..."
                 choco install keepassxc -y
             } else {
                 Write-Warning "Failed to install KeePassXC. Please install manually."
@@ -34,12 +34,13 @@ function Setup-KeePassXC {
             }
         }
 
-        Write-Host "KeePassXC setup completed!" -ForegroundColor Green
-        Write-Host "You can configure your database location manually after installation." -ForegroundColor Yellow
+        Write-Information -MessageData "KeePassXC setup completed!" -InformationAction Continue
+        Write-Warning -Message "You can configure your database location manually after installation."
         return $true
 
     } catch {
-        Write-Host "Failed to setup KeePassXC: $_" -ForegroundColor Red
+        Write-Error -Message "Failed to setup KeePassXC: $_"
         return $false
     }
 }
+

@@ -13,17 +13,17 @@ function Get-WmrRegistryState {
         [string]$StateFilesDirectory # Base directory where dynamic state files are stored
     )
 
-    Write-Host "  Getting registry state for: $($RegistryConfig.name)"
+    Write-Information -MessageData "  Getting registry state for: $($RegistryConfig.name)" -InformationAction Continue
 
     if ($WhatIfPreference) {
-        Write-Host "    WhatIf: Would backup registry state from $($RegistryConfig.path)" -ForegroundColor Yellow
+        Write-Warning -Message "    WhatIf: Would backup registry state from $($RegistryConfig.path)"
         $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $RegistryConfig.dynamic_state_path
-        Write-Host "    WhatIf: Would save registry data to $stateFilePath" -ForegroundColor Yellow
+        Write-Warning -Message "    WhatIf: Would save registry data to $stateFilePath"
 
         if (-not (Test-Path $RegistryConfig.path)) {
             Write-Warning "    WhatIf: Registry path not found: $($RegistryConfig.path). Would skip backup for this item."
         } else {
-            Write-Host "    WhatIf: Would capture registry $($RegistryConfig.type) values" -ForegroundColor Yellow
+            Write-Warning -Message "    WhatIf: Would capture registry $($RegistryConfig.type) values"
         }
         return $null
     }
@@ -60,7 +60,7 @@ function Get-WmrRegistryState {
             $registryState.Value = $value
 
             if ($RegistryConfig.encrypt) {
-                Write-Host "    Encrypting registry value with AES-256"
+                Write-Information -MessageData "    Encrypting registry value with AES-256" -InformationAction Continue
                 $valueBytes = [System.Text.Encoding]::UTF8.GetBytes($value.ToString())
                 $encryptedValue = Protect-WmrData -DataBytes $valueBytes
                 $registryState.EncryptedValue = $encryptedValue
@@ -80,7 +80,7 @@ function Get-WmrRegistryState {
             # Convert to JSON and save to dynamic_state_path
             ($registryState | ConvertTo-Json -Compress) | Set-Content -Path $stateFilePath -Encoding Utf8
         }
-        Write-Host "  Registry state for $($RegistryConfig.name) captured and saved to $stateFilePath."
+        Write-Information -MessageData "  Registry state for $($RegistryConfig.name) captured and saved to $stateFilePath." -InformationAction Continue
         return $registryState
 
     } catch {
@@ -100,7 +100,7 @@ function Set-WmrRegistryState {
         [string]$StateFilesDirectory # Base directory where dynamic state files are stored
     )
 
-    Write-Host "  Setting registry state for: $($RegistryConfig.name)"
+    Write-Information -MessageData "  Setting registry state for: $($RegistryConfig.name)" -InformationAction Continue
 
     $resolvedPathObj = Convert-WmrPath -Path $RegistryConfig.path
     if ($resolvedPathObj.PathType -ne "Registry") {
@@ -112,7 +112,7 @@ function Set-WmrRegistryState {
     $stateFilePath = Join-Path -Path $StateFilesDirectory -ChildPath $RegistryConfig.dynamic_state_path
 
     if ($WhatIfPreference) {
-        Write-Host "    WhatIf: Would restore registry state from $stateFilePath to $resolvedPath" -ForegroundColor Yellow
+        Write-Warning -Message "    WhatIf: Would restore registry state from $stateFilePath to $resolvedPath"
 
         if (Test-Path $stateFilePath) {
             try {
@@ -121,22 +121,22 @@ function Set-WmrRegistryState {
                 if ($RegistryConfig.type -eq "value") {
                     $valueToShow = "?"
                     if ($stateData.Encrypted -eq $true -and $stateData.EncryptedValue) {
-                        Write-Host "    WhatIf: Would decrypt registry value with AES-256" -ForegroundColor Yellow
+                        Write-Warning -Message "    WhatIf: Would decrypt registry value with AES-256"
                         $valueToShow = "<encrypted>"
                     } elseif ($stateData.Value) {
                         $valueToShow = $stateData.Value
                     } elseif ($RegistryConfig.value_data) {
                         $valueToShow = $RegistryConfig.value_data
                     }
-                    Write-Host "    WhatIf: Would set registry value '$($RegistryConfig.key_name)' to '$valueToShow' at $resolvedPath" -ForegroundColor Yellow
+                    Write-Warning -Message "    WhatIf: Would set registry value '$($RegistryConfig.key_name)' to '$valueToShow' at $resolvedPath"
                 } elseif ($RegistryConfig.type -eq "key") {
                     if ($stateData.Values) {
                         $valueCount = ($stateData.Values.PSObject.Properties | Measure-Object).Count
-                        Write-Host "    WhatIf: Would restore $valueCount registry values under key $resolvedPath" -ForegroundColor Yellow
+                        Write-Warning -Message "    WhatIf: Would restore $valueCount registry values under key $resolvedPath"
                     }
                 }
             } catch {
-                Write-Host "    WhatIf: Would attempt to restore registry from $stateFilePath (state file parse failed)" -ForegroundColor Yellow
+                Write-Warning -Message "    WhatIf: Would attempt to restore registry from $stateFilePath (state file parse failed)"
             }
         } else {
             Write-Warning "    WhatIf: No state data found for registry $($RegistryConfig.name). Would skip."
@@ -159,7 +159,7 @@ function Set-WmrRegistryState {
             $valueToSet = $null
             if ($stateData) {
                 if ($stateData.Encrypted -eq $true -and $stateData.EncryptedValue) {
-                    Write-Host "    Decrypting registry value with AES-256"
+                    Write-Information -MessageData "    Decrypting registry value with AES-256" -InformationAction Continue
                     $decryptedBytes = Unprotect-WmrData -EncodedData $stateData.EncryptedValue
                     $valueToSet = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
                 } elseif ($stateData.Value) {
@@ -167,12 +167,12 @@ function Set-WmrRegistryState {
                 }
             } elseif ($RegistryConfig.value_data) {
                 $valueToSet = $RegistryConfig.value_data
-                Write-Host "    Using default value_data from template for $($RegistryConfig.name)."
+                Write-Information -MessageData "    Using default value_data from template for $($RegistryConfig.name)." -InformationAction Continue
             }
 
             if ($valueToSet -ne $null) {
                 Set-ItemProperty -Path $resolvedPath -Name $RegistryConfig.key_name -Value $valueToSet -Force -ErrorAction Stop
-                Write-Host "  Registry value $($RegistryConfig.name) set to $valueToSet at $resolvedPath/$($RegistryConfig.key_name)."
+                Write-Information -MessageData "  Registry value $($RegistryConfig.name) set to $valueToSet at $resolvedPath/$($RegistryConfig.key_name)." -InformationAction Continue
             } else {
                 Write-Warning "    No state data or default value_data found for registry value $($RegistryConfig.name). Skipping."
             }
@@ -182,9 +182,9 @@ function Set-WmrRegistryState {
                 # Restore all values under the key from state data
                 foreach ($prop in $stateData.Values.PSObject.Properties) {
                     Set-ItemProperty -Path $resolvedPath -Name $prop.Name -Value $prop.Value -Force -ErrorAction Stop
-                    Write-Host "    Set value `'$($prop.Name)`' under `'$resolvedPath`'."
+                    Write-Information -MessageData "    Set value `'$($prop.Name)`' under `'$resolvedPath`'." -InformationAction Continue
                 }
-                Write-Host "  Registry key $($RegistryConfig.name) values restored at $resolvedPath."
+                Write-Information -MessageData "  Registry key $($RegistryConfig.name) values restored at $resolvedPath." -InformationAction Continue
             } else {
                 Write-Warning "    No state data found for registry key $($RegistryConfig.name). Skipping."
             }

@@ -76,12 +76,12 @@ function Get-WmrFileState {
     $stateFileDirectory = Split-Path -Path $stateFilePath -Parent
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would backup file state from $resolvedPath to $stateFilePath" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would backup file state from $resolvedPath to $stateFilePath"
         if (-not (Test-Path $resolvedPath)) {
             Write-Warning "WhatIf: Source path not found: $resolvedPath. Would skip backup for this item."
         } else {
-            Write-Host "WhatIf: Would create state file directory: $stateFileDirectory" -ForegroundColor Yellow
-            Write-Host "WhatIf: Would backup $($FileConfig.type) content" -ForegroundColor Yellow
+            Write-Warning -Message "WhatIf: Would create state file directory: $stateFileDirectory"
+            Write-Warning -Message "WhatIf: Would backup $($FileConfig.type) content"
         }
         return $null
     }
@@ -232,8 +232,8 @@ function Set-WmrFileState {
     }
 
     if ($WhatIfPreference) {
-        Write-Host "WhatIf: Would restore file state from $stateFilePath to $destinationPath" -ForegroundColor Yellow
-        Write-Host "WhatIf: Would create target directory if needed" -ForegroundColor Yellow
+        Write-Warning -Message "WhatIf: Would restore file state from $stateFilePath to $destinationPath"
+        Write-Warning -Message "WhatIf: Would create target directory if needed"
         return
     }
 

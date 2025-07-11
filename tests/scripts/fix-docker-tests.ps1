@@ -16,7 +16,7 @@ function Add-DockerBootstrap {
 
     # Skip if already has Docker bootstrap
     if ($content -match "Docker-Test-Bootstrap\.ps1") {
-        Write-Host "✓ $TestFile already has Docker bootstrap" -ForegroundColor Green
+        Write-Information -MessageData "✓ $TestFile already has Docker bootstrap" -InformationAction Continue
         return
     }
 
@@ -30,10 +30,10 @@ function Add-DockerBootstrap {
     }
 
     if ($WhatIf) {
-        Write-Host "Would add Docker bootstrap to: $TestFile" -ForegroundColor Yellow
+        Write-Warning -Message "Would add Docker bootstrap to: $TestFile"
     } else {
         Set-Content -Path $TestFile -Value $newContent -Encoding UTF8
-        Write-Host "✓ Added Docker bootstrap to: $TestFile" -ForegroundColor Green
+        Write-Information -MessageData "✓ Added Docker bootstrap to: $TestFile" -InformationAction Continue
     }
 }
 
@@ -62,10 +62,10 @@ function Fix-PathUsage {
 
     if ($changed) {
         if ($WhatIf) {
-            Write-Host "Would fix path usage in: $TestFile" -ForegroundColor Yellow
+            Write-Warning -Message "Would fix path usage in: $TestFile"
         } else {
             Set-Content -Path $TestFile -Value $content -Encoding UTF8
-            Write-Host "✓ Fixed path usage in: $TestFile" -ForegroundColor Green
+            Write-Information -MessageData "✓ Fixed path usage in: $TestFile" -InformationAction Continue
         }
     }
 }
@@ -83,10 +83,10 @@ function Fix-ExportModuleMember {
         $newContent = $content -replace "Export-ModuleMember[^`n]*", "# Functions are available when dot-sourced"
 
         if ($WhatIf) {
-            Write-Host "Would fix Export-ModuleMember in: $FilePath" -ForegroundColor Yellow
+            Write-Warning -Message "Would fix Export-ModuleMember in: $FilePath"
         } else {
             Set-Content -Path $FilePath -Value $newContent -Encoding UTF8
-            Write-Host "✓ Fixed Export-ModuleMember in: $FilePath" -ForegroundColor Green
+            Write-Information -MessageData "✓ Fixed Export-ModuleMember in: $FilePath" -InformationAction Continue
         }
     }
 }
@@ -94,10 +94,10 @@ function Fix-ExportModuleMember {
 # Get all unit test files
 $testFiles = Get-ChildItem -Path $TestPath -Filter "*.Tests.ps1" -Recurse
 
-Write-Host "🔧 Fixing $($testFiles.Count) unit test files for Docker compatibility..." -ForegroundColor Cyan
+Write-Information -MessageData "🔧 Fixing $($testFiles.Count) unit test files for Docker compatibility..." -InformationAction Continue
 
 foreach ($testFile in $testFiles) {
-    Write-Host "`n📝 Processing: $($testFile.Name)" -ForegroundColor White
+    Write-Information -MessageData "`n📝 Processing: $($testFile.Name)"  -InformationAction Continue-ForegroundColor White
 
     # Add Docker bootstrap
     Add-DockerBootstrap -TestFile $testFile.FullName
@@ -113,16 +113,16 @@ $sourceFiles = @(
     "Private/Core/PathUtilities.ps1"
 )
 
-Write-Host "`n🔧 Fixing Export-ModuleMember issues in source files..." -ForegroundColor Cyan
+Write-Information -MessageData "`n🔧 Fixing Export-ModuleMember issues in source files..." -InformationAction Continue
 
 foreach ($sourceFile in $sourceFiles) {
     if (Test-Path $sourceFile) {
-        Write-Host "`n📝 Processing: $sourceFile" -ForegroundColor White
+        Write-Information -MessageData "`n📝 Processing: $sourceFile"  -InformationAction Continue-ForegroundColor White
         Fix-ExportModuleMember -FilePath $sourceFile
     }
 }
 
-Write-Host "`n✅ Docker test fixes completed!" -ForegroundColor Green
-Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. Run tests: docker exec wmr-test-runner pwsh -Command 'cd /workspace && Invoke-Pester -Path ./tests/unit/ -PassThru'" -ForegroundColor White
-Write-Host "2. Check results and fix remaining issues" -ForegroundColor White
+Write-Information -MessageData "`n✅ Docker test fixes completed!" -InformationAction Continue
+Write-Information -MessageData "Next steps:" -InformationAction Continue
+Write-Information -MessageData "1. Run tests: docker exec wmr -InformationAction Continue-test-runner pwsh -Command 'cd /workspace && Invoke-Pester -Path ./tests/unit/ -PassThru'" -ForegroundColor White
+Write-Information -MessageData "2. Check results and fix remaining issues"  -InformationAction Continue-ForegroundColor White

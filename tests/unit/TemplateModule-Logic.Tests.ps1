@@ -108,8 +108,8 @@ files:
             throw "Template schema validation failed: 'metadata.name' is missing."
         }
 
-        Write-Host "NOTE: Schema validation is not yet fully implemented. This is a placeholder."
-        Write-Host "Basic template schema validation passed."
+        Write-Information -MessageData "NOTE: Schema validation is not yet fully implemented. This is a placeholder." -InformationAction Continue
+        Write-Information -MessageData "Basic template schema validation passed." -InformationAction Continue
         return $true
     }
 
@@ -388,4 +388,5 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         }
     }
 }
+
 

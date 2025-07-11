@@ -18,7 +18,7 @@ function Setup-WSLFonts {
     }
 
     try {
-        Write-Host "Configuring WSL fonts..." -ForegroundColor Blue
+        Write-Information -MessageData "Configuring WSL fonts..." -InformationAction Continue
 
         # Define the fonts directory
         $fontsDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
@@ -48,7 +48,7 @@ function Setup-WSLFonts {
         )
 
         foreach ($font in $nerdFonts) {
-            Write-Host "Installing $font Nerd Font..." -ForegroundColor Yellow
+            Write-Warning -Message "Installing $font Nerd Font..."
             try {
                 # Download font from GitHub
                 $releaseUrl = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/$font.zip"
@@ -75,20 +75,20 @@ function Setup-WSLFonts {
                     Set-ItemProperty -Path $regPath -Name "$fontName (TrueType)" -Value $fontName -Type String
                 }
 
-                Write-Host "Successfully installed $font" -ForegroundColor Green
+                Write-Information -MessageData "Successfully installed $font" -InformationAction Continue
 
                 # Cleanup
                 Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
                 Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
 
             } catch {
-                Write-Host "Failed to install $font : $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to install $font : $($_.Exception.Message)"
                 continue
             }
         }
 
         # Install Ubuntu fonts
-        Write-Host "`nInstalling Ubuntu fonts..." -ForegroundColor Blue
+        Write-Information -MessageData "`nInstalling Ubuntu fonts..." -InformationAction Continue
         try {
             # Download Ubuntu fonts
             $fontUrl = "https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip"
@@ -115,19 +115,19 @@ function Setup-WSLFonts {
                 Set-ItemProperty -Path $regPath -Name "$fontName (TrueType)" -Value $fontName -Type String
             }
 
-            Write-Host "Successfully installed Ubuntu fonts" -ForegroundColor Green
+            Write-Information -MessageData "Successfully installed Ubuntu fonts" -InformationAction Continue
 
             # Cleanup
             Remove-Item $fontZip -Force -ErrorAction SilentlyContinue
             Remove-Item $fontExtract -Recurse -Force -ErrorAction SilentlyContinue
 
         } catch {
-            Write-Host "Failed to install Ubuntu fonts: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Error -Message "Failed to install Ubuntu fonts: $($_.Exception.Message)"
         }
 
         # Configure WSL to use the fonts
         if (Get-Command wsl -ErrorAction SilentlyContinue) {
-            Write-Host "`nConfiguring WSL to use the fonts..." -ForegroundColor Yellow
+            Write-Warning -Message "`nConfiguring WSL to use the fonts..."
 
             # Create a temporary script to handle font copying in WSL
             $tempScript = Join-Path $env:TEMP "copy-fonts.sh"
@@ -158,25 +158,26 @@ function Setup-WSLFonts {
             try {
                 # Make script executable and run it with sudo
                 wsl --exec bash -c "chmod +x '$wslTempScript' && sudo '$wslTempScript'"
-                Write-Host "Successfully configured WSL fonts" -ForegroundColor Green
+                Write-Information -MessageData "Successfully configured WSL fonts" -InformationAction Continue
             } catch {
-                Write-Host "Failed to configure WSL fonts: $($_.Exception.Message)" -ForegroundColor Red
-                Write-Host "You may need to manually copy fonts to WSL" -ForegroundColor Yellow
+                Write-Error -Message "Failed to configure WSL fonts: $($_.Exception.Message)"
+                Write-Warning -Message "You may need to manually copy fonts to WSL"
             }
 
             # Cleanup temporary script
             Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
         } else {
-            Write-Host "WSL not found. Fonts installed for Windows only." -ForegroundColor Yellow
+            Write-Warning -Message "WSL not found. Fonts installed for Windows only."
         }
 
-        Write-Host "`nWSL fonts configuration completed!" -ForegroundColor Green
-        Write-Host "Note: You may need to restart your WSL terminal to see the changes" -ForegroundColor Yellow
+        Write-Information -MessageData "`nWSL fonts configuration completed!" -InformationAction Continue
+        Write-Warning -Message "Note: You may need to restart your WSL terminal to see the changes"
         return $true
 
     } catch {
-        Write-Host "Failed to configure WSL fonts: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to configure WSL fonts: $($_.Exception.Message)"
         return $false
     }
 }
+
 

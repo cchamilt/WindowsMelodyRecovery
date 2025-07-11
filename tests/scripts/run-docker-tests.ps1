@@ -41,7 +41,7 @@ function Write-TestLog {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logMessage = "[$timestamp] [$Level] $Message"
 
-    Write-Host $logMessage -ForegroundColor $color
+    Write-Information -MessageData $logMessage  -InformationAction Continue-ForegroundColor $color
 }
 
 function Test-DockerComposeCommand {
@@ -130,7 +130,7 @@ function Start-DockerTestEnvironment {
             Start-Sleep -Seconds 2
 
             try {
-                $result = docker exec $ContainerName pwsh -Command "Write-Host 'Ready'; exit 0" 2>$null
+                $result = docker exec $ContainerName pwsh -Command "Write-Information -MessageData 'Ready'; exit 0" 2>$null -InformationAction Continue
                 if ($LASTEXITCODE -eq 0) {
                     Write-TestLog "Docker test environment is ready" -Level Success
                     return $true
@@ -178,26 +178,26 @@ Import-Module ./WindowsMelodyRecovery.psd1 -Force
 `$env:DOCKER_TEST = 'true'
 `$env:CONTAINER = 'true'
 
-Write-Host "🐳 Docker test environment initialized"
-Write-Host "Running $TestCategory tests..."
+Write-Information -MessageData "🐳 Docker test environment initialized" -InformationAction Continue
+Write-Information -MessageData "Running $TestCategory tests..." -InformationAction Continue
 
 `$allResults = @()
 `$testPaths = @($($testPath -join ', '))
 
 foreach (`$testPath in `$testPaths) {
     if (Test-Path `$testPath) {
-        Write-Host "📁 Running tests from: `$testPath"
+        Write-Information -MessageData "📁 Running tests from: `$testPath" -InformationAction Continue
         `$result = Invoke-Pester -Path `$testPath -PassThru -Show Detailed
         `$allResults += `$result
 
-        Write-Host "Results for `$testPath - Passed: `$(`$result.PassedCount), Failed: `$(`$result.FailedCount)"
+        Write-Information -MessageData "Results for `$testPath - Passed: `$(`$result.PassedCount), Failed: `$(`$result.FailedCount)" -InformationAction Continue
 
         if (`$result.FailedCount -gt 0 -and '$StopOnFirstFailure' -eq 'True') {
-            Write-Host "❌ Stopping on first failure as requested"
+            Write-Information -MessageData "❌ Stopping on first failure as requested" -InformationAction Continue
             break
         }
     } else {
-        Write-Host "⚠️ Test path `$testPath does not exist, skipping..."
+        Write-Information -MessageData "⚠️ Test path `$testPath does not exist, skipping..." -InformationAction Continue
     }
 }
 
@@ -206,26 +206,26 @@ foreach (`$testPath in `$testPaths) {
 `$totalFailed = (`$allResults | Measure-Object -Property FailedCount -Sum).Sum
 `$totalTests = `$totalPassed + `$totalFailed
 
-Write-Host ""
-Write-Host "=== DOCKER TEST RESULTS ==="
-Write-Host "Total Tests: `$totalTests"
-Write-Host "Passed: `$totalPassed"
-Write-Host "Failed: `$totalFailed"
+Write-Information -MessageData "" -InformationAction Continue
+Write-Information -MessageData "=== DOCKER TEST RESULTS ===" -InformationAction Continue
+Write-Information -MessageData "Total Tests: `$totalTests" -InformationAction Continue
+Write-Information -MessageData "Passed: `$totalPassed" -InformationAction Continue
+Write-Information -MessageData "Failed: `$totalFailed" -InformationAction Continue
 if (`$totalTests -gt 0) {
     `$passRate = [math]::Round((`$totalPassed / `$totalTests) * 100, 2)
-    Write-Host "Pass Rate: `$passRate%"
+    Write-Information -MessageData "Pass Rate: `$passRate%" -InformationAction Continue
 
     # Docker environment target: 100% pass rate
     if (`$totalFailed -eq 0) {
-        Write-Host "✅ Docker environment achieved 100% pass rate!"
+        Write-Information -MessageData "✅ Docker environment achieved 100% pass rate!" -InformationAction Continue
         exit 0
     } else {
-        Write-Host "❌ Docker environment failed to achieve 100% pass rate. `$totalFailed tests failed."
-        Write-Host "Docker tests should be 100% reliable. Please fix failing tests."
+        Write-Information -MessageData "❌ Docker environment failed to achieve 100% pass rate. `$totalFailed tests failed." -InformationAction Continue
+        Write-Information -MessageData "Docker tests should be 100% reliable. Please fix failing tests." -InformationAction Continue
         exit 1
     }
 } else {
-    Write-Host "⚠️ No tests found in specified paths"
+    Write-Information -MessageData "⚠️ No tests found in specified paths" -InformationAction Continue
     exit 0
 }
 "@
@@ -307,7 +307,7 @@ Cleanup: $CleanupAfter
 
 "@
 
-    Write-Host $summary -ForegroundColor $(if ($Success) { 'Green' } else { 'Red' })
+    Write-Information -MessageData $summary  -InformationAction Continue-ForegroundColor $(if ($Success) { 'Green' } else { 'Red' })
 
     # Write summary to file
     $summary | Out-File -FilePath "$OutputPath/docker-test-summary.txt" -Append

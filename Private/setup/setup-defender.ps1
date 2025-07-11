@@ -18,10 +18,10 @@ function Setup-Defender {
     }
 
     try {
-        Write-Host "Configuring Windows Defender..." -ForegroundColor Blue
+        Write-Information -MessageData "Configuring Windows Defender..." -InformationAction Continue
 
         # Enable Windows Defender features
-        Write-Host "Enabling Windows Defender features..." -ForegroundColor Yellow
+        Write-Warning -Message "Enabling Windows Defender features..."
         Set-MpPreference -DisableRealtimeMonitoring $false
         Set-MpPreference -DisableIOAVProtection $false
         Set-MpPreference -DisableBehaviorMonitoring $false
@@ -33,7 +33,7 @@ function Setup-Defender {
         Set-MpPreference -DisableArchiveScanning $false
 
         # Configure scan settings
-        Write-Host "Configuring scan settings..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring scan settings..."
         Set-MpPreference -ScanScheduleDay 0 # Every day
         Set-MpPreference -ScanScheduleTime 2 # 2 AM
         Set-MpPreference -ScanParameters 2 # Full scan
@@ -42,27 +42,27 @@ function Setup-Defender {
         Set-MpPreference -CheckForSignaturesBeforeRunningScan $true
 
         # Configure cloud protection
-        Write-Host "Configuring cloud protection..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring cloud protection..."
         Set-MpPreference -MAPSReporting Advanced
         Set-MpPreference -SubmitSamplesConsent 1 # Send safe samples automatically
 
         # # Configure threat protection
-        # Write-Host "Configuring threat protection..." -ForegroundColor Yellow
+        # Write-Warning -Message "Configuring threat protection..."
         # Set-MpPreference -HighThreatDefaultAction Remove
         # Set-MpPreference -ModerateThreatDefaultAction Remove
         # Set-MpPreference -LowThreatDefaultAction Remove
         # Set-MpPreference -SevereThreatDefaultAction Remove
 
         # Configure network protection
-        Write-Host "Configuring network protection..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring network protection..."
         Set-MpPreference -EnableNetworkProtection Enabled
 
         # Configure controlled folder access
-        Write-Host "Configuring controlled folder access..." -ForegroundColor Yellow
+        Write-Warning -Message "Configuring controlled folder access..."
         Set-MpPreference -EnableControlledFolderAccess Enabled
 
         # # Configure attack surface reduction rules
-        # Write-Host "Configuring attack surface reduction rules..." -ForegroundColor Yellow
+        # Write-Warning -Message "Configuring attack surface reduction rules..."
         # $asrRules = @(
         #     "BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550" # Block executable content from email client and webmail
         #     "D4F940AB-401B-4EFC-AADC-AD5F3C50688A" # Block Office applications from creating executable content
@@ -80,11 +80,11 @@ function Setup-Defender {
         # }
 
         # Update signatures
-        Write-Host "Updating Windows Defender signatures..." -ForegroundColor Yellow
+        Write-Warning -Message "Updating Windows Defender signatures..."
         Update-MpSignature
 
         # Minimize defender notifications
-        Write-Host "Minimizing defender notifications..." -ForegroundColor Yellow
+        Write-Warning -Message "Minimizing defender notifications..."
         # Suppress notifications using UI settings registry key
         $path = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance"
         if (!(Test-Path $path)) {
@@ -97,13 +97,14 @@ function Setup-Defender {
             Set-MpPreference -DisableEnhancedNotifications $true
         }
 
-        Write-Host "Windows Defender configuration completed!" -ForegroundColor Green
+        Write-Information -MessageData "Windows Defender configuration completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to configure Windows Defender: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to configure Windows Defender: $($_.Exception.Message)"
         return $false
     }
 }
+
 
 

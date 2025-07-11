@@ -68,14 +68,14 @@ function Initialize-WindowsMelodyRecovery {
     # Check for legacy configuration and migrate if needed
     $legacyConfigFile = "$env:USERPROFILE\Scripts\WindowsMelodyRecovery\Config\windows.env"
     if (-not $configExists -and (Test-Path $legacyConfigFile)) {
-        Write-Host "Found legacy configuration. Migrating to module directory..." -ForegroundColor Yellow
+        Write-Warning -Message "Found legacy configuration. Migrating to module directory..."
         $configDir = Join-Path $InstallPath "Config"
         if (!(Test-Path $configDir)) {
             New-Item -ItemType Directory -Path $configDir -Force | Out-Null
         }
         Copy-Item -Path $legacyConfigFile -Destination $configFile -Force
         $configExists = $true
-        Write-Host "Configuration migrated successfully." -ForegroundColor Green
+        Write-Information -MessageData "Configuration migrated successfully." -InformationAction Continue
     }
 
     # If using existing configuration, validate the path is still accessible
@@ -85,12 +85,12 @@ function Initialize-WindowsMelodyRecovery {
             throw "The installation path '$InstallPath' is no longer accessible for existing configuration."
         }
 
-        Write-Host "WindowsMelodyRecovery is already initialized with the following configuration:" -ForegroundColor Yellow
+        Write-Warning -Message "WindowsMelodyRecovery is already initialized with the following configuration:"
         Get-Content $configFile | ForEach-Object {
             if ($_ -match '^([^=]+)=(.*)$') {
                 $key = $matches[1]
                 $value = $matches[2]
-                Write-Host "$key = $value" -ForegroundColor Gray
+                Write-Verbose -Message "$key = $value"
             }
         }
 
@@ -101,14 +101,14 @@ function Initialize-WindowsMelodyRecovery {
             }
         } else {
             # When -NoPrompt is used and config exists, just return the existing config
-            Write-Host "Using existing configuration (NoPrompt mode)" -ForegroundColor Green
+            Write-Information -MessageData "Using existing configuration (NoPrompt mode)" -InformationAction Continue
             return $true
         }
     }
 
     # Get machine name
     if (-not $NoPrompt) {
-        Write-Host "`nEnter machine name:" -ForegroundColor Cyan
+        Write-Information -MessageData "`nEnter machine name:" -InformationAction Continue
         $input = Read-Host "Machine name [default: $env:COMPUTERNAME]"
         $machineName = if ([string]::IsNullOrWhiteSpace($input)) {
             $env:COMPUTERNAME
@@ -121,12 +121,12 @@ function Initialize-WindowsMelodyRecovery {
 
     # Get cloud provider
     if (-not $NoPrompt) {
-        Write-Host "`nSelect cloud storage provider:" -ForegroundColor Cyan
-        Write-Host "[O] OneDrive"
-        Write-Host "[G] Google Drive"
-        Write-Host "[D] Dropbox"
-        Write-Host "[B] Box"
-        Write-Host "[C] Custom location"
+        Write-Information -MessageData "`nSelect cloud storage provider:" -InformationAction Continue
+        Write-Information -MessageData "[O] OneDrive" -InformationAction Continue
+        Write-Information -MessageData "[G] Google Drive" -InformationAction Continue
+        Write-Information -MessageData "[D] Dropbox" -InformationAction Continue
+        Write-Information -MessageData "[B] Box" -InformationAction Continue
+        Write-Information -MessageData "[C] Custom location" -InformationAction Continue
     }
 
     $selectedProvider = if ($NoPrompt) { "OneDrive" } else {
@@ -139,7 +139,7 @@ function Initialize-WindowsMelodyRecovery {
                 'B' { $selectedProvider = 'Box'; break }
                 'C' { $selectedProvider = 'Custom'; break }
                 default {
-                    Write-Host "Invalid selection. Please choose O, G, D, B, or C." -ForegroundColor Red
+                    Write-Error -Message "Invalid selection. Please choose O, G, D, B, or C."
                     $selectedProvider = $null
                 }
             }
@@ -163,7 +163,7 @@ function Initialize-WindowsMelodyRecovery {
                 }
                 $valid = Test-Path (Split-Path $path -Parent)
                 if (-not $valid) {
-                    Write-Host "Parent directory does not exist. Please enter a valid path." -ForegroundColor Red
+                    Write-Error -Message "Parent directory does not exist. Please enter a valid path."
                 }
             } while (-not $valid)
             $backupRoot = $path
@@ -181,27 +181,27 @@ function Initialize-WindowsMelodyRecovery {
 
         $possiblePaths = @()
         foreach ($path in $onedrivePaths) {
-            Write-Host "Checking OneDrive path: $path" -ForegroundColor Gray
+            Write-Verbose -Message "Checking OneDrive path: $path"
             $item = Get-Item -Path $path -ErrorAction SilentlyContinue
             if ($item) {
-                Write-Host "  Found: $($item.FullName)" -ForegroundColor Green
+                Write-Information -MessageData "  Found: $($item.FullName)" -InformationAction Continue
                 $possiblePaths += $item
             } else {
-                Write-Host "  Not found: $path" -ForegroundColor Red
+                Write-Error -Message "  Not found: $path"
             }
         }
 
         $pathCount = $possiblePaths.Count
         $pathList = $possiblePaths.FullName -join ', '
-        Write-Host "Found $pathCount OneDrive paths: $pathList" -ForegroundColor Cyan
+        Write-Information -MessageData "Found $pathCount OneDrive paths: $pathList" -InformationAction Continue
 
         if ($possiblePaths.Count -gt 0) {
             if (-not $NoPrompt) {
-                Write-Host "`nDetected OneDrive locations:" -ForegroundColor Cyan
+                Write-Information -MessageData "`nDetected OneDrive locations:" -InformationAction Continue
                 for ($i=0; $i -lt $possiblePaths.Count; $i++) {
-                    Write-Host "[$i] $($possiblePaths[$i].FullName)"
+                    Write-Information -MessageData "[$i] $($possiblePaths[$i].FullName)" -InformationAction Continue
                 }
-                Write-Host "`[C`] Custom location"
+                Write-Information -MessageData "`[C`] Custom location" -InformationAction Continue
 
                 do {
                     $selection = Read-Host "`nSelect OneDrive location [0-$($possiblePaths.Count-1)] or [C]"
@@ -211,7 +211,7 @@ function Initialize-WindowsMelodyRecovery {
                         $selectedOneDrive = $possiblePaths[$selection].FullName
                         $backupRoot = Join-Path $selectedOneDrive "WindowsMelodyRecovery"
                     } else {
-                        Write-Host "Invalid selection. Please choose a valid number or C." -ForegroundColor Red
+                        Write-Error -Message "Invalid selection. Please choose a valid number or C."
                     }
                 } while (-not $backupRoot)
             } else {
@@ -234,7 +234,7 @@ function Initialize-WindowsMelodyRecovery {
     } else {
         # For other cloud providers, use a default location with provider name
         $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMelodyRecovery"
-        Write-Host "Using default location for $selectedProvider : $backupRoot" -ForegroundColor Yellow
+        Write-Warning -Message "Using default location for $selectedProvider : $backupRoot"
     }
 
     # Create configuration
@@ -303,9 +303,10 @@ function Initialize-WindowsMelodyRecovery {
     # Mark module as initialized
     $script:Config.IsInitialized = $true
 
-    Write-Host ""
-    Write-Host "Configuration saved to: $configFile" -ForegroundColor Green
-    Write-Host "Module configuration updated in memory" -ForegroundColor Green
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "Configuration saved to: $configFile" -InformationAction Continue
+    Write-Information -MessageData "Module configuration updated in memory" -InformationAction Continue
 
     return $config
 }
+

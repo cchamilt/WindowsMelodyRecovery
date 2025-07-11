@@ -332,18 +332,18 @@ function Test-WmrEncryption {
     )
 
     try {
-        Write-Host "Testing AES-256 encryption/decryption..."
+        Write-Information -MessageData "Testing AES-256 encryption/decryption..." -InformationAction Continue
 
         # Convert test data to bytes
         $originalBytes = [System.Text.Encoding]::UTF8.GetBytes($TestData)
-        Write-Host "  Original data: $($originalBytes.Length) bytes"
+        Write-Information -MessageData "  Original data: $($originalBytes.Length) bytes" -InformationAction Continue
 
         # Create a test passphrase
         $testPassphrase = ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force
 
         # Encrypt
         $encrypted = Protect-WmrData -Data $originalBytes -Passphrase $testPassphrase
-        Write-Host "  Encrypted data: $($encrypted.Length) characters (Base64)"
+        Write-Information -MessageData "  Encrypted data: $($encrypted.Length) characters (Base64)" -InformationAction Continue
 
         # Clear cache to force re-derivation (simulates new session)
         Clear-WmrEncryptionCache
@@ -351,16 +351,16 @@ function Test-WmrEncryption {
         # Decrypt
         $decryptedBytes = Unprotect-WmrData -EncodedData $encrypted -Passphrase $testPassphrase
         $decryptedText = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
-        Write-Host "  Decrypted data: $($decryptedBytes.Length) bytes"
+        Write-Information -MessageData "  Decrypted data: $($decryptedBytes.Length) bytes" -InformationAction Continue
 
         # Verify
         $success = $decryptedText -eq $TestData
         if ($success) {
-            Write-Host "  ✅ Encryption test PASSED - data integrity verified" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Encryption test PASSED - data integrity verified" -InformationAction Continue
         } else {
-            Write-Host "  ❌ Encryption test FAILED - data mismatch" -ForegroundColor Red
-            Write-Host "    Original: $TestData"
-            Write-Host "    Decrypted: $decryptedText"
+            Write-Error -Message "  ❌ Encryption test FAILED - data mismatch"
+            Write-Information -MessageData "    Original: $TestData" -InformationAction Continue
+            Write-Information -MessageData "    Decrypted: $decryptedText" -InformationAction Continue
         }
 
         # Clean up
@@ -369,7 +369,7 @@ function Test-WmrEncryption {
         return $success
     }
     catch {
-        Write-Host "  ❌ Encryption test FAILED with exception: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "  ❌ Encryption test FAILED with exception: $($_.Exception.Message)"
         Clear-WmrEncryptionCache
         return $false
     }

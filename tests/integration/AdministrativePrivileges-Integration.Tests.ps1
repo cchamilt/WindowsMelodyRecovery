@@ -61,8 +61,8 @@ BeforeAll {
     New-Item -ItemType Directory -Path $script:TestBackupDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:TestStateDir -Force | Out-Null
 
-    Write-Host "Running administrative privilege integration tests in CI/CD environment" -ForegroundColor Yellow
-    Write-Host "Test backup directory: $script:TestBackupDir" -ForegroundColor Gray
+    Write-Warning -Message "Running administrative privilege integration tests in CI/CD environment"
+    Write-Verbose -Message "Test backup directory: $script:TestBackupDir"
 }
 
 Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "AdminRequired", "CICDOnly" {
@@ -191,7 +191,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
             try {
                 # Create test scheduled task
-                $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-Command 'Write-Host Test'"
+                $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-Command 'Write-Information -MessageData Test'" -InformationAction Continue
                 $trigger = New-ScheduledTaskTrigger -Daily -At "3:00AM"
                 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
@@ -396,7 +396,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                     # Test for admin privilege checks
                     $scriptContent | Should -Match "Administrator|Elevated|RunAsAdministrator"
 
-                    Write-Host "Verified admin privilege requirements in $scriptName" -ForegroundColor Gray
+                    Write-Verbose -Message "Verified admin privilege requirements in $scriptName"
                 } else {
                     Write-Warning "Setup script not found: $scriptPath"
                 }
@@ -523,11 +523,11 @@ AfterAll {
     try {
         if (Test-Path $script:TestBackupDir) {
             Remove-Item -Path $script:TestBackupDir -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "Cleaned up test backup directory: $script:TestBackupDir" -ForegroundColor Gray
+            Write-Verbose -Message "Cleaned up test backup directory: $script:TestBackupDir"
         }
     } catch {
         Write-Warning "Failed to clean up test backup directory: $_"
     }
 
-    Write-Host "Administrative privilege integration tests completed" -ForegroundColor Green
+    Write-Information -MessageData "Administrative privilege integration tests completed" -InformationAction Continue
 }

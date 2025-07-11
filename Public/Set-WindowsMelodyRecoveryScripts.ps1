@@ -22,29 +22,29 @@ function Set-WindowsMelodyRecoveryScripts {
     if ($ListAll) {
         $config = Get-ScriptsConfig
         if (-not $config) {
-            Write-Host "No scripts configuration found." -ForegroundColor Yellow
+            Write-Warning -Message "No scripts configuration found."
             return
         }
 
-        Write-Host "`nWindows Melody Recovery Scripts Configuration:" -ForegroundColor Green
-        Write-Host "=" * 60 -ForegroundColor Green
+        Write-Information -MessageData "`nWindows Melody Recovery Scripts Configuration:" -InformationAction Continue
+        Write-Information -MessageData "=" -InformationAction Continue * 60 -ForegroundColor Green
 
         foreach ($cat in @('backup', 'restore', 'setup')) {
             if ($config.$cat -and $config.$cat.enabled) {
-                Write-Host "`n$($cat.ToUpper()) Scripts:" -ForegroundColor Cyan
-                Write-Host ("-" * 40) -ForegroundColor Cyan
+                Write-Information -MessageData "`n$($cat.ToUpper()) Scripts:" -InformationAction Continue
+                Write-Information -MessageData (" -InformationAction Continue-" * 40) -ForegroundColor Cyan
 
                 foreach ($script in $config.$cat.enabled) {
                     $status = if ($script.enabled) { "✅ ENABLED" } else { "❌ DISABLED" }
                     $required = if ($script.required) { " (REQUIRED)" } else { "" }
-                    Write-Host "  $($script.name)$required" -ForegroundColor White
-                    Write-Host "    Status: $status" -ForegroundColor $(if ($script.enabled) { 'Green' } else { 'Red' })
-                    Write-Host "    Function: $($script.function)" -ForegroundColor Gray
-                    Write-Host "    Category: $($script.category)" -ForegroundColor Gray
+                    Write-Information -MessageData "  $($script.name)$required"  -InformationAction Continue-ForegroundColor White
+                    Write-Information -MessageData "    Status: $status"  -InformationAction Continue-ForegroundColor $(if ($script.enabled) { 'Green' } else { 'Red' })
+                    Write-Verbose -Message "    Function: $($script.function)"
+                    Write-Verbose -Message "    Category: $($script.category)"
                     if ($script.description) {
-                        Write-Host "    Description: $($script.description)" -ForegroundColor Gray
+                        Write-Verbose -Message "    Description: $($script.description)"
                     }
-                    Write-Host ""
+                    Write-Information -MessageData "" -InformationAction Continue
                 }
             }
         }
@@ -53,22 +53,22 @@ function Set-WindowsMelodyRecoveryScripts {
 
     # Interactive configuration
     if ($Interactive) {
-        Write-Host "Interactive Script Configuration" -ForegroundColor Green
-        Write-Host "================================" -ForegroundColor Green
+        Write-Information -MessageData "Interactive Script Configuration" -InformationAction Continue
+        Write-Information -MessageData "================================" -InformationAction Continue
 
         $config = Get-ScriptsConfig
         if (-not $config) {
-            Write-Host "No scripts configuration found." -ForegroundColor Yellow
+            Write-Warning -Message "No scripts configuration found."
             return
         }
 
         foreach ($cat in @('backup', 'restore', 'setup')) {
             if ($config.$cat -and $config.$cat.enabled) {
-                Write-Host "`nConfiguring $($cat.ToUpper()) Scripts:" -ForegroundColor Cyan
+                Write-Information -MessageData "`nConfiguring $($cat.ToUpper()) Scripts:" -InformationAction Continue
 
                 foreach ($script in $config.$cat.enabled) {
                     if ($script.required) {
-                        Write-Host "  $($script.name) - REQUIRED (cannot be disabled)" -ForegroundColor Yellow
+                        Write-Warning -Message "  $($script.name) - REQUIRED (cannot be disabled)"
                         continue
                     }
 
@@ -79,27 +79,27 @@ function Set-WindowsMelodyRecoveryScripts {
                         'Y' {
                             if (-not $script.enabled) {
                                 Set-ScriptsConfig -Category $cat -ScriptName $script.name -Enabled $true
-                                Write-Host "    ✅ Enabled $($script.name)" -ForegroundColor Green
+                                Write-Information -MessageData "    ✅ Enabled $($script.name)" -InformationAction Continue
                             }
                         }
                         'N' {
                             if ($script.enabled) {
                                 Set-ScriptsConfig -Category $cat -ScriptName $script.name -Enabled $false
-                                Write-Host "    ❌ Disabled $($script.name)" -ForegroundColor Red
+                                Write-Error -Message "    ❌ Disabled $($script.name)"
                             }
                         }
                         'SKIP' {
-                            Write-Host "    ⏭️ Skipped $($script.name)" -ForegroundColor Gray
+                            Write-Verbose -Message "    ⏭️ Skipped $($script.name)"
                         }
                         default {
-                            Write-Host "    ⏭️ Invalid response, skipping $($script.name)" -ForegroundColor Gray
+                            Write-Verbose -Message "    ⏭️ Invalid response, skipping $($script.name)"
                         }
                     }
                 }
             }
         }
 
-        Write-Host "`nScript configuration updated!" -ForegroundColor Green
+        Write-Information -MessageData "`nScript configuration updated!" -InformationAction Continue
         return
     }
 
@@ -108,17 +108,17 @@ function Set-WindowsMelodyRecoveryScripts {
         $result = Set-ScriptsConfig -Category $Category -ScriptName $ScriptName -Enabled $Enabled
         if ($result) {
             $status = if ($Enabled) { "enabled" } else { "disabled" }
-            Write-Host "Successfully $status $ScriptName in $Category scripts." -ForegroundColor Green
+            Write-Information -MessageData "Successfully $status $ScriptName in $Category scripts." -InformationAction Continue
         } else {
-            Write-Host "Failed to update script configuration." -ForegroundColor Red
+            Write-Error -Message "Failed to update script configuration."
         }
         return
     }
 
     # Show usage if no valid parameters provided
-    Write-Host "Usage Examples:" -ForegroundColor Yellow
-    Write-Host "  Set-WindowsMelodyRecoveryScripts -ListAll" -ForegroundColor Cyan
-    Write-Host "  Set-WindowsMelodyRecoveryScripts -Interactive" -ForegroundColor Cyan
-    Write-Host "  Set-WindowsMelodyRecoveryScripts -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -ForegroundColor Cyan
-    Write-Host "  Set-WindowsMelodyRecoveryScripts -Category restore -ScriptName 'Applications' -Enabled `$false" -ForegroundColor Cyan
+    Write-Warning -Message "Usage Examples:"
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -ListAll" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Interactive" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Category restore -ScriptName 'Applications' -Enabled `$false" -InformationAction Continue
 }

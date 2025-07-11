@@ -200,22 +200,22 @@ Use -Tag 'CI-Only' to restrict execution."
 
     if ($needsUpdate) {
         Set-Content -Path $FilePath -Value $content -Encoding UTF8
-        Write-Host "Updated safety tags for $FilePath" -ForegroundColor Yellow
+        Write-Warning -Message "Updated safety tags for $FilePath"
     }
 }
 
 # Main assessment process
-Write-Host "🔒 Windows Melody Recovery - Integration Test Safety Assessment" -ForegroundColor Cyan
-Write-Host ""
+Write-Information -MessageData "🔒 Windows Melody Recovery - Integration Test Safety Assessment" -InformationAction Continue
+Write-Information -MessageData "" -InformationAction Continue
 
 $testFiles = Get-ChildItem -Path $TestDirectory -Filter "*.Tests.ps1" | Where-Object { $_.Name -notlike "*Safety*" }
 $assessmentResults = @()
 
-Write-Host "📋 Assessing $($testFiles.Count) integration test files..." -ForegroundColor Yellow
-Write-Host ""
+Write-Warning -Message "📋 Assessing $($testFiles.Count) integration test files..."
+Write-Information -MessageData "" -InformationAction Continue
 
 foreach ($testFile in $testFiles) {
-    Write-Host "🔍 Analyzing $($testFile.Name)..." -ForegroundColor Gray
+    Write-Verbose -Message "🔍 Analyzing $($testFile.Name)..."
 
     $content = Get-Content $testFile.FullName -Raw
     $safetyReport = Test-OperationSafety -Content $content -FilePath $testFile.FullName
@@ -229,7 +229,7 @@ foreach ($testFile in $testFiles) {
               elseif ($safetyReport.Violations.Count -gt 0) { "⚠️  WARNINGS" }
               else { "✅ SAFE" }
 
-    Write-Host "  $status $($testFile.Name)" -ForegroundColor $(
+    Write-Information -MessageData "  $status $($testFile.Name)"  -InformationAction Continue-ForegroundColor $(
         if ($safetyReport.RequiresCIOnly) { "Red" }
         elseif ($safetyReport.Violations.Count -gt 0) { "Yellow" }
         else { "Green" }
@@ -242,36 +242,36 @@ foreach ($testFile in $testFiles) {
 }
 
 # Generate summary
-Write-Host ""
-Write-Host "📊 Safety Assessment Summary:" -ForegroundColor Cyan
+Write-Information -MessageData "" -InformationAction Continue
+Write-Information -MessageData "📊 Safety Assessment Summary:" -InformationAction Continue
 
 $safeTests = $assessmentResults | Where-Object { $_.IsSafe -and $_.Violations.Count -eq 0 }
 $warningTests = $assessmentResults | Where-Object { $_.IsSafe -and $_.Violations.Count -gt 0 }
 $ciOnlyTests = $assessmentResults | Where-Object { $_.RequiresCIOnly }
 
-Write-Host "  • Safe for Development: $($safeTests.Count)" -ForegroundColor Green
-Write-Host "  • Warnings (Safe with Mitigations): $($warningTests.Count)" -ForegroundColor Yellow
-Write-Host "  • CI-Only Required: $($ciOnlyTests.Count)" -ForegroundColor Red
-Write-Host "  • Total Tests Assessed: $($assessmentResults.Count)" -ForegroundColor Gray
+Write-Information -MessageData "  • Safe for Development: $($safeTests.Count)" -InformationAction Continue
+Write-Warning -Message "  • Warnings (Safe with Mitigations): $($warningTests.Count)"
+Write-Error -Message "  • CI-Only Required: $($ciOnlyTests.Count)"
+Write-Verbose -Message "  • Total Tests Assessed: $($assessmentResults.Count)"
 
 if ($ciOnlyTests.Count -gt 0) {
-    Write-Host ""
-    Write-Host "🚨 CI-Only Tests:" -ForegroundColor Red
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Error -Message "🚨 CI-Only Tests:"
     foreach ($test in $ciOnlyTests) {
-        Write-Host "  • $($test.FileName)" -ForegroundColor Red
+        Write-Error -Message "  • $($test.FileName)"
         foreach ($violation in $test.Violations) {
-            Write-Host "    - $($violation.Category): $($violation.Pattern)" -ForegroundColor Gray
+            Write-Verbose -Message "    - $($violation.Category): $($violation.Pattern)"
         }
     }
 }
 
 if ($warningTests.Count -gt 0) {
-    Write-Host ""
-    Write-Host "⚠️  Tests with Warnings:" -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "⚠️  Tests with Warnings:"
     foreach ($test in $warningTests) {
-        Write-Host "  • $($test.FileName)" -ForegroundColor Yellow
+        Write-Warning -Message "  • $($test.FileName)"
         foreach ($warning in $test.Warnings) {
-            Write-Host "    - $warning" -ForegroundColor Gray
+            Write-Verbose -Message "    - $warning"
         }
     }
 }
@@ -287,15 +287,15 @@ if ($OutputReport) {
 
     $reportPath = Join-Path $reportsDir "Safety-Assessment-Report.json"
     $assessmentResults | ConvertTo-Json -Depth 10 | Set-Content -Path $reportPath -Encoding UTF8
-    Write-Host ""
-    Write-Host "📄 Detailed report saved to: $reportPath" -ForegroundColor Cyan
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "📄 Detailed report saved to: $reportPath" -InformationAction Continue
 }
 
-Write-Host ""
+Write-Information -MessageData "" -InformationAction Continue
 if ($ciOnlyTests.Count -eq 0) {
-    Write-Host "🎉 All integration tests are safe for development execution!" -ForegroundColor Green
+    Write-Information -MessageData "🎉 All integration tests are safe for development execution!" -InformationAction Continue
 } else {
-    Write-Host "⚠️  $($ciOnlyTests.Count) test(s) require CI-only execution for safety." -ForegroundColor Yellow
+    Write-Warning -Message "⚠️  $($ciOnlyTests.Count) test(s) require CI-only execution for safety."
 }
 
 # Return assessment results for programmatic use

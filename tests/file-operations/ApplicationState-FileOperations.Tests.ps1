@@ -86,7 +86,7 @@ $apps | ConvertTo-Json -Compress'
     $script:CommonInstallScript = "param([string]`$AppListJson)
 `$apps = `$AppListJson | ConvertFrom-Json
 foreach (`$app in `$apps) {
-    Write-Host `"Simulating install of `$(`$app.Name) (ID: `$(`$app.Id), Version: `$(`$app.Version))`"
+    Write-Information -MessageData `"Simulating install of `$(`$app.Name) (ID: `$(`$app.Id), Version: `$(`$app.Version))`" -InformationAction Continue
     Set-Content -Path (Join-Path '$script:InstalledAppsDir' `"`$(`$app.Id).installed`") -Value `"Installed`" -Force
 }"
 
@@ -94,7 +94,7 @@ foreach (`$app in `$apps) {
     $script:CommonUninstallScript = "param([string]`$AppListJson)
 `$apps = `$AppListJson | ConvertFrom-Json
 foreach (`$app in `$apps) {
-    Write-Host `"Simulating uninstall of `$(`$app.Name) (ID: `$(`$app.Id))`"
+    Write-Information -MessageData `"Simulating uninstall of `$(`$app.Name) (ID: `$(`$app.Id))`" -InformationAction Continue
     Remove-Item -Path (Join-Path '$script:InstalledAppsDir' `"`$(`$app.Id).installed`") -ErrorAction SilentlyContinue
 }"
 }

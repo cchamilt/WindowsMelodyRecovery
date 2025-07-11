@@ -35,16 +35,16 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 # Import the unified test environment (works for both Docker and Windows)
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-Write-Host "🧪 Running Unit Tests for Windows Melody Recovery" -ForegroundColor Cyan
+Write-Information -MessageData "🧪 Running Unit Tests for Windows Melody Recovery" -InformationAction Continue
 
 # Show environment information (auto-detected by Test-Environment.ps1)
-Write-Host ""
+Write-Information -MessageData "" -InformationAction Continue
 
 # Initialize test environment using the unified system
-Write-Host "🧹 Initializing test environment..." -ForegroundColor Yellow
+Write-Warning -Message "🧹 Initializing test environment..."
 $testEnvironment = Initialize-TestEnvironment -Force
-Write-Host "✅ Test environment ready" -ForegroundColor Green
-Write-Host ""
+Write-Information -MessageData "✅ Test environment ready" -InformationAction Continue
+Write-Information -MessageData "" -InformationAction Continue
 
 # Get all available unit tests
 $unitTestsPath = Join-Path $PSScriptRoot "..\unit"
@@ -52,11 +52,11 @@ $availableTests = Get-ChildItem -Path $unitTestsPath -Filter "*.Tests.ps1" | For
     $_.BaseName -replace '\.Tests$', ''
 }
 
-Write-Host "📋 Available unit tests: $($availableTests.Count)" -ForegroundColor Gray
+Write-Verbose -Message "📋 Available unit tests: $($availableTests.Count)"
 foreach ($test in $availableTests) {
-    Write-Host "  • $test" -ForegroundColor Gray
+    Write-Verbose -Message "  • $test"
 }
-Write-Host ""
+Write-Information -MessageData "" -InformationAction Continue
 
 # Determine which tests to run
 $testsToRun = if ($TestName) {
@@ -84,7 +84,7 @@ foreach ($test in $testsToRun) {
         continue
     }
 
-    Write-Host "🔍 Running $test unit tests..." -ForegroundColor Cyan
+    Write-Information -MessageData "🔍 Running $test unit tests..." -InformationAction Continue
 
     try {
         $startTime = Get-Date
@@ -142,45 +142,46 @@ foreach ($test in $testsToRun) {
                 $statusMsg += ", $($result.SkippedCount) skipped"
             }
             $statusMsg += ", $([math]::Round($testTime, 2))s)"
-            Write-Host $statusMsg -ForegroundColor Green
+            Write-Information -MessageData $statusMsg  -InformationAction Continue-ForegroundColor Green
         } else {
-            Write-Host "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)" -ForegroundColor Red
+            Write-Error -Message "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)"
 
             # Show failed test details
             if ($result.Failed.Count -gt 0) {
-                Write-Host "   Failed tests:" -ForegroundColor Red
+                Write-Error -Message "   Failed tests:"
                 foreach ($failedTest in $result.Failed) {
-                    Write-Host "     • $($failedTest.Name): $($failedTest.ErrorRecord.Exception.Message)" -ForegroundColor Red
+                    Write-Error -Message "     • $($failedTest.Name): $($failedTest.ErrorRecord.Exception.Message)"
                 }
             }
         }
     } catch {
-        Write-Host "💥 $test tests crashed: $_" -ForegroundColor Red
+        Write-Error -Message "💥 $test tests crashed: $_"
         $totalFailed++
     }
 
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
 }
 
 # Cleanup
-Write-Host "🧹 Cleaning up test environment..." -ForegroundColor Yellow
+Write-Warning -Message "🧹 Cleaning up test environment..."
 Remove-TestEnvironment
-Write-Host "✅ Cleanup complete" -ForegroundColor Green
+Write-Information -MessageData "✅ Cleanup complete" -InformationAction Continue
 
 # Summary
-Write-Host ""
-Write-Host "📊 Unit Test Summary:" -ForegroundColor Cyan
-Write-Host "  • Total Passed: $totalPassed" -ForegroundColor Green
-Write-Host "  • Total Failed: $totalFailed" -ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
-Write-Host "  • Total Skipped: $totalSkipped" -ForegroundColor Yellow
-Write-Host "  • Total Time: $([math]::Round($totalTime, 2))s" -ForegroundColor Gray
+Write-Information -MessageData "" -InformationAction Continue
+Write-Information -MessageData "📊 Unit Test Summary:" -InformationAction Continue
+Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAction Continue
+Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue-ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+Write-Warning -Message "  • Total Skipped: $totalSkipped"
+Write-Verbose -Message "  • Total Time: $([math]::Round($totalTime, 2))s"
 
 if ($totalFailed -eq 0) {
-    Write-Host ""
-    Write-Host "🎉 All unit tests passed!" -ForegroundColor Green
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🎉 All unit tests passed!" -InformationAction Continue
     exit 0
 } else {
-    Write-Host ""
-    Write-Host "⚠️  Some unit tests failed. Check the output above for details." -ForegroundColor Yellow
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Warning -Message "⚠️  Some unit tests failed. Check the output above for details."
     exit 1
 }
+

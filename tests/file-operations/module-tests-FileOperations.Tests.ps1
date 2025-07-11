@@ -177,7 +177,7 @@ param(
     [string]`$TestParam = "default"
 )
 
-Write-Host "Test script executed with parameter: `$TestParam"
+Write-Information -MessageData "Test script executed with parameter: `$TestParam" -InformationAction Continue
 "@
             Set-Content -Path $scriptFile -Value $scriptContent -Encoding UTF8
 

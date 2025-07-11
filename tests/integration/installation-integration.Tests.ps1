@@ -119,8 +119,8 @@ Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Instal
             Import-Module $TestModulePath -Force
 
             # Debug: List all available functions from the module
-            Write-Host "Available functions after module import:" -ForegroundColor Yellow
-            Get-Command -Module WindowsMelodyRecovery | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Gray }
+            Write-Warning -Message "Available functions after module import:"
+            Get-Command -Module WindowsMelodyRecovery | ForEach-Object { Write-Verbose -Message "  - $($_.Name)" }
 
             # Check for key core functions (they should be available after import)
             $coreFunctions = @(
@@ -132,9 +132,9 @@ Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Instal
             foreach ($function in $coreFunctions) {
                 $cmd = Get-Command $function -ErrorAction SilentlyContinue
                 if ($cmd) {
-                    Write-Host "✓ Found core function: $function" -ForegroundColor Green
+                    Write-Information -MessageData "✓ Found core function: $function" -InformationAction Continue
                 } else {
-                    Write-Host "✗ Missing core function: $function" -ForegroundColor Red
+                    Write-Error -Message "✗ Missing core function: $function"
                 }
                 $cmd | Should -Not -BeNullOrEmpty
             }

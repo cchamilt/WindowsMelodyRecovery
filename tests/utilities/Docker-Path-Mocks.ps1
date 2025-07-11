@@ -101,7 +101,7 @@ function Invoke-WmrWithElevation {
 
     # Mock elevation functionality
     if ($WhatIf) {
-        Write-Host "What if: Would execute elevated operation"
+        Write-Information -MessageData "What if: Would execute elevated operation" -InformationAction Continue
         return
     }
 

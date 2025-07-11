@@ -96,7 +96,7 @@ function Write-ReportLog {
     }
 
     $logMessage = "[$timestamp] [$Level] [$Component] $Message"
-    Write-Host $logMessage -ForegroundColor $colorMap[$Level]
+    Write-Information -MessageData $logMessage  -InformationAction Continue-ForegroundColor $colorMap[$Level]
 
     if ($VerboseLogging) {
         $logFile = Join-Path $OutputPath "report-generation.log"

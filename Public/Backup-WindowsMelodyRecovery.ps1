@@ -54,9 +54,9 @@ function Backup-WindowsMelodyRecovery {
     $logPath = Join-Path $MACHINE_BACKUP "backup-log.txt"
     Start-Transcript -Path $logPath -Append
 
-    Write-Host "Starting Windows Melody Recovery backup..." -ForegroundColor Green
-    Write-Host "Machine: $($config.MachineName)" -ForegroundColor Cyan
-    Write-Host "Backup Path: $MACHINE_BACKUP" -ForegroundColor Cyan
+    Write-Information -MessageData "Starting Windows Melody Recovery backup..." -InformationAction Continue
+    Write-Information -MessageData "Machine: $($config.MachineName)" -InformationAction Continue
+    Write-Information -MessageData "Backup Path: $MACHINE_BACKUP" -InformationAction Continue
 
     try {
         # Use template-based backup
@@ -73,11 +73,11 @@ function Backup-WindowsMelodyRecovery {
                 $totalTemplates = $templateFiles.Count
                 $successfulTemplates = 0
 
-                Write-Host "Processing $totalTemplates templates..." -ForegroundColor Blue
+                Write-Information -MessageData "Processing $totalTemplates templates..." -InformationAction Continue
 
                 foreach ($templateFile in $templateFiles) {
                     try {
-                        Write-Host "Processing template: $($templateFile.Name)" -ForegroundColor Cyan
+                        Write-Information -MessageData "Processing template: $($templateFile.Name)" -InformationAction Continue
 
                         # Create component-specific backup directory
                         $componentName = $templateFile.BaseName
@@ -89,13 +89,13 @@ function Backup-WindowsMelodyRecovery {
 
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
-                        Write-Host "Template completed: $($templateFile.Name)" -ForegroundColor Green
+                        Write-Information -MessageData "Template completed: $($templateFile.Name)" -InformationAction Continue
                     } catch {
-                        Write-Host "Template failed: $($templateFile.Name) - $($_.Exception.Message)" -ForegroundColor Red
+                        Write-Error -Message "Template failed: $($templateFile.Name) - $($_.Exception.Message)"
                     }
                 }
 
-                Write-Host "Template backup completed: $successfulTemplates/$totalTemplates successful" -ForegroundColor Green
+                Write-Information -MessageData "Template backup completed: $successfulTemplates/$totalTemplates successful" -InformationAction Continue
                 return @{
                     Success = $successfulTemplates -gt 0
                     BackupCount = $successfulTemplates
@@ -124,7 +124,7 @@ function Backup-WindowsMelodyRecovery {
                 }
 
                 Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Backup" -StateFilesDirectory $componentBackupDir
-                Write-Host "Template backup completed successfully" -ForegroundColor Green
+                Write-Information -MessageData "Template backup completed successfully" -InformationAction Continue
 
                 return @{
                     Success = $true
@@ -143,11 +143,11 @@ function Backup-WindowsMelodyRecovery {
                 $totalTemplates = $templateFiles.Count
                 $successfulTemplates = 0
 
-                Write-Host "Processing $totalTemplates templates..." -ForegroundColor Blue
+                Write-Information -MessageData "Processing $totalTemplates templates..." -InformationAction Continue
 
                 foreach ($templateFile in $templateFiles) {
                     try {
-                        Write-Host "Processing: $($templateFile.Name)" -ForegroundColor Cyan
+                        Write-Information -MessageData "Processing: $($templateFile.Name)" -InformationAction Continue
 
                         $componentName = $templateFile.BaseName
                         $componentBackupDir = Join-Path $MACHINE_BACKUP $componentName
@@ -158,13 +158,13 @@ function Backup-WindowsMelodyRecovery {
 
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
-                        Write-Host "Completed: $($templateFile.Name)" -ForegroundColor Green
+                        Write-Information -MessageData "Completed: $($templateFile.Name)" -InformationAction Continue
                     } catch {
-                        Write-Host "Failed: $($templateFile.Name)" -ForegroundColor Red
+                        Write-Error -Message "Failed: $($templateFile.Name)"
                     }
                 }
 
-                Write-Host "Backup completed: $successfulTemplates templates processed" -ForegroundColor Green
+                Write-Information -MessageData "Backup completed: $successfulTemplates templates processed" -InformationAction Continue
                 return @{
                     Success = $successfulTemplates -gt 0
                     BackupCount = $successfulTemplates
@@ -172,7 +172,7 @@ function Backup-WindowsMelodyRecovery {
                     Method = "Templates"
                 }
             } else {
-                Write-Host "No templates found, using script-based backup" -ForegroundColor Yellow
+                Write-Warning -Message "No templates found, using script-based backup"
 
                 # Fallback to script-based backup
                 Import-PrivateScripts -Category 'backup'
@@ -195,14 +195,14 @@ function Backup-WindowsMelodyRecovery {
                             }
                             & $backup.function @params
                             $availableBackups++
-                            Write-Host "Executed: $($backup.function)" -ForegroundColor Green
+                            Write-Information -MessageData "Executed: $($backup.function)" -InformationAction Continue
                         } catch {
-                            Write-Host "Failed: $($backup.function)" -ForegroundColor Red
+                            Write-Error -Message "Failed: $($backup.function)"
                         }
                     }
                 }
 
-                Write-Host "Script backup completed: $availableBackups functions executed" -ForegroundColor Green
+                Write-Information -MessageData "Script backup completed: $availableBackups functions executed" -InformationAction Continue
                 return @{
                     Success = $availableBackups -gt 0
                     BackupCount = $availableBackups
@@ -215,4 +215,5 @@ function Backup-WindowsMelodyRecovery {
         Stop-Transcript
     }
 }
+
 

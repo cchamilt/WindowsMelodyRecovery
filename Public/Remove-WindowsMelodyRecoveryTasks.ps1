@@ -31,14 +31,14 @@ function Remove-WindowsMelodyRecoveryTasks {
 
     # Prompt for confirmation
     if (!$NoPrompt) {
-        Write-Host "`nThe following scheduled tasks will be removed:" -ForegroundColor Yellow
+        Write-Warning -Message "`nThe following scheduled tasks will be removed:"
         foreach ($task in $tasks) {
-            Write-Host "  - $task" -ForegroundColor Cyan
+            Write-Information -MessageData "  - $task" -InformationAction Continue
         }
 
         $response = Read-Host "`nDo you want to remove these scheduled tasks? (Y/N)"
         if ($response -ne "Y" -and $response -ne "y") {
-            Write-Host "Task removal cancelled." -ForegroundColor Yellow
+            Write-Warning -Message "Task removal cancelled."
             return
         }
     }
@@ -52,20 +52,21 @@ function Remove-WindowsMelodyRecoveryTasks {
             $existingTask = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
             if ($existingTask) {
                 Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
-                Write-Host "Removed scheduled task: $taskName" -ForegroundColor Green
+                Write-Information -MessageData "Removed scheduled task: $taskName" -InformationAction Continue
                 $removedCount++
             } else {
-                Write-Host "Task '$taskName' not found, skipping..." -ForegroundColor Yellow
+                Write-Warning -Message "Task '$taskName' not found, skipping..."
             }
         } catch {
             Write-Warning "Failed to remove scheduled task '$taskName': $_"
         }
     }
 
-    Write-Host "`nScheduled tasks removal completed. Removed $removedCount tasks." -ForegroundColor Green
+    Write-Information -MessageData "`nScheduled tasks removal completed. Removed $removedCount tasks." -InformationAction Continue
 }
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
     Remove-WindowsMelodyRecoveryTasks @PSBoundParameters
 }
+

@@ -67,14 +67,14 @@ $apps | ConvertTo-Json -Compress'
     $script:CommonInstallScript = "param([string]`$AppListJson)
 `$apps = `$AppListJson | ConvertFrom-Json
 foreach (`$app in `$apps) {
-    Write-Host `"Simulating install of `$(`$app.Name) (ID: `$(`$app.Id), Version: `$(`$app.Version))`"
+    Write-Information -MessageData `"Simulating install of `$(`$app.Name) (ID: `$(`$app.Id), Version: `$(`$app.Version))`" -InformationAction Continue
 }"
 
     # Define a simple uninstall script for logic testing
     $script:CommonUninstallScript = "param([string]`$AppListJson)
 `$apps = `$AppListJson | ConvertFrom-Json
 foreach (`$app in `$apps) {
-    Write-Host `"Simulating uninstall of `$(`$app.Name) (ID: `$(`$app.Id))`"
+    Write-Information -MessageData `"Simulating uninstall of `$(`$app.Name) (ID: `$(`$app.Id))`" -InformationAction Continue
 }"
 }
 
@@ -310,3 +310,4 @@ Another App          Another.App           2.0.0
         }
     }
 }
+

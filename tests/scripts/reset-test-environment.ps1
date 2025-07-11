@@ -27,17 +27,18 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 # Import the test environment utilities
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
 
-Write-Host "🧹 Resetting test environment for unit tests..." -ForegroundColor Cyan
+Write-Information -MessageData "🧹 Resetting test environment for unit tests..." -InformationAction Continue
 
 # Initialize clean test environment
 $testPaths = Initialize-StandardTestEnvironment -TestType "All" -Force:$Force
 
-Write-Host ""
-Write-Host "📁 Test directories ready:" -ForegroundColor Green
-Write-Host "  • Test Restore: $($testPaths.TestRestore)" -ForegroundColor Gray
-Write-Host "  • Test Backup: $($testPaths.TestBackup)" -ForegroundColor Gray
-Write-Host "  • Temp: $($testPaths.Temp)" -ForegroundColor Gray
-Write-Host "  • Mock Data: $($testPaths.MockData)" -ForegroundColor Gray
+Write-Information -MessageData "" -InformationAction Continue
+Write-Information -MessageData "📁 Test directories ready:" -InformationAction Continue
+Write-Verbose -Message "  • Test Restore: $($testPaths.TestRestore)"
+Write-Verbose -Message "  • Test Backup: $($testPaths.TestBackup)"
+Write-Verbose -Message "  • Temp: $($testPaths.Temp)"
+Write-Verbose -Message "  • Mock Data: $($testPaths.MockData)"
 
-Write-Host ""
-Write-Host "✅ Test environment reset complete! Ready for unit tests." -ForegroundColor Green
+Write-Information -MessageData "" -InformationAction Continue
+Write-Information -MessageData "✅ Test environment reset complete! Ready for unit tests." -InformationAction Continue
+

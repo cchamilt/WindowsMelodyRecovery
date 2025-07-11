@@ -107,9 +107,9 @@ function Initialize-StandardTestEnvironment {
         [switch]$ValidateSafety = $true
     )
 
-    Write-Host "🔧 Initializing Standardized Test Environment" -ForegroundColor Cyan
-    Write-Host "   Test Type: $TestType | Isolation: $IsolationLevel | Force: $Force" -ForegroundColor Gray
-    Write-Host ""
+    Write-Information -MessageData "🔧 Initializing Standardized Test Environment" -InformationAction Continue
+    Write-Verbose -Message "   Test Type: $TestType | Isolation: $IsolationLevel | Force: $Force"
+    Write-Information -MessageData "" -InformationAction Continue
 
     # Step 1: Safety validation
     if ($ValidateSafety) {
@@ -117,34 +117,34 @@ function Initialize-StandardTestEnvironment {
         if (-not $safetyResult.IsSafe) {
             throw "Environment safety validation failed: $($safetyResult.Violations -join ', ')"
         }
-        Write-Host "✅ Environment safety validation passed" -ForegroundColor Green
+        Write-Information -MessageData "✅ Environment safety validation passed" -InformationAction Continue
         $script:SafetyValidated = $true
     }
 
     # Step 2: Clean existing environment if Force
     if ($Force) {
-        Write-Host "🧹 Force cleanup requested - removing existing environment..." -ForegroundColor Yellow
+        Write-Warning -Message "🧹 Force cleanup requested - removing existing environment..."
         Remove-StandardTestEnvironment -Confirm:$false
     }
 
     # Step 3: Create directory structure
     $paths = New-TestDirectoryStructure -TestType $TestType -IsolationLevel $IsolationLevel
-    Write-Host "✅ Test directory structure created" -ForegroundColor Green
+    Write-Information -MessageData "✅ Test directory structure created" -InformationAction Continue
 
     # Step 4: Set environment variables
     Set-TestEnvironmentVariables -IsolationLevel $IsolationLevel
-    Write-Host "✅ Test environment variables configured" -ForegroundColor Green
+    Write-Information -MessageData "✅ Test environment variables configured" -InformationAction Continue
 
     # Step 5: Initialize mock data
     if ($TestType -in @('Integration', 'FileOperations', 'EndToEnd', 'All')) {
         Initialize-MockDataEnvironment -TestType $TestType
-        Write-Host "✅ Mock data environment initialized" -ForegroundColor Green
+        Write-Information -MessageData "✅ Mock data environment initialized" -InformationAction Continue
     }
 
     # Step 6: Setup resource monitoring
     if ($IsolationLevel -in @('Enhanced', 'Complete')) {
         Start-ResourceMonitoring
-        Write-Host "✅ Resource monitoring started" -ForegroundColor Green
+        Write-Information -MessageData "✅ Resource monitoring started" -InformationAction Continue
     }
 
     # Step 7: Validate environment integrity
@@ -156,11 +156,11 @@ function Initialize-StandardTestEnvironment {
     $script:StandardPaths = $paths
     $script:EnvironmentInitialized = $true
 
-    Write-Host ""
-    Write-Host "🎉 Standardized test environment initialized successfully!" -ForegroundColor Green
-    Write-Host "   Root: $($paths.TestRoot)" -ForegroundColor Gray
-    Write-Host "   Type: $TestType | Isolation: $IsolationLevel" -ForegroundColor Gray
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🎉 Standardized test environment initialized successfully!" -InformationAction Continue
+    Write-Verbose -Message "   Root: $($paths.TestRoot)"
+    Write-Verbose -Message "   Type: $TestType | Isolation: $IsolationLevel"
+    Write-Information -MessageData "" -InformationAction Continue
 
     return $paths
 }
@@ -197,9 +197,9 @@ function New-TestDirectoryStructure {
         # Create directory if needed
         if (-not (Test-Path $fullPath)) {
             New-Item -ItemType Directory -Path $fullPath -Force | Out-Null
-            Write-Host "  ✓ Created $dirName : $fullPath" -ForegroundColor Green
+            Write-Information -MessageData "  ✓ Created $dirName : $fullPath" -InformationAction Continue
         } else {
-            Write-Host "  ✓ Verified $dirName : $fullPath" -ForegroundColor Yellow
+            Write-Warning -Message "  ✓ Verified $dirName : $fullPath"
         }
     }
 
@@ -639,12 +639,12 @@ function Remove-StandardTestEnvironment {
         [switch]$GenerateReport
     )
 
-    Write-Host "🧹 Removing Standardized Test Environment" -ForegroundColor Yellow
+    Write-Warning -Message "🧹 Removing Standardized Test Environment"
 
     if ($Confirm) {
         $response = Read-Host "Are you sure you want to remove the test environment? (y/N)"
         if ($response -ne 'y' -and $response -ne 'Y') {
-            Write-Host "Cleanup cancelled" -ForegroundColor Gray
+            Write-Verbose -Message "Cleanup cancelled"
             return
         }
     }
@@ -658,14 +658,14 @@ function Remove-StandardTestEnvironment {
 
     # Stop resource monitoring
     Stop-ResourceMonitoring
-    Write-Host "✓ Stopped resource monitoring" -ForegroundColor Green
+    Write-Information -MessageData "✓ Stopped resource monitoring" -InformationAction Continue
 
     # Clean environment variables
     $testVars = Get-ChildItem -Path env: | Where-Object { $_.Name -like "WMR_TEST*" }
     foreach ($var in $testVars) {
         Remove-Item -Path "env:$($var.Name)" -ErrorAction SilentlyContinue
     }
-    Write-Host "✓ Cleaned test environment variables" -ForegroundColor Green
+    Write-Information -MessageData "✓ Cleaned test environment variables" -InformationAction Continue
 
     # Remove ONLY temporary/dynamic test directories (NEVER source code directories)
     if ($script:StandardPaths) {
@@ -689,7 +689,7 @@ function Remove-StandardTestEnvironment {
                         if (Test-Path $path) {
                             Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
                             $cleanupReport.RemovedPaths += $path
-                            Write-Host "  ✓ Removed $pathName : $path" -ForegroundColor Green
+                            Write-Information -MessageData "  ✓ Removed $pathName : $path" -InformationAction Continue
                         }
                     } catch {
                         $cleanupReport.FailedPaths += @{ Path = $path; Error = $_.Exception.Message }
@@ -701,7 +701,7 @@ function Remove-StandardTestEnvironment {
             } else {
                 # NEVER delete source code directories
                 $cleanupReport.PreservedPaths += $path
-                Write-Host "  ✅ Preserved source directory: $pathName : $path" -ForegroundColor Cyan
+                Write-Information -MessageData "  ✅ Preserved source directory: $pathName : $path" -InformationAction Continue
             }
         }
     }
@@ -718,15 +718,15 @@ function Remove-StandardTestEnvironment {
     if ($GenerateReport) {
         $reportPath = Join-Path $script:ModuleRoot "test-results\reports\cleanup-report-$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').json"
         $cleanupReport | ConvertTo-Json -Depth 10 | Set-Content -Path $reportPath -Encoding UTF8
-        Write-Host "📄 Cleanup report saved: $reportPath" -ForegroundColor Cyan
+        Write-Information -MessageData "📄 Cleanup report saved: $reportPath" -InformationAction Continue
     }
 
-    Write-Host ""
-    Write-Host "🎉 Test environment cleanup completed!" -ForegroundColor Green
-    Write-Host "   Removed: $($cleanupReport.RemovedPaths.Count) paths" -ForegroundColor Gray
-    Write-Host "   Failed: $($cleanupReport.FailedPaths.Count) paths" -ForegroundColor Gray
-    Write-Host "   Duration: $([math]::Round($cleanupReport.Duration, 2))s" -ForegroundColor Gray
-    Write-Host ""
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🎉 Test environment cleanup completed!" -InformationAction Continue
+    Write-Verbose -Message "   Removed: $($cleanupReport.RemovedPaths.Count) paths"
+    Write-Verbose -Message "   Failed: $($cleanupReport.FailedPaths.Count) paths"
+    Write-Verbose -Message "   Duration: $([math]::Round($cleanupReport.Duration, 2))s"
+    Write-Information -MessageData "" -InformationAction Continue
 }
 
 function Reset-StandardTestEnvironment {
@@ -749,7 +749,7 @@ function Reset-StandardTestEnvironment {
         [string]$IsolationLevel = 'Basic'
     )
 
-    Write-Host "🔄 Resetting Standardized Test Environment" -ForegroundColor Cyan
+    Write-Information -MessageData "🔄 Resetting Standardized Test Environment" -InformationAction Continue
 
     # Clean existing environment
     Remove-StandardTestEnvironment -Confirm:$false
@@ -760,7 +760,7 @@ function Reset-StandardTestEnvironment {
     # Reinitialize with same parameters
     Initialize-StandardTestEnvironment -TestType $TestType -IsolationLevel $IsolationLevel -Force
 
-    Write-Host "🎉 Test environment reset completed!" -ForegroundColor Green
+    Write-Information -MessageData "🎉 Test environment reset completed!" -InformationAction Continue
 }
 
 function Test-SafeTestPath {

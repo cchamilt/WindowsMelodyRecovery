@@ -219,7 +219,7 @@ Describe "Enhanced Application Backup and Restore Integration Tests" {
 # Enhanced Chocolatey Package Restoration Script
 # Generated: $(Get-Date)
 
-Write-Host "Restoring Chocolatey packages..." -ForegroundColor Cyan
+Write-Information -MessageData "Restoring Chocolatey packages..." -InformationAction Continue
 
 "@
 
@@ -229,7 +229,7 @@ Write-Host "Restoring Chocolatey packages..." -ForegroundColor Cyan
 
             $scriptContent += @"
 
-Write-Host "Chocolatey package restoration completed!" -ForegroundColor Green
+Write-Information -MessageData "Chocolatey package restoration completed!" -InformationAction Continue
 "@
 
             $scriptContent | Set-Content -Path $restoreScript -Encoding UTF8

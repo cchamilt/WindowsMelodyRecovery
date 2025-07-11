@@ -7,11 +7,11 @@ try {
     . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
 
     if (!(Load-Environment)) {
-        Write-Host "Failed to load environment configuration" -ForegroundColor Red
+        Write-Error -Message "Failed to load environment configuration"
         exit 1
     }
 
-    Write-Host "Registering system update task..." -ForegroundColor Blue
+    Write-Information -MessageData "Registering system update task..." -InformationAction Continue
 
     # Use environment variable for update script path
     $updateScript = Join-Path $env:WINDOWS_CONFIG_PATH "Update-WindowsMelodyRecovery.ps1"
@@ -75,30 +75,30 @@ try {
 
     # Verify task was created
     if ($task) {
-        Write-Host "System update task registered successfully!" -ForegroundColor Green
-        Write-Host "Task Details:" -ForegroundColor Yellow
-        Write-Host "  Name: $taskName"
-        Write-Host "  Path: $taskPath"
-        Write-Host "  Script: $updateScript"
-        Write-Host "  Schedule: Monthly at 3 AM on the 1st"
-        Write-Host "  User: $currentUser"
+        Write-Information -MessageData "System update task registered successfully!" -InformationAction Continue
+        Write-Warning -Message "Task Details:"
+        Write-Information -MessageData "  Name: $taskName" -InformationAction Continue
+        Write-Information -MessageData "  Path: $taskPath" -InformationAction Continue
+        Write-Information -MessageData "  Script: $updateScript" -InformationAction Continue
+        Write-Information -MessageData "  Schedule: Monthly at 3 AM on the 1st" -InformationAction Continue
+        Write-Information -MessageData "  User: $currentUser" -InformationAction Continue
     } else {
         throw "Failed to register task"
     }
 
 } catch {
-    Write-Host "Failed to register system update task: $_" -ForegroundColor Red
+    Write-Error -Message "Failed to register system update task: $_"
     exit 1
 }
 
 # Offer to run the update now
-Write-Host "`nWould you like to run the system update now? (Y/N)" -ForegroundColor Yellow
+Write-Warning -Message "`nWould you like to run the system update now? (Y/N)"
 $response = Read-Host
 if ($response -eq "Y" -or $response -eq "y") {
     try {
-        Write-Host "Running system update..." -ForegroundColor Blue
+        Write-Information -MessageData "Running system update..." -InformationAction Continue
         & $updateScript
     } catch {
-        Write-Host "Failed to run system update: $_" -ForegroundColor Red
+        Write-Error -Message "Failed to run system update: $_"
     }
 }

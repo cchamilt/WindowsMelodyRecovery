@@ -48,7 +48,7 @@ if ($NewUsername -notmatch '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$') {
     exit 1
 }
 
-Write-Host "🔧 Updating GitHub username from '$OldUsername' to '$NewUsername'" -ForegroundColor Green
+Write-Information -MessageData "🔧 Updating GitHub username from '$OldUsername' to '$NewUsername'" -InformationAction Continue
 
 $UpdatedFiles = 0
 $TotalReplacements = 0
@@ -59,7 +59,7 @@ foreach ($File in $FilesToUpdate) {
         continue
     }
 
-    Write-Host "📄 Processing: $File" -ForegroundColor Cyan
+    Write-Information -MessageData "📄 Processing: $File" -InformationAction Continue
 
     $Content = Get-Content $File -Raw
     $OriginalContent = $Content
@@ -74,46 +74,46 @@ foreach ($File in $FilesToUpdate) {
         $TotalReplacements += $Replacements
 
         if ($WhatIfPreference) {
-            Write-Host "  ✏️  Would replace $Replacements instances of '$OldUsername'" -ForegroundColor Yellow
+            Write-Warning -Message "  ✏️  Would replace $Replacements instances of '$OldUsername'"
         } else {
             $Content | Set-Content $File -NoNewline
-            Write-Host "  ✅ Replaced $Replacements instances of '$OldUsername'" -ForegroundColor Green
+            Write-Information -MessageData "  ✅ Replaced $Replacements instances of '$OldUsername'" -InformationAction Continue
             $UpdatedFiles++
         }
     } else {
-        Write-Host "  ℹ️  No replacements needed" -ForegroundColor Gray
+        Write-Verbose -Message "  ℹ️  No replacements needed"
     }
 }
 
 # Summary
-Write-Host ""
+Write-Information -MessageData "" -InformationAction Continue
 if ($WhatIfPreference) {
-    Write-Host "📊 Summary (WhatIf mode):" -ForegroundColor Cyan
-    Write-Host "  - Files that would be updated: $($FilesToUpdate.Count)" -ForegroundColor Yellow
-    Write-Host "  - Total replacements that would be made: $TotalReplacements" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "💡 Run without -WhatIf to apply changes" -ForegroundColor Blue
+    Write-Information -MessageData "📊 Summary (WhatIf mode):" -InformationAction Continue
+    Write-Warning -Message "  - Files that would be updated: $($FilesToUpdate.Count)"
+    Write-Warning -Message "  - Total replacements that would be made: $TotalReplacements"
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "💡 Run without -WhatIf to apply changes" -InformationAction Continue
 } else {
-    Write-Host "📊 Summary:" -ForegroundColor Cyan
-    Write-Host "  - Files updated: $UpdatedFiles" -ForegroundColor Green
-    Write-Host "  - Total replacements made: $TotalReplacements" -ForegroundColor Green
+    Write-Information -MessageData "📊 Summary:" -InformationAction Continue
+    Write-Information -MessageData "  - Files updated: $UpdatedFiles" -InformationAction Continue
+    Write-Information -MessageData "  - Total replacements made: $TotalReplacements" -InformationAction Continue
 
     if ($UpdatedFiles -gt 0) {
-        Write-Host ""
-        Write-Host "✅ GitHub username updated successfully!" -ForegroundColor Green
-        Write-Host "🔗 Your GitHub Actions badges and links should now work correctly" -ForegroundColor Blue
-        Write-Host ""
-        Write-Host "📋 Next steps:" -ForegroundColor Cyan
-        Write-Host "  1. Commit and push your changes" -ForegroundColor Gray
-        Write-Host "  2. Check that GitHub Actions workflows are triggered" -ForegroundColor Gray
-        Write-Host "  3. Verify that badges display correctly in README.md" -ForegroundColor Gray
+        Write-Information -MessageData "" -InformationAction Continue
+        Write-Information -MessageData "✅ GitHub username updated successfully!" -InformationAction Continue
+        Write-Information -MessageData "🔗 Your GitHub Actions badges and links should now work correctly" -InformationAction Continue
+        Write-Information -MessageData "" -InformationAction Continue
+        Write-Information -MessageData "📋 Next steps:" -InformationAction Continue
+        Write-Verbose -Message "  1. Commit and push your changes"
+        Write-Verbose -Message "  2. Check that GitHub Actions workflows are triggered"
+        Write-Verbose -Message "  3. Verify that badges display correctly in README.md"
     }
 }
 
 # Validation
 if (-not $WhatIfPreference -and $UpdatedFiles -gt 0) {
-    Write-Host ""
-    Write-Host "🔍 Validating updates..." -ForegroundColor Cyan
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "🔍 Validating updates..." -InformationAction Continue
 
     $ValidationErrors = 0
 
@@ -128,7 +128,7 @@ if (-not $WhatIfPreference -and $UpdatedFiles -gt 0) {
     }
 
     if ($ValidationErrors -eq 0) {
-        Write-Host "✅ All files validated successfully" -ForegroundColor Green
+        Write-Information -MessageData "✅ All files validated successfully" -InformationAction Continue
     } else {
         Write-Warning "⚠️  $ValidationErrors files may need manual review"
     }

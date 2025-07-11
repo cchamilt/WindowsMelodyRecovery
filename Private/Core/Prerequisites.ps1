@@ -13,7 +13,7 @@ function Test-WmrPrerequisites {
         [string]$Operation
     )
 
-    Write-Host "Checking prerequisites for $($TemplateConfig.metadata.name) ($Operation operation)..."
+    Write-Information -MessageData "Checking prerequisites for $($TemplateConfig.metadata.name) ($Operation operation)..." -InformationAction Continue
 
     $allPrerequisitesMet = $true
 
@@ -22,7 +22,7 @@ function Test-WmrPrerequisites {
             $prereqMet = $false
             $checkResult = ""
 
-            Write-Host "  Checking prerequisite: $($prereq.name) (Type: $($prereq.type))..." -NoNewline
+            Write-Information -MessageData "  Checking prerequisite: $($prereq.name) (Type: $($prereq.type))..." -InformationAction Continue -NoNewline
 
             switch ($prereq.type) {
                 "application" {
@@ -82,7 +82,7 @@ function Test-WmrPrerequisites {
             }
 
             if (-not $prereqMet) {
-                Write-Host " FAILED."
+                Write-Information -MessageData " FAILED." -InformationAction Continue
                 Write-Warning "    Prerequisite `'$($prereq.name)`' is missing or failed: $($prereq.check_command) $($prereq.path) $checkResult"
 
                 switch ($prereq.on_missing) {
@@ -108,15 +108,15 @@ function Test-WmrPrerequisites {
                     }
                 }
             } else {
-                Write-Host " PASSED."
+                Write-Information -MessageData " PASSED." -InformationAction Continue
             }
         }
     }
 
     if ($allPrerequisitesMet) {
-        Write-Host "All specified prerequisites passed for $($TemplateConfig.metadata.name) ($Operation operation)."
+        Write-Information -MessageData "All specified prerequisites passed for $($TemplateConfig.metadata.name) ($Operation operation)." -InformationAction Continue
     } else {
-        Write-Host "Some prerequisites failed for $($TemplateConfig.metadata.name) ($Operation operation). Check warnings/errors above."
+        Write-Information -MessageData "Some prerequisites failed for $($TemplateConfig.metadata.name) ($Operation operation). Check warnings/errors above." -InformationAction Continue
     }
 
     return $allPrerequisitesMet
@@ -124,3 +124,4 @@ function Test-WmrPrerequisites {
 
 # Function is available via dot-sourcing - no # Functions are available when dot-sourced
 # Available function: Test-WmrPrerequisites
+

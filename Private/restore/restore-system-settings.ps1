@@ -38,7 +38,7 @@ function Restore-SystemSettings {
         [switch]$WhatIf
     )
 
-    Write-Host "Starting system settings restore from: $BackupPath" -ForegroundColor Cyan
+    Write-Information -MessageData "Starting system settings restore from: $BackupPath" -InformationAction Continue
 
     if (-not (Test-Path $BackupPath)) {
         throw "Backup path not found: $BackupPath"
@@ -55,7 +55,7 @@ function Restore-SystemSettings {
     if (Test-Path $manifestPath) {
         try {
             $manifest = Get-Content $manifestPath | ConvertFrom-Json
-            Write-Host "Found backup manifest with $($manifest.Items.Count) items" -ForegroundColor Green
+            Write-Information -MessageData "Found backup manifest with $($manifest.Items.Count) items" -InformationAction Continue
         } catch {
             Write-Warning "Failed to read backup manifest: $($_.Exception.Message)"
         }
@@ -64,19 +64,19 @@ function Restore-SystemSettings {
     # Restore registry settings
     $registryPath = Join-Path $BackupPath "registry"
     if (Test-Path $registryPath) {
-        Write-Host "Restoring registry settings..." -ForegroundColor Yellow
+        Write-Warning -Message "Restoring registry settings..."
 
         Get-ChildItem $registryPath -Filter "*.reg" | ForEach-Object {
             if ($WhatIf) {
-                Write-Host "  WhatIf: Would import registry file: $($_.Name)" -ForegroundColor Yellow
+                Write-Warning -Message "  WhatIf: Would import registry file: $($_.Name)"
             } else {
                 try {
-                    Write-Host "  Importing registry file: $($_.Name)" -ForegroundColor Cyan
+                    Write-Information -MessageData "  Importing registry file: $($_.Name)" -InformationAction Continue
                     # Note: In a real implementation, this would use reg.exe import
                     # For testing, we'll just validate the file exists and is readable
                     $regContent = Get-Content $_.FullName -Raw
                     if ($regContent -match "Windows Registry Editor") {
-                        Write-Host "    Registry file validated successfully" -ForegroundColor Green
+                        Write-Information -MessageData "    Registry file validated successfully" -InformationAction Continue
                     }
                 } catch {
                     Write-Warning "    Failed to process registry file $($_.Name): $($_.Exception.Message)"
@@ -88,21 +88,21 @@ function Restore-SystemSettings {
     # Restore user preferences
     $preferencesPath = Join-Path $BackupPath "preferences"
     if (Test-Path $preferencesPath) {
-        Write-Host "Restoring user preferences..." -ForegroundColor Yellow
+        Write-Warning -Message "Restoring user preferences..."
 
         Get-ChildItem $preferencesPath -Filter "*.json" | ForEach-Object {
             if ($WhatIf) {
-                Write-Host "  WhatIf: Would restore preferences from: $($_.Name)" -ForegroundColor Yellow
+                Write-Warning -Message "  WhatIf: Would restore preferences from: $($_.Name)"
             } else {
                 try {
-                    Write-Host "  Restoring preferences from: $($_.Name)" -ForegroundColor Cyan
+                    Write-Information -MessageData "  Restoring preferences from: $($_.Name)" -InformationAction Continue
                     $preferences = Get-Content $_.FullName | ConvertFrom-Json
-                    Write-Host "    Loaded $($preferences.PSObject.Properties.Count) preference settings" -ForegroundColor Green
+                    Write-Information -MessageData "    Loaded $($preferences.PSObject.Properties.Count) preference settings" -InformationAction Continue
 
                     # In a real implementation, this would apply the preferences
                     # For testing, we'll just validate the structure
                     foreach ($prop in $preferences.PSObject.Properties) {
-                        Write-Host "      $($prop.Name): $($prop.Value)" -ForegroundColor Gray
+                        Write-Verbose -Message "      $($prop.Name): $($prop.Value)"
                     }
                 } catch {
                     Write-Warning "    Failed to restore preferences from $($_.Name): $($_.Exception.Message)"
@@ -114,24 +114,24 @@ function Restore-SystemSettings {
     # Restore system configuration
     $configPath = Join-Path $BackupPath "config"
     if (Test-Path $configPath) {
-        Write-Host "Restoring system configuration..." -ForegroundColor Yellow
+        Write-Warning -Message "Restoring system configuration..."
 
         Get-ChildItem $configPath -Filter "*.json" | ForEach-Object {
             if ($WhatIf) {
-                Write-Host "  WhatIf: Would restore configuration from: $($_.Name)" -ForegroundColor Yellow
+                Write-Warning -Message "  WhatIf: Would restore configuration from: $($_.Name)"
             } else {
                 try {
-                    Write-Host "  Restoring configuration from: $($_.Name)" -ForegroundColor Cyan
+                    Write-Information -MessageData "  Restoring configuration from: $($_.Name)" -InformationAction Continue
                     $config = Get-Content $_.FullName | ConvertFrom-Json
-                    Write-Host "    Loaded configuration with $($config.PSObject.Properties.Count) sections" -ForegroundColor Green
+                    Write-Information -MessageData "    Loaded configuration with $($config.PSObject.Properties.Count) sections" -InformationAction Continue
 
                     # In a real implementation, this would apply the configuration
                     # For testing, we'll just validate the structure
                     foreach ($section in $config.PSObject.Properties) {
-                        Write-Host "      Section: $($section.Name)" -ForegroundColor Gray
+                        Write-Verbose -Message "      Section: $($section.Name)"
                         if ($section.Value -is [PSObject]) {
                             $sectionProps = $section.Value.PSObject.Properties.Count
-                            Write-Host "        Properties: $sectionProps" -ForegroundColor Gray
+                            Write-Verbose -Message "        Properties: $sectionProps"
                         }
                     }
                 } catch {
@@ -190,17 +190,17 @@ function Restore-SystemSettings {
     if (-not $WhatIf) {
         try {
             $restoreManifest | ConvertTo-Json -Depth 3 | Set-Content $restoreManifestPath -Encoding UTF8
-            Write-Host "Restore manifest saved to: $restoreManifestPath" -ForegroundColor Green
+            Write-Information -MessageData "Restore manifest saved to: $restoreManifestPath" -InformationAction Continue
         } catch {
             Write-Warning "Failed to save restore manifest: $($_.Exception.Message)"
         }
     }
 
-    Write-Host "System settings restore completed!" -ForegroundColor Green
-    Write-Host "Items restored: $($restoreManifest.RestoredItems.Count)" -ForegroundColor Cyan
+    Write-Information -MessageData "System settings restore completed!" -InformationAction Continue
+    Write-Information -MessageData "Items restored: $($restoreManifest.RestoredItems.Count)" -InformationAction Continue
 
     if ($WhatIf) {
-        Write-Host "This was a simulation - no actual changes were made." -ForegroundColor Yellow
+        Write-Warning -Message "This was a simulation - no actual changes were made."
     }
 
     return $restoreManifest

@@ -29,22 +29,22 @@ function Test-WindowsMelodyRecovery {
         Warnings = @()
     }
 
-    Write-Host ""
-    Write-Host "Testing WindowsMelodyRecovery Module..." -ForegroundColor Blue
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "Testing WindowsMelodyRecovery Module..." -InformationAction Continue
 
     # Test 1: Module Loading
     try {
         $module = Get-Module WindowsMelodyRecovery
         if ($module) {
             $results.ModuleLoaded = $true
-            Write-Host "Module loaded successfully" -ForegroundColor Green
+            Write-Information -MessageData "Module loaded successfully" -InformationAction Continue
         } else {
             $results.Errors += "Module not loaded"
-            Write-Host "Module not loaded" -ForegroundColor Red
+            Write-Error -Message "Module not loaded"
         }
     } catch {
         $results.Errors += "Failed to check module: $_"
-        Write-Host "Failed to check module: $_" -ForegroundColor Red
+        Write-Error -Message "Failed to check module: $_"
     }
 
     # Test 2: Configuration
@@ -52,23 +52,23 @@ function Test-WindowsMelodyRecovery {
         $config = Get-WindowsMelodyRecovery
         if ($config -and $config.BackupRoot) {
             $results.ConfigurationValid = $true
-            Write-Host "Configuration is valid" -ForegroundColor Green
+            Write-Information -MessageData "Configuration is valid" -InformationAction Continue
 
             if ($Detailed) {
-                Write-Host ""
-                Write-Host "Configuration Details:" -ForegroundColor Cyan
-                Write-Host "  Backup Root: $($config.BackupRoot)" -ForegroundColor Cyan
-                Write-Host "  Machine Name: $($config.MachineName)" -ForegroundColor Cyan
-                Write-Host "  Cloud Provider: $($config.CloudProvider)" -ForegroundColor Cyan
-                Write-Host "  Last Configured: $($config.LastConfigured)" -ForegroundColor Cyan
+                Write-Information -MessageData "" -InformationAction Continue
+                Write-Information -MessageData "Configuration Details:" -InformationAction Continue
+                Write-Information -MessageData "  Backup Root: $($config.BackupRoot)" -InformationAction Continue
+                Write-Information -MessageData "  Machine Name: $($config.MachineName)" -InformationAction Continue
+                Write-Information -MessageData "  Cloud Provider: $($config.CloudProvider)" -InformationAction Continue
+                Write-Information -MessageData "  Last Configured: $($config.LastConfigured)" -InformationAction Continue
             }
         } else {
             $results.Errors += "Configuration not initialized"
-            Write-Host "Configuration not initialized" -ForegroundColor Red
+            Write-Error -Message "Configuration not initialized"
         }
     } catch {
         $results.Errors += "Failed to check configuration: $_"
-        Write-Host "Failed to check configuration: $_" -ForegroundColor Red
+        Write-Error -Message "Failed to check configuration: $_"
     }
 
     # Test 3: Backup Location
@@ -79,21 +79,21 @@ function Test-WindowsMelodyRecovery {
 
             if (Test-Path $backupRoot) {
                 $results.BackupLocationAccessible = $true
-                Write-Host "Backup root location is accessible" -ForegroundColor Green
+                Write-Information -MessageData "Backup root location is accessible" -InformationAction Continue
 
                 if (Test-Path $machineBackupDir) {
-                    Write-Host "Machine-specific backup directory exists" -ForegroundColor Green
+                    Write-Information -MessageData "Machine-specific backup directory exists" -InformationAction Continue
                 } else {
                     $results.Warnings += "Machine-specific backup directory does not exist"
-                    Write-Host "Machine-specific backup directory does not exist" -ForegroundColor Yellow
+                    Write-Warning -Message "Machine-specific backup directory does not exist"
                 }
             } else {
                 $results.Errors += "Backup root location is not accessible"
-                Write-Host "Backup root location is not accessible" -ForegroundColor Red
+                Write-Error -Message "Backup root location is not accessible"
             }
         } catch {
             $results.Errors += "Failed to check backup location: $_"
-            Write-Host "Failed to check backup location: $_" -ForegroundColor Red
+            Write-Error -Message "Failed to check backup location: $_"
         }
     }
 
@@ -106,25 +106,25 @@ function Test-WindowsMelodyRecovery {
 
             if ($backupTask -and $updateTask) {
                 $results.ScheduledTasksInstalled = $true
-                Write-Host "Scheduled tasks are installed" -ForegroundColor Green
+                Write-Information -MessageData "Scheduled tasks are installed" -InformationAction Continue
 
                 if ($Detailed) {
-                    Write-Host ""
-                    Write-Host "Scheduled Tasks Details:" -ForegroundColor Cyan
-                    Write-Host "  Backup Task: $($backupTask.State)" -ForegroundColor Cyan
-                    Write-Host "  Update Task: $($updateTask.State)" -ForegroundColor Cyan
+                    Write-Information -MessageData "" -InformationAction Continue
+                    Write-Information -MessageData "Scheduled Tasks Details:" -InformationAction Continue
+                    Write-Information -MessageData "  Backup Task: $($backupTask.State)" -InformationAction Continue
+                    Write-Information -MessageData "  Update Task: $($updateTask.State)" -InformationAction Continue
                 }
             } else {
                 $results.Warnings += "Some scheduled tasks are missing"
-                Write-Host "Some scheduled tasks are missing" -ForegroundColor Yellow
+                Write-Warning -Message "Some scheduled tasks are missing"
             }
         } catch {
             $results.Errors += "Failed to check scheduled tasks: $_"
-            Write-Host "Failed to check scheduled tasks: $_" -ForegroundColor Red
+            Write-Error -Message "Failed to check scheduled tasks: $_"
         }
     } else {
         $results.Warnings += "Scheduled tasks check skipped (not available on this platform)"
-        Write-Host "Scheduled tasks check skipped (not available on this platform)" -ForegroundColor Yellow
+        Write-Warning -Message "Scheduled tasks check skipped (not available on this platform)"
     }
 
     # Test 5: Backup Functionality
@@ -133,11 +133,11 @@ function Test-WindowsMelodyRecovery {
             $backupTest = Get-Command Backup-WindowsMelodyRecovery -ErrorAction Stop
             if ($backupTest) {
                 $results.BackupFunctionality = $true
-                Write-Host "Backup functionality is available" -ForegroundColor Green
+                Write-Information -MessageData "Backup functionality is available" -InformationAction Continue
             }
         } catch {
             $results.Errors += "Backup functionality not available: $_"
-            Write-Host "Backup functionality not available: $_" -ForegroundColor Red
+            Write-Error -Message "Backup functionality not available: $_"
         }
     }
 
@@ -147,11 +147,11 @@ function Test-WindowsMelodyRecovery {
             $restoreTest = Get-Command Restore-WindowsMelodyRecovery -ErrorAction Stop
             if ($restoreTest) {
                 $results.RestoreFunctionality = $true
-                Write-Host "Restore functionality is available" -ForegroundColor Green
+                Write-Information -MessageData "Restore functionality is available" -InformationAction Continue
             }
         } catch {
             $results.Errors += "Restore functionality not available: $_"
-            Write-Host "Restore functionality not available: $_" -ForegroundColor Red
+            Write-Error -Message "Restore functionality not available: $_"
         }
     }
 
@@ -160,40 +160,41 @@ function Test-WindowsMelodyRecovery {
         $updateTest = Get-Command Update-WindowsMelodyRecovery -ErrorAction Stop
         if ($updateTest) {
             $results.UpdateFunctionality = $true
-            Write-Host "Update functionality is available" -ForegroundColor Green
+            Write-Information -MessageData "Update functionality is available" -InformationAction Continue
         }
     } catch {
         $results.Errors += "Update functionality not available: $_"
-        Write-Host "Update functionality not available: $_" -ForegroundColor Red
+        Write-Error -Message "Update functionality not available: $_"
     }
 
     # Summary
-    Write-Host ""
-    Write-Host "Test Summary:" -ForegroundColor Blue
-    Write-Host "Module Loaded: $($results.ModuleLoaded)" -ForegroundColor $(if ($results.ModuleLoaded) { "Green" } else { "Red" })
-    Write-Host "Configuration Valid: $($results.ConfigurationValid)" -ForegroundColor $(if ($results.ConfigurationValid) { "Green" } else { "Red" })
-    Write-Host "Backup Location Accessible: $($results.BackupLocationAccessible)" -ForegroundColor $(if ($results.BackupLocationAccessible) { "Green" } else { "Red" })
-    Write-Host "Scheduled Tasks Installed: $($results.ScheduledTasksInstalled)" -ForegroundColor $(if ($results.ScheduledTasksInstalled) { "Green" } else { "Yellow" })
-    Write-Host "Backup Functionality: $($results.BackupFunctionality)" -ForegroundColor $(if ($results.BackupFunctionality) { "Green" } else { "Red" })
-    Write-Host "Restore Functionality: $($results.RestoreFunctionality)" -ForegroundColor $(if ($results.RestoreFunctionality) { "Green" } else { "Red" })
-    Write-Host "Update Functionality: $($results.UpdateFunctionality)" -ForegroundColor $(if ($results.UpdateFunctionality) { "Green" } else { "Red" })
+    Write-Information -MessageData "" -InformationAction Continue
+    Write-Information -MessageData "Test Summary:" -InformationAction Continue
+    Write-Information -MessageData "Module Loaded: $($results.ModuleLoaded)"  -InformationAction Continue-ForegroundColor $(if ($results.ModuleLoaded) { "Green" } else { "Red" })
+    Write-Information -MessageData "Configuration Valid: $($results.ConfigurationValid)"  -InformationAction Continue-ForegroundColor $(if ($results.ConfigurationValid) { "Green" } else { "Red" })
+    Write-Information -MessageData "Backup Location Accessible: $($results.BackupLocationAccessible)"  -InformationAction Continue-ForegroundColor $(if ($results.BackupLocationAccessible) { "Green" } else { "Red" })
+    Write-Information -MessageData "Scheduled Tasks Installed: $($results.ScheduledTasksInstalled)"  -InformationAction Continue-ForegroundColor $(if ($results.ScheduledTasksInstalled) { "Green" } else { "Yellow" })
+    Write-Information -MessageData "Backup Functionality: $($results.BackupFunctionality)"  -InformationAction Continue-ForegroundColor $(if ($results.BackupFunctionality) { "Green" } else { "Red" })
+    Write-Information -MessageData "Restore Functionality: $($results.RestoreFunctionality)"  -InformationAction Continue-ForegroundColor $(if ($results.RestoreFunctionality) { "Green" } else { "Red" })
+    Write-Information -MessageData "Update Functionality: $($results.UpdateFunctionality)"  -InformationAction Continue-ForegroundColor $(if ($results.UpdateFunctionality) { "Green" } else { "Red" })
 
     if ($results.Errors.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Errors:" -ForegroundColor Red
+        Write-Information -MessageData "" -InformationAction Continue
+        Write-Error -Message "Errors:"
         foreach ($errorMessage in $results.Errors) {
-            Write-Host "  $errorMessage" -ForegroundColor Red
+            Write-Error -Message "  $errorMessage"
         }
     }
 
     if ($results.Warnings.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Warnings:" -ForegroundColor Yellow
+        Write-Information -MessageData "" -InformationAction Continue
+        Write-Warning -Message "Warnings:"
         foreach ($warning in $results.Warnings) {
-            Write-Host "  $warning" -ForegroundColor Yellow
+            Write-Warning -Message "  $warning"
         }
     }
 
     # Return overall status
     return $results.Errors.Count -eq 0
 }
+

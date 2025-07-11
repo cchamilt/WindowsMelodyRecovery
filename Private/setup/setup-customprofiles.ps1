@@ -13,27 +13,27 @@ function Setup-CustomProfiles {
     }
 
     try {
-        Write-Host "Setting up custom profiles..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up custom profiles..." -InformationAction Continue
 
         # Check if chezmoi is installed
         $chezmoiInstalled = $false
         try {
             $null = Get-Command chezmoi -ErrorAction Stop
             $chezmoiInstalled = $true
-            Write-Host "Chezmoi is already installed." -ForegroundColor Green
+            Write-Information -MessageData "Chezmoi is already installed." -InformationAction Continue
         } catch {
-            Write-Host "Chezmoi is not installed." -ForegroundColor Yellow
+            Write-Warning -Message "Chezmoi is not installed."
         }
 
         if (-not $chezmoiInstalled) {
             $installResponse = Read-Host "Would you like to install chezmoi? (Y/N)"
 
             if ($installResponse -eq 'Y' -or $installResponse -eq 'y') {
-                Write-Host "Installing chezmoi via winget..." -ForegroundColor Yellow
+                Write-Warning -Message "Installing chezmoi via winget..."
                 try {
                     winget install twpayne.chezmoi
                     if ($LASTEXITCODE -eq 0) {
-                        Write-Host "Chezmoi installed successfully!" -ForegroundColor Green
+                        Write-Information -MessageData "Chezmoi installed successfully!" -InformationAction Continue
                     } else {
                         Write-Warning "Failed to install chezmoi. Please install manually."
                         return $false
@@ -43,16 +43,17 @@ function Setup-CustomProfiles {
                     return $false
                 }
             } else {
-                Write-Host "Chezmoi installation cancelled." -ForegroundColor Yellow
+                Write-Warning -Message "Chezmoi installation cancelled."
                 return $false
             }
         }
 
-        Write-Host "Custom profiles setup completed!" -ForegroundColor Green
+        Write-Information -MessageData "Custom profiles setup completed!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to setup custom profiles" -ForegroundColor Red
+        Write-Error -Message "Failed to setup custom profiles"
         return $false
     }
 }
+

@@ -10,7 +10,7 @@ function Setup-PackageManagers {
     }
 
     try {
-        Write-Host "Setting up package managers..." -ForegroundColor Blue
+        Write-Information -MessageData "Setting up package managers..." -InformationAction Continue
 
         # Check for admin rights
         $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -21,7 +21,7 @@ function Setup-PackageManagers {
 
         # Check/Install Chocolatey
         if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
-            Write-Host "Installing Chocolatey..." -ForegroundColor Yellow
+            Write-Warning -Message "Installing Chocolatey..."
             try {
                 Set-ExecutionPolicy Bypass -Scope Process -Force
                 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
@@ -30,17 +30,17 @@ function Setup-PackageManagers {
                 # Refresh environment variables
                 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
-                Write-Host "Chocolatey installed successfully" -ForegroundColor Green
+                Write-Information -MessageData "Chocolatey installed successfully" -InformationAction Continue
             } catch {
-                Write-Host "Failed to install Chocolatey: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to install Chocolatey: $($_.Exception.Message)"
             }
         } else {
-            Write-Host "✓ Chocolatey is already installed" -ForegroundColor Green
+            Write-Information -MessageData "✓ Chocolatey is already installed" -InformationAction Continue
         }
 
         # Check/Install Scoop
         if (!(Get-Command scoop -ErrorAction SilentlyContinue)) {
-            Write-Host "Installing Scoop..." -ForegroundColor Yellow
+            Write-Warning -Message "Installing Scoop..."
             try {
                 # Create a temporary script to install Scoop
                 $tempScript = @'
@@ -56,34 +56,35 @@ Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.
                 Remove-Item $tempScriptPath -Force
 
                 if ($process.ExitCode -eq 0) {
-                    Write-Host "Scoop installed successfully" -ForegroundColor Green
+                    Write-Information -MessageData "Scoop installed successfully" -InformationAction Continue
                 } else {
-                    Write-Host "Scoop installation may have failed. Please check manually." -ForegroundColor Yellow
+                    Write-Warning -Message "Scoop installation may have failed. Please check manually."
                 }
 
                 # Refresh environment variables
                 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             } catch {
-                Write-Host "Failed to install Scoop: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Error -Message "Failed to install Scoop: $($_.Exception.Message)"
             }
         } else {
-            Write-Host "✓ Scoop is already installed" -ForegroundColor Green
+            Write-Information -MessageData "✓ Scoop is already installed" -InformationAction Continue
         }
 
         # Verify winget is available
         if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
-            Write-Host "Winget not found. Please ensure you have App Installer installed from the Microsoft Store" -ForegroundColor Yellow
-            Write-Host "You can install it from: https://www.microsoft.com/store/productId/9NBLGGH4NNS1" -ForegroundColor Yellow
+            Write-Warning -Message "Winget not found. Please ensure you have App Installer installed from the Microsoft Store"
+            Write-Warning -Message "You can install it from: https://www.microsoft.com/store/productId/9NBLGGH4NNS1"
         } else {
-            Write-Host "✓ Winget is already installed" -ForegroundColor Green
+            Write-Information -MessageData "✓ Winget is already installed" -InformationAction Continue
         }
 
-        Write-Host "Package manager setup complete!" -ForegroundColor Green
+        Write-Information -MessageData "Package manager setup complete!" -InformationAction Continue
         return $true
 
     } catch {
-        Write-Host "Failed to setup package managers: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Error -Message "Failed to setup package managers: $($_.Exception.Message)"
         return $false
     }
 }
+
 

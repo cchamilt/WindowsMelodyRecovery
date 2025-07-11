@@ -5,7 +5,7 @@ function Update-WindowsMelodyRecovery {
     # Get configuration from the module
     $config = Get-WindowsMelodyRecovery
     if (!$config.BackupRoot) {
-        Write-Host "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first." -ForegroundColor Yellow
+        Write-Warning -Message "Configuration not initialized. Please run Initialize-WindowsMelodyRecovery first."
         return $false
     }
 
@@ -27,67 +27,67 @@ function Update-WindowsMelodyRecovery {
         # Start transcript to capture all console output
         Start-Transcript -Path $tempLogFile -Append
 
-        Write-Host "Starting system updates..." -ForegroundColor Blue
+        Write-Information -MessageData "Starting system updates..." -InformationAction Continue
 
         # Update Windows Store apps
-        Write-Host "`nChecking for Windows Store app updates..." -ForegroundColor Yellow
+        Write-Warning -Message "`nChecking for Windows Store app updates..."
         try {
             Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" |
                 Invoke-CimMethod -MethodName UpdateScanMethod
-            Write-Host "Windows Store apps check completed" -ForegroundColor Green
+            Write-Information -MessageData "Windows Store apps check completed" -InformationAction Continue
         } catch {
             $errorMessage = "Failed to check Windows Store apps: $_"
-            Write-Host $errorMessage -ForegroundColor Red
+            Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
             $updateErrors += $errorMessage
         }
 
         # Update Winget packages
-        Write-Host "`nUpdating Winget packages..." -ForegroundColor Yellow
+        Write-Warning -Message "`nUpdating Winget packages..."
         try {
             winget upgrade --all --accept-source-agreements --accept-package-agreements --include-unknown --silent
-            Write-Host "Winget packages updated successfully" -ForegroundColor Green
+            Write-Information -MessageData "Winget packages updated successfully" -InformationAction Continue
         } catch {
             $errorMessage = "Failed to update Winget packages: $_"
-            Write-Host $errorMessage -ForegroundColor Red
+            Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
             $updateErrors += $errorMessage
         }
 
         # Update Chocolatey packages if installed
         if (Get-Command choco -ErrorAction SilentlyContinue) {
-            Write-Host "`nUpdating Chocolatey packages..." -ForegroundColor Yellow
+            Write-Warning -Message "`nUpdating Chocolatey packages..."
             try {
                 choco upgrade all -y
-                Write-Host "Chocolatey packages updated successfully" -ForegroundColor Green
+                Write-Information -MessageData "Chocolatey packages updated successfully" -InformationAction Continue
             } catch {
                 $errorMessage = "Failed to update Chocolatey packages: $_"
-                Write-Host $errorMessage -ForegroundColor Red
+                Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
                 $updateErrors += $errorMessage
             }
         }
 
         # Update Scoop packages if installed
         if (Get-Command scoop -ErrorAction SilentlyContinue) {
-            Write-Host "`nUpdating Scoop packages..." -ForegroundColor Yellow
+            Write-Warning -Message "`nUpdating Scoop packages..."
             try {
                 scoop update
                 scoop update *
-                Write-Host "Scoop packages updated successfully" -ForegroundColor Green
+                Write-Information -MessageData "Scoop packages updated successfully" -InformationAction Continue
             } catch {
                 $errorMessage = "Failed to update Scoop packages: $_"
-                Write-Host $errorMessage -ForegroundColor Red
+                Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
                 $updateErrors += $errorMessage
             }
         }
 
         # Update PowerShell modules
-        Write-Host "`nUpdating PowerShell modules..." -ForegroundColor Yellow
+        Write-Warning -Message "`nUpdating PowerShell modules..."
         try {
             $modules = Get-InstalledModule
             foreach ($module in $modules) {
                 try {
                     $latest = Find-Module -Name $module.Name
                     if ($latest.Version -gt $module.Version) {
-                        Write-Host "Updating $($module.Name) from $($module.Version) to $($latest.Version)..." -ForegroundColor Yellow
+                        Write-Warning -Message "Updating $($module.Name) from $($module.Version) to $($latest.Version)..."
                         Update-Module -Name $module.Name -Force
                         # Clean up older versions
                         Get-InstalledModule -Name $module.Name -AllVersions |
@@ -96,19 +96,19 @@ function Update-WindowsMelodyRecovery {
                     }
                 } catch {
                     $errorMessage = "Failed to update module $($module.Name): $_"
-                    Write-Host $errorMessage -ForegroundColor Red
+                    Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
                     $updateErrors += $errorMessage
                 }
             }
-            Write-Host "PowerShell modules updated successfully" -ForegroundColor Green
+            Write-Information -MessageData "PowerShell modules updated successfully" -InformationAction Continue
         } catch {
             $errorMessage = "Failed to update PowerShell modules: $_"
-            Write-Host $errorMessage -ForegroundColor Red
+            Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
             $updateErrors += $errorMessage
         }
 
-        Write-Host "`nSystem update completed!" -ForegroundColor Green
-        Write-Host "Note: Some updates may require a system restart to take effect" -ForegroundColor Yellow
+        Write-Information -MessageData "`nSystem update completed!" -InformationAction Continue
+        Write-Warning -Message "Note: Some updates may require a system restart to take effect"
 
     } finally {
         # Stop transcript
@@ -142,6 +142,7 @@ function Update-WindowsMelodyRecovery {
         Errors = $updateErrors
     }
 }
+
 
 
 
