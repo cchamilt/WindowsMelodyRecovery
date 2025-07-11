@@ -577,7 +577,7 @@ function Invoke-WmrSafeAdminOperation {
 
     } catch {
         $result.Errors += $_.Exception.Message
-        Write-Error "Failed to execute $OperationName`: $($_.Exception.Message)"
+        Write-Warning "Failed to execute $OperationName`: $($_.Exception.Message)"
 
         # Try fallback if available
         if ($FallbackScriptBlock -and -not $result.UsedFallback) {
@@ -589,6 +589,7 @@ function Invoke-WmrSafeAdminOperation {
                 $result.Warnings += "Used fallback operation due to error in main operation"
             } catch {
                 $result.Errors += "Fallback also failed: $($_.Exception.Message)"
+                Write-Warning "Fallback operation for $OperationName also failed: $($_.Exception.Message)"
             }
         }
     }
