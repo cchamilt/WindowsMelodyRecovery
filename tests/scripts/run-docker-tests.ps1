@@ -1,26 +1,28 @@
-# run-docker-tests.ps1
-# Comprehensive Docker test runner for 100% pass rate validation
+# Docker Test Runner Script
+# Runs PowerShell tests in Docker containers for cross-platform validation
 
-[CmdletBinding()]
 param(
+    [Parameter(Mandatory = $false)]
     [ValidateSet('unit', 'integration', 'file-operations', 'all')]
-    [string]$Category = 'all',
+    [string]$TestCategory = 'all',
 
-    [switch]$Parallel = $true,
-    [switch]$Coverage = $false,
-    [switch]$Verbose = $false,
-    [switch]$StopOnFirstFailure = $false,
-    [string]$OutputPath = "docker-test-results",
-    [switch]$CleanupAfter = $true
+    [Parameter(Mandatory = $false)]
+    [string]$OutputPath = "test-results",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CleanupAfter = $true,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$StopOnFirstFailure = $false
 )
 
-# Set error handling
-$ErrorActionPreference = 'Stop'
-
-# Docker test configuration
+# Configuration
 $DockerComposeFile = "docker-compose.test.yml"
 $ContainerName = "wmr-test-runner"
 $WorkspaceDir = "/workspace"
+
+# Global variable to store the detected Docker Compose command
+$script:DockerComposeCommand = ""
 
 function Write-TestLog {
     param(
@@ -29,25 +31,50 @@ function Write-TestLog {
         [string]$Level = 'Info'
     )
 
-    $colors = @{
-        'Info' = 'White'
-        'Success' = 'Green'
-        'Warning' = 'Yellow'
-        'Error' = 'Red'
+    $color = switch ($Level) {
+        'Info' { 'White' }
+        'Success' { 'Green' }
+        'Warning' { 'Yellow' }
+        'Error' { 'Red' }
     }
 
-    $prefix = @{
-        'Info' = 'ℹ️'
-        'Success' = '✅'
-        'Warning' = '⚠️'
-        'Error' = '❌'
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "[$timestamp] [$Level] $Message"
+
+    Write-Host $logMessage -ForegroundColor $color
+}
+
+function Test-DockerComposeCommand {
+    # Test modern Docker Compose command first
+    try {
+        $null = docker compose version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $script:DockerComposeCommand = "docker compose"
+            Write-TestLog "Using modern Docker Compose command: docker compose" -Level Success
+            return $true
+        }
+    } catch {
+        # Continue to test legacy command
     }
 
-    Write-Host "$($prefix[$Level]) $Message" -ForegroundColor $colors[$Level]
+    # Test legacy Docker Compose command
+    try {
+        $null = docker-compose --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $script:DockerComposeCommand = "docker-compose"
+            Write-TestLog "Using legacy Docker Compose command: docker-compose" -Level Success
+            return $true
+        }
+    } catch {
+        # Neither command is available
+    }
+
+    Write-TestLog "Neither 'docker compose' nor 'docker-compose' is available" -Level Error
+    return $false
 }
 
 function Test-DockerEnvironment {
-    Write-TestLog "Checking Docker environment..." -Level Info
+    Write-TestLog "Validating Docker environment..." -Level Info
 
     # Check if Docker is available
     try {
@@ -58,11 +85,8 @@ function Test-DockerEnvironment {
         throw "Docker not found"
     }
 
-    # Check if docker-compose is available
-    try {
-        docker-compose --version | Out-Null
-        Write-TestLog "Docker Compose is available" -Level Success
-    } catch {
+    # Check if Docker Compose is available and determine which command to use
+    if (-not (Test-DockerComposeCommand)) {
         Write-TestLog "Docker Compose is not available. Please install Docker Compose." -Level Error
         throw "Docker Compose not found"
     }
@@ -81,14 +105,20 @@ function Start-DockerTestEnvironment {
 
     try {
         # Clean up any existing containers
-        docker-compose -f $DockerComposeFile down -v 2>$null
+        $cleanupCmd = "$script:DockerComposeCommand -f $DockerComposeFile down -v"
+        Write-TestLog "Cleaning up existing containers: $cleanupCmd" -Level Info
+        Invoke-Expression "$cleanupCmd" 2>$null
 
         # Build and start containers
         Write-TestLog "Building Docker containers..." -Level Info
-        docker-compose -f $DockerComposeFile build --parallel
+        $buildCmd = "$script:DockerComposeCommand -f $DockerComposeFile build --parallel"
+        Write-TestLog "Build command: $buildCmd" -Level Info
+        Invoke-Expression $buildCmd
 
         Write-TestLog "Starting Docker containers..." -Level Info
-        docker-compose -f $DockerComposeFile up -d
+        $startCmd = "$script:DockerComposeCommand -f $DockerComposeFile up -d"
+        Write-TestLog "Start command: $startCmd" -Level Info
+        Invoke-Expression $startCmd
 
         # Wait for container to be ready
         Write-TestLog "Waiting for test environment to be ready..." -Level Info
@@ -226,10 +256,13 @@ function Stop-DockerTestEnvironment {
         try {
             # Get logs before cleanup (for debugging)
             Write-TestLog "Saving Docker logs..." -Level Info
-            docker-compose -f $DockerComposeFile logs > "$OutputPath/docker-logs.txt" 2>&1
+            $logsCmd = "$script:DockerComposeCommand -f $DockerComposeFile logs"
+            Invoke-Expression "$logsCmd" > "$OutputPath/docker-logs.txt" 2>&1
 
             # Stop and remove containers
-            docker-compose -f $DockerComposeFile down -v
+            $downCmd = "$script:DockerComposeCommand -f $DockerComposeFile down -v"
+            Write-TestLog "Stopping containers: $downCmd" -Level Info
+            Invoke-Expression $downCmd
 
             # Clean up Docker system
             docker system prune -f > $null 2>&1
@@ -253,32 +286,37 @@ function New-OutputDirectory {
 function Write-TestSummary {
     param(
         [bool]$Success,
-        [string]$Category
+        [string]$TestCategory,
+        [string]$OutputFile
     )
 
-    $summary = @{
-        Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        Environment = "Docker"
-        Category = $Category
-        Success = $Success
-        TargetPassRate = "100%"
-        Status = if ($Success) { "✅ PASSED" } else { "❌ FAILED" }
-        Notes = @(
-            "Docker environment tests must achieve 100% pass rate",
-            "All Docker-compatible tests should be reliable and deterministic",
-            "Failing tests should be fixed or moved to Windows-only category"
-        )
-    }
+    $status = if ($Success) { "✅ PASSED" } else { "❌ FAILED" }
+    $summary = @"
 
-    $summaryPath = "$OutputPath/test-summary.json"
-    $summary | ConvertTo-Json -Depth 3 | Out-File -FilePath $summaryPath -Encoding UTF8
-    Write-TestLog "Test summary saved to: $summaryPath" -Level Info
+=== DOCKER TEST SUMMARY ===
+Test Category: $TestCategory
+Status: $status
+Environment: Docker (Cross-platform)
+Output: $OutputFile
+
+Container: $ContainerName
+Compose File: $DockerComposeFile
+Docker Compose Command: $script:DockerComposeCommand
+Cleanup: $CleanupAfter
+=========================
+
+"@
+
+    Write-Host $summary -ForegroundColor $(if ($Success) { 'Green' } else { 'Red' })
+
+    # Write summary to file
+    $summary | Out-File -FilePath "$OutputPath/docker-test-summary.txt" -Append
 }
 
 # Main execution
 try {
-    Write-TestLog "🚀 Starting Docker test execution..." -Level Info
-    Write-TestLog "Category: $Category" -Level Info
+    Write-TestLog "Starting Docker test execution..." -Level Info
+    Write-TestLog "Test Category: $TestCategory" -Level Info
     Write-TestLog "Output Path: $OutputPath" -Level Info
 
     # Create output directory
@@ -293,37 +331,25 @@ try {
     }
 
     # Run tests
-    $testSuccess = Invoke-DockerTests -TestCategory $Category -OutputFile "$OutputPath/test-results.xml"
+    $testResult = Invoke-DockerTests -TestCategory $TestCategory -OutputFile "$OutputPath/docker-test-results.xml"
 
-    # Write summary
-    Write-TestSummary -Success $testSuccess -Category $Category
+    # Generate summary
+    Write-TestSummary -Success $testResult -TestCategory $TestCategory -OutputFile "$OutputPath/docker-test-results.xml"
 
-    if ($testSuccess) {
-        Write-TestLog "🎉 All Docker tests completed successfully!" -Level Success
-        Write-TestLog "Docker environment achieved 100% pass rate target" -Level Success
+    if ($testResult) {
+        Write-TestLog "Docker tests completed successfully" -Level Success
+        exit 0
     } else {
-        Write-TestLog "💥 Docker tests failed" -Level Error
-        Write-TestLog "Please review failing tests and fix for Docker compatibility" -Level Error
-    }
-
-    # Final status
-    if ($testSuccess) {
-        Write-TestLog "✅ DOCKER TESTS: SUCCESS" -Level Success
-    } else {
-        Write-TestLog "❌ DOCKER TESTS: FAILED" -Level Error
+        Write-TestLog "Docker tests failed" -Level Error
+        exit 1
     }
 
 } catch {
-    Write-TestLog "Fatal error: $($_.Exception.Message)" -Level Error
-    $testSuccess = $false
+    Write-TestLog "Docker test execution failed: $($_.Exception.Message)" -Level Error
+    Write-TestSummary -Success $false -TestCategory $TestCategory -OutputFile "$OutputPath/docker-test-results.xml"
+    exit 1
+
 } finally {
     # Always cleanup
     Stop-DockerTestEnvironment
-}
-
-# Exit with appropriate code
-if ($testSuccess) {
-    exit 0
-} else {
-    exit 1
 }

@@ -142,7 +142,7 @@ foreach ($dir in $safeDirs) {
 }
 
 foreach ($dir in $safeDirs) {
-    # STRICT SAFETY CHECK: Only allow project paths or temp paths - NEVER C:\ root paths
+    # ENHANCED SAFETY CHECK: Identify safe path types first
     $isProjectPath = $dir.StartsWith($projectRoot)
     $isUserTempPath = $script:IsCICDEnvironment -and (
         ($IsWindows -and $dir.Contains($env:TEMP) -and $dir.Contains("WindowsMelodyRecovery-Tests")) -or
@@ -151,23 +151,47 @@ foreach ($dir in $safeDirs) {
     # Docker-specific safety check for workspace paths
     $isDockerWorkspacePath = $script:IsDockerEnvironment -and $dir.StartsWith('/workspace/') -and $dir.Contains("Temp")
 
-    # CRITICAL: Check for dangerous C:\ root paths
-    if ($dir.StartsWith("C:\") -and -not ($dir.StartsWith($projectRoot))) {
-        Write-Error "🚨 SAFETY VIOLATION: Directory '$dir' attempts to write to C:\ root!"
-        Write-Error "🚨 This is NEVER allowed and indicates a serious path resolution bug!"
-        Write-Error "🚨 Project root: '$projectRoot'"
-        Write-Error "🚨 All test operations must be within project temp directories or user temp in CI/CD!"
-        return
+    # ADDITIONAL CI/CD SAFETY: Allow runner temp directories (GitHub Actions)
+    $isRunnerTempPath = $script:IsCICDEnvironment -and $IsWindows -and (
+        $dir.StartsWith("C:\Users\RUNNER~1\AppData\Local\Temp\WindowsMelodyRecovery-Tests") -or
+        $dir.StartsWith("C:\Users\runner\AppData\Local\Temp\WindowsMelodyRecovery-Tests")
+    )
+
+    # Check if this is a safe path
+    $isSafePath = $isProjectPath -or $isUserTempPath -or $isDockerWorkspacePath -or $isRunnerTempPath
+
+    # CRITICAL: Check for dangerous C:\ root paths ONLY if not already identified as safe
+    if (-not $isSafePath -and $dir.StartsWith("C:\")) {
+        # Check for specific dangerous paths
+        $isDangerousPath = $dir.StartsWith("C:\Windows") -or
+                          $dir.StartsWith("C:\Program Files") -or
+                          $dir.StartsWith("C:\ProgramData") -or
+                          $dir.StartsWith("C:\System") -or
+                          $dir -eq "C:\" -or
+                          $dir.StartsWith("C:\$")
+
+        if ($isDangerousPath) {
+            Write-Error "🚨 SAFETY VIOLATION: Directory '$dir' attempts to write to dangerous C:\ location!"
+            Write-Error "🚨 This is NEVER allowed and indicates a serious path resolution bug!"
+            Write-Error "🚨 Project root: '$projectRoot'"
+            Write-Error "🚨 All test operations must be within project temp directories or user temp in CI/CD!"
+            return
+        }
     }
 
-    if (-not ($isProjectPath -or $isUserTempPath -or $isDockerWorkspacePath)) {
+    # Final safety check: ensure path is identified as safe
+    if (-not $isSafePath) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' is not within safe test paths!"
         Write-Error "  • Project root: '$projectRoot'"
         Write-Error "  • User temp (CI/CD only): $($script:IsCICDEnvironment)"
         Write-Error "  • Docker workspace: $($script:IsDockerEnvironment)"
+        Write-Error "  • Runner temp path: $isRunnerTempPath"
+        Write-Error "  • Is CI/CD: $($script:IsCICDEnvironment)"
+        Write-Error "  • TEMP env var: $($env:TEMP)"
         return
     }
 
+    # Verify directory exists
     if (-not (Test-Path $dir)) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' does not exist after initialization!"
         return

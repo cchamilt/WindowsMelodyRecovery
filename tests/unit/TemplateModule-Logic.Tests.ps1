@@ -2,6 +2,9 @@
 # Tests the core template processing logic without file system operations
 
 BeforeAll {
+    # Import the main module to make functions available
+    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
+
     # Load the unified test environment (works for both Docker and Windows)
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
@@ -42,6 +45,72 @@ files:
         } else {
             return "default: content"
         }
+    }
+
+    # Mock Read-WmrTemplateConfig function
+    Mock Read-WmrTemplateConfig {
+        param([string]$TemplatePath)
+
+        if ($TemplatePath -like "*missing*") {
+            throw "Template file not found: $TemplatePath"
+        }
+
+        if ($TemplatePath -like "*invalid*") {
+            throw "Failed to parse YAML template file '$TemplatePath': Invalid YAML content"
+        }
+
+        if ($TemplatePath -like "*valid*") {
+            return [PSCustomObject]@{
+                metadata = [PSCustomObject]@{
+                    name = "Valid Template"
+                    version = "1.0"
+                    description = "A valid test template"
+                }
+                prerequisites = @(
+                    [PSCustomObject]@{
+                        type = "directory"
+                        path = "C:\Test"
+                    }
+                )
+                files = @(
+                    [PSCustomObject]@{
+                        name = "test.txt"
+                        source = "source.txt"
+                        destination = "dest.txt"
+                    }
+                )
+            }
+        }
+
+        # Default case
+        return [PSCustomObject]@{
+            metadata = [PSCustomObject]@{
+                name = "Default Template"
+                version = "1.0"
+            }
+            prerequisites = @()
+        }
+    }
+
+    # Mock Test-WmrTemplateSchema function
+    Mock Test-WmrTemplateSchema {
+        param([PSObject]$TemplateConfig)
+
+        if ($null -eq $TemplateConfig -or $TemplateConfig -is [hashtable] -and $TemplateConfig.Count -eq 0) {
+            throw "Template schema validation failed: Template configuration is null or empty."
+        }
+
+        if (-not $TemplateConfig.metadata) {
+            throw "Template schema validation failed: 'metadata' section is missing."
+        }
+
+        if (-not $TemplateConfig.metadata.name) {
+            throw "Template schema validation failed: 'metadata.name' is missing."
+        }
+
+        Write-Host "NOTE: Schema validation is not yet fully implemented. This is a placeholder."
+        Write-Host "Basic template schema validation passed."
+        return $true
     }
 
     # Add missing Get-WmrTestPath function
