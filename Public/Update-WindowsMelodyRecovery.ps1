@@ -1,5 +1,6 @@
 function Update-WindowsMelodyRecovery {
-    [CmdletBinding()]
+    [OutputType([bool], [System.Collections.Hashtable])]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param()
 
     # Get configuration from the module
@@ -13,8 +14,6 @@ function Update-WindowsMelodyRecovery {
     Import-PrivateScripts -Category 'scripts'
 
     # Define proper backup paths using config values
-    $BACKUP_ROOT = $config.BackupRoot
-    $MACHINE_NAME = $config.MachineName
     $WINDOWS_CONFIG_PATH = $config.WindowsMelodyRecoveryPath
 
     # Collect any errors during update
@@ -121,8 +120,8 @@ function Update-WindowsMelodyRecovery {
 
             foreach ($pattern in $errorPatterns) {
                 if ($consoleOutput -match "(?im)$pattern") {
-                    $matches = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
-                    foreach ($match in $matches) {
+                    $errorMatches = [regex]::Matches($consoleOutput, "(?im).*$pattern.*")
+                    foreach ($match in $errorMatches) {
                         $errorMessage = "Console output error: $($match.Value.Trim())"
                         if ($updateErrors -notcontains $errorMessage) {
                             $updateErrors += $errorMessage

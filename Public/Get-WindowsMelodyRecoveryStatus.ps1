@@ -28,6 +28,7 @@ function Get-WindowsMelodyRecoveryStatus {
     .OUTPUTS
         Hashtable containing the module status information.
     #>
+    [OutputType([System.Collections.Hashtable])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]

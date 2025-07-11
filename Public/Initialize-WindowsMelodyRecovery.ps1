@@ -2,6 +2,7 @@
 # This script ONLY handles configuration - nothing else
 
 function Initialize-WindowsMelodyRecovery {
+    [OutputType([bool], [System.Collections.Hashtable])]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]
@@ -109,11 +110,11 @@ function Initialize-WindowsMelodyRecovery {
     # Get machine name
     if (-not $NoPrompt) {
         Write-Information -MessageData "`nEnter machine name:" -InformationAction Continue
-        $input = Read-Host "Machine name [default: $env:COMPUTERNAME]"
-        $machineName = if ([string]::IsNullOrWhiteSpace($input)) {
+        $userInput = Read-Host "Machine name [default: $env:COMPUTERNAME]"
+        $machineName = if ([string]::IsNullOrWhiteSpace($userInput)) {
             $env:COMPUTERNAME
         } else {
-            $input
+            $userInput
         }
     } else {
         $machineName = $env:COMPUTERNAME
@@ -155,11 +156,11 @@ function Initialize-WindowsMelodyRecovery {
             $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
         } else {
             do {
-                $input = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMelodyRecovery)"
-                $path = if ([string]::IsNullOrWhiteSpace($input)) {
+                $userInput = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMelodyRecovery)"
+                $path = if ([string]::IsNullOrWhiteSpace($userInput)) {
                     Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
                 } else {
-                    $input
+                    $userInput
                 }
                 $valid = Test-Path (Split-Path $path -Parent)
                 if (-not $valid) {
