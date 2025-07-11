@@ -141,7 +141,7 @@ function Get-WmrFileState {
         $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8 -NoNewline
 
     } elseif ($FileConfig.type -eq "directory") {
-        # For directories, capture a list of files and their hashes/metadata
+        # For directories, capture a list of files and their hashes/metadata INCLUDING file contents
         $dirContent = Get-ChildItem -Path $resolvedPath -Recurse | ForEach-Object {
             Write-Debug "Processing item: $($_.FullName)"
             Write-Debug "Base path: $resolvedPath"
@@ -162,13 +162,27 @@ function Get-WmrFileState {
             Write-Debug "Base path: $basePath"
             Write-Debug "Relative path: $relativePath"
 
-            @{
+            $item = @{
                 FullName = $_.FullName
                 Length = $_.Length
                 LastWriteTimeUtc = $_.LastWriteTimeUtc
                 PSIsContainer = $_.PSIsContainer
                 RelativePath = $relativePath
             }
+
+            # For files, also capture their content
+            if (-not $_.PSIsContainer) {
+                try {
+                    $content = Get-Content -Path $_.FullName -Raw -Encoding UTF8 -ErrorAction Stop
+                    $item.Content = $content
+                    Write-Debug "Captured content for file: $($_.FullName)"
+                } catch {
+                    Write-Warning "Could not read content for file $($_.FullName): $($_.Exception.Message)"
+                    $item.Content = $null
+                }
+            }
+
+            $item
         }
         $fileState.Contents = $dirContent | ConvertTo-Json -Compress
 
@@ -294,10 +308,16 @@ function Set-WmrFileState {
                     New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
                 }
 
-                # Create empty file to maintain structure
-                if (-not (Test-Path $targetPath)) {
-                    Write-Debug "Creating file: $targetPath"
-                    New-Item -ItemType File -Path $targetPath -Force | Out-Null
+                # Create file with original content if available
+                if ($item.Content -ne $null) {
+                    Write-Debug "Creating file with content: $targetPath"
+                    Set-Content -Path $targetPath -Value $item.Content -Encoding UTF8 -NoNewline
+                } else {
+                    # Create empty file to maintain structure
+                    if (-not (Test-Path $targetPath)) {
+                        Write-Debug "Creating empty file: $targetPath"
+                        New-Item -ItemType File -Path $targetPath -Force | Out-Null
+                    }
                 }
             }
         }

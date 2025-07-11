@@ -101,7 +101,7 @@ if ($needsAdmin -and -not $isAdmin) {
 }
 
 Write-Information -MessageData "🪟 Windows-Only Test Runner" -InformationAction Continue
-Write-Information -MessageData "Category: $Category"  -InformationAction Continue-ForegroundColor White
+Write-Information -MessageData "Category: $Category"  -InformationAction Continue
 Write-Verbose -Message "Environment: $(if ($isCICD) { 'CI/CD' } else { 'Development' })"
 Write-Verbose -Message "Admin Rights: $(if ($isAdmin) { 'Yes' } else { 'No' })"
 
@@ -200,12 +200,12 @@ try {
     }
 
     # Report results
-    Write-Information -MessageData ""  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData ""  -InformationAction Continue
     Write-Information -MessageData "=== Windows-Only Test Results ===" -InformationAction Continue
     Write-Information -MessageData "Tests Passed: $($result.PassedCount)" -InformationAction Continue
     Write-Error -Message "Tests Failed: $($result.FailedCount)"
     Write-Warning -Message "Tests Skipped: $($result.SkippedCount)"
-    Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue-ForegroundColor White
+    Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue
 
     if ($result.FailedCount -gt 0) {
         Write-Error -Message "✗ Some Windows-only tests failed"
@@ -218,7 +218,7 @@ try {
 } catch {
     Write-Error -Message "✗ Error running Windows-only tests: $($_.Exception.Message)"
     Write-Error -Message "Stack trace:"
-    Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
+    Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue
     exit 1
 }
 
