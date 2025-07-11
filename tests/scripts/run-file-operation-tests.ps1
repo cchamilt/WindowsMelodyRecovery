@@ -202,7 +202,18 @@ foreach ($test in $testsToRun) {
     try {
         $startTime = Get-Date
         
-        # Configure Pester for better output (unified with unit tests)
+        # Configure Pester for better output with proper reporting
+        $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $testResultsDir = Join-Path $projectRoot "test-results"
+        $coverageDir = Join-Path $testResultsDir "coverage"
+        
+        # Ensure test result directories exist
+        @($testResultsDir, $coverageDir) | ForEach-Object {
+            if (-not (Test-Path $_)) {
+                New-Item -Path $_ -ItemType Directory -Force | Out-Null
+            }
+        }
+        
         $pesterConfig = @{
             Run = @{
                 Path = $testFile
@@ -213,6 +224,19 @@ foreach ($test in $testsToRun) {
             }
             TestResult = @{
                 Enabled = $true
+                OutputPath = Join-Path $testResultsDir "file-operations-test-results.xml"
+                OutputFormat = 'NUnitXml'
+            }
+            CodeCoverage = @{
+                Enabled = $true
+                Path = @(
+                    (Join-Path $projectRoot "Public/*.ps1"),
+                    (Join-Path $projectRoot "Private/**/*.ps1"),
+                    (Join-Path $projectRoot "WindowsMelodyRecovery.psm1")
+                )
+                OutputPath = Join-Path $coverageDir "file-operations-coverage.xml"
+                OutputFormat = 'JaCoCo'
+                CoveragePercentTarget = 80
             }
         }
         

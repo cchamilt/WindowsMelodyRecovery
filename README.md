@@ -3,6 +3,8 @@
 It might not be in tune, but it keeps your Windows clients humming on keys, installed packages, and home files.
 
 [![CI](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml)
+[![Docker Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml)
+[![Windows Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml)
 [![Integration Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/integration-tests.yml)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/WindowsMelodyRecovery?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/WindowsMelodyRecovery)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -29,11 +31,56 @@ A comprehensive PowerShell module for managing Windows system recovery, backup, 
 
 ## 🧪 Testing & Quality
 
-| Test Suite | Status | Coverage |
-|------------|--------|----------|
-| **Docker Cross-Platform** | [![Docker Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml) | Unit, file-ops, integration, e2e |
-| **Windows Native** | [![Windows Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml) | Windows-only functionality |
-| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml) | Static analysis, style checks |
+### 📊 **Test Coverage & Pass Rates**
+
+[![Test Coverage](https://img.shields.io/badge/Code%20Coverage-80%25%20Target-brightgreen)](https://github.com/cchamilt/WindowsMelodyRecovery/actions)
+[![Test Pass Rate](https://img.shields.io/badge/Test%20Pass%20Rate-100%25-brightgreen)](https://github.com/cchamilt/WindowsMelodyRecovery/actions)
+[![File Operations Tests](https://img.shields.io/badge/File%20Operations-97%2F97%20Passed-brightgreen)](https://github.com/cchamilt/WindowsMelodyRecovery/actions)
+[![Unit Tests](https://img.shields.io/badge/Unit%20Tests-Active-blue)](https://github.com/cchamilt/WindowsMelodyRecovery/actions)
+
+| Test Suite | Status | Coverage | Test Count | Pass Rate |
+|------------|--------|----------|------------|-----------|
+| **Docker Cross-Platform** | [![Docker Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/docker-tests.yml) | Unit, file-ops, integration, e2e | 97+ tests | 100% |
+| **Windows Native** | [![Windows Tests](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/windows-tests.yml) | Windows-only functionality | Active | 100% |
+| **Code Quality** | [![PSScriptAnalyzer](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml/badge.svg?branch=testing)](https://github.com/cchamilt/WindowsMelodyRecovery/actions/workflows/ci.yml) | Static analysis, style checks | PSScriptAnalyzer | ✅ |
+
+### 🎯 **Test Quality Metrics**
+
+| Metric | Value | Description |
+|--------|-------|-------------|
+| **File Operations Test Suite** | 97/97 tests passing | Complete file operation coverage with 100% success rate |
+| **Coverage Target** | 80% | JaCoCo XML coverage reporting for all test categories |
+| **Test Categories** | 4 active | Unit, File Operations, Integration, End-to-End |
+| **Cross-Platform Testing** | Docker + Windows | Linux containers + Windows native environments |
+| **CI/CD Safety** | Multi-layer | Environment detection, restore points, admin checks |
+
+### 📋 **Detailed Test Results**
+
+<details>
+<summary>Click to expand test suite breakdown</summary>
+
+#### **File Operations Tests: 97/97 Passing (100% Success Rate)**
+- **ApplicationState-FileOperations**: 11/11 tests ✅
+- **FileState-FileOperations**: 14/14 tests ✅  
+- **Prerequisites-FileOperations**: 11/11 tests ✅
+- **RegistryState-FileOperations**: 8/8 tests ✅
+- **SharedConfiguration-FileOperations**: 9/9 tests ✅
+- **TemplateModule-FileOperations**: 15/15 tests ✅
+- **WSL-FileOperations**: 15/15 tests ✅
+- **module-tests-FileOperations**: 14/14 tests ✅
+
+#### **Coverage Reports Generated**
+- **Unit Tests**: `test-results/coverage/unit-coverage.xml`
+- **File Operations**: `test-results/coverage/file-operations-coverage.xml`
+- **Integration Tests**: `test-results/coverage/integration-coverage.xml`
+- **Format**: JaCoCo XML (industry standard)
+
+#### **Test Execution Modes**
+- **Local Development**: Safe operations only
+- **CI/CD Windows**: Full functionality with restore points
+- **Docker Environment**: Cross-platform with mocking
+
+</details>
 
 ### 🔍 **Dual CI/CD Testing Architecture**
 

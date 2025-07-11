@@ -134,30 +134,44 @@ jobs:
     - name: Run basic unit tests
       shell: pwsh
       run: |
-        Write-Host "Running basic unit tests..." -ForegroundColor Green
+        Write-Host "Running unit tests using standardized test runner..." -ForegroundColor Green
         
-        if (Test-Path "tests/unit") {
-          $config = New-PesterConfiguration
-          $config.Run.Path = './tests/unit'
-          $config.TestResult.Enabled = $true
-          $config.TestResult.OutputPath = './test-results.xml'
-          $config.TestResult.OutputFormat = 'NUnitXml'
-          $config.Output.Verbosity = 'Detailed'
-          
-          $result = Invoke-Pester -Configuration $config
-          
-          Write-Host "Test Results:" -ForegroundColor Cyan
-          Write-Host "  Total: $($result.TotalCount)" -ForegroundColor Gray
-          Write-Host "  Passed: $($result.PassedCount)" -ForegroundColor Green
-          Write-Host "  Failed: $($result.FailedCount)" -ForegroundColor Red
-          Write-Host "  Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
-          
-          if ($result.FailedCount -gt 0) {
-            Write-Error "Unit tests failed: $($result.FailedCount) failures"
+        if (Test-Path "tests/scripts/run-unit-tests.ps1") {
+          try {
+            ./tests/scripts/run-unit-tests.ps1 -OutputFormat Normal
+            Write-Host "✅ Unit tests completed successfully" -ForegroundColor Green
+          } catch {
+            Write-Host "❌ Unit tests failed: $_" -ForegroundColor Red
+            Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
             exit 1
           }
         } else {
-          Write-Host "⚠️ No unit tests found" -ForegroundColor Yellow
+          Write-Host "⚠️ Unit test runner script not found, falling back to basic test" -ForegroundColor Yellow
+          
+          # Fallback to basic test if script doesn't exist
+          if (Test-Path "tests/unit") {
+            $config = New-PesterConfiguration
+            $config.Run.Path = './tests/unit'
+            $config.TestResult.Enabled = $true
+            $config.TestResult.OutputPath = './test-results.xml'
+            $config.TestResult.OutputFormat = 'NUnitXml'
+            $config.Output.Verbosity = 'Detailed'
+            
+            $result = Invoke-Pester -Configuration $config
+            
+            Write-Host "Test Results:" -ForegroundColor Cyan
+            Write-Host "  Total: $($result.TotalCount)" -ForegroundColor Gray
+            Write-Host "  Passed: $($result.PassedCount)" -ForegroundColor Green
+            Write-Host "  Failed: $($result.FailedCount)" -ForegroundColor Red
+            Write-Host "  Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
+            
+            if ($result.FailedCount -gt 0) {
+              Write-Error "Unit tests failed: $($result.FailedCount) failures"
+              exit 1
+            }
+          } else {
+            Write-Host "⚠️ No unit tests found" -ForegroundColor Yellow
+          }
         }
         
     - name: Upload test results
@@ -165,7 +179,16 @@ jobs:
       if: always()
       with:
         name: ci-test-results
-        path: test-results.xml
+        path: |
+          test-results.xml
+          test-results/
+        
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ci-coverage-reports
+        path: test-results/coverage/
         
   # Documentation check
   docs-check:

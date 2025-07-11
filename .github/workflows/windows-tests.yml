@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        test-category: [unit, integration]
+        test-category: [unit, file-operations, integration]
       fail-fast: false
     
     steps:
@@ -41,7 +41,7 @@ jobs:
     - name: Run Windows ${{ matrix.test-category }} Tests
       shell: pwsh
       run: |
-        Write-Host "Running Windows-only ${{ matrix.test-category }} tests..."
+        Write-Host "Running Windows ${{ matrix.test-category }} tests..."
         Write-Host "Environment: Windows CI/CD"
         Write-Host "Test Category: ${{ matrix.test-category }}"
         Write-Host "All Windows-specific functionality will be tested"
@@ -54,10 +54,13 @@ jobs:
         }
         
         try {
-          if ($requireAdmin) {
-            ./tests/scripts/run-windows-tests.ps1 -Category ${{ matrix.test-category }} -RequireAdmin -GenerateReport -CreateRestorePoint
-          } else {
-            ./tests/scripts/run-windows-tests.ps1 -Category ${{ matrix.test-category }} -GenerateReport
+          # Use the standardized test runner scripts for consistency
+          if ("${{ matrix.test-category }}" -eq "unit") {
+            ./tests/scripts/run-unit-tests.ps1 -OutputFormat Normal
+          } elseif ("${{ matrix.test-category }}" -eq "file-operations") {
+            ./tests/scripts/run-file-operation-tests.ps1 -OutputFormat Normal
+          } elseif ("${{ matrix.test-category }}" -eq "integration") {
+            ./tests/scripts/run-windows-tests.ps1 -Category integration -RequireAdmin -GenerateReport -CreateRestorePoint
           }
         } catch {
           Write-Host "Error running Windows tests: $_" -ForegroundColor Red
@@ -70,7 +73,7 @@ jobs:
       if: always()
       with:
         name: Windows ${{ matrix.test-category }} Tests
-        path: 'test-results/windows-only-test-results.xml'
+        path: 'test-results/*-test-results.xml'
         reporter: java-junit
         fail-on-error: false
     
@@ -92,6 +95,15 @@ jobs:
         path: |
           test-results/logs/
         retention-days: 7
+        
+    - name: Upload Coverage Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: windows-${{ matrix.test-category }}-coverage
+        path: |
+          test-results/coverage/
+        retention-days: 30
 
   windows-cross-platform-verification:
     runs-on: windows-latest
@@ -148,7 +160,7 @@ jobs:
         echo "| Test Category | Status | Details |" >> $GITHUB_STEP_SUMMARY
         echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
         
-        for category in unit integration; do
+        for category in unit file-operations integration; do
           if [ -d "windows-$category-test-results" ]; then
             echo "| Windows $category | ✅ Completed | Results available |" >> $GITHUB_STEP_SUMMARY
           else
@@ -167,4 +179,10 @@ jobs:
         echo "**Windows-only tests**: Executed with full functionality" >> $GITHUB_STEP_SUMMARY
         echo "**Administrative privileges**: Used for integration tests" >> $GITHUB_STEP_SUMMARY
         echo "**Safety measures**: Restore points created before destructive tests" >> $GITHUB_STEP_SUMMARY
-        echo "**Cross-platform compatibility**: Verified on Windows" >> $GITHUB_STEP_SUMMARY 
+        echo "**Cross-platform compatibility**: Verified on Windows" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+        echo "Coverage reports are available in the artifacts for each test category:" >> $GITHUB_STEP_SUMMARY
+        echo "- Unit tests: JaCoCo XML format" >> $GITHUB_STEP_SUMMARY
+        echo "- File operations: JaCoCo XML format" >> $GITHUB_STEP_SUMMARY
+        echo "- Coverage target: 80%" >> $GITHUB_STEP_SUMMARY 
