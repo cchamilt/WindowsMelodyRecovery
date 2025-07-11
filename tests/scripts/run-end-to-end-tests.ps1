@@ -172,12 +172,12 @@ if ($runInDocker) {
             $exitCode = $result.FailedCount -gt 0 ? 1 : 0
 
             # Report results
-            Write-Information -MessageData ""  -InformationAction Continue-ForegroundColor White
+            Write-Information -MessageData ""  -InformationAction Continue
             Write-Information -MessageData "=== End-to-End Test Results ===" -InformationAction Continue
             Write-Information -MessageData "Tests Passed: $($result.PassedCount)" -InformationAction Continue
             Write-Error -Message "Tests Failed: $($result.FailedCount)"
             Write-Warning -Message "Tests Skipped: $($result.SkippedCount)"
-            Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue-ForegroundColor White
+            Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue
 
             if ($result.FailedCount -gt 0) {
                 Write-Error -Message "✗ Some end-to-end tests failed"

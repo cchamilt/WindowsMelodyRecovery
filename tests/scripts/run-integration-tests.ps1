@@ -141,12 +141,12 @@ if ($runInDocker) {
         }
 
         # Report results
-        Write-Information -MessageData ""  -InformationAction Continue-ForegroundColor White
+        Write-Information -MessageData ""  -InformationAction Continue
         Write-Information -MessageData "=== Integration Test Results ===" -InformationAction Continue
         Write-Information -MessageData "Tests Passed: $($result.PassedCount)" -InformationAction Continue
         Write-Error -Message "Tests Failed: $($result.FailedCount)"
         Write-Warning -Message "Tests Skipped: $($result.SkippedCount)"
-        Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue-ForegroundColor White
+        Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue
 
         if ($result.FailedCount -gt 0) {
             Write-Error -Message "✗ Some integration tests failed"

@@ -16,17 +16,22 @@
 .PARAMETER OutputFormat
     Pester output format. Default is 'Detailed'.
 
+.PARAMETER GenerateReport
+    Generate detailed test reports and coverage data. Default is false.
+
 .EXAMPLE
     .\run-unit-tests.ps1
     .\run-unit-tests.ps1 -TestName "ConfigurationValidation"
     .\run-unit-tests.ps1 -OutputFormat "Normal"
+    .\run-unit-tests.ps1 -GenerateReport
 #>
 
 [CmdletBinding()]
 param(
     [string]$TestName,
     [ValidateSet('None', 'Normal', 'Detailed', 'Diagnostic')]
-    [string]$OutputFormat = 'Detailed'
+    [string]$OutputFormat = 'Detailed',
+    [switch]$GenerateReport
 )
 
 # Set execution policy for current process to allow unsigned scripts
@@ -89,17 +94,8 @@ foreach ($test in $testsToRun) {
     try {
         $startTime = Get-Date
 
-        # Configure Pester for better output with proper reporting
+        # Configure Pester for better output with optional reporting
         $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        $testResultsDir = Join-Path $projectRoot "test-results"
-        $coverageDir = Join-Path $testResultsDir "coverage"
-
-        # Ensure test result directories exist
-        @($testResultsDir, $coverageDir) | ForEach-Object {
-            if (-not (Test-Path $_)) {
-                New-Item -Path $_ -ItemType Directory -Force | Out-Null
-            }
-        }
 
         $pesterConfig = @{
             Run = @{
@@ -109,12 +105,27 @@ foreach ($test in $testsToRun) {
             Output = @{
                 Verbosity = $OutputFormat
             }
-            TestResult = @{
+        }
+
+        # Add test results and coverage only if GenerateReport is specified
+        if ($GenerateReport) {
+            $testResultsDir = Join-Path $projectRoot "test-results"
+            $coverageDir = Join-Path $testResultsDir "coverage"
+
+            # Ensure test result directories exist
+            @($testResultsDir, $coverageDir) | ForEach-Object {
+                if (-not (Test-Path $_)) {
+                    New-Item -Path $_ -ItemType Directory -Force | Out-Null
+                }
+            }
+
+            $pesterConfig.TestResult = @{
                 Enabled = $true
                 OutputPath = Join-Path $testResultsDir "unit-test-results.xml"
                 OutputFormat = 'NUnitXml'
             }
-            CodeCoverage = @{
+
+            $pesterConfig.CodeCoverage = @{
                 Enabled = $true
                 Path = @(
                     (Join-Path $projectRoot "Public/*.ps1"),
@@ -142,7 +153,7 @@ foreach ($test in $testsToRun) {
                 $statusMsg += ", $($result.SkippedCount) skipped"
             }
             $statusMsg += ", $([math]::Round($testTime, 2))s)"
-            Write-Information -MessageData $statusMsg  -InformationAction Continue-ForegroundColor Green
+            Write-Information -MessageData $statusMsg  -InformationAction Continue
         } else {
             Write-Error -Message "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)"
 
@@ -171,7 +182,7 @@ Write-Information -MessageData "✅ Cleanup complete" -InformationAction Continu
 Write-Information -MessageData "" -InformationAction Continue
 Write-Information -MessageData "📊 Unit Test Summary:" -InformationAction Continue
 Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAction Continue
-Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue-ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue
 Write-Warning -Message "  • Total Skipped: $totalSkipped"
 Write-Verbose -Message "  • Total Time: $([math]::Round($totalTime, 2))s"
 

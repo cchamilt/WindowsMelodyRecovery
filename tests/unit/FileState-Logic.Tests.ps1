@@ -215,19 +215,23 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 dynamic_state_path = "files/restore.txt"
             }
 
-            # Mock the state file exists and has content - use exact path matching
-            $expectedStatePath = "/tmp/test/StateDir/files/restore.txt"  # Direct path to avoid recursion
+            $stateDir = "/tmp/test/StateDir"
+            $expectedStatePath = Join-Path $stateDir "files/restore.txt"
+
+            # Mock the state file exists and has content
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq $expectedStatePath }
             Mock Get-Content { return "mock restore content" } -ParameterFilter { $Path -eq $expectedStatePath }
 
-            # Ensure the target directory exists mock
+            # Mock the target directory exists (parent of destination)
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/original" }
 
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory "/tmp/test/StateDir"
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory $stateDir
 
-            # Should restore to original path
+            # Should restore to the converted path (from Convert-WmrPath mock)
+            # Our Convert-WmrPath mock converts paths by replacing '\' with '/' and 'C:' with '/tmp/test'
+            $expectedDestination = "/tmp/test/original/exists_path.txt"
             Should -Invoke Set-Content -ParameterFilter {
-                $Path -eq "/tmp/test/original/exists_path.txt"
+                $Path -eq $expectedDestination
             }
         }
     }
@@ -278,11 +282,17 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 encrypt = $true
             }
 
-            # Mock the encrypted state file exists and has encrypted content
-            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/test/files/encrypted.txt" }
-            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq "/tmp/test/test/files/encrypted.txt" }
+            $stateDir = "/tmp/test/test"
+            $expectedStatePath = Join-Path $stateDir "files/encrypted.txt"
 
-            Set-WmrFileState -FileConfig $config -StateFilesDirectory "/tmp/test/test" -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
+            # Mock the encrypted state file exists and has encrypted content
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq $expectedStatePath }
+            Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq $expectedStatePath }
+
+            # Mock the target directory exists (parent of destination)
+            Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/test" }
+
+            Set-WmrFileState -FileConfig $config -StateFilesDirectory $stateDir -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
 
             # Should call decryption function
             Should -Invoke Unprotect-WmrData

@@ -26,10 +26,14 @@
 .PARAMETER Force
     Force run destructive tests in local Windows environment (use with caution).
 
+.PARAMETER GenerateReport
+    Generate detailed test reports and coverage data. Default is false.
+
 .EXAMPLE
     .\run-file-operation-tests.ps1
     .\run-file-operation-tests.ps1 -TestName "FileState-FileOperations"
     .\run-file-operation-tests.ps1 -Force  # Run destructive tests locally (dangerous!)
+    .\run-file-operation-tests.ps1 -GenerateReport
 #>
 
 [CmdletBinding()]
@@ -38,7 +42,8 @@ param(
     [ValidateSet('None', 'Normal', 'Detailed', 'Diagnostic')]
     [string]$OutputFormat = 'Detailed',
     [switch]$SkipCleanup,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$GenerateReport
 )
 
 # Set execution policy for current process to allow unsigned scripts (Windows only)
@@ -226,17 +231,8 @@ foreach ($test in $testsToRun) {
     try {
         $startTime = Get-Date
 
-        # Configure Pester for better output with proper reporting
+        # Configure Pester for better output with optional reporting
         $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        $testResultsDir = Join-Path $projectRoot "test-results"
-        $coverageDir = Join-Path $testResultsDir "coverage"
-
-        # Ensure test result directories exist
-        @($testResultsDir, $coverageDir) | ForEach-Object {
-            if (-not (Test-Path $_)) {
-                New-Item -Path $_ -ItemType Directory -Force | Out-Null
-            }
-        }
 
         $pesterConfig = @{
             Run = @{
@@ -246,12 +242,27 @@ foreach ($test in $testsToRun) {
             Output = @{
                 Verbosity = $OutputFormat
             }
-            TestResult = @{
+        }
+
+        # Add test results and coverage only if GenerateReport is specified
+        if ($GenerateReport) {
+            $testResultsDir = Join-Path $projectRoot "test-results"
+            $coverageDir = Join-Path $testResultsDir "coverage"
+
+            # Ensure test result directories exist
+            @($testResultsDir, $coverageDir) | ForEach-Object {
+                if (-not (Test-Path $_)) {
+                    New-Item -Path $_ -ItemType Directory -Force | Out-Null
+                }
+            }
+
+            $pesterConfig.TestResult = @{
                 Enabled = $true
                 OutputPath = Join-Path $testResultsDir "file-operations-test-results.xml"
                 OutputFormat = 'NUnitXml'
             }
-            CodeCoverage = @{
+
+            $pesterConfig.CodeCoverage = @{
                 Enabled = $true
                 Path = @(
                     (Join-Path $projectRoot "Public/*.ps1"),
@@ -279,7 +290,7 @@ foreach ($test in $testsToRun) {
                 $statusMsg += ", $($result.SkippedCount) skipped"
             }
             $statusMsg += ", $([math]::Round($testTime, 2))s)"
-            Write-Information -MessageData $statusMsg  -InformationAction Continue-ForegroundColor Green
+            Write-Information -MessageData $statusMsg  -InformationAction Continue
         } else {
             Write-Error -Message "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)"
 
@@ -316,7 +327,7 @@ if (-not $SkipCleanup) {
 Write-Information -MessageData "" -InformationAction Continue
 Write-Information -MessageData "📊 File Operation Test Summary:" -InformationAction Continue
 Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAction Continue
-Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue-ForegroundColor $(if ($totalFailed -eq 0) { "Green" } else { "Red" })
+Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue
 Write-Warning -Message "  • Total Skipped: $totalSkipped"
 Write-Verbose -Message "  • Total Time: $([math]::Round($totalTime, 2))s"
 Write-Verbose -Message "  • Environment: $($script:IsDockerEnvironment ? 'Docker' : $script:IsCICDEnvironment ? 'CI/CD' : 'Local')"
