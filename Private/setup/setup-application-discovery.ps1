@@ -70,7 +70,7 @@ if (Test-Path $coreUtilitiesPath) {
 }
 
 # Load environment configuration
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
+$loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath
 } else {
@@ -663,3 +663,4 @@ function Test-ApplicationDiscoveryStatus {
 if ($MyInvocation.InvocationName -ne '.') {
     Setup-ApplicationDiscovery -DiscoveryMode $DiscoveryMode -OutputFormat $OutputFormat -UserListPath $UserListPath -CreateUserLists:$CreateUserLists -DocumentInstallation:$DocumentInstallation
 }
+

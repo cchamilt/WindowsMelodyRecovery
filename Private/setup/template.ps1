@@ -9,7 +9,7 @@ function Setup-[Feature] {
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
-        Load-Environment | Out-Null
+        Import-Environment | Out-Null
     } catch {
         Write-Verbose "Using module configuration fallback"
     }
@@ -66,7 +66,7 @@ Sets up [Feature] configurations and settings.
 
 .DESCRIPTION
 This function installs and configures [Feature] with the necessary settings.
-It uses the environment configuration loaded by Load-Environment.
+It uses the environment configuration loaded by Import-Environment.
 
 .PARAMETER Force
 Skip confirmation prompts and force installation/configuration.
@@ -80,8 +80,9 @@ Setup-[Feature] -Force
 Sets up [Feature] without prompts.
 
 .NOTES
-- Requires Load-Environment to be available
+- Requires Import-Environment to be available
 - Returns $true on success, $false on failure
 - Uses winget as primary package manager with chocolatey fallback
 - Stores configuration in backup location when applicable
 #>
+

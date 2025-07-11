@@ -81,13 +81,13 @@ function Resolve-WmrTemplateInheritance {
         # Step 3: Apply inheritance rules
         if ($TemplateConfig.inheritance_rules) {
             Write-Verbose "Applying custom inheritance rules"
-            $resolvedConfig = Apply-WmrInheritanceRule -ResolvedConfig $resolvedConfig -InheritanceRules $TemplateConfig.inheritance_rules -MachineContext $MachineContext
+            $resolvedConfig = Invoke-WmrInheritanceRule -ResolvedConfig $resolvedConfig -InheritanceRules $TemplateConfig.inheritance_rules -MachineContext $MachineContext
         }
 
         # Step 4: Process conditional sections
         if ($TemplateConfig.conditional_sections) {
             Write-Verbose "Processing conditional sections"
-            $resolvedConfig = Apply-WmrConditionalSection -ResolvedConfig $resolvedConfig -ConditionalSections $TemplateConfig.conditional_sections -MachineContext $MachineContext
+            $resolvedConfig = Invoke-WmrConditionalSection -ResolvedConfig $resolvedConfig -ConditionalSections $TemplateConfig.conditional_sections -MachineContext $MachineContext
         }
 
         # Step 5: Validate final configuration

@@ -14,10 +14,10 @@
     Requires: PowerShell 5.1 or later
 #>
 
-function Apply-WmrInheritanceRule {
+function Invoke-WmrInheritanceRule {
     <#
     .SYNOPSIS
-        Applies custom inheritance rules to the resolved configuration.
+        Applies inheritance rules to the resolved configuration.
     #>
     [CmdletBinding()]
     [OutputType([System.Management.Automation.PSObject])]
@@ -33,16 +33,20 @@ function Apply-WmrInheritanceRule {
     )
 
     foreach ($rule in $InheritanceRules) {
-        Write-Verbose "Applying inheritance rule: $($rule.name)"
+        Write-Verbose "Processing inheritance rule: $($rule.name)"
 
-        # Check if rule applies to current configuration
-        if (Test-WmrInheritanceRuleCondition -Rule $rule -ResolvedConfig $ResolvedConfig -MachineContext $MachineContext) {
-            # Apply rule to applicable sections
+        # Check if rule conditions are met
+        if (Test-WmrInheritanceRuleCondition -Rule $rule -MachineContext $MachineContext) {
+            Write-Verbose "Applying inheritance rule: $($rule.name)"
+
+            # Apply rule to matching configuration sections
             foreach ($section in $rule.applies_to) {
                 if ($ResolvedConfig.$section) {
-                    $ResolvedConfig.$section = Apply-WmrInheritanceRuleToSection -Items $ResolvedConfig.$section -Rule $rule -MachineContext $MachineContext
+                    $ResolvedConfig.$section = Invoke-WmrInheritanceRuleToSection -Items $ResolvedConfig.$section -Rule $rule -MachineContext $MachineContext
                 }
             }
+        } else {
+            Write-Verbose "Inheritance rule '$($rule.name)' conditions not met, skipping"
         }
     }
 
@@ -104,10 +108,10 @@ function Test-WmrInheritanceRuleCondition {
     return $true
 }
 
-function Apply-WmrInheritanceRuleToSection {
+function Invoke-WmrInheritanceRuleToSection {
     <#
     .SYNOPSIS
-        Applies an inheritance rule to a configuration section.
+        Applies an inheritance rule to a specific configuration section.
     #>
     [CmdletBinding()]
     [OutputType([System.Array])]
@@ -122,20 +126,50 @@ function Apply-WmrInheritanceRuleToSection {
         [PSObject]$MachineContext
     )
 
+    # Filter items that match the rule conditions
+    $matchingItems = @()
+    $nonMatchingItems = @()
+
+    foreach ($item in $Items) {
+        if (Test-WmrRuleItemMatch -Item $item -Rule $Rule) {
+            $matchingItems += $item
+        } else {
+            $nonMatchingItems += $item
+        }
+    }
+
+    # Apply rule action to matching items
     switch ($Rule.action) {
         "merge" {
-            # Apply merge logic based on rule parameters
+            # Merge matching items using rule parameters
             if ($Rule.parameters.merge_level -eq "value") {
-                # Merge at value level for registry items
-                return Merge-WmrRegistryValue -Items $Items -Rule $Rule
+                $matchingItems = Merge-WmrRegistryValue -Items $matchingItems -Rule $Rule
+            }
+        }
+        "replace" {
+            # Replace matching items with rule-specified values
+            if ($Rule.parameters.replacement_values) {
+                foreach ($item in $matchingItems) {
+                    foreach ($key in $Rule.parameters.replacement_values.Keys) {
+                        $item.$key = $Rule.parameters.replacement_values[$key]
+                    }
+                }
             }
         }
         "transform" {
-            # Apply transformation script
-            if ($Rule.script) {
+            # Transform matching items using rule script
+            if ($Rule.parameters.transform_script) {
+                $scriptBlock = [ScriptBlock]::Create($Rule.parameters.transform_script)
+                $transformedItems = @()
+                foreach ($item in $matchingItems) {
+                    $transformedItem = & $scriptBlock $item $MachineContext
+                    $transformedItems += $transformedItem
+                }
+                $matchingItems = $transformedItems
+            } elseif ($Rule.script) {
                 $scriptBlock = [ScriptBlock]::Create($Rule.script)
                 $transformedItems = @()
-                foreach ($item in $Items) {
+                foreach ($item in $matchingItems) {
                     $transformedItem = & $scriptBlock $item $MachineContext
                     $transformedItems += $transformedItem
                 }
@@ -145,23 +179,23 @@ function Apply-WmrInheritanceRuleToSection {
         "validate" {
             # Validate items and remove invalid ones
             $validItems = @()
-            foreach ($item in $Items) {
+            foreach ($item in $matchingItems) {
                 if (Test-WmrConfigurationItemValidity -Item $item -Rule $Rule) {
                     $validItems += $item
                 }
             }
-            return $validItems
+            $matchingItems = $validItems
         }
         default {
             Write-Warning "Unknown inheritance rule action: $($Rule.action)"
-            return $Items
         }
     }
 
-    return $Items
+    # Return combined items
+    return @($nonMatchingItems) + @($matchingItems)
 }
 
-function Apply-WmrConditionalSection {
+function Invoke-WmrConditionalSection {
     <#
     .SYNOPSIS
         Applies conditional sections to the resolved configuration.

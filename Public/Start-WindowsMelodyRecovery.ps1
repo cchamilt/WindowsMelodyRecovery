@@ -1,4 +1,4 @@
-function Setup-WindowsMelodyRecovery {
+function Start-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]

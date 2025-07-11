@@ -430,18 +430,18 @@ Describe "Manual Backup Functionality Tests" {
 Describe "Setup Scripts Integration Tests" {
     Context "Setup Script Initialization" {
         It "Should load environment configuration" {
-            Mock Load-Environment {}
+            Mock Import-Environment {}
             Mock Write-Verbose {}
             Mock Write-Information -MessageData {} -InformationAction Continue
 
             if ($script:IsAdmin) {
                 Setup-BitLocker -Drive $script:TestDrive
-                Should -Invoke Load-Environment -Times 1
+                Should -Invoke Import-Environment -Times 1
             }
         }
 
         It "Should handle environment loading errors gracefully" {
-            Mock Load-Environment { throw "Environment not found" }
+            Mock Import-Environment { throw "Environment not found" }
             Mock Write-Verbose {}
             Mock Write-Information -MessageData {} -InformationAction Continue
 
@@ -524,3 +524,4 @@ Describe "Setup Scripts Configuration Validation" {
         }
     }
 }
+

@@ -3,9 +3,9 @@
 
 # Load environment
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+. (Join-Path (Split-Path $scriptPath -Parent) "scripts\Import-Environment.ps1")
 
-if (!(Load-Environment)) {
+if (!(Import-Environment)) {
     Write-Error -Message "Failed to load environment configuration"
     exit 1
 }
@@ -51,7 +51,7 @@ BACKUP_EMAIL_PASSWORD="$plainPassword"
     $configEnv | Out-File (Join-Path $machineBackupDir "config.env") -Force
 
     # Reload environment to get new settings
-    if (!(Load-Environment)) {
+    if (!(Import-Environment)) {
         Write-Error -Message "Failed to load updated configuration"
         exit 1
     }
@@ -159,3 +159,4 @@ try {
     Write-Error -Message "Failed to register backup task: $_"
     exit 1
 }
+

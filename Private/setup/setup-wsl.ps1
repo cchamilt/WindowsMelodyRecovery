@@ -4,7 +4,7 @@ function Setup-WSL {
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
-        Load-Environment | Out-Null
+        Import-Environment | Out-Null
     } catch {
         Write-Verbose "Using module configuration fallback"
     }
@@ -320,3 +320,4 @@ echo "Usage: check-repos"
         return $false
     }
 }
+

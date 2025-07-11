@@ -4,9 +4,9 @@
 try {
     # At the start after admin check
     $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\load-environment.ps1")
+    . (Join-Path (Split-Path $scriptPath -Parent) "scripts\Import-Environment.ps1")
 
-    if (!(Load-Environment)) {
+    if (!(Import-Environment)) {
         Write-Error -Message "Failed to load environment configuration"
         exit 1
     }
@@ -102,3 +102,4 @@ if ($response -eq "Y" -or $response -eq "y") {
         Write-Error -Message "Failed to run system update: $_"
     }
 }
+

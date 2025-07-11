@@ -4,7 +4,7 @@ function Setup-PackageManagers {
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
-        Load-Environment | Out-Null
+        Import-Environment | Out-Null
     } catch {
         Write-Verbose "Using module configuration fallback"
     }
@@ -86,5 +86,6 @@ Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.
         return $false
     }
 }
+
 
 

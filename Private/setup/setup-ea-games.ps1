@@ -9,7 +9,7 @@ function Setup-EAGames {
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
-        Load-Environment | Out-Null
+        Import-Environment | Out-Null
     } catch {
         Write-Verbose "Using module configuration fallback"
     }
@@ -156,4 +156,5 @@ function Setup-EAGames {
         return $false
     }
 }
+
 

@@ -1,6 +1,6 @@
 # Core utility functions for WindowsMelodyRecovery module
 
-function Load-Environment {
+function Import-Environment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)]

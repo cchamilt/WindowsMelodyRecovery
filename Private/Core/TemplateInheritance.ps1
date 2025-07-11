@@ -44,10 +44,10 @@ Export-ModuleMember -Function @(
     'Merge-WmrRegistryValue',
 
     # Conditional processing functions
-    'Apply-WmrInheritanceRule',
+    'Invoke-WmrInheritanceRule',
     'Test-WmrInheritanceRuleCondition',
-    'Apply-WmrInheritanceRuleToSection',
-    'Apply-WmrConditionalSection',
+    'Invoke-WmrInheritanceRuleToSection',
+    'Invoke-WmrConditionalSection',
     'Test-WmrConditionalSectionCondition',
     'Test-WmrRuleItemMatch',
 

@@ -69,7 +69,7 @@ if (Test-Path $coreUtilitiesPath) {
 }
 
 # Load environment configuration
-$loadEnvPath = Join-Path $modulePath "Private\scripts\load-environment.ps1"
+$loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath
 } else {
@@ -768,3 +768,4 @@ function Test-ConfigurationSelectionStatus {
 if ($MyInvocation.InvocationName -ne '.') {
     Setup-ConfigurationSelection -ProfileName $ProfileName -SetupScripts $SetupScripts -ConfigurationMode $ConfigurationMode -OutputPath $OutputPath -CreateProfile:$CreateProfile
 }
+

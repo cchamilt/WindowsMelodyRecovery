@@ -59,7 +59,7 @@
         'Restore-CloudIntegration',
 
         # Setup functions
-        'Setup-WindowsMelodyRecovery',
+        'Start-WindowsMelodyRecovery',
         'Setup-WSL',
         'Setup-GamingPlatforms',
         'Setup-CloudIntegration',

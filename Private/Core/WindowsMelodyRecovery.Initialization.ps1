@@ -40,13 +40,13 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         # Step 3: Load core utilities
-        $coreResult = Load-CoreUtilities
+        $coreResult = Import-CoreUtilities
         if (-not $coreResult.Success) {
             throw "Core utilities loading failed: $($coreResult.Message)"
         }
 
         # Step 4: Load public functions
-        $publicResult = Load-PublicFunctions
+        $publicResult = Import-PublicFunctions
         if (-not $publicResult.Success) {
             throw "Public functions loading failed: $($publicResult.Message)"
         }
@@ -180,7 +180,7 @@ function Initialize-ModuleConfiguration {
     try {
         # Try to load from provided config path first
         if ($ConfigPath -and (Test-Path $ConfigPath)) {
-            $configResult = Load-ConfigurationFromFile -ConfigPath $ConfigPath
+            $configResult = Import-ConfigurationFromFile -ConfigPath $ConfigPath
             if ($configResult.Success) {
                 $script:LoadedComponents += "ExternalConfig"
                 return $configResult
@@ -190,7 +190,7 @@ function Initialize-ModuleConfiguration {
         # Try to load from module config directory
         $moduleConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "Config\windows.env"
         if (Test-Path $moduleConfigPath) {
-            $configResult = Load-ConfigurationFromFile -ConfigPath $moduleConfigPath
+            $configResult = Import-ConfigurationFromFile -ConfigPath $moduleConfigPath
             if ($configResult.Success) {
                 $script:LoadedComponents += "ModuleConfig"
                 return $configResult
@@ -200,7 +200,7 @@ function Initialize-ModuleConfiguration {
         # Try to load from template
         $templateConfigPath = Join-Path (Split-Path $PSScriptRoot -Parent) "Templates\windows.env.template"
         if (Test-Path $templateConfigPath) {
-            $configResult = Load-ConfigurationFromTemplate -TemplatePath $templateConfigPath
+            $configResult = Import-ConfigurationFromTemplate -TemplatePath $templateConfigPath
             if ($configResult.Success) {
                 $script:LoadedComponents += "TemplateConfig"
                 return $configResult
@@ -229,7 +229,7 @@ function Initialize-ModuleConfiguration {
     }
 }
 
-function Load-ConfigurationFromFile {
+function Import-ConfigurationFromFile {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -276,7 +276,7 @@ function Load-ConfigurationFromFile {
     }
 }
 
-function Load-ConfigurationFromTemplate {
+function Import-ConfigurationFromTemplate {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -398,7 +398,7 @@ function Merge-Configurations {
     return $merged
 }
 
-function Load-CoreUtilities {
+function Import-CoreUtilities {
     [CmdletBinding()]
     param()
 
@@ -408,7 +408,7 @@ function Load-CoreUtilities {
         # Core utilities are already loaded via ScriptsToProcess in the manifest
         # Just verify they're available
         $coreFunctions = @(
-            'Load-Environment',
+            'Import-Environment',
             'Get-ConfigValue',
             'Set-ConfigValue',
             'Test-ModuleInitialized',
@@ -450,7 +450,7 @@ function Load-CoreUtilities {
     }
 }
 
-function Load-PublicFunctions {
+function Import-PublicFunctions {
     [CmdletBinding()]
     param()
 
@@ -686,3 +686,5 @@ function Get-ModuleInitializationStatus {
         Config = $script:Config
     }
 }
+
+
