@@ -224,50 +224,39 @@ function Merge-WmrSingleConfigurationItem {
         $conflictResolution = "shared_wins"
     }
 
-    # Create merged item
-    $mergedItem = $ExistingItem | ConvertTo-Json -Depth 100 | ConvertFrom-Json
-
     # Apply conflict resolution
     switch ($conflictResolution) {
         "machine_wins" {
-            if ($NewItem.inheritance_source -eq "machine_specific" -or
-                ($InheritanceConfig.machine_precedence -and $NewItem.inheritance_source -eq "machine_specific")) {
-                # Machine-specific wins
-                foreach ($prop in $NewItem.PSObject.Properties) {
-                    try {
-                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
-                    } catch {
-                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
-                    }
-                }
+            if ($NewItem.inheritance_source -eq "machine_specific") {
+                # Machine-specific completely replaces shared
+                Write-Verbose "Machine-specific item wins, replacing shared configuration"
+                return $NewItem
             } elseif ($InheritanceConfig.machine_precedence -and $newPriority -gt $existingPriority) {
                 # Higher priority wins when machine precedence is enabled
-                foreach ($prop in $NewItem.PSObject.Properties) {
-                    try {
-                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
-                    } catch {
-                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
-                    }
-                }
+                Write-Verbose "Higher priority item wins due to machine precedence"
+                return $NewItem
+            } else {
+                # Keep existing item but update inheritance info
+                Write-Verbose "Keeping existing item (no machine override)"
+                return $ExistingItem
             }
         }
         "shared_wins" {
             if ($ExistingItem.inheritance_source -eq "shared") {
                 # Keep existing (shared wins)
-                # No action needed
+                Write-Verbose "Shared item wins, keeping existing"
+                return $ExistingItem
             } else {
                 # New item wins
-                foreach ($prop in $NewItem.PSObject.Properties) {
-                    try {
-                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
-                    } catch {
-                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
-                    }
-                }
+                Write-Verbose "New item wins over non-shared existing"
+                return $NewItem
             }
         }
         "merge_both" {
-            # Merge properties from both items
+            # Create merged item by deep copying existing and adding new properties
+            $mergedItem = $ExistingItem | ConvertTo-Json -Depth 100 | ConvertFrom-Json
+
+            # Merge properties from new item (excluding metadata)
             foreach ($prop in $NewItem.PSObject.Properties) {
                 if ($prop.Name -notin @("inheritance_source", "inheritance_priority", "conflict_resolution")) {
                     try {
@@ -277,22 +266,21 @@ function Merge-WmrSingleConfigurationItem {
                     }
                 }
             }
+
+            Write-Verbose "Merged both items"
+            return $mergedItem
         }
         default {
             # Default to higher priority wins
             if ($newPriority -gt $existingPriority) {
-                foreach ($prop in $NewItem.PSObject.Properties) {
-                    try {
-                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
-                    } catch {
-                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
-                    }
-                }
+                Write-Verbose "New item wins by priority ($newPriority > $existingPriority)"
+                return $NewItem
+            } else {
+                Write-Verbose "Existing item wins by priority ($existingPriority >= $newPriority)"
+                return $ExistingItem
             }
         }
     }
-
-    return $mergedItem
 }
 
 function Merge-WmrRegistryValue {

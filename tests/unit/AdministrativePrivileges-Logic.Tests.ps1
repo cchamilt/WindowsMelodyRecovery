@@ -91,8 +91,8 @@ Describe "Administrative Privilege Logic Tests" {
             # Mock Test-WmrAdminPrivilege to return false
             Mock -CommandName "Test-WmrAdminPrivilege" -MockWith { return $false }
 
-            # Test Setup-WindowsMelodyRecovery
-            Mock -CommandName "Setup-WindowsMelodyRecovery" -MockWith {
+            # Test Initialize-WindowsMelodyRecovery
+            Mock -CommandName "Initialize-WindowsMelodyRecovery" -MockWith {
                 if (-not (Test-WmrAdminPrivilege)) {
                     Write-Warning "This function requires administrator privileges. Please run PowerShell as Administrator."
                     return $false
@@ -100,7 +100,7 @@ Describe "Administrative Privilege Logic Tests" {
                 return $true
             }
 
-            $result = Setup-WindowsMelodyRecovery
+            $result = Initialize-WindowsMelodyRecovery
             $result | Should -Be $false
 
             Assert-MockCalled -CommandName "Test-WmrAdminPrivilege" -Times 1
