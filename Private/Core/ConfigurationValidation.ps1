@@ -96,11 +96,9 @@ function Validate-SharedConfigurationMerging {
     <#
     .SYNOPSIS
         Validates shared configuration merging operations.
-    .DESCRIPTION
-        Stub implementation for testing purposes.
     #>
     [CmdletBinding()]
-    [OutputType([System.Management.Automation.PSObject])]
+    [OutputType([PSObject])]
     param(
         [Parameter(Mandatory=$true)]
         [hashtable]$BaseConfig,
@@ -109,95 +107,288 @@ function Validate-SharedConfigurationMerging {
         [hashtable]$OverrideConfig,
 
         [Parameter(Mandatory=$false)]
-        [array]$ExpectedKeys = @(),
+        [string[]]$ExpectedKeys = @(),
 
         [Parameter(Mandatory=$false)]
         [hashtable]$MergingRules = @{}
     )
 
-    $result = [PSCustomObject]@{
-        Success = $true
-        Errors = @()
-        MergedConfig = @{}
-        ValidationDetails = @{
-            BaseConfigKeys = $BaseConfig.Keys
-            OverrideConfigKeys = $OverrideConfig.Keys
-            MergedKeys = @()
-            MergingRuleResults = @()
+    # Helper function for deep cloning hashtables
+    function Clone-Hashtable {
+        param([hashtable]$Source)
+        $clone = @{}
+        foreach ($key in $Source.Keys) {
+            if ($Source[$key] -is [hashtable]) {
+                $clone[$key] = Clone-Hashtable $Source[$key]
+            } else {
+                $clone[$key] = $Source[$key]
+            }
+        }
+        return $clone
+    }
+
+    # Helper function for deep merging hashtables
+    function Merge-Hashtables {
+        param(
+            [hashtable]$Base,
+            [hashtable]$Override,
+            [ref]$OverriddenKeys,
+            [ref]$AddedKeys
+        )
+
+        $merged = Clone-Hashtable $Base
+
+        foreach ($key in $Override.Keys) {
+            if ($merged.ContainsKey($key)) {
+                # Key exists in base, check if it's a hashtable for deep merge
+                if ($merged[$key] -is [hashtable] -and $Override[$key] -is [hashtable]) {
+                    # Deep merge nested hashtables
+                    $nestedOverridden = @()
+                    $nestedAdded = @()
+                    $merged[$key] = Merge-Hashtables $merged[$key] $Override[$key] ([ref]$nestedOverridden) ([ref]$nestedAdded)
+
+                    # Only mark as overridden if something actually changed
+                    if ($nestedOverridden.Count -gt 0 -or $nestedAdded.Count -gt 0) {
+                        $OverriddenKeys.Value += $key
+                    }
+                } else {
+                    # Simple override
+                    $merged[$key] = $Override[$key]
+                    $OverriddenKeys.Value += $key
+                }
+            } else {
+                # New key
+                $merged[$key] = $Override[$key]
+                $AddedKeys.Value += $key
+            }
+        }
+
+        return $merged
+    }
+
+    try {
+        # Perform deep merge
+        $overriddenKeys = @()
+        $addedKeys = @()
+        $merged = Merge-Hashtables $BaseConfig $OverrideConfig ([ref]$overriddenKeys) ([ref]$addedKeys)
+
+        # Find preserved keys
+        $preservedKeys = @()
+        foreach ($key in $BaseConfig.Keys) {
+            if (-not ($key -in $overriddenKeys)) {
+                $preservedKeys += $key
+            }
+        }
+
+        # Apply custom merging rules
+        foreach ($ruleName in $MergingRules.Keys) {
+            $rule = $MergingRules[$ruleName]
+            $ruleResult = & $rule $BaseConfig $OverrideConfig $merged
+            if (-not $ruleResult.Success) {
+                return @{
+                    Success = $false
+                    Errors = @($ruleResult.Message)
+                    MergedConfig = $merged
+                    MergingAnalysis = @{
+                        OverriddenKeys = $overriddenKeys
+                        PreservedKeys = $preservedKeys
+                        AddedKeys = $addedKeys
+                        MissingExpectedKeys = @()
+                    }
+                }
+            }
+        }
+
+        # Check for missing expected keys
+        $missingKeys = @()
+        foreach ($expectedKey in $ExpectedKeys) {
+            if (-not $merged.ContainsKey($expectedKey)) {
+                $missingKeys += $expectedKey
+            }
+        }
+
+        $errors = @()
+        if ($missingKeys.Count -gt 0) {
+            $errors += $missingKeys | ForEach-Object { "Expected key '$_' is missing from merged configuration" }
+        }
+
+        return @{
+            Success = $errors.Count -eq 0
+            Errors = $errors
+            MergedConfig = $merged
+            MergingAnalysis = @{
+                OverriddenKeys = $overriddenKeys
+                PreservedKeys = $preservedKeys
+                AddedKeys = $addedKeys
+                MissingExpectedKeys = $missingKeys
+            }
+        }
+    } catch {
+        return @{
+            Success = $false
+            Errors = @("Configuration merging failed: $($_.Exception.Message)")
+            MergedConfig = @{}
+            MergingAnalysis = @{
+                OverriddenKeys = @()
+                PreservedKeys = @()
+                AddedKeys = @()
+                MissingExpectedKeys = @()
+            }
         }
     }
-
-    # Simple merge logic
-    $result.MergedConfig = $BaseConfig.Clone()
-    foreach ($key in $OverrideConfig.Keys) {
-        $result.MergedConfig[$key] = $OverrideConfig[$key]
-        $result.ValidationDetails.MergedKeys += $key
-    }
-
-    # Check expected keys if provided
-    foreach ($key in $ExpectedKeys) {
-        if (-not $result.MergedConfig.ContainsKey($key)) {
-            $result.Success = $false
-            $result.Errors += "Expected key '$key' not found in merged configuration"
-        }
-    }
-
-    return $result
 }
 
 function Test-ConfigurationInheritance {
     <#
     .SYNOPSIS
         Tests configuration inheritance hierarchy.
-    .DESCRIPTION
-        Stub implementation for testing purposes.
     #>
     [CmdletBinding()]
-    [OutputType([System.Management.Automation.PSObject])]
+    [OutputType([PSObject])]
     param(
         [Parameter(Mandatory=$true)]
-        [array]$ConfigurationHierarchy,
+        [AllowEmptyCollection()]
+        [System.Collections.Hashtable[]]$ConfigurationHierarchy,
 
         [Parameter(Mandatory=$false)]
-        [hashtable]$InheritanceRules = @(),
+        [hashtable]$InheritanceRules = @{},
 
         [Parameter(Mandatory=$false)]
         [hashtable]$ValidationSchema = @{}
     )
 
-    $result = [PSCustomObject]@{
-        Success = $true
-        Errors = @()
-        ResolvedConfiguration = @{}
-        ValidationDetails = @{
-            HierarchyLevels = $ConfigurationHierarchy.Count
-            InheritanceRuleResults = @()
-            SchemaValidationResults = @()
+    try {
+        if ($ConfigurationHierarchy.Count -eq 0) {
+            return @{
+                Success = $false
+                Errors = @("Configuration hierarchy is empty")
+                FinalConfiguration = @{}
+                InheritanceAnalysis = @{
+                    LevelCount = 0
+                    InheritanceChain = @()
+                    KeyOrigins = @{}
+                    SchemaValidation = @()
+                }
+            }
+        }
+
+        # Track inheritance
+        $finalConfig = @{}
+        $keyOrigins = @{}
+        $inheritanceChain = @()
+
+        # Process each level in the hierarchy
+        for ($level = 0; $level -lt $ConfigurationHierarchy.Count; $level++) {
+            $currentLevel = $ConfigurationHierarchy[$level]
+            $inheritanceChain += @{
+                Level = $level
+                Configuration = $currentLevel
+            }
+
+            # Apply inheritance rules if provided
+            if ($InheritanceRules.Count -gt 0) {
+                foreach ($ruleName in $InheritanceRules.Keys) {
+                    $rule = $InheritanceRules[$ruleName]
+                    $ruleResult = & $rule $finalConfig $currentLevel $level
+                    if ($ruleResult.Success) {
+                        $currentLevel = $ruleResult.ModifiedConfig
+                    }
+                }
+            }
+
+            # Merge current level into final config
+            foreach ($key in $currentLevel.Keys) {
+                $oldValue = $finalConfig[$key]
+                $newValue = $currentLevel[$key]
+
+                # Track key origins and override history
+                if (-not $keyOrigins.ContainsKey($key)) {
+                    $keyOrigins[$key] = @{
+                        OriginLevel = $level
+                        OriginalValue = $newValue
+                        OverrideHistory = @()
+                    }
+                } else {
+                    $keyOrigins[$key].OverrideHistory += @{
+                        Level = $level
+                        OldValue = $oldValue
+                        NewValue = $newValue
+                    }
+                }
+
+                $finalConfig[$key] = $newValue
+            }
+        }
+
+        # Validate against schema if provided
+        $schemaValidation = @()
+        $schemaErrors = @()
+        if ($ValidationSchema.Count -gt 0) {
+            foreach ($schemaKey in $ValidationSchema.Keys) {
+                $schemaRule = $ValidationSchema[$schemaKey]
+                $present = $finalConfig.ContainsKey($schemaKey)
+                $value = $finalConfig[$schemaKey]
+
+                $typeValid = $true
+                if ($present -and $schemaRule.Type) {
+                    $typeValid = $value -is [type]$schemaRule.Type
+                }
+
+                $validatorResult = $true
+                if ($present -and $schemaRule.Validator) {
+                    $validatorResult = & $schemaRule.Validator $value
+                }
+
+                $schemaValidation += @{
+                    Key = $schemaKey
+                    Present = $present
+                    TypeValid = $typeValid
+                    ValidatorResult = $validatorResult
+                    Required = $schemaRule.Required -eq $true
+                }
+
+                if ($schemaRule.Required -eq $true -and -not $present) {
+                    $schemaErrors += "Required key '$schemaKey' is missing from final configuration"
+                }
+            }
+        }
+
+        return @{
+            Success = $schemaErrors.Count -eq 0
+            Errors = $schemaErrors
+            FinalConfiguration = $finalConfig
+            InheritanceAnalysis = @{
+                LevelCount = $ConfigurationHierarchy.Count
+                InheritanceChain = $inheritanceChain
+                KeyOrigins = $keyOrigins
+                SchemaValidation = $schemaValidation
+            }
+        }
+    } catch {
+        return @{
+            Success = $false
+            Errors = @("Configuration inheritance test failed: $($_.Exception.Message)")
+            FinalConfiguration = @{}
+            InheritanceAnalysis = @{
+                LevelCount = 0
+                InheritanceChain = @()
+                KeyOrigins = @{}
+                SchemaValidation = @()
+            }
         }
     }
-
-    # Simple inheritance resolution - last configuration wins
-    foreach ($config in $ConfigurationHierarchy) {
-        foreach ($key in $config.Keys) {
-            $result.ResolvedConfiguration[$key] = $config[$key]
-        }
-    }
-
-    return $result
 }
 
 function Test-ConfigurationFilePaths {
     <#
     .SYNOPSIS
-        Tests configuration file paths for accessibility and validity.
-    .DESCRIPTION
-        Stub implementation for testing purposes.
+        Tests configuration file path accessibility and validity.
     #>
     [CmdletBinding()]
-    [OutputType([System.Management.Automation.PSObject])]
+    [OutputType([PSObject])]
     param(
         [Parameter(Mandatory=$true)]
-        [array]$ConfigurationPaths,
+        [string[]]$ConfigurationPaths,
 
         [Parameter(Mandatory=$false)]
         [bool]$AccessibilityChecks = $true,
@@ -206,43 +397,79 @@ function Test-ConfigurationFilePaths {
         [bool]$ContentValidation = $true
     )
 
-    $result = [PSCustomObject]@{
-        Success = $true
-        Errors = @()
-        ValidationDetails = @{
-            TotalPaths = $ConfigurationPaths.Count
-            AccessiblePaths = @()
-            InaccessiblePaths = @()
-            ValidPaths = @()
-            InvalidPaths = @()
-        }
-    }
+    try {
+        $pathAnalysis = @()
+        $errors = @()
+        $warnings = @()
 
-    foreach ($path in $ConfigurationPaths) {
-        if ($AccessibilityChecks) {
-            if (Test-Path $path) {
-                $result.ValidationDetails.AccessiblePaths += $path
+        foreach ($path in $ConfigurationPaths) {
+            $pathInfo = @{
+                Path = $path
+                Exists = $false
+                Accessible = $false
+                ValidContent = $false
+                Extension = ""
+                Size = 0
+            }
+
+            # Check if file exists
+            if (Test-Path $path -PathType Leaf) {
+                $pathInfo.Exists = $true
+                $fileInfo = Get-Item $path
+                $pathInfo.Extension = $fileInfo.Extension
+                $pathInfo.Size = $fileInfo.Length
+
+                # Check accessibility
+                if ($AccessibilityChecks) {
+                    try {
+                        $content = Get-Content $path -Raw -ErrorAction Stop
+                        $pathInfo.Accessible = $true
+
+                        # Content validation
+                        if ($ContentValidation) {
+                            if ($pathInfo.Size -eq 0) {
+                                $warnings += "Configuration file '$path' is empty"
+                                $pathInfo.ValidContent = $false
+                            } elseif ($pathInfo.Extension -eq ".json") {
+                                try {
+                                    $null = $content | ConvertFrom-Json
+                                    $pathInfo.ValidContent = $true
+                                } catch {
+                                    $errors += "Invalid JSON content in file '$path': $($_.Exception.Message)"
+                                    $pathInfo.ValidContent = $false
+                                }
+                            } else {
+                                $pathInfo.ValidContent = $true
+                            }
+                        }
+                    } catch {
+                        $pathInfo.Accessible = $false
+                        $errors += "Cannot access file '$path': $($_.Exception.Message)"
+                    }
+                }
             } else {
-                $result.ValidationDetails.InaccessiblePaths += $path
-                $result.Success = $false
-                $result.Errors += "Path not accessible: $path"
+                $pathInfo.Exists = $false
+                $pathInfo.Accessible = $false
+                $warnings += "Configuration file '$path' does not exist"
             }
+
+            $pathAnalysis += $pathInfo
         }
 
-        if ($ContentValidation -and (Test-Path $path)) {
-            try {
-                # Simple content validation - try to read the file
-                $content = Get-Content $path -ErrorAction Stop
-                $result.ValidationDetails.ValidPaths += $path
-            } catch {
-                $result.ValidationDetails.InvalidPaths += $path
-                $result.Success = $false
-                $result.Errors += "Invalid content in path: $path - $($_.Exception.Message)"
-            }
+        return @{
+            Success = $errors.Count -eq 0
+            Errors = $errors
+            Warnings = $warnings
+            PathAnalysis = $pathAnalysis
+        }
+    } catch {
+        return @{
+            Success = $false
+            Errors = @("Configuration file path test failed: $($_.Exception.Message)")
+            Warnings = @()
+            PathAnalysis = @()
         }
     }
-
-    return $result
 }
 
 function Test-WmrResolvedConfiguration {
@@ -269,7 +496,7 @@ function Test-WmrResolvedConfiguration {
     }
 
     try {
-        switch ($ValidationLevel) {
+        $validationResult = switch ($ValidationLevel) {
             "strict" {
                 Test-WmrStrictConfigurationValidation -ResolvedConfig $ResolvedConfig
             }
@@ -284,7 +511,7 @@ function Test-WmrResolvedConfiguration {
                 Test-WmrModerateConfigurationValidation -ResolvedConfig $ResolvedConfig
             }
         }
-        return $true
+        return $validationResult
     } catch {
         Write-Error "Configuration validation failed: $($_.Exception.Message)"
         return $false
@@ -332,7 +559,7 @@ function Test-WmrStrictConfigurationValidation {
             $names = $ResolvedConfig.$section | ForEach-Object { $_.name }
             $duplicateNames = $names | Group-Object | Where-Object { $_.Count -gt 1 }
             if ($duplicateNames) {
-                throw "Duplicate names found in $section: $($duplicateNames.Name -join ', ')"
+                throw "Duplicate names found in ${section}: $($duplicateNames.Name -join ', ')"
             }
         }
     }

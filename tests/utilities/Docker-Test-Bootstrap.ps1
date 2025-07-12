@@ -4,6 +4,15 @@
 # Detect if running in Docker environment
 $script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
 
+# Load test utilities first
+$utilitiesPath = Join-Path $PSScriptRoot "Test-Utilities.ps1"
+if (Test-Path $utilitiesPath) {
+    . $utilitiesPath
+    Write-Verbose "Loaded test utilities from: $utilitiesPath"
+} else {
+    Write-Warning "Test utilities not found at: $utilitiesPath"
+}
+
 # Always load Docker-specific mocks for cross-platform compatibility
 # Unit tests depend on these mocks regardless of environment
 $mockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"

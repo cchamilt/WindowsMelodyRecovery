@@ -55,8 +55,47 @@ function Resolve-WmrTemplateInheritance {
 
     Write-Verbose "Resolving template inheritance for template: $($TemplateConfig.metadata.name)"
 
-    # Initialize resolved configuration with base template
-    $resolvedConfig = $TemplateConfig | ConvertTo-Json -Depth 100 | ConvertFrom-Json
+    # Initialize resolved configuration with base template structure
+    $resolvedConfig = @{
+        metadata = $TemplateConfig.metadata
+    }
+
+    # If the template has a configuration section, use it as the base
+    if ($TemplateConfig.configuration) {
+        $configSections = @("files", "registry", "applications", "prerequisites", "stages")
+        foreach ($section in $configSections) {
+            if ($TemplateConfig.configuration.$section) {
+                # Add inheritance metadata to base configuration items
+                $items = $TemplateConfig.configuration.$section
+                # Ensure we have an array, even if it's a single item
+                if ($items -isnot [array]) {
+                    $items = @($items)
+                }
+
+                foreach ($item in $items) {
+                    if (-not $item.inheritance_source) {
+                        $item | Add-Member -NotePropertyName "inheritance_source" -NotePropertyValue "base" -Force
+                    }
+                    if (-not $item.inheritance_priority) {
+                        $item | Add-Member -NotePropertyName "inheritance_priority" -NotePropertyValue 30 -Force
+                    }
+                }
+
+                # Initialize resolved config section with configuration section content
+                $resolvedConfig[$section] = $items
+            }
+        }
+    }
+
+    # Convert to PSObject for easier manipulation
+    $resolvedConfig = [PSCustomObject]$resolvedConfig
+
+    # Copy any additional properties from the template config
+    foreach ($property in $TemplateConfig.PSObject.Properties) {
+        if ($property.Name -notin @("metadata", "configuration", "shared", "machine_specific", "inheritance_rules", "conditional_sections")) {
+            $resolvedConfig | Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value -Force
+        }
+    }
 
     # Get inheritance configuration or use defaults
     $inheritanceConfig = Get-WmrInheritanceConfiguration -TemplateConfig $TemplateConfig
@@ -91,7 +130,7 @@ function Resolve-WmrTemplateInheritance {
         }
 
         # Step 5: Validate final configuration
-        Test-WmrResolvedConfiguration -ResolvedConfig $resolvedConfig -InheritanceConfig $inheritanceConfig
+        $null = Test-WmrResolvedConfiguration -ResolvedConfig $resolvedConfig -InheritanceConfig $inheritanceConfig
 
         Write-Verbose "Template inheritance resolution completed successfully"
         return $resolvedConfig
@@ -121,27 +160,35 @@ function Get-WmrInheritanceConfiguration {
         fallback_strategy = "use_shared"
     }
 
-    if ($TemplateConfig.configuration) {
-        # Merge template configuration with defaults
-        $config = @{}
-        # First copy defaults
-        foreach ($key in $defaultConfig.Keys) {
-            $config[$key] = $defaultConfig[$key]
+    $config = $defaultConfig.Clone()
+
+    # Check for inheritance settings at the top level first
+    foreach ($key in $defaultConfig.Keys) {
+        if ($TemplateConfig.PSObject.Properties.Name -contains $key) {
+            $config[$key] = $TemplateConfig.$key
+        } elseif ($TemplateConfig -is [hashtable] -and $TemplateConfig.ContainsKey($key)) {
+            $config[$key] = $TemplateConfig[$key]
         }
-        # Then override with template values
-        if ($TemplateConfig.configuration -is [hashtable]) {
-            foreach ($key in $TemplateConfig.configuration.Keys) {
-                $config[$key] = $TemplateConfig.configuration[$key]
-            }
-        } else {
-            foreach ($key in $TemplateConfig.configuration.PSObject.Properties.Name) {
-                $config[$key] = $TemplateConfig.configuration.$key
-            }
-        }
-        return $config
     }
 
-    return $defaultConfig
+    # Then check configuration section and override if found there
+    if ($TemplateConfig.configuration) {
+        if ($TemplateConfig.configuration -is [hashtable]) {
+            foreach ($key in $TemplateConfig.configuration.Keys) {
+                if ($key -in $defaultConfig.Keys) {
+                    $config[$key] = $TemplateConfig.configuration[$key]
+                }
+            }
+        } else {
+            foreach ($property in $TemplateConfig.configuration.PSObject.Properties) {
+                if ($property.Name -in $defaultConfig.Keys) {
+                    $config[$property.Name] = $property.Value
+                }
+            }
+        }
+    }
+
+    return $config
 }
 
 # Functions are available when dot-sourced, no need to export when not in module context

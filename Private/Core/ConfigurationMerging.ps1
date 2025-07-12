@@ -101,11 +101,15 @@ function Merge-WmrMachineSpecificConfiguration {
             switch ($mergeStrategy) {
                 "replace" {
                     # Replace entire section
-                    $ResolvedConfig.$section = $machineItems
+                    if ($ResolvedConfig.PSObject.Properties.Name -contains $section) {
+                        $ResolvedConfig.$section = $machineItems
+                    } else {
+                        $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $machineItems -Force
+                    }
                 }
                 "shallow_merge" {
                     # Simple append
-                    if ($ResolvedConfig.$section) {
+                    if ($ResolvedConfig.PSObject.Properties.Name -contains $section -and $ResolvedConfig.$section) {
                         $ResolvedConfig.$section = @($ResolvedConfig.$section) + @($machineItems)
                     } else {
                         $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $machineItems -Force
@@ -113,7 +117,12 @@ function Merge-WmrMachineSpecificConfiguration {
                 }
                 "deep_merge" {
                     # Merge items with same inheritance tags or names
-                    $ResolvedConfig.$section = Merge-WmrConfigurationItem -ExistingItems $ResolvedConfig.$section -NewItems $machineItems -InheritanceConfig $InheritanceConfig
+                    $mergedItems = Merge-WmrConfigurationItem -ExistingItems $ResolvedConfig.$section -NewItems $machineItems -InheritanceConfig $InheritanceConfig
+                    if ($ResolvedConfig.PSObject.Properties.Name -contains $section) {
+                        $ResolvedConfig.$section = $mergedItems
+                    } else {
+                        $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $mergedItems -Force
+                    }
                 }
             }
         }
@@ -203,11 +212,16 @@ function Merge-WmrSingleConfigurationItem {
     $existingPriority = if ($ExistingItem.inheritance_priority) { $ExistingItem.inheritance_priority } else { 50 }
     $newPriority = if ($NewItem.inheritance_priority) { $NewItem.inheritance_priority } else { 50 }
 
+    # Determine conflict resolution strategy
     $conflictResolution = "machine_wins"
     if ($NewItem.conflict_resolution) {
         $conflictResolution = $NewItem.conflict_resolution
     } elseif ($ExistingItem.conflict_resolution) {
         $conflictResolution = $ExistingItem.conflict_resolution
+    } elseif ($InheritanceConfig.machine_precedence) {
+        $conflictResolution = "machine_wins"
+    } else {
+        $conflictResolution = "shared_wins"
     }
 
     # Create merged item
@@ -216,8 +230,18 @@ function Merge-WmrSingleConfigurationItem {
     # Apply conflict resolution
     switch ($conflictResolution) {
         "machine_wins" {
-            if ($NewItem.inheritance_source -eq "machine_specific") {
+            if ($NewItem.inheritance_source -eq "machine_specific" -or
+                ($InheritanceConfig.machine_precedence -and $NewItem.inheritance_source -eq "machine_specific")) {
                 # Machine-specific wins
+                foreach ($prop in $NewItem.PSObject.Properties) {
+                    try {
+                        $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
+                    } catch {
+                        Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
+                    }
+                }
+            } elseif ($InheritanceConfig.machine_precedence -and $newPriority -gt $existingPriority) {
+                # Higher priority wins when machine precedence is enabled
                 foreach ($prop in $NewItem.PSObject.Properties) {
                     try {
                         $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force

@@ -36,7 +36,7 @@ function Invoke-WmrInheritanceRule {
         Write-Verbose "Processing inheritance rule: $($rule.name)"
 
         # Check if rule conditions are met
-        if (Test-WmrInheritanceRuleCondition -Rule $rule -MachineContext $MachineContext) {
+        if (Test-WmrInheritanceRuleCondition -Rule $rule -ResolvedConfig $ResolvedConfig -MachineContext $MachineContext) {
             Write-Verbose "Applying inheritance rule: $($rule.name)"
 
             # Apply rule to matching configuration sections
@@ -231,6 +231,9 @@ function Invoke-WmrConditionalSection {
                         }
                         if (-not $item.inheritance_priority) {
                             $item | Add-Member -NotePropertyName "inheritance_priority" -NotePropertyValue 70 -Force
+                        }
+                        if (-not $item.conditional_section) {
+                            $item | Add-Member -NotePropertyName "conditional_section" -NotePropertyValue $section.name -Force
                         }
                     }
 
