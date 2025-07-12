@@ -1,4 +1,4 @@
-# Private/Core/ConfigurationValidation.ps1
+﻿# Private/Core/ConfigurationValidation.ps1
 
 <#
 .SYNOPSIS
@@ -24,16 +24,16 @@ function Test-ConfigurationConsistency {
     [CmdletBinding()]
     [OutputType([System.Management.Automation.PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [hashtable]$MachineConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [hashtable]$SharedConfig,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [array]$RequiredKeys = @(),
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$ValidationRules = @{}
     )
 
@@ -100,16 +100,16 @@ function Validate-SharedConfigurationMerging {
     [CmdletBinding()]
     [OutputType([PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [hashtable]$BaseConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [hashtable]$OverrideConfig,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string[]]$ExpectedKeys = @(),
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$MergingRules = @{}
     )
 
@@ -120,7 +120,8 @@ function Validate-SharedConfigurationMerging {
         foreach ($key in $Source.Keys) {
             if ($Source[$key] -is [hashtable]) {
                 $clone[$key] = Clone-Hashtable $Source[$key]
-            } else {
+            }
+ else {
                 $clone[$key] = $Source[$key]
             }
         }
@@ -128,7 +129,7 @@ function Validate-SharedConfigurationMerging {
     }
 
     # Helper function for deep merging hashtables
-    function Merge-Hashtables {
+    function Merge-Hashtable {
         param(
             [hashtable]$Base,
             [hashtable]$Override,
@@ -151,12 +152,14 @@ function Validate-SharedConfigurationMerging {
                     if ($nestedOverridden.Count -gt 0 -or $nestedAdded.Count -gt 0) {
                         $OverriddenKeys.Value += $key
                     }
-                } else {
+                }
+ else {
                     # Simple override
                     $merged[$key] = $Override[$key]
                     $OverriddenKeys.Value += $key
                 }
-            } else {
+            }
+ else {
                 # New key
                 $merged[$key] = $Override[$key]
                 $AddedKeys.Value += $key
@@ -223,7 +226,8 @@ function Validate-SharedConfigurationMerging {
                 MissingExpectedKeys = $missingKeys
             }
         }
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Errors = @("Configuration merging failed: $($_.Exception.Message)")
@@ -246,14 +250,14 @@ function Test-ConfigurationInheritance {
     [CmdletBinding()]
     [OutputType([PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
         [System.Collections.Hashtable[]]$ConfigurationHierarchy,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$InheritanceRules = @{},
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$ValidationSchema = @{}
     )
 
@@ -308,7 +312,8 @@ function Test-ConfigurationInheritance {
                         OriginalValue = $newValue
                         OverrideHistory = @()
                     }
-                } else {
+                }
+ else {
                     $keyOrigins[$key].OverrideHistory += @{
                         Level = $level
                         OldValue = $oldValue
@@ -364,7 +369,8 @@ function Test-ConfigurationInheritance {
                 SchemaValidation = $schemaValidation
             }
         }
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Errors = @("Configuration inheritance test failed: $($_.Exception.Message)")
@@ -379,7 +385,7 @@ function Test-ConfigurationInheritance {
     }
 }
 
-function Test-ConfigurationFilePaths {
+function Test-ConfigurationFilePath {
     <#
     .SYNOPSIS
         Tests configuration file path accessibility and validity.
@@ -387,13 +393,13 @@ function Test-ConfigurationFilePaths {
     [CmdletBinding()]
     [OutputType([PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string[]]$ConfigurationPaths,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [bool]$AccessibilityChecks = $true,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [bool]$ContentValidation = $true
     )
 
@@ -430,24 +436,29 @@ function Test-ConfigurationFilePaths {
                             if ($pathInfo.Size -eq 0) {
                                 $warnings += "Configuration file '$path' is empty"
                                 $pathInfo.ValidContent = $false
-                            } elseif ($pathInfo.Extension -eq ".json") {
+                            }
+ elseif ($pathInfo.Extension -eq ".json") {
                                 try {
                                     $null = $content | ConvertFrom-Json
                                     $pathInfo.ValidContent = $true
-                                } catch {
+                                }
+ catch {
                                     $errors += "Invalid JSON content in file '$path': $($_.Exception.Message)"
                                     $pathInfo.ValidContent = $false
                                 }
-                            } else {
+                            }
+ else {
                                 $pathInfo.ValidContent = $true
                             }
                         }
-                    } catch {
+                    }
+ catch {
                         $pathInfo.Accessible = $false
                         $errors += "Cannot access file '$path': $($_.Exception.Message)"
                     }
                 }
-            } else {
+            }
+ else {
                 $pathInfo.Exists = $false
                 $pathInfo.Accessible = $false
                 $warnings += "Configuration file '$path' does not exist"
@@ -462,7 +473,8 @@ function Test-ConfigurationFilePaths {
             Warnings = $warnings
             PathAnalysis = $pathAnalysis
         }
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Errors = @("Configuration file path test failed: $($_.Exception.Message)")
@@ -480,13 +492,13 @@ function Test-WmrResolvedConfiguration {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ValidationLevel = "moderate",
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$InheritanceConfig = @{}
     )
 
@@ -512,7 +524,8 @@ function Test-WmrResolvedConfiguration {
             }
         }
         return $validationResult
-    } catch {
+    }
+ catch {
         Write-Error "Configuration validation failed: $($_.Exception.Message)"
         return $false
     }
@@ -526,7 +539,7 @@ function Test-WmrStrictConfigurationValidation {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig
     )
 
@@ -608,7 +621,7 @@ function Test-WmrModerateConfigurationValidation {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig
     )
 
@@ -644,7 +657,7 @@ function Test-WmrRelaxedConfigurationValidation {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig
     )
 
@@ -678,10 +691,10 @@ function Test-WmrConfigurationItemValidity {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$Item,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$Rule
     )
 

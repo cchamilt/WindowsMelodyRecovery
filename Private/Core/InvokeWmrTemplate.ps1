@@ -1,4 +1,4 @@
-# Private/Core/InvokeWmrTemplate.ps1
+﻿# Private/Core/InvokeWmrTemplate.ps1
 
 # Requires:
 #   - Private/Core/PathUtilities.ps1 (for Convert-WmrPath)
@@ -13,14 +13,14 @@
 function Invoke-WmrTemplate {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$TemplatePath,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet("Backup", "Restore", "Sync", "Uninstall")]
         [string]$Operation,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$StateFilesDirectory # Base directory for storing/reading dynamic state files
     )
 
@@ -41,7 +41,8 @@ function Invoke-WmrTemplate {
 
         # Import the actual PowerShell module
         Import-Module (Join-Path $PSScriptRoot "WindowsMelodyRecovery.Template.psm1") -Force
-    } catch {
+    }
+ catch {
         throw "Failed to load required core modules: $($_.Exception.Message)"
     }
 
@@ -68,7 +69,8 @@ function Invoke-WmrTemplate {
 
             Write-Information -MessageData "Template inheritance resolved successfully" -InformationAction Continue
         }
-    } catch {
+    }
+ catch {
         throw "Template validation failed: $($_.Exception.Message)"
     }
 
@@ -88,7 +90,8 @@ function Invoke-WmrTemplate {
         if (-not (Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation $Operation)) {
             throw "Prerequisites not met for $Operation operation. Aborting."
         }
-    } catch {
+    }
+ catch {
         throw "Prerequisite check failed: $($_.Exception.Message)"
     }
 
@@ -177,10 +180,10 @@ function Invoke-WmrTemplate {
 
 function Invoke-WmrStageItem {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$StageItem,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Operation
     )
 
@@ -191,7 +194,8 @@ function Invoke-WmrStageItem {
         if ($StageItem.type -eq "script") {
             if ($StageItem.path) {
                 $scriptOutput = & $StageItem.path $StageItem.parameters
-            } elseif ($StageItem.inline_script) {
+            }
+ elseif ($StageItem.inline_script) {
                 $scriptBlock = [ScriptBlock]::Create($StageItem.inline_script)
                 $scriptOutput = & $scriptBlock $StageItem.parameters
             }
@@ -200,7 +204,8 @@ function Invoke-WmrStageItem {
         if ($StageItem.type -eq "check") {
             if ($StageItem.path) {
                 $scriptOutput = & $StageItem.path $StageItem.parameters
-            } elseif ($StageItem.inline_script) {
+            }
+ elseif ($StageItem.inline_script) {
                 $scriptBlock = [ScriptBlock]::Create($StageItem.inline_script)
                 $scriptOutput = & $scriptBlock $StageItem.parameters
             }
@@ -209,7 +214,8 @@ function Invoke-WmrStageItem {
             }
         }
         Write-Information -MessageData "    Stage item `'$($StageItem.name)`' completed successfully." -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning "    Stage item `'$($StageItem.name)`' failed: $($_.Exception.Message)"
         # Depending on severity, we might want to throw here to stop the whole process.
         # For now, it's a warning, but a robust implementation might have `on_fail` policy for stages.

@@ -1,4 +1,4 @@
-# Private/Core/TemplateInheritance.ps1
+﻿# Private/Core/TemplateInheritance.ps1
 
 <#
 .SYNOPSIS
@@ -61,7 +61,8 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
             'Test-WmrRelaxedConfigurationValidation',
             'Test-WmrConfigurationItemValidity'
         )
-    } catch {
+    }
+ catch {
         # Silently ignore Export-ModuleMember errors when not in module context
     }
 }

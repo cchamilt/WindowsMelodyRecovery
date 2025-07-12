@@ -1,10 +1,10 @@
-# wsl-parse-distributions.ps1
+﻿# wsl-parse-distributions.ps1
 # WSL Distribution Parse Script
 # Parses WSL distribution discovery output into application state format
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$DiscoveryOutput
 )
 
@@ -45,10 +45,12 @@ try {
 
     if ($applications.Count -eq 0) {
         Write-Output "[]"
-    } else {
+    }
+ else {
         Write-Output ($applications | ConvertTo-Json -Depth 10 -AsArray)
     }
-} catch {
+}
+ catch {
     Write-Error "Failed to parse WSL distribution data: $($_.Exception.Message)"
     Write-Output "[]"
 }

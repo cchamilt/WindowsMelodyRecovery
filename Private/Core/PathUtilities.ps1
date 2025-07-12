@@ -1,9 +1,9 @@
-# Private/Core/PathUtilities.ps1
+﻿# Private/Core/PathUtilities.ps1
 
 function Convert-WmrPath {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path
     )
 
@@ -61,13 +61,15 @@ function Convert-WmrPath {
         if ($wslPath.StartsWith('/')) {
             $distribution = ""
             $linuxPath = $wslPath
-        } else {
+        }
+        else {
             # Handle wsl://Ubuntu/path format
             $slashIndex = $wslPath.IndexOf('/')
             if ($slashIndex -gt 0) {
                 $distribution = $wslPath.Substring(0, $slashIndex)
                 $linuxPath = $wslPath.Substring($slashIndex)
-            } else {
+            }
+            else {
                 # No slash found, treat as distribution name only
                 $distribution = $wslPath
                 $linuxPath = "/"
@@ -97,7 +99,8 @@ function Convert-WmrPath {
     $normalizedPath = [System.Environment]::ExpandEnvironmentVariables($normalizedPath)
 
     # Apply test environment redirection for file paths BEFORE path type determination
-    if (-not ($normalizedPath -match '^HK')) {  # Don't redirect registry paths
+    if (-not ($normalizedPath -match '^HK')) {
+        # Don't redirect registry paths
         $normalizedPath = ConvertTo-TestEnvironmentPath -Path $normalizedPath
     }
 
@@ -183,7 +186,7 @@ function ConvertTo-TestEnvironmentPath {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path
     )
 
@@ -200,7 +203,8 @@ function ConvertTo-TestEnvironmentPath {
     if (-not $testRestorePath) {
         if ($env:WMR_DOCKER_TEST -eq 'true' -or $env:DOCKER_TEST -eq 'true' -or $env:CONTAINER -eq 'true' -or (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)) {
             $testRestorePath = "/workspace/Temp/test-restore"
-        } else {
+        }
+        else {
             # Use project root Temp directory for local environments
             $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
             $testRestorePath = Join-Path $moduleRoot "Temp\test-restore"

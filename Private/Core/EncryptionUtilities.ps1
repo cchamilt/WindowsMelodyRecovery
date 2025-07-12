@@ -1,4 +1,4 @@
-# Private/Core/EncryptionUtilities.ps1
+﻿# Private/Core/EncryptionUtilities.ps1
 
 # AES-256 symmetric encryption utilities for Windows Melody Recovery
 # Uses PBKDF2 for key derivation from passphrase with salt
@@ -29,10 +29,10 @@ function Get-WmrEncryptionKey {
     Hashtable with 'Key' and 'Salt' properties
     #>
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [SecureString]$Passphrase,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [byte[]]$Salt
     )
 
@@ -136,13 +136,13 @@ function Protect-WmrData {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [AllowEmptyString()]
         [AllowEmptyCollection()]
         [ValidateNotNull()]
         [object]$Data,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [SecureString]$Passphrase
     )
@@ -153,9 +153,11 @@ function Protect-WmrData {
         # Convert input to bytes if it's a string
         $dataBytes = if ($Data -is [byte[]]) {
             $Data
-        } elseif ($Data -is [string]) {
+        }
+        elseif ($Data -is [string]) {
             [System.Text.Encoding]::UTF8.GetBytes($Data)
-        } else {
+        }
+        else {
             throw "Data must be either a string or byte array"
         }
 
@@ -230,15 +232,15 @@ function Unprotect-WmrData {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$EncodedData,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [SecureString]$Passphrase,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$ReturnBytes
     )
 
@@ -254,7 +256,8 @@ function Unprotect-WmrData {
         }
 
         # Extract salt (first 32 bytes), IV (next 16 bytes), and encrypted data (remainder)
-        if ($combinedData.Length -lt 48) {  # 32 + 16 = minimum size
+        if ($combinedData.Length -lt 48) {
+            # 32 + 16 = minimum size
             throw "Decryption failed: Data too short"
         }
 
@@ -297,7 +300,8 @@ function Unprotect-WmrData {
         # Return as bytes or string based on ReturnBytes parameter
         if ($ReturnBytes) {
             return $decryptedBytes
-        } else {
+        }
+        else {
             try {
                 return [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
             }
@@ -327,7 +331,7 @@ function Test-WmrEncryption {
     Boolean indicating success or failure
     #>
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$TestData = "Windows Melody Recovery Encryption Test - $(Get-Date)"
     )
 
@@ -359,7 +363,8 @@ function Test-WmrEncryption {
         $success = $decryptedText -eq $TestData
         if ($success) {
             Write-Information -MessageData "  ✅ Encryption test PASSED - data integrity verified" -InformationAction Continue
-        } else {
+        }
+        else {
             Write-Error -Message "  ❌ Encryption test FAILED - data mismatch"
             Write-Information -MessageData "    Original: $TestData" -InformationAction Continue
             Write-Information -MessageData "    Decrypted: $decryptedText" -InformationAction Continue

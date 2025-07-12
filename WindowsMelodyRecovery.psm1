@@ -1,4 +1,4 @@
-# WindowsMelodyRecovery PowerShell Module
+﻿# WindowsMelodyRecovery PowerShell Module
 # Comprehensive Windows system recovery, backup, and configuration management tool
 
 # Module metadata
@@ -115,26 +115,27 @@ function Set-WindowsMelodyRecovery {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$Config,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$BackupRoot,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$MachineName,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$WindowsMelodyRecoveryPath,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('OneDrive', 'GoogleDrive', 'Dropbox', 'Box', 'Custom')]
         [string]$CloudProvider
     )
 
     if ($Config) {
         $script:Config = $Config
-    } else {
+    }
+    else {
         if ($BackupRoot) { $script:Config.BackupRoot = $BackupRoot }
         if ($MachineName) { $script:Config.MachineName = $MachineName }
         if ($WindowsMelodyRecoveryPath) { $script:Config.WindowsMelodyRecoveryPath = $WindowsMelodyRecoveryPath }
@@ -145,7 +146,7 @@ function Set-WindowsMelodyRecovery {
 }
 
 # Helper function to load private scripts on demand (only when explicitly called)
-function Import-PrivateScripts {
+function Import-PrivateScript {
     <#
     .SYNOPSIS
         Import private scripts by category.
@@ -162,7 +163,7 @@ function Import-PrivateScripts {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('backup', 'restore', 'setup', 'tasks', 'scripts')]
         [string]$Category
     )
@@ -178,10 +179,10 @@ function Import-PrivateScripts {
 
     # Additional safety check for module loading context
     $moduleLoadingContext = ($callStack | Where-Object {
-        $_.ScriptName -like "*WindowsMelodyRecovery.psm1" -or
-        $_.Command -eq "Import-Module" -or
-        $_.Command -eq "."
-    }).Count
+            $_.ScriptName -like "*WindowsMelodyRecovery.psm1" -or
+            $_.Command -eq "Import-Module" -or
+            $_.Command -eq "."
+        }).Count
 
     if ($moduleLoadingContext -gt 3) {
         Write-Verbose "Module loading context detected (depth: $moduleLoadingContext) - deferring private script loading"
@@ -203,11 +204,13 @@ function Import-PrivateScripts {
                 . $script.FullName
 
                 Write-Verbose "Successfully loaded $Category script: $($script.Name)"
-            } catch {
+            }
+            catch {
                 Write-Warning "Failed to load $Category script $($script.Name): $_"
             }
         }
-    } else {
+    }
+    else {
         Write-Warning "$Category scripts directory not found at: $categoryPath"
     }
 }
@@ -218,11 +221,13 @@ if (Test-Path $InitializationPath) {
     try {
         . $InitializationPath
         Write-Verbose "Successfully loaded initialization system from: $InitializationPath"
-    } catch {
+    }
+    catch {
         Write-Warning "Failed to load initialization system from: $InitializationPath"
         Write-Warning $_.Exception.Message
     }
-} else {
+}
+else {
     Write-Warning "Initialization system not found at: $InitializationPath"
 }
 
@@ -239,11 +244,13 @@ if (Test-Path $CorePath) {
             $functionNames = $scriptContent | Select-String -Pattern 'function\s+([a-zA-Z0-9_-]+)' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
             $script:LoadedCoreFunctions += $functionNames
             Write-Verbose "Successfully loaded core utility: $($script.Name) (found functions: $($functionNames -join ', '))"
-        } catch {
+        }
+        catch {
             Write-Warning "Failed to load core utility $($script.Name): $($_.Exception.Message)"
         }
     }
-} else {
+}
+else {
     Write-Warning "Core utilities path not found at: $CorePath"
 }
 
@@ -256,15 +263,18 @@ if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyCont
             if ($initResult.Warnings) {
                 Write-Warning "Initialization warnings: $($initResult.Warnings -join '; ')"
             }
-        } else {
+        }
+        else {
             Write-Warning "Module initialization failed: $($initResult.Message)"
             $script:InitializationErrors += $initResult.Message
         }
-    } catch {
+    }
+    catch {
         Write-Warning "Module initialization error: $($_.Exception.Message)"
         $script:InitializationErrors += $_.Exception.Message
     }
-} else {
+}
+else {
     Write-Warning "Initialization system not available, using fallback initialization"
 
     # Fallback initialization - only load public functions, not private scripts
@@ -292,20 +302,24 @@ if (Get-Command Initialize-WindowsMelodyRecoveryModule -ErrorAction SilentlyCont
                     # Verify the function was actually loaded
                     if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                         Write-Verbose "Successfully loaded public function: $functionName"
-                    } else {
+                    }
+                    else {
                         Write-Warning "Function $functionName not found after loading $($import.FullName)"
                     }
-                } catch {
+                }
+                catch {
                     Write-Warning "Failed to import public function $($import.FullName): $($_.Exception.Message)"
                 }
             }
-        } else {
+        }
+        else {
             Write-Warning "Public functions directory not found at: $PublicPath"
         }
 
         $script:ModuleInitialized = $true
 
-    } catch {
+    }
+    catch {
         Write-Warning "Fallback initialization failed: $($_.Exception.Message)"
         $script:InitializationErrors += $_.Exception.Message
     }
@@ -332,18 +346,22 @@ if (Test-Path $PublicPath) {
                 if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                     $script:LoadedPublicFunctions += $functionName
                     Write-Verbose "Successfully loaded public function: $functionName"
-                } else {
+                }
+                else {
                     Write-Warning "Function $functionName not found after loading: $($script.FullName)"
                 }
-            } catch {
+            }
+            catch {
                 Write-Warning "Failed to import public function $($script.FullName): $($_.Exception.Message)"
             }
-        } else {
+        }
+        else {
             $script:LoadedPublicFunctions += $functionName
             Write-Verbose "Public function already loaded: $functionName"
         }
     }
-} else {
+}
+else {
     Write-Warning "Public functions directory not found: $PublicPath"
 }
 
@@ -384,7 +402,8 @@ if ($script:LoadedPublicFunctions) {
     # Use functions that were loaded during initialization
     $AllFunctions += $script:LoadedPublicFunctions
     Write-Verbose "Using $($script:LoadedPublicFunctions.Count) public functions from initialization"
-} else {
+}
+else {
     # Fallback: try to load public functions directly
     $PublicPath = Join-Path $PSScriptRoot "Public"
     if (Test-Path $PublicPath) {
@@ -405,15 +424,16 @@ if ($script:LoadedCoreFunctions) {
 # After collecting all functions to export, add Template, EncryptionUtilities, and Core functions explicitly
 $AllFunctionsToExport = @()
 $AllFunctionsToExport += $AllFunctions
-$AllFunctionsToExport += 'Read-WmrTemplateConfig','Test-WmrTemplateSchema','Protect-WmrData','Unprotect-WmrData','Get-WmrEncryptionKey','Clear-WmrEncryptionCache','Test-WmrEncryption'
-$AllFunctionsToExport += 'Get-WmrFileState','Set-WmrFileState','Get-WmrRegistryState','Set-WmrRegistryState','Invoke-WmrTemplate'
+$AllFunctionsToExport += 'Read-WmrTemplateConfig', 'Test-WmrTemplateSchema', 'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache', 'Test-WmrEncryption'
+$AllFunctionsToExport += 'Get-WmrFileState', 'Set-WmrFileState', 'Get-WmrRegistryState', 'Set-WmrRegistryState', 'Invoke-WmrTemplate'
 
 # Only export functions that actually exist
 $ExistingFunctions = @()
 $AllFunctionsToExport | ForEach-Object {
     if (Get-Command $_ -ErrorAction SilentlyContinue) {
         $ExistingFunctions += $_
-    } else {
+    }
+    else {
         Write-Warning "Function $_ not found, skipping export"
     }
 }
@@ -423,8 +443,8 @@ $ExistingFunctions = $ExistingFunctions | Sort-Object -Unique
 
 # Always add Template and EncryptionUtilities functions to export list
 $TemplateAndEncryptionFunctions = @(
-    'Read-WmrTemplateConfig','Test-WmrTemplateSchema',
-    'Protect-WmrData','Unprotect-WmrData','Get-WmrEncryptionKey','Clear-WmrEncryptionCache','Test-WmrEncryption'
+    'Read-WmrTemplateConfig', 'Test-WmrTemplateSchema',
+    'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache', 'Test-WmrEncryption'
 )
 foreach ($fn in $TemplateAndEncryptionFunctions) {
     if ($ExistingFunctions -notcontains $fn -and (Get-Command $fn -ErrorAction SilentlyContinue)) {
@@ -467,24 +487,27 @@ if ($isTestEnvironment) {
     try {
         # Create minimal stub functions for tests without calling Import-PrivateScripts
         if (-not (Get-Command Backup-Applications -ErrorAction SilentlyContinue)) {
-            function Global:Backup-Applications {
-                param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force, $WhatIf)
+            function Global:Backup-Application {
+                [CmdletBinding(SupportsShouldProcess)]
+                param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force)
                 Write-Host "Mock backup of applications completed" -ForegroundColor Green
                 return @{ Success = $true; Message = "Applications backup completed" }
             }
         }
 
         if (-not (Get-Command Backup-SystemSettings -ErrorAction SilentlyContinue)) {
-            function Global:Backup-SystemSettings {
-                param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force, $WhatIf)
+            function Global:Backup-SystemSetting {
+                [CmdletBinding(SupportsShouldProcess)]
+                param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force)
                 Write-Host "Mock backup of system settings completed" -ForegroundColor Green
                 return @{ Success = $true; Message = "System settings backup completed" }
             }
         }
 
         if (-not (Get-Command Backup-GameManagers -ErrorAction SilentlyContinue)) {
-            function Global:Backup-GameManagers {
-                param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force, $WhatIf)
+            function Global:Backup-GameManager {
+                [CmdletBinding(SupportsShouldProcess)]
+                param($BackupRootPath, $MachineBackupPath, $SharedBackupPath, $Force)
                 Write-Host "Mock backup of game managers completed" -ForegroundColor Green
                 return @{ Success = $true; Message = "Game managers backup completed" }
             }
@@ -502,7 +525,8 @@ if ($isTestEnvironment) {
         }
 
         Write-Verbose "Test environment setup complete with stub functions"
-    } catch {
+    }
+    catch {
         Write-Warning "Failed to create stub functions for testing: $_"
     }
 }
@@ -513,7 +537,8 @@ if ($script:ModuleInitialized) {
     if ($script:InitializationErrors.Count -gt 0) {
         Write-Warning "Module loaded with errors: $($script:InitializationErrors -join '; ')"
     }
-} else {
+}
+else {
     Write-Warning "Module loaded but initialization may be incomplete"
 }
 
@@ -523,10 +548,12 @@ try {
     if (Test-Path $TemplateModulePath) {
         Import-Module $TemplateModulePath -Force
         Write-Verbose "Successfully loaded Template module"
-    } else {
+    }
+    else {
         Write-Warning "Template module not found at: $TemplateModulePath"
     }
-} catch {
+}
+catch {
     Write-Warning "Failed to load Template module: $($_.Exception.Message)"
 }
 

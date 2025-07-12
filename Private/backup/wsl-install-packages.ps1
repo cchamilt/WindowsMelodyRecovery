@@ -1,14 +1,14 @@
-# wsl-install-packages.ps1
+﻿# wsl-install-packages.ps1
 # WSL Package Install Script
 # Restores WSL packages from backup data
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$StateJson
 )
 
-function Install-WSLAptPackages {
+function Install-WSLAptPackage {
     param([array]$AptPackages)
 
     if ($AptPackages.Count -eq 0) {
@@ -25,13 +25,14 @@ function Install-WSLAptPackages {
         try {
             wsl --exec bash -c "sudo apt-get update && sudo apt-get install -y $packageList"
             Write-Information -MessageData "Successfully restored APT packages" -InformationAction Continue
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to restore some APT packages: $($_.Exception.Message)"
         }
     }
 }
 
-function Install-WSLNpmPackages {
+function Install-WSLNpmPackage {
     param([array]$NpmPackages)
 
     if ($NpmPackages.Count -eq 0) {
@@ -46,13 +47,14 @@ function Install-WSLNpmPackages {
             $packageSpec = if ($pkg.Version) { "$($pkg.Name)@$($pkg.Version)" } else { $pkg.Name }
             wsl --exec bash -c "npm install -g $packageSpec"
             Write-Information -MessageData "  Installed $packageSpec" -InformationAction Continue
-        } catch {
+        }
+ catch {
             Write-Warning "  Failed to install $($pkg.Name): $($_.Exception.Message)"
         }
     }
 }
 
-function Install-WSLPipPackages {
+function Install-WSLPipPackage {
     param([array]$PipPackages)
 
     if ($PipPackages.Count -eq 0) {
@@ -67,7 +69,8 @@ function Install-WSLPipPackages {
             $packageSpec = if ($pkg.Version) { "$($pkg.Name)==$($pkg.Version)" } else { $pkg.Name }
             wsl --exec bash -c "pip install $packageSpec"
             Write-Information -MessageData "  Installed $packageSpec" -InformationAction Continue
-        } catch {
+        }
+ catch {
             Write-Warning "  Failed to install $($pkg.Name): $($_.Exception.Message)"
         }
     }
@@ -99,7 +102,8 @@ try {
 
     Write-Information -MessageData "WSL package restoration completed" -InformationAction Continue
 
-} catch {
+}
+ catch {
     Write-Error "Failed to restore WSL packages: $($_.Exception.Message)"
 }
 

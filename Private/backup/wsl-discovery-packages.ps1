@@ -1,14 +1,14 @@
-# wsl-discovery-packages.ps1
+﻿# wsl-discovery-packages.ps1
 # WSL Package Discovery Script
 # Discovers installed packages across different package managers in WSL
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$PackageManager = "apt"  # apt, npm, pip, all
 )
 
-function Get-WSLAptPackages {
+function Get-WSLAptPackage {
     try {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
             return @()
@@ -32,13 +32,14 @@ function Get-WSLAptPackages {
             }
             return $packages
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to get APT packages: $($_.Exception.Message)"
     }
     return @()
 }
 
-function Get-WSLNpmPackages {
+function Get-WSLNpmPackage {
     try {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
             return @()
@@ -61,13 +62,14 @@ function Get-WSLNpmPackages {
             }
             return $packages
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to get NPM packages: $($_.Exception.Message)"
     }
     return @()
 }
 
-function Get-WSLPipPackages {
+function Get-WSLPipPackage {
     try {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
             return @()
@@ -88,7 +90,8 @@ function Get-WSLPipPackages {
             }
             return $packages
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to get PIP packages: $($_.Exception.Message)"
     }
     return @()
@@ -123,10 +126,12 @@ try {
 
     if ($allPackages.Count -eq 0) {
         Write-Output "[]"
-    } else {
+    }
+ else {
         Write-Output ($allPackages | ConvertTo-Json -Depth 5)
     }
-} catch {
+}
+ catch {
     Write-Error "Failed to discover WSL packages: $($_.Exception.Message)"
     Write-Output "[]"
 }

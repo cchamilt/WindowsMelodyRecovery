@@ -1,4 +1,4 @@
-# Private/Core/ConditionalProcessing.ps1
+﻿# Private/Core/ConditionalProcessing.ps1
 
 <#
 .SYNOPSIS
@@ -22,13 +22,13 @@ function Invoke-WmrInheritanceRule {
     [CmdletBinding()]
     [OutputType([System.Management.Automation.PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$InheritanceRules,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -45,7 +45,8 @@ function Invoke-WmrInheritanceRule {
                     $ResolvedConfig.$section = Invoke-WmrInheritanceRuleToSection -Items $ResolvedConfig.$section -Rule $rule -MachineContext $MachineContext
                 }
             }
-        } else {
+        }
+ else {
             Write-Verbose "Inheritance rule '$($rule.name)' conditions not met, skipping"
         }
     }
@@ -61,13 +62,13 @@ function Test-WmrInheritanceRuleCondition {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$Rule,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -116,13 +117,13 @@ function Invoke-WmrInheritanceRuleToSection {
     [CmdletBinding()]
     [OutputType([System.Array])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$Items,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$Rule,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -133,7 +134,8 @@ function Invoke-WmrInheritanceRuleToSection {
     foreach ($item in $Items) {
         if (Test-WmrRuleItemMatch -Item $item -Rule $Rule) {
             $matchingItems += $item
-        } else {
+        }
+ else {
             $nonMatchingItems += $item
         }
     }
@@ -166,7 +168,8 @@ function Invoke-WmrInheritanceRuleToSection {
                     $transformedItems += $transformedItem
                 }
                 $matchingItems = $transformedItems
-            } elseif ($Rule.script) {
+            }
+ elseif ($Rule.script) {
                 $scriptBlock = [ScriptBlock]::Create($Rule.script)
                 $transformedItems = @()
                 foreach ($item in $matchingItems) {
@@ -203,13 +206,13 @@ function Invoke-WmrConditionalSection {
     [CmdletBinding()]
     [OutputType([System.Management.Automation.PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ResolvedConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$ConditionalSections,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -239,12 +242,14 @@ function Invoke-WmrConditionalSection {
 
                     if ($ResolvedConfig.$configSection) {
                         $ResolvedConfig.$configSection = @($ResolvedConfig.$configSection) + @($section.$configSection)
-                    } else {
+                    }
+ else {
                         $ResolvedConfig | Add-Member -NotePropertyName $configSection -NotePropertyValue $section.$configSection -Force
                     }
                 }
             }
-        } else {
+        }
+ else {
             Write-Verbose "Conditional section '$($section.name)' conditions not met, skipping"
         }
     }
@@ -260,10 +265,10 @@ function Test-WmrConditionalSectionCondition {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$ConditionalSection,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -283,7 +288,8 @@ function Test-WmrConditionalSectionCondition {
                     $scriptBlock = [ScriptBlock]::Create($condition.check)
                     $scriptResult = & $scriptBlock $MachineContext
                     $result = Test-WmrStringComparison -Value $scriptResult -Expected $condition.expected_result -Operator "equals"
-                } catch {
+                }
+ catch {
                     Write-Verbose "Failed to execute conditional script: $($_.Exception.Message)"
                     $result = $false
                 }
@@ -293,7 +299,8 @@ function Test-WmrConditionalSectionCondition {
                     $scriptBlock = [ScriptBlock]::Create($condition.check)
                     $checkResult = & $scriptBlock
                     $result = $checkResult -match $condition.expected_result
-                } catch {
+                }
+ catch {
                     Write-Verbose "Failed to execute hardware check: $($_.Exception.Message)"
                     $result = $false
                 }
@@ -302,7 +309,8 @@ function Test-WmrConditionalSectionCondition {
                 $envValue = $MachineContext.EnvironmentVariables[$condition.variable]
                 if ($envValue) {
                     $result = Test-WmrStringComparison -Value $envValue -Expected $condition.expected_value -Operator $condition.operator
-                } else {
+                }
+ else {
                     $result = $false
                 }
             }
@@ -341,10 +349,10 @@ function Test-WmrRuleItemMatch {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$Item,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$Rule
     )
 

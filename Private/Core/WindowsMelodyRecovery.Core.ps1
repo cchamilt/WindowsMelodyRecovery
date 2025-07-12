@@ -1,9 +1,9 @@
-# Core utility functions for WindowsMelodyRecovery module
+﻿# Core utility functions for WindowsMelodyRecovery module
 
 function Import-Environment {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ConfigPath = $null
     )
 
@@ -19,7 +19,8 @@ function Import-Environment {
 
             Write-Verbose "Environment loaded from module configuration"
             return $true
-        } else {
+        }
+ else {
             Write-Warning "Module not initialized and no ConfigPath provided. Please run Initialize-WindowsMelodyRecovery first."
             return $false
         }
@@ -36,7 +37,8 @@ function Import-Environment {
             Set-Variable -Name $key -Value $config[$key] -Scope Script
         }
         return $true
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to load environment from ${ConfigPath}: $($_.Exception.Message)"
         return $false
     }
@@ -45,7 +47,7 @@ function Import-Environment {
 function Get-ConfigValue {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Key
     )
 
@@ -55,10 +57,10 @@ function Get-ConfigValue {
 function Set-ConfigValue {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Key,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         $Value
     )
 
@@ -88,7 +90,7 @@ function Get-ModulePath {
 function Get-ScriptsConfig {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('backup', 'restore', 'setup')]
         [string]$Category
     )
@@ -110,10 +112,12 @@ function Get-ScriptsConfig {
 
         if ($Category) {
             return $config.$Category.enabled | Where-Object { $_.enabled -eq $true }
-        } else {
+        }
+ else {
             return $config
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to load scripts configuration: $($_.Exception.Message)"
         return $null
     }
@@ -122,13 +126,13 @@ function Get-ScriptsConfig {
 function Set-ScriptsConfig {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Category,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ScriptName,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [bool]$Enabled
     )
 
@@ -162,11 +166,13 @@ function Set-ScriptsConfig {
             $config | ConvertTo-Json -Depth 10 | Set-Content -Path $userConfigPath -Force
             Write-Verbose "Updated $ScriptName in $Category to enabled=$Enabled"
             return $true
-        } else {
+        }
+ else {
             Write-Warning "Script '$ScriptName' not found in category '$Category'"
             return $false
         }
-    } catch {
+    }
+ catch {
         Write-Error "Failed to update scripts configuration: $($_.Exception.Message)"
         return $false
     }
@@ -190,7 +196,8 @@ function Initialize-ModuleFromConfig {
             $script:Config.IsInitialized = $true
             Write-Verbose "Module configuration loaded from: $configFile"
             return $true
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to load configuration from: $configFile - $($_.Exception.Message)"
             return $false
         }
@@ -235,19 +242,19 @@ function Invoke-WSLScript {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ScriptContent,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Distribution,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$AsRoot,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$WorkingDirectory,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$PassThru
     )
 
@@ -290,7 +297,8 @@ $ScriptContent
         $bashCommand = "chmod +x '$wslScriptPath'"
         if ($AsRoot) {
             $bashCommand += " && sudo '$wslScriptPath'"
-        } else {
+        }
+ else {
             $bashCommand += " && '$wslScriptPath'"
         }
         $wslArgs += $bashCommand
@@ -309,7 +317,8 @@ $ScriptContent
                 Error = $errorOutput
                 Success = $process.ExitCode -eq 0
             }
-        } else {
+        }
+ else {
             # Direct execution
             & wsl @wslArgs
             if ($LASTEXITCODE -ne 0) {
@@ -317,7 +326,8 @@ $ScriptContent
             }
         }
 
-    } finally {
+    }
+ finally {
         # Cleanup temporary script
         if (Test-Path $tempScript) {
             Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
@@ -325,7 +335,7 @@ $ScriptContent
     }
 }
 
-function Sync-WSLPackages {
+function Sync-WSLPackage {
     <#
     .SYNOPSIS
     Sync WSL package lists to OneDrive backup
@@ -341,7 +351,7 @@ function Sync-WSLPackages {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$BackupPath
     )
 
@@ -349,7 +359,8 @@ function Sync-WSLPackages {
         $config = Get-WindowsMelodyRecovery
         if ($config.CloudProvider -eq "OneDrive") {
             $BackupPath = "$env:USERPROFILE\OneDrive\WSL-Packages"
-        } else {
+        }
+ else {
             $BackupPath = "$env:USERPROFILE\WSL-Packages"
         }
     }
@@ -384,7 +395,8 @@ echo "Package sync completed!"
         Invoke-WSLScript -ScriptContent $packageSyncScript
         Write-Information -MessageData "WSL packages synced to: $BackupPath" -InformationAction Continue
         return $true
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to sync WSL packages: $($_.Exception.Message)"
         return $false
     }
@@ -406,7 +418,7 @@ function Sync-WSLHome {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string[]]$ExcludePatterns = @()
     )
 
@@ -443,13 +455,14 @@ echo "Home directory sync completed!"
         Invoke-WSLScript -ScriptContent $homeSyncScript
         Write-Information -MessageData "WSL home directory synced successfully" -InformationAction Continue
         return $true
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to sync WSL home directory: $($_.Exception.Message)"
         return $false
     }
 }
 
-function Test-WSLRepositories {
+function Test-WSLRepository {
     <#
     .SYNOPSIS
     Check git repositories in WSL for uncommitted changes
@@ -465,7 +478,7 @@ function Test-WSLRepositories {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$WorkDirectory = "/home/\$(whoami)/work/repos"
     )
 
@@ -524,7 +537,8 @@ echo "Repository check completed!"
     try {
         Invoke-WSLScript -ScriptContent $repoCheckScript
         return $true
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to check WSL repositories: $($_.Exception.Message)"
         return $false
     }
@@ -549,10 +563,10 @@ function Initialize-WSLChezmoi {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$GitRepository,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$InitializeRepo
     )
 
@@ -658,7 +672,8 @@ echo "  cm, cma, cme, cms, cmd, cmu, cmcd"
         Write-Information -MessageData "✅ chezmoi setup completed in WSL" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "❌ Failed to setup chezmoi in WSL: $($_.Exception.Message)"
         return $false
     }
@@ -680,7 +695,7 @@ function Backup-WSLChezmoi {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$BackupPath
     )
 
@@ -754,7 +769,8 @@ echo "✅ chezmoi backup completed!"
         Write-Information -MessageData "✅ chezmoi backup completed" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "❌ Failed to backup chezmoi: $($_.Exception.Message)"
         return $false
     }
@@ -776,7 +792,7 @@ function Restore-WSLChezmoi {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$BackupPath
     )
 
@@ -855,7 +871,8 @@ echo "✅ chezmoi restore completed!"
         Write-Information -MessageData "✅ chezmoi restore completed" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "❌ Failed to restore chezmoi: $($_.Exception.Message)"
         return $false
     }

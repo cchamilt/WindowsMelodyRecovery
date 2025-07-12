@@ -1,10 +1,10 @@
-# wsl-parse-packages.ps1
+﻿# wsl-parse-packages.ps1
 # WSL Package Parse Script
 # Parses WSL package discovery output into application state format
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$DiscoveryOutput
 )
 
@@ -15,14 +15,15 @@ try {
     $applications = @()
 
     # Ensure packages is treated as an array
-    if ($packages -eq $null) {
+    if ($null -eq $packages) {
         $packages = @()
-    } elseif ($packages -isnot [array]) {
+    }
+ elseif ($packages -isnot [array]) {
         $packages = @($packages)
     }
 
     foreach ($pkg in $packages) {
-        if ($pkg -ne $null -and $pkg.Name) {
+        if ($null -ne $pkg -and $pkg.Name) {
             $application = @{
                 Name = $pkg.Name
                 Version = if ($pkg.Version) { $pkg.Version } else { "Unknown" }
@@ -36,10 +37,12 @@ try {
 
     if ($applications.Count -eq 0) {
         Write-Output "[]"
-    } else {
+    }
+ else {
         Write-Output ($applications | ConvertTo-Json -Depth 5)
     }
-} catch {
+}
+ catch {
     Write-Error "Failed to parse WSL package data: $($_.Exception.Message)"
     Write-Output "[]"
 }

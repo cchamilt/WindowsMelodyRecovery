@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Analyze and identify applications not managed by known package managers.
 
@@ -29,16 +29,16 @@
 [CmdletBinding(SupportsShouldProcess)]
 [OutputType([PSCustomObject])]
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$BackupRootPath,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$MachineBackupPath,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$SharedBackupPath,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$Force
 )
 
@@ -66,13 +66,14 @@ function Get-InstalledApplication {
                 $_.SystemComponent -ne 1 -and
                 $_.DisplayName -notmatch "Windows.*Runtime|Microsoft \.NET|Microsoft Visual C\+\+|Office.*Click-to-Run"
             } |
-            Select-Object @{N='Name';E={$_.DisplayName}},
-                         @{N='Version';E={$_.DisplayVersion}},
-                         @{N='Publisher';E={$_.Publisher}}
+            Select-Object @{N = 'Name'; E = { $_.DisplayName } },
+            @{N = 'Version'; E = { $_.DisplayVersion } },
+            @{N = 'Publisher'; E = { $_.Publisher } }
 
         Write-Information "Found $($apps.Count) installed applications" -InformationAction Continue
         return $apps
-    } catch {
+    }
+    catch {
         Write-Warning "Failed to scan installed applications: $_"
         return @()
     }
@@ -115,7 +116,8 @@ function Get-ManagedApplication {
                     }
                 }
                 Write-Verbose "Loaded $($apps.Count) $($packageManagers[$file]) applications"
-            } catch {
+            }
+            catch {
                 Write-Warning "Failed to load $file`: $_"
             }
         }
@@ -144,8 +146,8 @@ function Compare-ApplicationName {
 
     # Check exact match or containment
     return ($clean1.Trim() -eq $clean2.Trim()) -or
-           ($clean1.Length -gt 3 -and $clean2.Length -gt 3 -and
-           ($clean1.Contains($clean2.Trim()) -or $clean2.Contains($clean1.Trim())))
+    ($clean1.Length -gt 3 -and $clean2.Length -gt 3 -and
+    ($clean1.Contains($clean2.Trim()) -or $clean2.Contains($clean1.Trim())))
 }
 
 function Find-UnmanagedApplication {
@@ -284,7 +286,8 @@ try {
         return $results
     }
 
-} catch {
+}
+catch {
     Write-Error "Unmanaged applications analysis failed: $_"
     return $null
 }

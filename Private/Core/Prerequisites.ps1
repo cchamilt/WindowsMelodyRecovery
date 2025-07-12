@@ -1,14 +1,14 @@
-# Private/Core/Prerequisites.ps1
+﻿# Private/Core/Prerequisites.ps1
 
 # Requires Convert-WmrPath from PathUtilities.ps1
 # Requires WindowsMelodyRecovery.Template.psm1 for template schema, although not directly called here.
 
-function Test-WmrPrerequisites {
+function Test-WmrPrerequisite {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$TemplateConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet("Backup", "Restore")]
         [string]$Operation
     )
@@ -33,7 +33,8 @@ function Test-WmrPrerequisites {
                         if ($commandOutput -match $prereq.expected_output) {
                             $prereqMet = $true
                         }
-                    } catch {
+                    }
+ catch {
                         $checkResult = "Error: $($_.Exception.Message)`n"
                     }
                 }
@@ -47,14 +48,16 @@ function Test-WmrPrerequisites {
                             if ($regValue -eq $prereq.expected_value) {
                                 $prereqMet = $true
                             }
-                        } else {
+                        }
+ else {
                             # Check if the registry key exists
                             if (Test-Path $regPath -ErrorAction Stop) {
                                 $checkResult = "Key exists.`n"
                                 $prereqMet = $true
                             }
                         }
-                    } catch {
+                    }
+ catch {
                         $checkResult = "Error: $($_.Exception.Message)`n"
                     }
                 }
@@ -63,7 +66,8 @@ function Test-WmrPrerequisites {
                         if ($prereq.path) {
                             # Execute script from path
                             $scriptOutput = Invoke-Expression $prereq.path | Out-String
-                        } elseif ($prereq.inline_script) {
+                        }
+ elseif ($prereq.inline_script) {
                             # Execute inline script
                             $scriptOutput = Invoke-Expression $prereq.inline_script | Out-String
                         }
@@ -71,7 +75,8 @@ function Test-WmrPrerequisites {
                         if ($scriptOutput -match $prereq.expected_output) {
                             $prereqMet = $true
                         }
-                    } catch {
+                    }
+ catch {
                         $checkResult = "Error: $($_.Exception.Message)`n"
                     }
                 }
@@ -107,7 +112,8 @@ function Test-WmrPrerequisites {
                         $allPrerequisitesMet = $false
                     }
                 }
-            } else {
+            }
+ else {
                 Write-Information -MessageData " PASSED." -InformationAction Continue
             }
         }
@@ -115,7 +121,8 @@ function Test-WmrPrerequisites {
 
     if ($allPrerequisitesMet) {
         Write-Information -MessageData "All specified prerequisites passed for $($TemplateConfig.metadata.name) ($Operation operation)." -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Information -MessageData "Some prerequisites failed for $($TemplateConfig.metadata.name) ($Operation operation). Check warnings/errors above." -InformationAction Continue
     }
 

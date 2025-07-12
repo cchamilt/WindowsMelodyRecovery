@@ -1,4 +1,4 @@
-# Private/Core/MachineContext.ps1
+﻿# Private/Core/MachineContext.ps1
 
 <#
 .SYNOPSIS
@@ -61,7 +61,8 @@ function Get-WmrMachineContext {
             $context.HardwareInfo.Processors = Get-CimInstance -ClassName Win32_Processor -ErrorAction SilentlyContinue | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors
             $context.HardwareInfo.Memory = Get-CimInstance -ClassName Win32_PhysicalMemory -ErrorAction SilentlyContinue | Measure-Object -Property Capacity -Sum | Select-Object -ExpandProperty Sum
             $context.HardwareInfo.VideoControllers = Get-CimInstance -ClassName Win32_VideoController -ErrorAction SilentlyContinue | Select-Object Name, AdapterRAM
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to collect hardware information: $($_.Exception.Message)"
         }
 
@@ -69,20 +70,22 @@ function Get-WmrMachineContext {
         try {
             $context.SoftwareInfo.PowerShellVersion = $PSVersionTable.PSVersion.ToString()
             $context.SoftwareInfo.DotNetVersion = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to collect software information: $($_.Exception.Message)"
         }
 
         Write-Verbose "Machine context collection completed"
         return $context
 
-    } catch {
+    }
+ catch {
         Write-Error "Failed to collect machine context: $($_.Exception.Message)"
         throw
     }
 }
 
-function Get-WmrApplicableMachineConfigurations {
+function Get-WmrApplicableMachineConfiguration {
     <#
     .SYNOPSIS
         Gets machine-specific configurations that apply to the current machine.
@@ -90,10 +93,10 @@ function Get-WmrApplicableMachineConfigurations {
     [CmdletBinding()]
     [OutputType([System.Array])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$MachineSpecificConfigs,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -120,10 +123,10 @@ function Test-WmrMachineSelector {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$MachineSelectors,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -153,7 +156,8 @@ function Test-WmrMachineSelector {
                         $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
                         $result = Test-WmrStringComparison -Value $regValue.$($selector.key_name) -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $caseSensitive
                     }
-                } catch {
+                }
+ catch {
                     Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
                 }
             }
@@ -163,7 +167,8 @@ function Test-WmrMachineSelector {
                     $scriptResult = & $scriptBlock $MachineContext
                     $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
                     $result = Test-WmrStringComparison -Value $scriptResult -Expected $selector.expected_result -Operator $selector.operator -CaseSensitive $caseSensitive
-                } catch {
+                }
+ catch {
                     Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
                 }
             }
@@ -185,16 +190,16 @@ function Test-WmrStringComparison {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Value,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Expected,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Operator = "equals",
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [bool]$CaseSensitive = $false
     )
 
@@ -202,42 +207,48 @@ function Test-WmrStringComparison {
         "equals" {
             if ($CaseSensitive) {
                 return $Value -ceq $Expected
-            } else {
+            }
+ else {
                 return $Value -eq $Expected
             }
         }
         "not_equals" {
             if ($CaseSensitive) {
                 return $Value -cne $Expected
-            } else {
+            }
+ else {
                 return $Value -ne $Expected
             }
         }
         "contains" {
             if ($CaseSensitive) {
                 return $Value -clike "*$Expected*"
-            } else {
+            }
+ else {
                 return $Value -like "*$Expected*"
             }
         }
         "matches" {
             if ($CaseSensitive) {
                 return $Value -cmatch $Expected
-            } else {
+            }
+ else {
                 return $Value -match $Expected
             }
         }
         "greater_than" {
             if ($CaseSensitive) {
                 return $Value -cgt $Expected
-            } else {
+            }
+ else {
                 return $Value -gt $Expected
             }
         }
         "less_than" {
             if ($CaseSensitive) {
                 return $Value -clt $Expected
-            } else {
+            }
+ else {
                 return $Value -lt $Expected
             }
         }

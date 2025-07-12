@@ -1,4 +1,4 @@
-# WindowsMelodyRecovery Module Initialization System
+﻿# WindowsMelodyRecovery Module Initialization System
 # This file handles all module initialization, configuration loading, and setup
 
 # Module initialization state
@@ -9,16 +9,16 @@ $script:LoadedComponents = @()
 function Initialize-WindowsMelodyRecoveryModule {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Force,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$SkipValidation,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ConfigPath,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$OverrideConfig
     )
 
@@ -90,7 +90,8 @@ function Initialize-WindowsMelodyRecoveryModule {
             Warnings = $script:InitializationErrors
         }
 
-    } catch {
+    }
+ catch {
         $script:ModuleInitialized = $false
         $script:InitializationErrors += $_.Exception.Message
 
@@ -168,10 +169,10 @@ function Test-ModuleStructure {
 function Initialize-ModuleConfiguration {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ConfigPath,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [hashtable]$OverrideConfig
     )
 
@@ -221,7 +222,8 @@ function Initialize-ModuleConfiguration {
             Message = "Default configuration loaded"
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Configuration initialization failed: $($_.Exception.Message)"
@@ -232,7 +234,7 @@ function Initialize-ModuleConfiguration {
 function Import-ConfigurationFromFile {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ConfigPath
     )
 
@@ -268,7 +270,8 @@ function Import-ConfigurationFromFile {
             Message = "Configuration loaded from: $ConfigPath"
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Failed to load configuration from $ConfigPath : $($_.Exception.Message)"
@@ -279,7 +282,7 @@ function Import-ConfigurationFromFile {
 function Import-ConfigurationFromTemplate {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$TemplatePath
     )
 
@@ -318,7 +321,8 @@ function Import-ConfigurationFromTemplate {
             Message = "Configuration loaded from template: $TemplatePath"
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Failed to load configuration from template $TemplatePath : $($_.Exception.Message)"
@@ -375,13 +379,13 @@ function Get-DefaultConfiguration {
     }
 }
 
-function Merge-Configurations {
+function Merge-Configuration {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [hashtable]$Base,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [hashtable]$Override
     )
 
@@ -390,7 +394,8 @@ function Merge-Configurations {
     foreach ($key in $Override.Keys) {
         if ($Override[$key] -is [hashtable] -and $merged[$key] -is [hashtable]) {
             $merged[$key] = Merge-Configurations -Base $merged[$key] -Override $Override[$key]
-        } else {
+        }
+ else {
             $merged[$key] = $Override[$key]
         }
     }
@@ -398,7 +403,7 @@ function Merge-Configurations {
     return $merged
 }
 
-function Import-CoreUtilities {
+function Import-CoreUtility {
     [CmdletBinding()]
     param()
 
@@ -442,7 +447,8 @@ function Import-CoreUtilities {
             Message = "Core utilities loaded successfully"
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Failed to load core utilities: $($_.Exception.Message)"
@@ -450,7 +456,7 @@ function Import-CoreUtilities {
     }
 }
 
-function Import-PublicFunctions {
+function Import-PublicFunction {
     [CmdletBinding()]
     param()
 
@@ -488,10 +494,12 @@ function Import-PublicFunctions {
                 # Verify function was loaded
                 if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                     $loadedFunctions += $functionName
-                } else {
+                }
+ else {
                     $failedFunctions += $functionName
                 }
-            } catch {
+            }
+ catch {
                 $failedFunctions += $script.BaseName
                 Write-Warning "Failed to load function $($script.BaseName): $($_.Exception.Message)"
             }
@@ -513,7 +521,8 @@ function Import-PublicFunctions {
             FailedFunctions = $failedFunctions
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Failed to load public functions: $($_.Exception.Message)"
@@ -558,7 +567,8 @@ function Initialize-ModuleEnvironment {
             Message = "Module environment setup completed"
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Failed to setup module environment: $($_.Exception.Message)"
@@ -566,7 +576,7 @@ function Initialize-ModuleEnvironment {
     }
 }
 
-function Test-ModuleDependencies {
+function Test-ModuleDependency {
     [CmdletBinding()]
     param()
 
@@ -615,7 +625,8 @@ function Test-ModuleDependencies {
             Message = "All dependencies validated successfully"
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Dependency validation failed: $($_.Exception.Message)"
@@ -623,7 +634,7 @@ function Test-ModuleDependencies {
     }
 }
 
-function Set-ModuleAliases {
+function Set-ModuleAlias {
     [CmdletBinding()]
     param()
 
@@ -647,7 +658,8 @@ function Set-ModuleAliases {
                     Set-Alias -Name $alias -Value $aliases[$alias] -Scope Global
                     $createdAliases += $alias
                 }
-            } catch {
+            }
+ catch {
                 $failedAliases += $alias
             }
         }
@@ -667,7 +679,8 @@ function Set-ModuleAliases {
             CreatedAliases = $createdAliases
         }
 
-    } catch {
+    }
+ catch {
         return @{
             Success = $false
             Message = "Failed to setup module aliases: $($_.Exception.Message)"

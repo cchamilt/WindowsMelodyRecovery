@@ -1,4 +1,4 @@
-# Private/Core/AdministrativePrivileges.ps1
+﻿# Private/Core/AdministrativePrivileges.ps1
 
 <#
 .SYNOPSIS
@@ -14,7 +14,7 @@
     Requires: PowerShell 5.1 or later
 #>
 
-function Test-WmrAdministrativePrivileges {
+function Test-WmrAdministrativePrivilege {
     <#
     .SYNOPSIS
         Enhanced administrative privilege testing with detailed information.
@@ -41,10 +41,10 @@ function Test-WmrAdministrativePrivileges {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$ThrowIfNotAdmin,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Quiet
     )
 
@@ -76,13 +76,16 @@ function Test-WmrAdministrativePrivileges {
             # Determine elevation method
             if ($privilegeInfo.IsElevated) {
                 $privilegeInfo.ElevationMethod = "Already Elevated"
-            } elseif ($privilegeInfo.CanElevate) {
+            }
+ elseif ($privilegeInfo.CanElevate) {
                 $privilegeInfo.ElevationMethod = "UAC Available"
-            } else {
+            }
+ else {
                 $privilegeInfo.ElevationMethod = "No Elevation Available"
             }
 
-        } else {
+        }
+ else {
             # Non-Windows environment
             $privilegeInfo.CurrentUser = $env:USER
             $privilegeInfo.IsElevated = (id -u) -eq 0  # Check if root on Unix-like systems
@@ -99,7 +102,8 @@ function Test-WmrAdministrativePrivileges {
             throw "Administrative privileges are required for this operation. Current user: $($privilegeInfo.CurrentUser)"
         }
 
-    } catch {
+    }
+ catch {
         $privilegeInfo.Errors += $_.Exception.Message
         if ($ThrowIfNotAdmin) {
             throw
@@ -150,7 +154,8 @@ function Test-WmrElevationCapability {
 
         return $false
 
-    } catch {
+    }
+ catch {
         Write-Verbose "Failed to check elevation capability: $($_.Exception.Message)"
         return $false
     }
@@ -188,13 +193,13 @@ function Invoke-WmrWithElevation {
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock]$ScriptBlock,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [array]$ArgumentList = @(),
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$NoPrompt
     )
 
@@ -213,7 +218,8 @@ function Invoke-WmrWithElevation {
             Write-Verbose "Already running with administrative privileges"
             return & $ScriptBlock @ArgumentList
 
-        } elseif ($privilegeInfo.CanElevate -and -not $NoPrompt) {
+        }
+ elseif ($privilegeInfo.CanElevate -and -not $NoPrompt) {
             # Can elevate, but would require UAC prompt
             Write-Warning "This operation requires administrative privileges."
             Write-Warning "In a production environment, this would prompt for UAC elevation."
@@ -231,11 +237,13 @@ function Invoke-WmrWithElevation {
             # In real environment, this would trigger UAC
             throw "UAC elevation required but not implemented in this context"
 
-        } else {
+        }
+ else {
             # Cannot elevate
             $message = if ($NoPrompt) {
                 "Administrative privileges required but elevation prompting is disabled"
-            } else {
+            }
+ else {
                 "Administrative privileges required but elevation is not available"
             }
 
@@ -247,7 +255,8 @@ function Invoke-WmrWithElevation {
             }
         }
 
-    } catch {
+    }
+ catch {
         Write-Error "Failed to execute with elevation: $($_.Exception.Message)"
         return @{
             Success = $false
@@ -286,14 +295,14 @@ function Test-WmrAdminRequiredOperation {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet("Registry", "File", "Service", "ScheduledTask", "WindowsFeature", "WindowsCapability")]
         [string]$OperationType,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet("Read", "Write", "Create", "Delete", "Modify", "Execute")]
         [string]$Action
     )
@@ -380,7 +389,7 @@ function Test-WmrAdminRequiredOperation {
     }
 }
 
-function Get-WmrPrivilegeRequirements {
+function Get-WmrPrivilegeRequirement {
     <#
     .SYNOPSIS
         Gets privilege requirements for a template or operation.
@@ -403,10 +412,10 @@ function Get-WmrPrivilegeRequirements {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$TemplateConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet("Backup", "Restore", "Sync")]
         [string]$Operation
     )
@@ -439,7 +448,8 @@ function Get-WmrPrivilegeRequirements {
                 if ($isAdminRequired) {
                     $requirements.RequiresAdmin = $true
                     $requirements.AdminOperations += "Registry: $($reg.path)"
-                } else {
+                }
+ else {
                     $requirements.SafeOperations += "Registry: $($reg.path)"
                 }
             }
@@ -456,7 +466,8 @@ function Get-WmrPrivilegeRequirements {
                 if ($isAdminRequired) {
                     $requirements.RequiresAdmin = $true
                     $requirements.AdminOperations += "File: $($file.path)"
-                } else {
+                }
+ else {
                     $requirements.SafeOperations += "File: $($file.path)"
                 }
             }
@@ -471,7 +482,8 @@ function Get-WmrPrivilegeRequirements {
                 $app.discovery_command -like "*Get-WindowsFeature*") {
                 $requirements.RequiresAdmin = $true
                 $requirements.AdminOperations += "Windows Feature/Capability: $($app.name)"
-            } else {
+            }
+ else {
                 $requirements.SafeOperations += "Application: $($app.name)"
             }
         }
@@ -516,16 +528,16 @@ function Invoke-WmrSafeAdminOperation {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ScriptBlock]$ScriptBlock,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ScriptBlock]$FallbackScriptBlock,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$OperationName,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("Admin", "Elevated", "User")]
         [string]$RequiredPrivileges = "Admin"
     )
@@ -559,7 +571,8 @@ function Invoke-WmrSafeAdminOperation {
             $result.Data = & $ScriptBlock
             $result.Success = $true
 
-        } elseif ($FallbackScriptBlock) {
+        }
+ elseif ($FallbackScriptBlock) {
             # Execute fallback operation
             Write-Warning "$OperationName requires $RequiredPrivileges privileges. Using fallback operation."
             $result.Data = & $FallbackScriptBlock
@@ -567,7 +580,8 @@ function Invoke-WmrSafeAdminOperation {
             $result.UsedFallback = $true
             $result.Warnings += "Used fallback operation due to insufficient privileges"
 
-        } else {
+        }
+ else {
             # Cannot proceed
             $message = "$OperationName requires $RequiredPrivileges privileges but only $($result.ActualPrivileges) privileges are available"
             $result.Errors += $message
@@ -575,7 +589,8 @@ function Invoke-WmrSafeAdminOperation {
             Write-Warning $message
         }
 
-    } catch {
+    }
+ catch {
         $result.Errors += $_.Exception.Message
         Write-Warning "Failed to execute $OperationName`: $($_.Exception.Message)"
 
@@ -587,7 +602,8 @@ function Invoke-WmrSafeAdminOperation {
                 $result.Success = $true
                 $result.UsedFallback = $true
                 $result.Warnings += "Used fallback operation due to error in main operation"
-            } catch {
+            }
+ catch {
                 $result.Errors += "Fallback also failed: $($_.Exception.Message)"
                 Write-Warning "Fallback operation for $OperationName also failed: $($_.Exception.Message)"
             }

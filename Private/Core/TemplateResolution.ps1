@@ -1,4 +1,4 @@
-# Private/Core/TemplateResolution.ps1
+﻿# Private/Core/TemplateResolution.ps1
 
 <#
 .SYNOPSIS
@@ -46,10 +46,10 @@ function Resolve-WmrTemplateInheritance {
     [CmdletBinding()]
     [OutputType([System.Management.Automation.PSObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$TemplateConfig,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$MachineContext
     )
 
@@ -135,7 +135,8 @@ function Resolve-WmrTemplateInheritance {
         Write-Verbose "Template inheritance resolution completed successfully"
         return $resolvedConfig
 
-    } catch {
+    }
+ catch {
         Write-Error "Failed to resolve template inheritance: $($_.Exception.Message)"
         throw
     }
@@ -149,7 +150,7 @@ function Get-WmrInheritanceConfiguration {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$TemplateConfig
     )
 
@@ -166,7 +167,8 @@ function Get-WmrInheritanceConfiguration {
     foreach ($key in $defaultConfig.Keys) {
         if ($TemplateConfig.PSObject.Properties.Name -contains $key) {
             $config[$key] = $TemplateConfig.$key
-        } elseif ($TemplateConfig -is [hashtable] -and $TemplateConfig.ContainsKey($key)) {
+        }
+ elseif ($TemplateConfig -is [hashtable] -and $TemplateConfig.ContainsKey($key)) {
             $config[$key] = $TemplateConfig[$key]
         }
     }
@@ -179,7 +181,8 @@ function Get-WmrInheritanceConfiguration {
                     $config[$key] = $TemplateConfig.configuration[$key]
                 }
             }
-        } else {
+        }
+ else {
             foreach ($property in $TemplateConfig.configuration.PSObject.Properties) {
                 if ($property.Name -in $defaultConfig.Keys) {
                     $config[$property.Name] = $property.Value

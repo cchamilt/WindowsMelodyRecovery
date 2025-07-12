@@ -1,11 +1,27 @@
-# Private/Core/WindowsMelodyRecovery.Template.psm1
+﻿# Private/Core/WindowsMelodyRecovery.Template.psm1
 
 # Requires the PowerShellGet module for Install-Module, if not already installed.
 # Requires the PowerShell YAML module for ConvertFrom-Yaml.
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER TemplatePath
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Read-WmrTemplateConfig {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$TemplatePath
     )
 
@@ -16,12 +32,14 @@ function Read-WmrTemplateConfig {
     # Ensure the Yayaml module is available
     try {
         Import-Module Yayaml -ErrorAction Stop
-    } catch {
+    }
+ catch {
         Write-Warning "Yayaml module not found. Attempting to install..."
         try {
             Install-Module Yayaml -Scope CurrentUser -Force -ErrorAction Stop
             Import-Module Yayaml -ErrorAction Stop
-        } catch {
+        }
+ catch {
             throw "Failed to install and import Yayaml module. Please install it manually: Install-Module -Name Yayaml"
         }
     }
@@ -30,14 +48,31 @@ function Read-WmrTemplateConfig {
         $yamlContent = Get-Content $TemplatePath -Raw
         $templateConfig = $yamlContent | ConvertFrom-Yaml -ErrorAction Stop
         return $templateConfig
-    } catch {
+    }
+ catch {
         throw "Failed to parse YAML template file '$TemplatePath': $($_.Exception.Message)"
     }
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER TemplateConfig
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Test-WmrTemplateSchema {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [PSObject]$TemplateConfig
     )
 
