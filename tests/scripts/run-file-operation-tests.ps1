@@ -72,19 +72,23 @@ Write-Verbose -Message "  • Local Windows: $($script:IsWindowsLocal ? 'Yes' : 
 if ($script:IsDockerEnvironment) {
     Write-Information -MessageData "🐳 Mode: Docker Cross-Platform (safe operations with mocking)" -InformationAction Continue
     $script:AllowDestructiveTests = $false
-} elseif ($script:IsCICDEnvironment -and $IsWindows) {
+}
+ elseif ($script:IsCICDEnvironment -and $IsWindows) {
     Write-Information -MessageData "🏭 Mode: CI/CD Windows (all operations including destructive)" -InformationAction Continue
     $script:AllowDestructiveTests = $true
-} elseif ($script:IsWindowsLocal) {
+}
+ elseif ($script:IsWindowsLocal) {
     if ($Force) {
         Write-Error -Message "⚠️  Mode: Local Windows FORCED (destructive tests enabled - USE WITH CAUTION!)"
         Write-Error -Message "   This may modify your system registry and files!"
         $script:AllowDestructiveTests = $true
-    } else {
+    }
+ else {
         Write-Warning -Message "🏠 Mode: Local Windows Safe (destructive tests will be skipped)"
         $script:AllowDestructiveTests = $false
     }
-} else {
+}
+ else {
     Write-Warning -Message "🌐 Mode: Non-Windows (Windows-only tests will be skipped)"
     $script:AllowDestructiveTests = $false
 }
@@ -128,11 +132,13 @@ Write-Information -MessageData "" -InformationAction Continue
 $testsToRun = if ($TestName) {
     if ($TestName -in $availableTests) {
         @($TestName)
-    } else {
+    }
+ else {
         Write-Warning "Test '$TestName' not found. Available tests: $($availableTests -join ', ')"
         return
     }
-} else {
+}
+ else {
     $availableTests
 }
 
@@ -169,11 +175,11 @@ foreach ($dir in $safeDirs) {
     if (-not $isSafePath -and $dir.StartsWith("C:\")) {
         # Check for specific dangerous paths
         $isDangerousPath = $dir.StartsWith("C:\Windows") -or
-                          $dir.StartsWith("C:\Program Files") -or
-                          $dir.StartsWith("C:\ProgramData") -or
-                          $dir.StartsWith("C:\System") -or
-                          $dir -eq "C:\" -or
-                          $dir.StartsWith("C:\$")
+        $dir.StartsWith("C:\Program Files") -or
+        $dir.StartsWith("C:\ProgramData") -or
+        $dir.StartsWith("C:\System") -or
+        $dir -eq "C:\" -or
+        $dir.StartsWith("C:\$")
 
         if ($isDangerousPath) {
             Write-Error "🚨 SAFETY VIOLATION: Directory '$dir' attempts to write to dangerous C:\ location!"
@@ -291,7 +297,8 @@ foreach ($test in $testsToRun) {
             }
             $statusMsg += ", $([math]::Round($testTime, 2))s)"
             Write-Information -MessageData $statusMsg  -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)"
 
             # Show failed test details
@@ -302,7 +309,8 @@ foreach ($test in $testsToRun) {
                 }
             }
         }
-    } catch {
+    }
+ catch {
         Write-Error -Message "💥 $test tests crashed: $_"
         $totalFailed++
     }
@@ -315,7 +323,8 @@ if (-not $SkipCleanup) {
     Write-Warning -Message "🧹 Cleaning up test directories..."
     Remove-TestEnvironment
     Write-Information -MessageData "✅ Cleanup complete" -InformationAction Continue
-} else {
+}
+ else {
     Write-Warning -Message "⚠️  Skipping cleanup - test files remain in:"
     Write-Verbose -Message "  • $($testEnvironment.TestRestore)"
     Write-Verbose -Message "  • $($testEnvironment.TestBackup)"
@@ -337,7 +346,8 @@ if ($totalFailed -eq 0) {
     Write-Information -MessageData "" -InformationAction Continue
     Write-Information -MessageData "🎉 All file operation tests passed!" -InformationAction Continue
     exit 0
-} else {
+}
+ else {
     Write-Information -MessageData "" -InformationAction Continue
     Write-Warning -Message "⚠️  Some file operation tests failed. Check the output above for details."
     exit 1

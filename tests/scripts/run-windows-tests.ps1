@@ -86,7 +86,8 @@ function Test-AdminPrivilege {
     try {
         $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
         return $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    } catch {
+    }
+ catch {
         return $false
     }
 }
@@ -112,7 +113,8 @@ if ($CreateRestorePoint -and $needsAdmin -and $isAdmin) {
         $restorePoint = "WMR-Tests-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
         Checkpoint-Computer -Description $restorePoint -RestorePointType "MODIFY_SETTINGS"
         Write-Information -MessageData "✓ Restore point created: $restorePoint" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning -Message "⚠️  Failed to create restore point: $($_.Exception.Message)"
         Write-Verbose -Message "   Continuing without restore point..."
     }
@@ -123,7 +125,8 @@ try {
     $testEnvPath = Join-Path $PSScriptRoot ".." "utilities" "Test-Environment.ps1"
     if (Test-Path $testEnvPath) {
         . $testEnvPath
-    } else {
+    }
+ else {
         Write-Error -Message "✗ Test environment not found at: $testEnvPath"
         exit 1
     }
@@ -143,21 +146,25 @@ try {
         $testPaths += Join-Path $PSScriptRoot ".." "windows-only" "unit"
         $testPaths += Join-Path $PSScriptRoot ".." "windows-only" "integration"
         # Add other categories as they exist
-    } else {
+    }
+ else {
         $categoryPath = Join-Path $PSScriptRoot ".." "windows-only" $Category
         if (Test-Path $categoryPath) {
             if ($TestName) {
                 $specificTest = Join-Path $categoryPath "$TestName.Tests.ps1"
                 if (Test-Path $specificTest) {
                     $testPaths += $specificTest
-                } else {
+                }
+ else {
                     Write-Error -Message "✗ Test file not found: $specificTest"
                     exit 1
                 }
-            } else {
+            }
+ else {
                 $testPaths += $categoryPath
             }
-        } else {
+        }
+ else {
             Write-Error -Message "✗ Test category not found: $categoryPath"
             Write-Warning -Message "Available categories:"
             Get-ChildItem -Path (Join-Path $PSScriptRoot ".." "windows-only") -Directory | ForEach-Object {
@@ -210,12 +217,14 @@ try {
     if ($result.FailedCount -gt 0) {
         Write-Error -Message "✗ Some Windows-only tests failed"
         exit 1
-    } else {
+    }
+ else {
         Write-Information -MessageData "✓ All Windows-only tests passed!" -InformationAction Continue
         exit 0
     }
 
-} catch {
+}
+ catch {
     Write-Error -Message "✗ Error running Windows-only tests: $($_.Exception.Message)"
     Write-Error -Message "Stack trace:"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue

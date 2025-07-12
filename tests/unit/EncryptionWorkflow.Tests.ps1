@@ -141,8 +141,8 @@ Describe 'Encryption Workflow Tests' {
             # Arrange
             $configData = @{
                 username = "testuser"
-                apikey   = "secret-api-key-12345"
-                servers  = @("server1.example.com", "server2.example.com")
+                apikey = "secret-api-key-12345"
+                servers = @("server1.example.com", "server2.example.com")
                 settings = @{
                     timeout = 30
                     retries = 3

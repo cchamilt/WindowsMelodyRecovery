@@ -1,4 +1,4 @@
-# TemplateInheritance.Tests.ps1
+﻿# TemplateInheritance.Tests.ps1
 # Tests for template inheritance functionality in Windows Melody Recovery
 
 # Import required modules and test utilities
@@ -29,15 +29,15 @@ BeforeAll {
         }
         HardwareInfo = @{
             Processors = @(@{
-                Name = "Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz"
-                NumberOfCores = 8
-                NumberOfLogicalProcessors = 8
-            })
+                    Name = "Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz"
+                    NumberOfCores = 8
+                    NumberOfLogicalProcessors = 8
+                })
             Memory = 17179869184  # 16 GB
             VideoControllers = @(@{
-                Name = "NVIDIA GeForce RTX 3070"
-                AdapterRAM = 8589934592  # 8 GB
-            })
+                    Name = "NVIDIA GeForce RTX 3070"
+                    AdapterRAM = 8589934592  # 8 GB
+                })
         }
         SoftwareInfo = @{
             PowerShellVersion = "5.1.19041.1682"

@@ -19,7 +19,8 @@ function Invoke-TestWithRetry {
         try {
             $result = & $TestScript
             return $result
-        } catch {
+        }
+        catch {
             if ($i -eq $MaxRetries) {
                 throw "Test failed after $MaxRetries attempts: $($_.Exception.Message)"
             }
@@ -68,7 +69,8 @@ function Get-TestSummary {
 $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 # Only export functions if we're in a module context
-if ($MyInvocation.MyCommand.Path) {  # Check if we're in a script file
+if ($MyInvocation.MyCommand.Path) {
+    # Check if we're in a script file
     # Create module scope for functions
     New-Module -Name TestUtilities -ScriptBlock {
         function Start-TestWithTimeout {
@@ -208,12 +210,13 @@ function Get-WmrModulePath {
     if (-not $script:CachedModulePath) {
         # Check if we're in a Docker environment
         $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                              (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+        (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
         if ($isDockerEnvironment) {
             # Return current workspace path in Docker
             $script:CachedModulePath = "/workspace"
-        } else {
+        }
+        else {
             # Return Windows project root path
             $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
             $script:CachedModulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
@@ -242,22 +245,25 @@ function Get-WmrTestPath {
 
     # Check if we're in a Docker environment
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
     if ($isDockerEnvironment) {
         # Use Docker path conversion (function available in Docker-Path-Mocks.ps1)
         if (Get-Command Convert-WmrPathForDocker -ErrorAction SilentlyContinue) {
             return Convert-WmrPathForDocker -Path $WindowsPath
-        } else {
+        }
+        else {
             Write-Warning "Convert-WmrPathForDocker not available in Docker environment"
             return $WindowsPath
         }
-    } else {
+    }
+    else {
         # For local/CI environments, use the ConvertTo-TestEnvironmentPath from PathUtilities
         # This function should be available from the main module
         if (Get-Command ConvertTo-TestEnvironmentPath -ErrorAction SilentlyContinue) {
             return ConvertTo-TestEnvironmentPath -Path $WindowsPath
-        } else {
+        }
+        else {
             # Fallback: return the original path if the function doesn't exist
             Write-Warning "ConvertTo-TestEnvironmentPath not available, using original path: $WindowsPath"
             return $WindowsPath
@@ -279,10 +285,10 @@ function Test-WmrTestEnvironment {
 
     # Check for test environment indicators
     return ($env:WMR_TEST_MODE -eq 'true') -or
-           ($env:DOCKER_TEST -eq 'true') -or
-           ($env:PESTER_TEST -eq 'true') -or
-           ((Test-Path variable:PSCommandPath -ErrorAction SilentlyContinue) -and
-            ($PSCommandPath -like "*test*"))
+    ($env:DOCKER_TEST -eq 'true') -or
+    ($env:PESTER_TEST -eq 'true') -or
+    ((Test-Path variable:PSCommandPath -ErrorAction SilentlyContinue) -and
+    ($PSCommandPath -like "*test*"))
 }
 
 function Get-WmrTestEnvironmentInfo {
@@ -298,7 +304,7 @@ function Get-WmrTestEnvironmentInfo {
     param()
 
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
     $isCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
     $isWindowsEnvironment = $IsWindows
 

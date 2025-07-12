@@ -10,9 +10,9 @@
 Write-Information -MessageData "🏥 Performing health checks..." -InformationAction Continue
 
 $healthStatus = @{
-    PowerShell      = $false
-    Pester          = $false
-    Docker          = $false
+    PowerShell = $false
+    Pester = $false
+    Docker = $false
     TestDirectories = $false
 }
 

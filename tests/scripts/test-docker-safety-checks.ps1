@@ -43,10 +43,12 @@ try {
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
         if ($null -eq $result) {
             Write-Information -MessageData "  ✅ Initialize correctly blocked in local environment" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ Initialize should have been blocked"
         }
-    } catch {
+    }
+ catch {
         Write-Information -MessageData "  ✅ Initialize correctly threw exception: $($_.Exception.Message)" -InformationAction Continue
     }
 
@@ -55,10 +57,12 @@ try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal
         if ($null -eq $result) {
             Write-Information -MessageData "  ✅ Reset correctly blocked in local environment" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ Reset should have been blocked"
         }
-    } catch {
+    }
+ catch {
         Write-Information -MessageData "  ✅ Reset correctly threw exception: $($_.Exception.Message)" -InformationAction Continue
     }
 
@@ -77,10 +81,12 @@ try {
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
         if ($null -ne $result -or $?) {
             Write-Information -MessageData "  ✅ Initialize correctly allowed in Docker environment" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ Initialize should have been allowed"
         }
-    } catch {
+    }
+ catch {
         Write-Warning -Message "  ⚠️  Initialize failed in Docker environment: $($_.Exception.Message)"
     }
 
@@ -89,10 +95,12 @@ try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal
         if ($null -ne $result -or $?) {
             Write-Information -MessageData "  ✅ Reset correctly allowed in Docker environment" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ Reset should have been allowed"
         }
-    } catch {
+    }
+ catch {
         Write-Warning -Message "  ⚠️  Reset failed in Docker environment: $($_.Exception.Message)"
     }
 
@@ -109,7 +117,8 @@ try {
     try {
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal -SkipSafetyCheck
         Write-Information -MessageData "  ✅ SkipSafetyCheck correctly bypassed safety checks" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Error -Message "  ❌ SkipSafetyCheck should have bypassed checks: $($_.Exception.Message)"
     }
 
@@ -117,7 +126,8 @@ try {
     try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal -SkipSafetyCheck
         Write-Information -MessageData "  ✅ SkipSafetyCheck correctly bypassed safety checks" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Error -Message "  ❌ SkipSafetyCheck should have bypassed checks: $($_.Exception.Message)"
     }
 
@@ -135,10 +145,12 @@ try {
         $lockValid = Test-DockerEnvironmentLock
         if ($lockValid) {
             Write-Information -MessageData "  ✅ Docker environment lock created and validated" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ Docker environment lock validation failed"
         }
-    } catch {
+    }
+ catch {
         Write-Warning -Message "  ⚠️  Docker lock test failed: $($_.Exception.Message)"
     }
 
@@ -150,7 +162,8 @@ try {
     try {
         Assert-DockerEnvironment
         Write-Information -MessageData "  ✅ Assert-DockerEnvironment passed with mock environment" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Error -Message "  ❌ Assert-DockerEnvironment failed: $($_.Exception.Message)"
     }
 
@@ -161,10 +174,12 @@ try {
     Write-Information -MessageData "  ✅ Docker lock validation working" -InformationAction Continue
     Write-Information -MessageData "  ✅ Comprehensive safety validation working" -InformationAction Continue
 
-} catch {
+}
+ catch {
     Write-Error "❌ Test failed: $_"
     Write-Error "   Line: $($_.InvocationInfo.ScriptLineNumber)"
-} finally {
+}
+ finally {
     # Restore original environment variables
     foreach ($envVar in $originalEnvVars.Keys) {
         [Environment]::SetEnvironmentVariable($envVar, $originalEnvVars[$envVar])
@@ -175,7 +190,8 @@ try {
     try {
         Remove-StandardTestEnvironment -Confirm:$false
         Write-Information -MessageData "✅ Test environment cleaned up" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning "⚠️  Cleanup warning: $_"
     }
 }

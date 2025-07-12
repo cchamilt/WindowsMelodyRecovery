@@ -507,21 +507,21 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                 TotalTemplates = $script:AllTemplates.Count
                 Categories = $script:TemplateCategories.Keys.Count
                 TemplatesWithRegistry = ($script:AllTemplates | Where-Object {
-                    $content = Get-Content $_.FullName -Raw
-                    $content -match "registry\s*:"
-                }).Count
+                        $content = Get-Content $_.FullName -Raw
+                        $content -match "registry\s*:"
+                    }).Count
                 TemplatesWithFiles = ($script:AllTemplates | Where-Object {
-                    $content = Get-Content $_.FullName -Raw
-                    $content -match "files\s*:"
-                }).Count
+                        $content = Get-Content $_.FullName -Raw
+                        $content -match "files\s*:"
+                    }).Count
                 TemplatesWithApplications = ($script:AllTemplates | Where-Object {
-                    $content = Get-Content $_.FullName -Raw
-                    $content -match "applications\s*:"
-                }).Count
+                        $content = Get-Content $_.FullName -Raw
+                        $content -match "applications\s*:"
+                    }).Count
                 TemplatesWithPrerequisites = ($script:AllTemplates | Where-Object {
-                    $content = Get-Content $_.FullName -Raw
-                    $content -match "prerequisites\s*:"
-                }).Count
+                        $content = Get-Content $_.FullName -Raw
+                        $content -match "prerequisites\s*:"
+                    }).Count
             }
 
             Write-Warning -Message "=== Template Coverage Report ==="
@@ -549,7 +549,8 @@ AfterAll {
             Remove-Item $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
             Write-Warning -Message "Cleaned up template test directory: $script:TestRoot"
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"
     }
 }

@@ -1,7 +1,7 @@
-Describe "Timeout Tests" {
+﻿Describe "Timeout Tests" {
     BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+        # Load Docker test bootstrap for cross-platform compatibility
+        . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
         # Import test utilities for timeout functions
         . (Join-Path $PSScriptRoot "../utilities/Test-Utilities.ps1")

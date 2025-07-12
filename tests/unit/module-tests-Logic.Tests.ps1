@@ -1,4 +1,4 @@
-# Windows Melody Recovery - Module Logic Tests
+﻿# Windows Melody Recovery - Module Logic Tests
 # Tests module functionality with mocked file operations (Unit Level)
 # File operations moved to tests/file-operations/module-tests-FileOperations.Tests.ps1
 
@@ -30,7 +30,7 @@ BeforeAll {
 
     # Mock all file operations
     Mock Test-Path { $true }
-    Mock New-Item { @{FullName = $Path} }
+    Mock New-Item { @{FullName = $Path } }
     Mock Remove-Item { }
     Mock Get-Content {
         if ($Path -like "*manifest*") {

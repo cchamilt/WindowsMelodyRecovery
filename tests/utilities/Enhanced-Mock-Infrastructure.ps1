@@ -207,7 +207,8 @@ function Initialize-DockerEnvironment {
                 $isDocker = $true
                 $dockerIndicators += $check.Name
             }
-        } catch {
+        }
+ catch {
             # Ignore errors in detection
         }
     }
@@ -250,7 +251,8 @@ function Initialize-DockerEnvironment {
 
         # Create Docker environment lock file
         Set-DockerEnvironmentLock
-    } else {
+    }
+ else {
         Write-Information -MessageData "🖥️  Local environment detected" -InformationAction Continue
         Write-Warning -Message "   Enhanced mocks DISABLED for safety"
         # Clear any Unix-style paths that might cause Windows pollution
@@ -282,7 +284,8 @@ function Set-DockerEnvironmentLock {
         # Cross-platform lock path
         if ($IsLinux -or $IsMacOS) {
             $lockPath = "/tmp/wmr-docker-env.lock"
-        } else {
+        }
+ else {
             # Windows - use temp directory
             $tempDir = $env:TEMP ?? $env:TMP ?? "$env:USERPROFILE\AppData\Local\Temp"
             $lockPath = Join-Path $tempDir "wmr-docker-env.lock"
@@ -301,7 +304,8 @@ function Set-DockerEnvironmentLock {
 
         Write-Verbose -Message "   🔒 Docker environment lock created: $lockPath"
 
-    } catch {
+    }
+ catch {
         Write-Warning "⚠️  Could not create Docker environment lock: $_"
     }
 }
@@ -333,7 +337,8 @@ function Test-DockerEnvironmentLock {
             # Cross-platform default lock path
             if ($IsLinux -or $IsMacOS) {
                 $lockPath = "/tmp/wmr-docker-env.lock"
-            } else {
+            }
+ else {
                 $tempDir = $env:TEMP ?? $env:TMP ?? "$env:USERPROFILE\AppData\Local\Temp"
                 $lockPath = Join-Path $tempDir "wmr-docker-env.lock"
             }
@@ -349,10 +354,12 @@ function Test-DockerEnvironmentLock {
                 $lockData.DockerIndicators) {
                 $isValid = $true
                 $reason = "Valid Docker environment lock"
-            } else {
+            }
+ else {
                 $reason = "Invalid lock data"
             }
-        } else {
+        }
+ else {
             $reason = "No Docker environment lock file found"
         }
 
@@ -365,7 +372,8 @@ function Test-DockerEnvironmentLock {
             }
         }
 
-    } catch {
+    }
+ catch {
         $isValid = $false
         $reason = "Lock validation error: $_"
     }
@@ -448,7 +456,8 @@ function Get-DynamicMockPath {
             'registry' { Join-Path ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] ?? '/dynamic-mock-data') 'registry' }
             default { Join-Path ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] ?? '/dynamic-mock-data') $Component }
         }
-    } else {
+    }
+ else {
         # Use local standardized test paths with dynamic subdirectory
         $testPaths = Get-StandardTestPaths
         $basePath = Join-Path $testPaths.TestMockData $Component "generated"
@@ -456,7 +465,8 @@ function Get-DynamicMockPath {
 
     if ($SubPath) {
         return Join-Path $basePath $SubPath
-    } else {
+    }
+ else {
         return $basePath
     }
 }
@@ -495,7 +505,8 @@ function Get-StaticMockPath {
             'cloud' { '/mock-data/cloud' }
             default { "/mock-data/$Component" }
         }
-    } else {
+    }
+ else {
         # Local environment uses source tree paths
         $testPaths = Get-StandardTestPaths
         $basePath = Join-Path $testPaths.TestMockData $Component
@@ -503,7 +514,8 @@ function Get-StaticMockPath {
 
     if ($SubPath) {
         return Join-Path $basePath $SubPath
-    } else {
+    }
+ else {
         return $basePath
     }
 }
@@ -550,7 +562,8 @@ function Initialize-EnhancedMockInfrastructure {
     if (-not $SkipSafetyCheck) {
         try {
             Assert-DockerEnvironment
-        } catch {
+        }
+ catch {
             Write-Error -Message "🚫 Enhanced mock infrastructure initialization BLOCKED"
             Write-Error -Message "   Reason: $_"
             return $null
@@ -562,7 +575,8 @@ function Initialize-EnhancedMockInfrastructure {
     if ($dockerConfig.IsDockerEnvironment) {
         $mockDataRoot = $dockerConfig.DynamicMockRoot
         Write-Information -MessageData "   Environment: Docker (dynamic data in volumes)" -InformationAction Continue
-    } else {
+    }
+ else {
         $testPaths = Get-StandardTestPaths
         $mockDataRoot = $testPaths.TestMockData
         Write-Information -MessageData "   Environment: Local (dynamic data in generated subdirectories)" -InformationAction Continue
@@ -1234,7 +1248,8 @@ function Get-EnhancedMockData {
         if (Test-Path $dataFile) {
             return Get-Content $dataFile | ConvertFrom-Json
         }
-    } else {
+    }
+ else {
         if (Test-Path $componentPath) {
             $dataFiles = Get-ChildItem -Path $componentPath -Filter "*.json"
             $result = @{}
@@ -1279,7 +1294,8 @@ function Reset-EnhancedMockData {
     if (-not $SkipSafetyCheck) {
         try {
             Assert-DockerEnvironment
-        } catch {
+        }
+ catch {
             Write-Error -Message "🚫 Enhanced mock data reset BLOCKED"
             Write-Error -Message "   Reason: $_"
             return $null
@@ -1294,7 +1310,8 @@ function Reset-EnhancedMockData {
             # In Docker, simply regenerate in the volume (will overwrite existing)
             Write-Information -MessageData "  🐳 Docker environment: Regenerating $Component in volume" -InformationAction Continue
             $componentPath = Get-DynamicMockPath -Component $Component
-        } else {
+        }
+ else {
             # In local environment, clean only the generated subdirectory
             Write-Information -MessageData "  🖥️  Local environment: Cleaning $Component generated data" -InformationAction Continue
             $componentPath = Get-DynamicMockPath -Component $Component
@@ -1302,7 +1319,8 @@ function Reset-EnhancedMockData {
             if (Test-Path $componentPath) {
                 Remove-Item -Path $componentPath -Recurse -Force -ErrorAction SilentlyContinue
                 Write-Information -MessageData "  ✓ Removed $Component dynamic data" -InformationAction Continue
-            } else {
+            }
+ else {
                 Write-Information -MessageData "  ✅ No $Component dynamic data to clean" -InformationAction Continue
             }
         }
@@ -1318,11 +1336,13 @@ function Reset-EnhancedMockData {
         }
 
         Write-Information -MessageData "  ✓ Regenerated $Component mock data" -InformationAction Continue
-    } else {
+    }
+ else {
         # Reset all components
         if ($dockerConfig.IsDockerEnvironment) {
             Write-Information -MessageData "  🐳 Docker environment: Regenerating all components in volumes" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Information -MessageData "  🖥️  Local environment: Cleaning all generated data" -InformationAction Continue
         }
 

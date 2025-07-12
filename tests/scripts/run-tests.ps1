@@ -105,7 +105,8 @@ function ConvertFrom-TestResult {
             Passed = 29  # Known total from our unit tests
             Failed = 0
         }
-    } else {
+    }
+ else {
         # If failed, return failure
         return @{
             Passed = 0
@@ -139,7 +140,8 @@ function Invoke-UnitTest {
             Duration = $duration.TotalSeconds
             Output = $output
         }
-    } catch {
+    }
+ catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ Unit tests crashed: $_"
         Write-TestResult "Unit Tests" $false 0 1 $duration.TotalSeconds
@@ -184,7 +186,8 @@ function Invoke-FileOperationTest {
             Duration = $duration.TotalSeconds
             Output = $output
         }
-    } catch {
+    }
+ catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ File operation tests crashed: $_"
         Write-TestResult "File Operation Tests" $false 0 1 $duration.TotalSeconds
@@ -220,7 +223,8 @@ function Invoke-IntegrationTest {
         # Capture stdout only to get console output, not log file content
         if ($SkipCleanup) {
             $output = & $scriptPath -TestSuite "All" -NoCleanup
-        } else {
+        }
+ else {
             $output = & $scriptPath -TestSuite "All"
         }
         $success = $LASTEXITCODE -eq 0
@@ -249,14 +253,16 @@ function Invoke-IntegrationTest {
         $totalTestsLines = $outputLines | Where-Object { $_ -like "*Total Tests*" }
         if ($totalTestsLines) {
             $totalTestsLines | ForEach-Object { Write-Verbose -Message "    $_" }
-        } else {
+        }
+ else {
             Write-Verbose -Message "    (none found)"
         }
         Write-Verbose -Message "  Lines containing 'Total':"
         $totalLines = $outputLines | Where-Object { $_ -like "*Total*" }
         if ($totalLines) {
             $totalLines | ForEach-Object { Write-Verbose -Message "    $_" }
-        } else {
+        }
+ else {
             Write-Verbose -Message "    (none found)"
         }
         Write-Verbose -Message "  Passed match: $($null -ne $passedMatch)"
@@ -276,7 +282,8 @@ function Invoke-IntegrationTest {
             Duration = $duration.TotalSeconds
             Output = $outputLines
         }
-    } catch {
+    }
+ catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ Integration tests crashed: $_"
         Write-TestResult "Integration Tests" $false 0 1 $duration.TotalSeconds
@@ -330,7 +337,8 @@ function Invoke-WindowsTest {
             Duration = $duration.TotalSeconds
             Output = $output
         }
-    } catch {
+    }
+ catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ Windows tests crashed: $_"
         Write-TestResult "Windows Tests" $false 0 1 $duration.TotalSeconds
@@ -383,14 +391,16 @@ function Write-FinalSummary {
 
     $successRate = if (($totalPassed + $totalFailed) -gt 0) {
         [math]::Round(($totalPassed / ($totalPassed + $totalFailed)) * 100, 1)
-    } else { 0 }
+    }
+ else { 0 }
 
     Write-Information -MessageData "  Success Rate: $successRate%"  -InformationAction Continue-ForegroundColor $(if ($successRate -eq 100) { "Green" } else { "Yellow" })
 
     Write-Information -MessageData "" -InformationAction Continue
     if ($allSuccess) {
         Write-Information -MessageData "🎉 ALL TEST LEVELS PASSED!" -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Error -Message "❌ Some test levels failed"
     }
 
@@ -499,11 +509,13 @@ try {
     # Exit with appropriate code
     if ($overallSuccess) {
         exit 0
-    } else {
+    }
+ else {
         exit 1
     }
 
-} catch {
+}
+ catch {
     Write-Error -Message "💥 Master test runner failed: $($_.Exception.Message)"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1

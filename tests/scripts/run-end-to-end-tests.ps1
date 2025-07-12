@@ -73,7 +73,8 @@ if ($runInDocker) {
         $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && "
         if ($TestName) {
             $testCommand += "Invoke-Pester -Path './tests/end-to-end/$TestName.Tests.ps1'"
-        } else {
+        }
+ else {
             $testCommand += "Invoke-Pester -Path './tests/end-to-end/'"
         }
         $testCommand += " -OutputFormat $OutputFormat"
@@ -84,7 +85,7 @@ if ($runInDocker) {
 
         # Use PowerShell job for timeout control
         $job = Start-Job -ScriptBlock {
-            param($using:Command)
+            param($using:using:Command)
             docker exec wmr-test-runner pwsh -Command $using:Command
         } -ArgumentList $testCommand
 
@@ -94,7 +95,8 @@ if ($runInDocker) {
             $result = Receive-Job -Job $job
             $exitCode = $job.State -eq 'Completed' ? 0 : 1
             Write-Information -MessageData $result -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "✗ End-to-end tests timed out after $Timeout minutes"
             Stop-Job -Job $job
             $exitCode = 1
@@ -107,11 +109,13 @@ if ($runInDocker) {
         }
 
         exit $exitCode
-    } else {
+    }
+ else {
         Write-Error -Message "✗ Docker management utilities not found"
         exit 1
     }
-} else {
+}
+ else {
     Write-Information -MessageData "🪟 Running end-to-end tests in native Windows environment..." -InformationAction Continue
     Write-Warning -Message "   All tests including Windows-only will be executed"
     Write-Verbose -Message "   Timeout: $Timeout minutes"
@@ -122,7 +126,8 @@ if ($runInDocker) {
         $testEnvPath = Join-Path $PSScriptRoot ".." "utilities" "Test-Environment.ps1"
         if (Test-Path $testEnvPath) {
             . $testEnvPath
-        } else {
+        }
+ else {
             Write-Error -Message "✗ Test environment not found at: $testEnvPath"
             exit 1
         }
@@ -142,7 +147,8 @@ if ($runInDocker) {
             Run = @{
                 Path = if ($TestName) {
                     Join-Path $PSScriptRoot ".." "end-to-end" "$TestName.Tests.ps1"
-                } else {
+                }
+ else {
                     Join-Path $PSScriptRoot ".." "end-to-end"
                 }
             }
@@ -160,7 +166,7 @@ if ($runInDocker) {
 
         # Execute with timeout using PowerShell job
         $job = Start-Job -ScriptBlock {
-            param($using:Config)
+            param($using:using:Config)
             Invoke-Pester -Configuration $using:Config
         } -ArgumentList $pesterConfig
 
@@ -181,10 +187,12 @@ if ($runInDocker) {
 
             if ($result.FailedCount -gt 0) {
                 Write-Error -Message "✗ Some end-to-end tests failed"
-            } else {
+            }
+ else {
                 Write-Information -MessageData "✓ All end-to-end tests passed!" -InformationAction Continue
             }
-        } else {
+        }
+ else {
             Write-Error -Message "✗ End-to-end tests timed out after $Timeout minutes"
             Stop-Job -Job $job
             $exitCode = 1
@@ -199,7 +207,8 @@ if ($runInDocker) {
 
         exit $exitCode
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "✗ Error running end-to-end tests: $($_.Exception.Message)"
         exit 1
     }

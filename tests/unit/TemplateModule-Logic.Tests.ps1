@@ -1,4 +1,4 @@
-# Unit Tests for Template Module Logic
+﻿# Unit Tests for Template Module Logic
 # Tests the core template processing logic without file system operations
 
 BeforeAll {
@@ -38,11 +38,14 @@ files:
     source: "source.txt"
     destination: "dest.txt"
 '@
-        } elseif ($Path -like "*missing*") {
+        }
+ elseif ($Path -like "*missing*") {
             throw "File not found"
-        } elseif ($Path -like "*invalid*") {
+        }
+ elseif ($Path -like "*invalid*") {
             return "invalid: [unclosed_array"
-        } else {
+        }
+ else {
             return "default: content"
         }
     }
@@ -123,7 +126,8 @@ files:
         # If WindowsPath is provided, use it; otherwise use Path
         if ($WindowsPath) {
             return $WindowsPath
-        } else {
+        }
+ else {
             return $Path
         }
     }
@@ -328,7 +332,8 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
                 $extension = [System.IO.Path]::GetExtension($path)
                 if ($extension -in $validExtensions) {
                     $extension | Should -BeIn $validExtensions
-                } else {
+                }
+ else {
                     $extension | Should -Not -BeIn $validExtensions
                 }
             }
@@ -381,7 +386,8 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
                 # Test invalid version detection
                 if ($version -eq "") {
                     $version | Should -BeNullOrEmpty
-                } else {
+                }
+ else {
                     $version | Should -Not -Match "^\d+\.\d+(\.\d+)?(-\w+)?$"
                 }
             }

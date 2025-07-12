@@ -55,7 +55,8 @@ function Test-DockerAvailable {
         Write-Verbose "Docker Compose is available: $composeVersion"
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to check Docker availability: $($_.Exception.Message)"
         return $false
     }
@@ -82,17 +83,20 @@ function Get-ContainerStatus {
                 $status = docker inspect --format='{{.State.Status}}' $container 2>$null
                 if ($LASTEXITCODE -eq 0) {
                     $containerStatus[$container] = $status
-                } else {
+                }
+ else {
                     $containerStatus[$container] = "not_found"
                 }
-            } catch {
+            }
+ catch {
                 $containerStatus[$container] = "error"
             }
         }
 
         return $containerStatus
 
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to get container status: $($_.Exception.Message)"
         return @{}
     }
@@ -200,7 +204,8 @@ function Start-TestContainer {
                     if ($LASTEXITCODE -ne 0) {
                         $failedBuilds += $service
                         Write-Warning "Failed to build $service"
-                    } else {
+                    }
+ else {
                         Write-Information -MessageData "✓ $service built successfully" -InformationAction Continue
                     }
                 }
@@ -209,7 +214,8 @@ function Start-TestContainer {
                     Write-Error "Failed to build services: $($failedBuilds -join ', ')"
                     return $false
                 }
-            } else {
+            }
+ else {
                 Write-Information -MessageData "✓ All Docker images built successfully" -InformationAction Continue
             }
         }
@@ -251,7 +257,8 @@ function Start-TestContainer {
         Write-Information -MessageData "🔍 Testing container connectivity..." -InformationAction Continue
         if (Test-ContainerConnectivity) {
             Write-Information -MessageData "✓ Container connectivity verified" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Warning "Container connectivity test failed"
             return $false
         }
@@ -259,14 +266,16 @@ function Start-TestContainer {
         # Test cloud mock health (optional)
         if (Test-CloudMockHealth) {
             Write-Information -MessageData "✓ Cloud mock server is healthy" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Warning -Message "⚠ Cloud mock server health check failed (continuing anyway)"
         }
 
         Write-Information -MessageData "🎉 Docker test environment is ready!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error "Failed to start test containers: $($_.Exception.Message)"
         return $false
     }
@@ -294,19 +303,22 @@ function Stop-TestContainer {
     try {
         if ($Force) {
             docker compose -f $script:DockerComposeFile kill 2>&1 | Out-Null
-        } else {
+        }
+ else {
             docker compose -f $script:DockerComposeFile stop 2>&1 | Out-Null
         }
 
         if ($LASTEXITCODE -eq 0) {
             Write-Information -MessageData "✓ Containers stopped successfully" -InformationAction Continue
             return $true
-        } else {
+        }
+ else {
             Write-Warning "Failed to stop some containers"
             return $false
         }
 
-    } catch {
+    }
+ catch {
         Write-Error "Failed to stop containers: $($_.Exception.Message)"
         return $false
     }
@@ -342,12 +354,14 @@ function Remove-TestContainer {
         if ($LASTEXITCODE -eq 0) {
             Write-Information -MessageData "✓ Containers and volumes removed successfully" -InformationAction Continue
             return $true
-        } else {
+        }
+ else {
             Write-Warning "Failed to remove some containers or volumes"
             return $false
         }
 
-    } catch {
+    }
+ catch {
         Write-Error "Failed to remove containers: $($_.Exception.Message)"
         return $false
     }
@@ -370,12 +384,14 @@ function Test-ContainerConnectivity {
         $testResult = docker exec wmr-test-runner pwsh -Command "Write-Information -MessageData 'Container connectivity test passed'; exit 0" 2>&1 -InformationAction Continue
         if ($LASTEXITCODE -eq 0) {
             return $true
-        } else {
+        }
+ else {
             Write-Warning "Container connectivity test failed: $testResult"
             return $false
         }
 
-    } catch {
+    }
+ catch {
         Write-Warning "Container connectivity test failed: $($_.Exception.Message)"
         return $false
     }
@@ -398,12 +414,14 @@ function Test-CloudMockHealth {
         $healthResponse = Invoke-RestMethod -Uri "http://localhost:3000/health" -TimeoutSec 10 -ErrorAction Stop
         if ($healthResponse.status -eq "healthy") {
             return $true
-        } else {
+        }
+ else {
             Write-Warning "Cloud mock server returned unhealthy status: $($healthResponse.status)"
             return $false
         }
 
-    } catch {
+    }
+ catch {
         Write-Warning "Cloud mock server health check failed: $($_.Exception.Message)"
         return $false
     }
@@ -534,7 +552,8 @@ function Reset-DockerEnvironment {
 # Export functions (only when loaded as a module)
 if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
     # Functions are automatically available when dot-sourced
-} else {
+}
+ else {
     Export-ModuleMember -Function @(
         'Test-DockerAvailable',
         'Get-ContainerStatus',

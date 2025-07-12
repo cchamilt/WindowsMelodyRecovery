@@ -81,7 +81,8 @@ function Invoke-WmrSafeAdminOperation {
         if ($FallbackOperation) {
             Write-Verbose "Executing fallback operation (no admin privileges)"
             return & $FallbackOperation
-        } else {
+        }
+        else {
             throw "Administrative privileges required and no fallback available"
         }
     }
@@ -110,7 +111,8 @@ function Invoke-WmrWithElevation {
     if ((Test-WmrAdminPrivilege)) {
         Write-Verbose "Already elevated, executing directly"
         return & $ScriptBlock
-    } else {
+    }
+    else {
         if ($NoPrompt) {
             throw "Elevation required but NoPrompt specified"
         }
@@ -488,7 +490,7 @@ function New-Item {
 
     # Check if we're in a Docker environment
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                          (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
     if ($isDockerEnvironment) {
         Write-Verbose "Mock: Creating new item at '$Path' (Type: $ItemType)"
@@ -510,7 +512,8 @@ function New-Item {
             if ($ItemType -eq "Directory") {
                 Write-Verbose "Actually creating directory in Docker: '$Path'"
                 return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
-            } elseif ($ItemType -eq "File") {
+            }
+            elseif ($ItemType -eq "File") {
                 Write-Verbose "Actually creating file in Docker: '$Path'"
                 return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
             }
@@ -522,7 +525,8 @@ function New-Item {
             Name = Split-Path $Path -Leaf
             Exists = $true
         }
-    } else {
+    }
+    else {
         # In local environments, use the real New-Item to actually create directories
         Write-Verbose "Creating actual directory: '$Path' (Type: $ItemType)"
         return Microsoft.PowerShell.Management\New-Item -Path $Path -ItemType $ItemType -Force:$Force -ErrorAction Stop
@@ -551,7 +555,7 @@ function Remove-Item {
 
     # Check if we're in a Docker environment
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                          (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    (Microsoft.PowerShell.Management\Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
     if ($isDockerEnvironment) {
         # For files in safe test directories, actually remove them
@@ -563,7 +567,8 @@ function Remove-Item {
         # For other paths, simulate removal
         Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
         return $null
-    } else {
+    }
+    else {
         # In local environments, use the real Remove-Item for cleanup
         Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
         return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$Confirm -ErrorAction $ErrorActionPreference
@@ -596,7 +601,8 @@ function Test-Path {
     # For file system paths, use original Test-Path with Microsoft.PowerShell.Management module
     if ($PathType) {
         return Microsoft.PowerShell.Management\Test-Path -Path $Path -PathType $PathType -ErrorAction SilentlyContinue
-    } else {
+    }
+    else {
         return Microsoft.PowerShell.Management\Test-Path -Path $Path -ErrorAction SilentlyContinue
     }
 }
@@ -855,9 +861,10 @@ function Read-WmrTemplateConfig {
                 $content -match "invalid_structure:\s*\[" -and $content -notmatch "\]" -or
                 $content -match "corrupted_template" -or
                 $content -match "invalid.*yaml.*structure" -or
-                $content -match "\{[^}]*$" -or  # Unclosed braces
-                $content -match "\[[^]]*$" -or  # Unclosed brackets
-                ($content -match ":\s*\[" -and $content -notmatch "\]")) {  # Unclosed arrays
+                $content -match "\{[^}]*$" -or # Unclosed braces
+                $content -match "\[[^]]*$" -or # Unclosed brackets
+                ($content -match ":\s*\[" -and $content -notmatch "\]")) {
+                # Unclosed arrays
                 throw "Invalid YAML content: malformed structure detected"
             }
 
@@ -879,34 +886,44 @@ function Read-WmrTemplateConfig {
                 $line = $line.Trim()
                 if ($line -match "^metadata:") {
                     $currentSection = "metadata"
-                } elseif ($line -match "^prerequisites:") {
+                }
+                elseif ($line -match "^prerequisites:") {
                     $currentSection = "prerequisites"
-                } elseif ($line -match "^files:") {
+                }
+                elseif ($line -match "^files:") {
                     $currentSection = "files"
-                } elseif ($line -match "^registry:") {
+                }
+                elseif ($line -match "^registry:") {
                     $currentSection = "registry"
-                } elseif ($line -match "^applications:") {
+                }
+                elseif ($line -match "^applications:") {
                     $currentSection = "applications"
-                } elseif ($line -match "^\s*name:\s*(.+)") {
+                }
+                elseif ($line -match "^\s*name:\s*(.+)") {
                     if ($currentSection -eq "metadata") {
                         $yamlContent.metadata | Add-Member -Name "name" -Value ($matches[1] -replace '"', '') -MemberType NoteProperty -Force
-                    } elseif ($currentItem) {
+                    }
+                    elseif ($currentItem) {
                         $currentItem | Add-Member -Name "name" -Value ($matches[1] -replace '"', '') -MemberType NoteProperty -Force
                     }
-                } elseif ($line -match "^\s*version:\s*(.+)") {
+                }
+                elseif ($line -match "^\s*version:\s*(.+)") {
                     if ($currentSection -eq "metadata") {
                         $yamlContent.metadata | Add-Member -Name "version" -Value ($matches[1] -replace '"', '') -MemberType NoteProperty -Force
                     }
-                } elseif ($line -match "^\s*description:\s*(.+)") {
+                }
+                elseif ($line -match "^\s*description:\s*(.+)") {
                     if ($currentSection -eq "metadata") {
                         $yamlContent.metadata | Add-Member -Name "description" -Value ($matches[1] -replace '"', '') -MemberType NoteProperty -Force
                     }
-                } elseif ($line -match "^\s*-\s*type:\s*(.+)") {
+                }
+                elseif ($line -match "^\s*-\s*type:\s*(.+)") {
                     $currentItem = [PSCustomObject]@{ type = $matches[1] -replace '"', '' }
                     if ($currentSection -eq "prerequisites") {
                         $yamlContent.prerequisites += $currentItem
                     }
-                } elseif ($line -match "^\s*-\s*name:\s*(.+)") {
+                }
+                elseif ($line -match "^\s*-\s*name:\s*(.+)") {
                     $currentItem = [PSCustomObject]@{ name = $matches[1] -replace '"', '' }
                     if ($currentSection -eq "files") {
                         $yamlContent.files += $currentItem
@@ -915,10 +932,12 @@ function Read-WmrTemplateConfig {
             }
 
             return $yamlContent
-        } else {
+        }
+        else {
             return ($content | ConvertFrom-Json)
         }
-    } catch {
+    }
+    catch {
         throw "Failed to parse template file: $($_.Exception.Message)"
     }
 }
@@ -949,7 +968,8 @@ function Test-WmrTemplateSchema {
         if (-not $TemplateConfig.metadata.name) {
             throw "Template schema validation failed: 'metadata.name' is missing."
         }
-    } elseif ($TemplateConfig.metadata -is [hashtable]) {
+    }
+    elseif ($TemplateConfig.metadata -is [hashtable]) {
         if (-not $TemplateConfig.metadata.name) {
             throw "Template schema validation failed: 'metadata.name' is missing."
         }

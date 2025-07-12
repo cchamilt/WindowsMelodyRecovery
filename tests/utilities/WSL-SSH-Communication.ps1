@@ -1,4 +1,4 @@
-# tests/utilities/WSL-SSH-Communication.ps1
+﻿# tests/utilities/WSL-SSH-Communication.ps1
 # WSL SSH Communication Utilities
 # Provides SSH-based communication functions for WSL container testing
 
@@ -104,7 +104,8 @@ function Test-WSLSSHConnectivity {
 
         if ($success) {
             Write-Verbose "SSH connectivity test passed"
-        } else {
+        }
+ else {
             Write-Warning "SSH connectivity test failed. Exit code: $LASTEXITCODE, Output: $result"
         }
 

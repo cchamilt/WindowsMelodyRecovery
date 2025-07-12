@@ -125,7 +125,7 @@ Describe 'EncryptionUtilities' {
             $testData = @{
                 'String' = "Test string"
                 'Number' = 42
-                'Array'  = @(1, 2, 3)
+                'Array' = @(1, 2, 3)
                 'Nested' = @{
                     'Key' = 'Value'
                 }

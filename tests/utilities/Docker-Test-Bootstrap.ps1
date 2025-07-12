@@ -9,7 +9,8 @@ $utilitiesPath = Join-Path $PSScriptRoot "Test-Utilities.ps1"
 if (Test-Path $utilitiesPath) {
     . $utilitiesPath
     Write-Verbose "Loaded test utilities from: $utilitiesPath"
-} else {
+}
+ else {
     Write-Warning "Test utilities not found at: $utilitiesPath"
 }
 
@@ -19,7 +20,8 @@ $mockPath = Join-Path $PSScriptRoot "Docker-Path-Mocks.ps1"
 if (Test-Path $mockPath) {
     . $mockPath
     Write-Verbose "Loaded Docker path mocks from: $mockPath"
-} else {
+}
+ else {
     Write-Warning "Docker path mocks not found at: $mockPath"
 }
 
@@ -106,7 +108,8 @@ if ($script:IsDockerEnvironment) {
                     State = 'Enabled'
                     RestartRequired = $false
                 }
-            } else {
+            }
+ else {
                 return @(
                     [PSCustomObject]@{ FeatureName = 'MockFeature1'; State = 'Enabled'; RestartRequired = $false },
                     [PSCustomObject]@{ FeatureName = 'MockFeature2'; State = 'Disabled'; RestartRequired = $false },
@@ -166,7 +169,8 @@ if ($script:IsDockerEnvironment) {
                     State = 'Installed'
                     DisplayName = "Mock Capability: $Name"
                 }
-            } else {
+            }
+ else {
                 return @(
                     [PSCustomObject]@{ Name = 'MockCapability1'; State = 'Installed'; DisplayName = 'Mock Capability 1' },
                     [PSCustomObject]@{ Name = 'MockCapability2'; State = 'NotPresent'; DisplayName = 'Mock Capability 2' },
@@ -263,7 +267,8 @@ if ($script:IsDockerEnvironment) {
                     LastRunTime = Get-Date
                     NextRunTime = (Get-Date).AddDays(1)
                 }
-            } else {
+            }
+ else {
                 return @(
                     [PSCustomObject]@{ TaskName = 'MockTask1'; State = 'Ready' },
                     [PSCustomObject]@{ TaskName = 'MockTask2'; State = 'Running' },
@@ -326,7 +331,8 @@ if ($script:IsDockerEnvironment) {
                     StartType = 'Automatic'
                     DisplayName = "Mock Service: $Name"
                 }
-            } else {
+            }
+ else {
                 return @(
                     [PSCustomObject]@{ Name = 'MockService1'; Status = 'Running'; StartType = 'Automatic' },
                     [PSCustomObject]@{ Name = 'MockService2'; Status = 'Stopped'; StartType = 'Manual' },
@@ -600,7 +606,7 @@ if ($script:IsDockerEnvironment) {
         function Read-WmrTemplateConfig {
             [CmdletBinding()]
             param(
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [string]$TemplatePath
             )
 
@@ -629,34 +635,44 @@ if ($script:IsDockerEnvironment) {
                         $line = $line.Trim()
                         if ($line -match "^metadata:") {
                             $currentSection = "metadata"
-                        } elseif ($line -match "^prerequisites:") {
+                        }
+ elseif ($line -match "^prerequisites:") {
                             $currentSection = "prerequisites"
-                        } elseif ($line -match "^files:") {
+                        }
+ elseif ($line -match "^files:") {
                             $currentSection = "files"
-                        } elseif ($line -match "^registry:") {
+                        }
+ elseif ($line -match "^registry:") {
                             $currentSection = "registry"
-                        } elseif ($line -match "^applications:") {
+                        }
+ elseif ($line -match "^applications:") {
                             $currentSection = "applications"
-                        } elseif ($line -match "^\s*name:\s*(.+)") {
+                        }
+ elseif ($line -match "^\s*name:\s*(.+)") {
                             if ($currentSection -eq "metadata") {
                                 $yamlContent.metadata.name = $matches[1] -replace '"', ''
-                            } elseif ($currentItem) {
+                            }
+ elseif ($currentItem) {
                                 $currentItem.name = $matches[1] -replace '"', ''
                             }
-                        } elseif ($line -match "^\s*version:\s*(.+)") {
+                        }
+ elseif ($line -match "^\s*version:\s*(.+)") {
                             if ($currentSection -eq "metadata") {
                                 $yamlContent.metadata.version = $matches[1] -replace '"', ''
                             }
-                        } elseif ($line -match "^\s*description:\s*(.+)") {
+                        }
+ elseif ($line -match "^\s*description:\s*(.+)") {
                             if ($currentSection -eq "metadata") {
                                 $yamlContent.metadata.description = $matches[1] -replace '"', ''
                             }
-                        } elseif ($line -match "^\s*-\s*type:\s*(.+)") {
+                        }
+ elseif ($line -match "^\s*-\s*type:\s*(.+)") {
                             $currentItem = @{ type = $matches[1] -replace '"', '' }
                             if ($currentSection -eq "prerequisites") {
                                 $yamlContent.prerequisites += $currentItem
                             }
-                        } elseif ($line -match "^\s*-\s*name:\s*(.+)") {
+                        }
+ elseif ($line -match "^\s*-\s*name:\s*(.+)") {
                             $currentItem = @{ name = $matches[1] -replace '"', '' }
                             if ($currentSection -eq "files") {
                                 $yamlContent.files += $currentItem
@@ -665,10 +681,12 @@ if ($script:IsDockerEnvironment) {
                     }
 
                     return $yamlContent
-                } else {
+                }
+ else {
                     return ($content | ConvertFrom-Json)
                 }
-            } catch {
+            }
+ catch {
                 throw "Failed to parse template file: $($_.Exception.Message)"
             }
         }
@@ -688,7 +706,8 @@ if ($script:IsDockerEnvironment) {
     # Mock additional path utilities - removed duplicate function definition
 
     Write-Information -MessageData "🐳 Docker test environment initialized with comprehensive mocks" -InformationAction Continue
-} else {
+}
+ else {
     Write-Verbose "Native Windows environment detected, using standard functionality"
 }
 
@@ -710,7 +729,8 @@ function Get-WmrTestPath {
         $linuxPath = $WindowsPath -replace '\\', '/'
         $linuxPath = $linuxPath -replace '^C:', '/workspace'
         return $linuxPath
-    } else {
+    }
+ else {
         return $WindowsPath
     }
 }

@@ -46,7 +46,8 @@ try {
         $fullPath = Join-Path $mockDataPath $file
         if (Test-Path $fullPath) {
             Write-Information -MessageData "  ✅ $file" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ $file - MISSING"
         }
     }
@@ -81,7 +82,8 @@ try {
         $fullPath = Join-Path $mockDataPath $file
         if (Test-Path $fullPath) {
             Write-Information -MessageData "  ✅ $file - PRESERVED" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "  ❌ $file - DELETED"
             $allPreserved = $false
         }
@@ -93,7 +95,8 @@ try {
         Write-Information -MessageData "  ✅ All static mock data preserved" -InformationAction Continue
         Write-Information -MessageData "  ✅ Only dynamic data cleaned" -InformationAction Continue
         Write-Information -MessageData "  ✅ No production files deleted" -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Error -Message "`n❌ FAILURE: Enhanced mock cleanup still has safety issues!"
         if (-not $allPreserved) {
             Write-Error -Message "  ❌ Static mock data was deleted"
@@ -103,16 +106,19 @@ try {
         }
     }
 
-} catch {
+}
+ catch {
     Write-Error "❌ Test failed: $_"
     Write-Error "   Line: $($_.InvocationInfo.ScriptLineNumber)"
-} finally {
+}
+ finally {
     # Clean up test environment safely
     Write-Verbose -Message "`n🧹 Cleaning up test environment..."
     try {
         Remove-StandardTestEnvironment -Confirm:$false
         Write-Information -MessageData "✅ Test environment cleaned up safely" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning "⚠️  Cleanup warning: $_"
     }
 }

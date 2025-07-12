@@ -24,7 +24,8 @@ function Test-ContainerHealth {
                 $healthy = $true
                 break
             }
-        } catch {
+        }
+ catch {
             # Container not found or other error
         }
         Start-Sleep -Seconds 2
@@ -42,7 +43,8 @@ function Test-ServiceEndpoint {
     try {
         $response = Invoke-RestMethod -Uri $Url -TimeoutSec $TimeoutSeconds
         return $true
-    } catch {
+    }
+ catch {
         return $false
     }
 }
@@ -56,7 +58,8 @@ function Get-ContainerLog {
     try {
         $logs = docker logs $ContainerName --tail $TailLines 2>$null
         return $logs
-    } catch {
+    }
+ catch {
         return "Unable to retrieve logs for container: $ContainerName"
     }
 }
@@ -80,7 +83,8 @@ function Wait-ForContainerReady {
                 $ready = $true
                 break
             }
-        } catch {
+        }
+ catch {
             # Container not ready yet
         }
         Start-Sleep -Seconds 2
@@ -88,7 +92,8 @@ function Wait-ForContainerReady {
 
     if ($ready) {
         Write-Information -MessageData "✓ Container $ContainerName is ready" -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Error -Message "✗ Container $ContainerName failed to become ready within $TimeoutSeconds seconds"
     }
 
@@ -114,7 +119,8 @@ function Test-AllContainersHealthy {
         if (Test-ContainerHealth -ContainerName $container -TimeoutSeconds 10) {
             $healthyCount++
             Write-Information -MessageData "✓ $container is healthy" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "✗ $container is not healthy"
         }
     }

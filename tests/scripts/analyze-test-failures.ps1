@@ -149,16 +149,19 @@ function Get-TestFailureAnalysis {
                 # Generate recommended action
                 if ($failureInfo.TargetEnvironment -eq "Windows-Only") {
                     $failureInfo.RecommendedAction = "Move to tests/windows-only/ directory for CI/CD-only execution"
-                } elseif ($failureInfo.TargetEnvironment -eq "Docker-Fixable") {
+                }
+ elseif ($failureInfo.TargetEnvironment -eq "Docker-Fixable") {
                     $failureInfo.RecommendedAction = "Fix for Docker compatibility with enhanced mocking"
-                } else {
+                }
+ else {
                     $failureInfo.RecommendedAction = "Requires manual analysis to determine proper environment"
                 }
 
                 $testResults.FailureAnalysis += $failureInfo
             }
 
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to analyze $($testFile.Name): $($_.Exception.Message)"
         }
     }
@@ -198,7 +201,8 @@ function New-MigrationPlan {
         if ($categoryData.TargetEnvironment -eq "Docker-Fixable") {
             $migrationPlan.DockerFixable.Categories[$category] = $categoryData
             $migrationPlan.DockerFixable.TotalTests += $categoryData.Count
-        } elseif ($categoryData.TargetEnvironment -eq "Windows-Only") {
+        }
+ elseif ($categoryData.TargetEnvironment -eq "Windows-Only") {
             $migrationPlan.WindowsOnly.Categories[$category] = $categoryData
             $migrationPlan.WindowsOnly.TotalTests += $categoryData.Count
         }
@@ -263,7 +267,8 @@ if (-not (Test-Path '/.dockerenv') -and $env:DOCKER_TEST -ne 'true') {
         Write-Information -MessageData "✅ Analysis completed in Docker environment" -InformationAction Continue
         return
 
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to run in Docker, proceeding with local analysis: $($_.Exception.Message)"
     }
 }

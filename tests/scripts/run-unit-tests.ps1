@@ -67,11 +67,13 @@ Write-Information -MessageData "" -InformationAction Continue
 $testsToRun = if ($TestName) {
     if ($TestName -in $availableTests) {
         @($TestName)
-    } else {
+    }
+ else {
         Write-Warning "Test '$TestName' not found. Available tests: $($availableTests -join ', ')"
         return
     }
-} else {
+}
+ else {
     $availableTests
 }
 
@@ -154,7 +156,8 @@ foreach ($test in $testsToRun) {
             }
             $statusMsg += ", $([math]::Round($testTime, 2))s)"
             Write-Information -MessageData $statusMsg  -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "❌ $test tests failed ($($result.FailedCount) failed, $($result.PassedCount) passed, $($result.SkippedCount) skipped, $([math]::Round($testTime, 2))s)"
 
             # Show failed test details
@@ -165,7 +168,8 @@ foreach ($test in $testsToRun) {
                 }
             }
         }
-    } catch {
+    }
+ catch {
         Write-Error -Message "💥 $test tests crashed: $_"
         $totalFailed++
     }
@@ -190,7 +194,8 @@ if ($totalFailed -eq 0) {
     Write-Information -MessageData "" -InformationAction Continue
     Write-Information -MessageData "🎉 All unit tests passed!" -InformationAction Continue
     exit 0
-} else {
+}
+ else {
     Write-Information -MessageData "" -InformationAction Continue
     Write-Warning -Message "⚠️  Some unit tests failed. Check the output above for details."
     exit 1

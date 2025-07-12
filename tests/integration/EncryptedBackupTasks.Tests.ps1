@@ -1,4 +1,4 @@
-# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+﻿# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSReviewUnusedParameter", "")]
@@ -344,11 +344,11 @@ Describe 'Encrypted Backup Task Integration Tests' {
             # Act - Execute tasks concurrently
             $jobs = @()
             foreach ($config in $taskConfigs) {
+                $currentConfig = $config
                 $job = Start-Job -ScriptBlock {
-                    param($Config, $BackupDir, $SecureString)
                     Import-Module (Resolve-Path "$using:PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
-                    Invoke-WmrTemplate -TemplatePath $Config.Template -Operation "Backup" -StateFilesDirectory $BackupDir -Passphrase $SecureString
-                } -ArgumentList $config, $script:TestBackupDir, $script:TestSecureString
+                    Invoke-WmrTemplate -TemplatePath $using:currentConfig.Template -Operation "Backup" -StateFilesDirectory $using:script:TestBackupDir -Passphrase $using:script:TestSecureString
+                }
 
                 $jobs += $job
             }

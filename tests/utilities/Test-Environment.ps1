@@ -141,7 +141,8 @@ if ($script:IsCICDEnvironment) {
         TestState = Join-Path $tempBase "WindowsMelodyRecovery-Tests" "test-state"
     }
     Write-Verbose "🚀 CI/CD environment detected, using temp directory: $tempBase"
-} else {
+}
+ else {
     # Docker & Local Dev: Use project root Temp directory
     $tempBase = Join-Path $script:ModuleRoot "Temp"
 
@@ -160,7 +161,8 @@ if ($script:IsCICDEnvironment) {
 
     if ($script:IsDockerEnvironment) {
         Write-Verbose "🐳 Docker environment detected, using project temp directory: $tempBase"
-    } else {
+    }
+ else {
         Write-Verbose "🪟 Local development environment detected, using project temp directory: $tempBase"
     }
 }
@@ -170,7 +172,8 @@ $testUtilitiesPath = Join-Path $PSScriptRoot "Test-Utilities.ps1"
 if (Test-Path $testUtilitiesPath) {
     . $testUtilitiesPath
     Write-Verbose "Loaded general test utilities from: $testUtilitiesPath"
-} else {
+}
+ else {
     Write-Warning "Test utilities not found at: $testUtilitiesPath"
 }
 
@@ -183,7 +186,8 @@ if ($script:IsDockerEnvironment) {
     if (Test-Path $dockerMockPath) {
         . $dockerMockPath
         Write-Verbose "Loaded Docker path mocks from: $dockerMockPath"
-    } else {
+    }
+ else {
         Write-Warning "Docker path mocks not found at: $dockerMockPath"
     }
 
@@ -204,7 +208,8 @@ if ($script:IsDockerEnvironment) {
     $env:USERDOMAIN = $env:USERDOMAIN ?? 'WORKGROUP'
     $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
 
-} else {
+}
+ else {
     Write-Verbose "🪟 Loading Windows native environment (no mocks)"
 
     # Set up Windows-specific environment variables
@@ -220,9 +225,11 @@ Write-Verbose -Message "Available commands: Test-Environment, Start-TestRun, Ins
 
 if ($script:IsCICDEnvironment) {
     Write-Warning -Message "🏗️ CI/CD test environment initialized with user temp directory"
-} elseif ($script:IsDockerEnvironment) {
+}
+ elseif ($script:IsDockerEnvironment) {
     Write-Information -MessageData "🐳 Docker test environment initialized with project temp directory" -InformationAction Continue
-} else {
+}
+ else {
     Write-Information -MessageData "🪟 Local development test environment initialized with project temp directory" -InformationAction Continue
 }
 
@@ -274,7 +281,8 @@ function Initialize-TestEnvironment {
         if (-not (Test-Path $dirPath)) {
             Write-Information -MessageData "  ✓ Created $dirName directory: $dirPath" -InformationAction Continue
             New-Item -Path $dirPath -ItemType Directory -Force | Out-Null
-        } else {
+        }
+ else {
             Write-Verbose -Message "  ✓ $dirName directory exists: $dirPath"
         }
     }
@@ -355,7 +363,8 @@ function Remove-TestEnvironment {
             $isUserTempPath = $false
             if ($script:IsWindowsEnvironment) {
                 $isUserTempPath = $dirPath.Contains($env:TEMP) -and $dirPath.Contains("WindowsMelodyRecovery-Tests")
-            } else {
+            }
+ else {
                 $isUserTempPath = $dirPath.StartsWith('/tmp/') -and $dirPath.Contains("WindowsMelodyRecovery-Tests")
             }
 
@@ -363,7 +372,8 @@ function Remove-TestEnvironment {
                 Write-Warning "Skipping non-user-temp path in CI/CD: $dirPath"
                 continue
             }
-        } elseif ($script:IsDockerEnvironment) {
+        }
+ elseif ($script:IsDockerEnvironment) {
             # Docker: Allow project temp paths or workspace temp paths
             $isProjectTemp = $dirPath.Contains("WindowsMelodyRecovery") -and $dirPath.Contains("Temp")
             $isWorkspaceTemp = $dirPath.StartsWith("/workspace/") -and $dirPath.Contains("Temp")
@@ -371,7 +381,8 @@ function Remove-TestEnvironment {
                 Write-Warning "Skipping non-project/workspace-temp path in Docker: $dirPath"
                 continue
             }
-        } else {
+        }
+ else {
             # Local dev: Allow project temp paths only
             if (-not ($dirPath.Contains("WindowsMelodyRecovery") -and $dirPath.Contains("Temp"))) {
                 Write-Warning "Skipping non-project-temp path in local dev: $dirPath"
@@ -383,10 +394,12 @@ function Remove-TestEnvironment {
             try {
                 Remove-Item -Path $dirPath -Recurse -Force -ErrorAction Stop
                 Write-Information -MessageData "  ✓ Removed $dirName directory: $dirPath" -InformationAction Continue
-            } catch {
+            }
+ catch {
                 Write-Warning "Failed to remove $dirName directory: $_"
             }
-        } else {
+        }
+ else {
             Write-Warning -Message "  ✓ $dirName directory already clean: $dirPath"
         }
     }
@@ -446,7 +459,7 @@ function Test-SafeTestPath {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path
     )
 
@@ -500,7 +513,8 @@ function Test-SafeTestPath {
                 Write-Verbose "Test-SafeTestPath: CI/CD Windows path not in user temp: '$Path'"
             }
             return $isValid
-        } else {
+        }
+ else {
             # Linux CI/CD: must be in /tmp/ and contain our test identifier
             $isValid = $Path.StartsWith('/tmp/') -and $Path.Contains("WindowsMelodyRecovery-Tests")
             if (-not $isValid) {
@@ -508,7 +522,8 @@ function Test-SafeTestPath {
             }
             return $isValid
         }
-    } elseif ($script:IsDockerEnvironment) {
+    }
+ elseif ($script:IsDockerEnvironment) {
         # Docker environment: must be in project temp directory or workspace temp directory
         $isProjectTemp = $Path.Contains("WindowsMelodyRecovery") -and $Path.Contains("Temp")
         $isWorkspaceTemp = $Path.StartsWith("/workspace/") -and $Path.Contains("Temp")
@@ -517,7 +532,8 @@ function Test-SafeTestPath {
             Write-Verbose "Test-SafeTestPath: Docker path not in project/workspace temp: '$Path'"
         }
         return $isValid
-    } else {
+    }
+ else {
         # Local development: must be in project temp directory
         $isValid = $Path.Contains("WindowsMelodyRecovery") -and $Path.Contains("Temp")
         if (-not $isValid) {

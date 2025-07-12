@@ -44,7 +44,8 @@ try {
         Write-Information -MessageData "✅ Docker environment correctly detected" -InformationAction Continue
         Write-Verbose -Message "   Dynamic mock root: $($dockerConfig.DynamicMockRoot)"
         Write-Verbose -Message "   Dynamic paths count: $($dockerConfig.DynamicPaths.Count)"
-    } else {
+    }
+ else {
         Write-Warning -Message "❌ Docker environment not detected (expected for local testing)"
     }
 
@@ -64,7 +65,8 @@ try {
         # Verify paths are different and appropriate
         if ($dynamicPath -ne $staticPath) {
             Write-Information -MessageData "    ✅ Dynamic and static paths are separated" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "    ❌ Dynamic and static paths are the same"
         }
     }
@@ -98,7 +100,8 @@ try {
 
     if ($sourceFiles.Count -eq 0) {
         Write-Information -MessageData "✅ No generated files found in source tree" -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Warning -Message "⚠️  Found $($sourceFiles.Count) generated files in source tree:"
         foreach ($file in $sourceFiles) {
             Write-Verbose -Message "   $($file.FullName)"
@@ -111,10 +114,12 @@ try {
     Write-Information -MessageData "  ✅ Safe reset functionality" -InformationAction Continue
     Write-Information -MessageData "  ✅ Source tree protection" -InformationAction Continue
 
-} catch {
+}
+ catch {
     Write-Error "❌ Test failed: $_"
     Write-Error "   Line: $($_.InvocationInfo.ScriptLineNumber)"
-} finally {
+}
+ finally {
     # Clean up test environment variables
     Remove-Item -Path "env:DYNAMIC_MOCK_ROOT" -ErrorAction SilentlyContinue
     Remove-Item -Path "env:DYNAMIC_APPLICATIONS" -ErrorAction SilentlyContinue
@@ -125,7 +130,8 @@ try {
     try {
         Remove-StandardTestEnvironment -Confirm:$false
         Write-Information -MessageData "✅ Test environment cleaned up" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning "⚠️  Cleanup warning: $_"
     }
 }

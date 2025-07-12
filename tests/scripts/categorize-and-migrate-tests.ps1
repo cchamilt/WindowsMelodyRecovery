@@ -41,11 +41,13 @@ function Initialize-DirectoryStructure {
             if (-not (Test-Path $targetPath)) {
                 if ($WhatIf) {
                     Write-Warning -Message "  Would create: $targetPath"
-                } else {
+                }
+ else {
                     New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
                     Write-Information -MessageData "  ✅ Created: $targetPath" -InformationAction Continue
                 }
-            } else {
+            }
+ else {
                 Write-Verbose -Message "  ✓ Exists: $targetPath"
             }
         }
@@ -113,21 +115,24 @@ function Get-TestMigrationPlan {
             $migration.Action = "Move to Windows-only directory"
             $migrationPlan.WindowsMigrations += $migration
             $migrationPlan.Summary.WindowsFiles++
-        } elseif ($dockerFailures -gt 0 -and $windowsFailures -eq 0) {
+        }
+ elseif ($dockerFailures -gt 0 -and $windowsFailures -eq 0) {
             # Docker-fixable tests
             $migration.Strategy = "Docker-Fixable"
             $migration.TargetPath = $TargetDirectories.Docker.Unit + "/$testFile"
             $migration.Action = "Fix for Docker compatibility and move"
             $migrationPlan.DockerMigrations += $migration
             $migrationPlan.Summary.DockerFiles++
-        } elseif ($windowsFailures -gt $dockerFailures) {
+        }
+ elseif ($windowsFailures -gt $dockerFailures) {
             # Mostly Windows issues - move to Windows-only
             $migration.Strategy = "Windows-Dominant"
             $migration.TargetPath = $TargetDirectories.Windows.Unit + "/$testFile"
             $migration.Action = "Move to Windows-only (mixed issues, Windows-dominant)"
             $migrationPlan.WindowsMigrations += $migration
             $migrationPlan.Summary.WindowsFiles++
-        } else {
+        }
+ else {
             # Keep in Docker environment and fix
             $migration.Strategy = "Docker-Fixable-Mixed"
             $migration.TargetPath = $TargetDirectories.Docker.Unit + "/$testFile"
@@ -160,7 +165,8 @@ function Move-TestFile {
     if (-not (Test-Path $targetDir)) {
         if ($WhatIf) {
             Write-Warning -Message "    Would create directory: $targetDir"
-        } else {
+        }
+ else {
             New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
         }
     }
@@ -168,13 +174,15 @@ function Move-TestFile {
     if ($WhatIf) {
         Write-Warning -Message "    Would move: $SourcePath → $TargetPath"
         Write-Warning -Message "    Action: $Action"
-    } else {
+    }
+ else {
         try {
             Move-Item -Path $SourcePath -Destination $TargetPath -Force
             Write-Information -MessageData "    ✅ Moved: $SourcePath → $TargetPath" -InformationAction Continue
             Write-Information -MessageData "    Action: $Action" -InformationAction Continue
             return $true
-        } catch {
+        }
+ catch {
             Write-Error "Failed to move $SourcePath to $TargetPath`: $($_.Exception.Message)"
             return $false
         }
@@ -230,7 +238,8 @@ AfterAll {
 
     if ($WhatIf) {
         Write-Warning -Message "Would create Windows test safeguards at: $safeguardPath"
-    } else {
+    }
+ else {
         $safeguardScript | Out-File -FilePath $safeguardPath -Encoding UTF8
         Write-Information -MessageData "✅ Created Windows test safeguards: $safeguardPath" -InformationAction Continue
     }
@@ -279,7 +288,8 @@ BeforeAll {
 
     if ($WhatIf) {
         Write-Warning -Message "Would create Docker test enhancements at: $enhancementPath"
-    } else {
+    }
+ else {
         $enhancementScript | Out-File -FilePath $enhancementPath -Encoding UTF8
         Write-Information -MessageData "✅ Created Docker test enhancements: $enhancementPath" -InformationAction Continue
     }

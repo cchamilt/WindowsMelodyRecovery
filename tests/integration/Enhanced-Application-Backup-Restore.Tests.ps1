@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     # Import enhanced mock infrastructure and utilities
     Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
     . "$PSScriptRoot\..\utilities\Test-Environment-Standard.ps1"
@@ -14,11 +14,11 @@ BeforeAll {
         return Get-MockDataForTest -TestName "ApplicationBackup" -Component "winget" -DataFormat "json"
     }
 
-    function Get-EnhancedChocolateyPackages {
+    function Get-EnhancedChocolateyPackage {
         return Get-MockDataForTest -TestName "ApplicationBackup" -Component "chocolatey" -DataFormat "json"
     }
 
-    function Get-EnhancedScoopPackages {
+    function Get-EnhancedScoopPackage {
         return Get-MockDataForTest -TestName "ApplicationBackup" -Component "scoop" -DataFormat "json"
     }
 
@@ -27,11 +27,11 @@ BeforeAll {
 
         # Enhanced accuracy testing with detailed comparison
         $comparison = @{
-            PackageManager     = $PackageManager
-            TotalOriginal      = 0
-            TotalBackup        = 0
-            Matches            = 0
-            Mismatches         = @()
+            PackageManager = $PackageManager
+            TotalOriginal = 0
+            TotalBackup = 0
+            Matches = 0
+            Mismatches = @()
             AccuracyPercentage = 0
         }
 
@@ -126,15 +126,15 @@ Describe "Enhanced Application Backup and Restore Integration Tests" {
 
             # Enhanced backup simulation with metadata
             $backupData = @{
-                Timestamp      = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-                BackupVersion  = "2.0"
+                Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                BackupVersion = "2.0"
                 PackageManager = "winget"
-                Packages       = $originalData.Packages
-                TotalPackages  = $originalData.Packages.Count
+                Packages = $originalData.Packages
+                TotalPackages = $originalData.Packages.Count
                 BackupSettings = @{
-                    IncludeUserScope    = $true
+                    IncludeUserScope = $true
                     IncludeMachineScope = $true
-                    VerifyIntegrity     = $true
+                    VerifyIntegrity = $true
                 }
             }
 
@@ -283,18 +283,18 @@ Write-Information -MessageData "Chocolatey package restoration completed!" -Info
 
             # Enhanced scoop backup with bucket information
             $enhancedBackup = @{
-                Timestamp      = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-                BackupVersion  = "2.0"
+                Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                BackupVersion = "2.0"
                 PackageManager = "scoop"
-                ScoopVersion   = "0.3.1"
-                Apps           = $scoopData.Apps
-                Buckets        = $scoopData.Buckets
-                TotalApps      = $scoopData.Apps.Count
-                TotalBuckets   = $scoopData.Buckets.Count
+                ScoopVersion = "0.3.1"
+                Apps = $scoopData.Apps
+                Buckets = $scoopData.Buckets
+                TotalApps = $scoopData.Apps.Count
+                TotalBuckets = $scoopData.Buckets.Count
                 BackupSettings = @{
-                    IncludeBuckets    = $true
+                    IncludeBuckets = $true
                     IncludeGlobalApps = $true
-                    VerifyHashes      = $true
+                    VerifyHashes = $true
                 }
             }
 
@@ -318,32 +318,32 @@ Write-Information -MessageData "Chocolatey package restoration completed!" -Info
 
             # Create unified application inventory
             $unifiedInventory = @{
-                Timestamp         = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-                BackupVersion     = "2.0"
-                MachineName       = $env:COMPUTERNAME
-                PackageManagers   = @{
-                    winget     = @{
+                Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                BackupVersion = "2.0"
+                MachineName = $env:COMPUTERNAME
+                PackageManagers = @{
+                    winget = @{
                         Packages = $wingetData.Packages
-                        Count    = $wingetData.Packages.Count
-                        Status   = "Active"
+                        Count = $wingetData.Packages.Count
+                        Status = "Active"
                     }
                     chocolatey = @{
                         Packages = $chocoData.Packages
-                        Count    = $chocoData.Packages.Count
-                        Status   = "Active"
+                        Count = $chocoData.Packages.Count
+                        Status = "Active"
                     }
-                    scoop      = @{
-                        Apps    = $scoopData.Apps
+                    scoop = @{
+                        Apps = $scoopData.Apps
                         Buckets = $scoopData.Buckets
-                        Count   = $scoopData.Apps.Count
-                        Status  = "Active"
+                        Count = $scoopData.Apps.Count
+                        Status = "Active"
                     }
                 }
                 TotalApplications = $wingetData.Packages.Count + $chocoData.Packages.Count + $scoopData.Apps.Count
-                BackupSettings    = @{
+                BackupSettings = @{
                     IncludeConfigurations = $true
-                    VerifyIntegrity       = $true
-                    CreateRestoreScript   = $true
+                    VerifyIntegrity = $true
+                    CreateRestoreScript = $true
                 }
             }
 
@@ -363,22 +363,22 @@ Write-Information -MessageData "Chocolatey package restoration completed!" -Info
 
             # Generate intelligent restoration strategy
             $restorationStrategy = @{
-                Strategy           = "Sequential"
-                Priority           = @(
+                Strategy = "Sequential"
+                Priority = @(
                     @{ PackageManager = "winget"; Priority = 1; Reason = "Native Windows package manager" }
                     @{ PackageManager = "chocolatey"; Priority = 2; Reason = "Established third-party packages" }
                     @{ PackageManager = "scoop"; Priority = 3; Reason = "Development tools and utilities" }
                 )
                 ConflictResolution = @{
                     DuplicatePackages = "PreferWinget"
-                    VersionConflicts  = "UseLatest"
-                    DependencyIssues  = "SkipAndLog"
+                    VersionConflicts = "UseLatest"
+                    DependencyIssues = "SkipAndLog"
                 }
-                RestoreOptions     = @{
+                RestoreOptions = @{
                     VerifyInstallation = $true
                     CreateRestorePoint = $true
-                    LogAllOperations   = $true
-                    ContinueOnError    = $true
+                    LogAllOperations = $true
+                    ContinueOnError = $true
                 }
             }
 

@@ -20,14 +20,15 @@ Write-Information -MessageData "✓ Pester imported" -InformationAction Continue
 
 # Environment detection for path configuration
 $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                      (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+(Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
 # Set base paths based on environment
 if ($isDockerEnvironment) {
     $basePath = "/workspace"
     $testResultsPath = "/workspace/test-results"
     $tempPath = "/workspace/Temp"
-} else {
+}
+ else {
     # Use project root for local Windows environments
     $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $basePath = $moduleRoot
@@ -154,7 +155,8 @@ switch ($TestSuite) {
             # On Windows, include all tests including Windows-only tests
             $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
             Write-Warning -Message "🎯 Running All Tests (including Windows-only tests)"
-        } else {
+        }
+ else {
             # On non-Windows, exclude Windows-only tests by excluding the specific file
             $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
             $config.Run.ExcludePath = @((Join-Path $basePath "tests/unit/Windows-Only.Tests.ps1"))
@@ -215,7 +217,8 @@ try {
         }
         $simplifiedResults | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
         Write-Information -MessageData "💾 JSON results saved to: $jsonPath" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning -Message "⚠️ Warning: Could not save JSON results: $($_.Exception.Message)"
     }
 
@@ -223,7 +226,8 @@ try {
     if (Test-Path (Join-Path $testResultsPath "junit/test-results.xml")) {
         $xmlSize = (Get-Item (Join-Path $testResultsPath "junit/test-results.xml")).Length
         Write-Information -MessageData "💾 JUnit XML created: $xmlSize bytes" -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Error -Message "❌ JUnit XML not created"
     }
 
@@ -237,12 +241,14 @@ try {
     if ($results.FailedCount -gt 0) {
         Write-Error -Message "❌ Some tests failed!"
         exit 1
-    } else {
+    }
+ else {
         Write-Information -MessageData "✅ All tests passed!" -InformationAction Continue
         exit 0
     }
 
-} catch {
+}
+ catch {
     Write-Error -Message "❌ Test execution failed: $($_.Exception.Message)"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1

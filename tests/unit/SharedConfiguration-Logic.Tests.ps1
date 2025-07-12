@@ -1,4 +1,4 @@
-# tests/unit/SharedConfiguration-Logic.Tests.ps1
+﻿# tests/unit/SharedConfiguration-Logic.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -21,7 +21,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+ catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -38,17 +39,17 @@ BeforeAll {
     # Define the Test-BackupPath function (copied from actual backup/restore scripts)
     function Test-BackupPath {
         param (
-            [Parameter(Mandatory=$true)]
+            [Parameter(Mandatory = $true)]
             [string]$Path,
 
-            [Parameter(Mandatory=$true)]
+            [Parameter(Mandatory = $true)]
             [string]$BackupType,
 
-            [Parameter(Mandatory=$true)]
+            [Parameter(Mandatory = $true)]
             [AllowEmptyString()]
             [string]$MACHINE_BACKUP,
 
-            [Parameter(Mandatory=$true)]
+            [Parameter(Mandatory = $true)]
             [AllowEmptyString()]
             [string]$SHARED_BACKUP
         )

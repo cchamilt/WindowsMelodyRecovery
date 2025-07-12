@@ -1,4 +1,4 @@
-# Windows-Only Integration Tests for Windows Registry Functionality
+﻿# Windows-Only Integration Tests for Windows Registry Functionality
 # These tests MUST run on Windows CI/CD systems only
 
 # Skip all tests if not on Windows
@@ -252,7 +252,8 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
                 }
 
                 { Get-WmrRegistryState -RegistryConfig $registryConfig -StateFilesDirectory $script:TestTempDir } | Should -Not -Throw
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "Current user has admin privileges"
             }
         }
@@ -379,7 +380,8 @@ Describe "Windows File System Integration Tests" -Tag "Windows", "Integration", 
                     $result | Should -Not -BeNullOrEmpty
                     $result.IsJunction | Should -Be $true
                 }
-            } catch {
+            }
+ catch {
                 Set-ItResult -Skipped -Because "Could not create junction point (may require admin privileges)"
             }
         }

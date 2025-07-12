@@ -1,4 +1,4 @@
-# Windows-Only Unit Tests for Windows Principal Functionality
+﻿# Windows-Only Unit Tests for Windows Principal Functionality
 # These tests MUST run on Windows CI/CD systems only
 
 # Skip all tests if not on Windows
@@ -140,7 +140,8 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
                 $result | Should -Be "fallback-result"
                 $mainCalled | Should -Be $false
                 $fallbackCalled | Should -Be $true
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "Current user has admin privileges"
             }
         }
@@ -151,7 +152,8 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
                 $mainOperation = { return "main-result" }
 
                 { Invoke-WmrSafeAdminOperation -MainOperation $mainOperation -OperationType "Admin" } | Should -Throw "*Administrative privileges required*"
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "Current user has admin privileges"
             }
         }
@@ -167,7 +169,8 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
 
                 $result | Should -Be "elevated-result"
                 $executed | Should -Be $true
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "Current user does not have admin privileges"
             }
         }
@@ -187,7 +190,8 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
                 $scriptBlock = { return "result" }
 
                 { Invoke-WmrWithElevation -ScriptBlock $scriptBlock -NoPrompt } | Should -Throw "*Elevation required*"
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "Current user already has admin privileges"
             }
         }

@@ -613,7 +613,8 @@ function Start-ResourceMonitoring {
                 }
 
                 Start-Sleep -Seconds 30
-            } catch {
+            }
+ catch {
                 # Silently continue on monitoring errors
                 Write-Verbose "Resource monitoring error: $($_.Exception.Message)" -Verbose:$false
             }
@@ -712,14 +713,17 @@ function Remove-StandardTestEnvironment {
                                 Write-Information -MessageData "  ✓ Removed $pathName : $path" -InformationAction Continue
                             }
                         }
-                    } catch {
+                    }
+ catch {
                         $cleanupReport.FailedPaths += @{ Path = $path; Error = $_.Exception.Message }
                         Write-Warning "Failed to remove $pathName : $_"
                     }
-                } else {
+                }
+ else {
                     Write-Warning "Skipped unsafe path: $path"
                 }
-            } else {
+            }
+ else {
                 # NEVER delete source code directories
                 $cleanupReport.PreservedPaths += $path
                 Write-Information -MessageData "  ✅ Preserved source directory: $pathName : $path" -InformationAction Continue
@@ -797,7 +801,7 @@ function Test-SafeTestPath {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path
     )
 

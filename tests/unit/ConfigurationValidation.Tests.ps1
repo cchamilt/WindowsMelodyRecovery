@@ -48,20 +48,20 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should validate consistent configurations successfully" {
             $machineConfig = @{
-                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
                 EmailSettings = @{
                     FromAddress = "machine@example.com"
-                    SmtpPort    = 587
+                    SmtpPort = 587
                 }
             }
 
             $sharedConfig = @{
-                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
                 EmailSettings = @{
                     FromAddress = "shared@example.com"
-                    SmtpPort    = 465
+                    SmtpPort = 465
                 }
             }
 
@@ -94,12 +94,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should detect type mismatches" {
             $machineConfig = @{
-                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 RetentionDays = 30  # Integer
             }
 
             $sharedConfig = @{
-                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 RetentionDays = @("30", "60")  # Array - incompatible type
             }
 
@@ -113,10 +113,10 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         It "Should handle nested structure validation" {
             $machineConfig = @{
                 EmailSettings = @{
-                    FromAddress    = "machine@example.com"
-                    SmtpPort       = 587
+                    FromAddress = "machine@example.com"
+                    SmtpPort = 587
                     Authentication = @{
-                        Type     = "OAuth"
+                        Type = "OAuth"
                         ClientId = "machine-client"
                     }
                 }
@@ -124,10 +124,10 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
             $sharedConfig = @{
                 EmailSettings = @{
-                    FromAddress    = "shared@example.com"
-                    SmtpPort       = 465
+                    FromAddress = "shared@example.com"
+                    SmtpPort = 465
                     Authentication = @{
-                        Type     = "Basic"
+                        Type = "Basic"
                         Username = "shared-user"
                     }
                 }
@@ -141,12 +141,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should apply custom validation rules" {
             $machineConfig = @{
-                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
             }
 
             $sharedConfig = @{
-                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
             }
 
@@ -340,12 +340,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should apply inheritance rules" {
             $level1 = @{
-                Arrays  = @("base1", "base2")
+                Arrays = @("base1", "base2")
                 Strings = "BaseString"
             }
 
             $level2 = @{
-                Arrays  = @("override1", "override2")
+                Arrays = @("override1", "override2")
                 Strings = "OverrideString"
             }
 
@@ -361,8 +361,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
                     }
 
                     return @{
-                        Success        = $true
-                        Message        = "Array concatenation applied"
+                        Success = $true
+                        Message = "Array concatenation applied"
                         ModifiedConfig = $modifiedConfig
                     }
                 }
@@ -378,8 +378,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         It "Should validate against schema" {
             $level1 = @{
                 RequiredString = "Value"
-                RequiredInt    = 42
-                OptionalBool   = $true
+                RequiredInt = 42
+                OptionalBool = $true
             }
 
             $level2 = @{
@@ -387,22 +387,22 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             }
 
             $schema = @{
-                "RequiredString"  = @{
+                "RequiredString" = @{
                     Required = $true
-                    Type     = "String"
+                    Type = "String"
                 }
-                "RequiredInt"     = @{
-                    Required  = $true
-                    Type      = "Int32"
+                "RequiredInt" = @{
+                    Required = $true
+                    Type = "Int32"
                     Validator = { param($Value) $Value -gt 0 }
                 }
-                "OptionalBool"    = @{
+                "OptionalBool" = @{
                     Required = $false
-                    Type     = "Boolean"
+                    Type = "Boolean"
                 }
                 "MissingRequired" = @{
                     Required = $true
-                    Type     = "String"
+                    Type = "String"
                 }
             }
 

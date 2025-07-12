@@ -1,4 +1,4 @@
-# tests/unit/RegistryState-Logic.Tests.ps1
+﻿# tests/unit/RegistryState-Logic.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -21,7 +21,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+ catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 

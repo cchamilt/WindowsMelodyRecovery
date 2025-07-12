@@ -1,7 +1,7 @@
-# Cloud Provider Detection Script for Mock Testing
+﻿# Cloud Provider Detection Script for Mock Testing
 # This script simulates the detection of various cloud storage providers
 
-function Get-MockCloudProviders {
+function Get-MockCloudProvider {
     <#
     .SYNOPSIS
     Detects available cloud storage providers in the mock environment
@@ -140,7 +140,7 @@ function Test-CloudProviderConnectivity {
     #>
 
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ProviderName
     )
 
@@ -191,19 +191,19 @@ function Get-CloudProviderFailoverOrder {
     $prioritized += $providers | Where-Object {
         $_.SyncStatus -eq "up_to_date" -and
         $_.StorageTotal -match "TB|[5-9][0-9][0-9] GB"
-    } | Sort-Object @{Expression={$_.StorageTotal}; Descending=$true}
+    } | Sort-Object @{Expression = { $_.StorageTotal }; Descending = $true }
 
     # Priority 2: Syncing providers with good storage
     $prioritized += $providers | Where-Object {
         $_.SyncStatus -eq "syncing" -and
         $_.StorageTotal -match "TB|[1-9][0-9][0-9] GB"
-    } | Sort-Object @{Expression={$_.StorageTotal}; Descending=$true}
+    } | Sort-Object @{Expression = { $_.StorageTotal }; Descending = $true }
 
     # Priority 3: All other available providers
     $prioritized += $providers | Where-Object {
         $_.Available -and
         $_ -notin $prioritized
-    } | Sort-Object @{Expression={$_.StorageTotal}; Descending=$true}
+    } | Sort-Object @{Expression = { $_.StorageTotal }; Descending = $true }
 
     return $prioritized
 }

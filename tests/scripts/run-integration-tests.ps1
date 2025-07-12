@@ -118,7 +118,7 @@ else {
         Write-Information -MessageData "Executing integration tests..." -InformationAction Continue
 
         $pesterConfig = @{
-            Run    = @{
+            Run = @{
                 Path = if ($TestName) {
                     Join-Path $PSScriptRoot ".." "integration" "$TestName.Tests.ps1"
                 }
@@ -133,7 +133,7 @@ else {
 
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
-                Enabled    = $true
+                Enabled = $true
                 OutputPath = Join-Path $moduleRoot "test-results" "integration-test-results.xml"
             }
         }

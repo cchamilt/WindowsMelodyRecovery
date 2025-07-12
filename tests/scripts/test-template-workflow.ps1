@@ -55,20 +55,20 @@ By default, restore operations run in WhatIf mode to prevent system changes.
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [ValidateSet("backup", "restore", "clean", "list", "workflow")]
     [string]$Operation,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$TemplatePath,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$BackupName,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$UseTestData,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$Force
 )
 
@@ -152,7 +152,8 @@ function Invoke-TestBackup {
                     Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                     Write-Information -MessageData "✓ $($templateFile.Name) backup completed successfully" -InformationAction Continue
                     $successCount++
-                } catch {
+                }
+ catch {
                     Write-Error -Message "✗ $($templateFile.Name) backup failed: $($_.Exception.Message)"
                     $failCount++
                 }
@@ -163,11 +164,13 @@ function Invoke-TestBackup {
             Write-Error -Message "Failed: $failCount"
             Write-Warning -Message "Total: $($successCount + $failCount)"
 
-        } else {
+        }
+ else {
             # Test single template
             $templateFullPath = if (Test-Path $TemplatePath) {
                 $TemplatePath
-            } else {
+            }
+ else {
                 Join-Path $scriptRoot "Templates\System\$TemplatePath"
             }
 
@@ -191,11 +194,13 @@ function Invoke-TestBackup {
         Write-Information -MessageData "`nTest backup completed! Use 'list' operation to see available backups." -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Test backup failed: $($_.Exception.Message)"
         Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor DarkRed
         return $false
-    } finally {
+    }
+ finally {
         if ($originalConfig) {
             $global:WindowsMelodyRecovery = $originalConfig
         }
@@ -231,7 +236,8 @@ function Invoke-TestRestore {
         if ($UseTestData) {
             $sourceDir = $testPaths.TestData
             Write-Warning -Message "Source: Test Data Directory"
-        } else {
+        }
+ else {
             $sourceDir = $testPaths.MachineBackup
             Write-Warning -Message "Source: Backup Test Directory"
         }
@@ -247,7 +253,8 @@ function Invoke-TestRestore {
         if (-not (Test-Path $componentSourceDir)) {
             if ($UseTestData) {
                 throw "Test data directory not found: $componentSourceDir. Create test data first."
-            } else {
+            }
+ else {
                 throw "Backup directory not found: $componentSourceDir. Run backup operation first."
             }
         }
@@ -280,7 +287,8 @@ function Invoke-TestRestore {
         # Resolve template path
         $templateFullPath = if (Test-Path $TemplatePath) {
             $TemplatePath
-        } else {
+        }
+ else {
             Join-Path $scriptRoot "Templates\System\$TemplatePath"
         }
 
@@ -296,7 +304,8 @@ function Invoke-TestRestore {
         # Perform the restore operation using the copied data
         if ($Force) {
             Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir
-        } else {
+        }
+ else {
             Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir -WhatIf
         }
         Write-Information -MessageData "✓ Template restore completed successfully" -InformationAction Continue
@@ -305,18 +314,21 @@ function Invoke-TestRestore {
         Write-Information -MessageData "`n=== RESTORE SIMULATION RESULTS ===" -InformationAction Continue
         if ($Force) {
             Write-Error -Message "Note: Actual restore operations were performed on the live system."
-        } else {
+        }
+ else {
             Write-Information -MessageData "Note: This was a safe simulation. No actual system changes were made." -InformationAction Continue
         }
         Write-Information -MessageData "Restore data processed from: $restoreStateDir" -InformationAction Continue
 
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Test restore failed: $($_.Exception.Message)"
         Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor DarkRed
         return $false
-    } finally {
+    }
+ finally {
         if ($originalConfig) {
             $global:WindowsMelodyRecovery = $originalConfig
         }
@@ -383,7 +395,8 @@ function Show-DirectoryContent {
             $relativePath = $_.FullName.Replace($BasePathForDisplay, "").TrimStart('\', '/')
             if ($_.PSIsContainer) {
                 Write-Information -MessageData "📁 $relativePath" -InformationAction Continue
-            } else {
+            }
+ else {
                 $size = if ($_.Length -lt 1KB) { "$($_.Length) B" } elseif ($_.Length -lt 1MB) { "{0:N1} KB" -f ($_.Length / 1KB) } else { "{0:N1} MB" -f ($_.Length / 1MB) }
                 Write-Verbose -Message "📄 $relativePath ($size)"
             }
@@ -471,10 +484,12 @@ try {
         }
     }
 
-} catch {
+}
+ catch {
     Write-Error -Message "Operation failed: $($_.Exception.Message)"
     exit 1
-} finally {
+}
+ finally {
     Pop-Location
 }
 

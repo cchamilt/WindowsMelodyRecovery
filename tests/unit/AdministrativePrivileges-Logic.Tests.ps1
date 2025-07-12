@@ -1,4 +1,4 @@
-# tests/unit/AdministrativePrivileges-Logic.Tests.ps1
+﻿# tests/unit/AdministrativePrivileges-Logic.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -162,7 +162,8 @@ Describe "Administrative Privilege Logic Tests" {
                         return $false
                     }
                     return $true
-                } catch {
+                }
+ catch {
                     Write-Warning "Could not verify administrator privileges: $_"
                     return $false
                 }
@@ -276,7 +277,8 @@ Describe "Administrative Privilege Logic Tests" {
                 try {
                     $features = Get-WindowsOptionalFeature -Online
                     return @{ Success = $true; Features = $features }
-                } catch {
+                }
+ catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -304,7 +306,8 @@ Describe "Administrative Privilege Logic Tests" {
                 try {
                     $capabilities = Get-WindowsCapability -Online
                     return @{ Success = $true; Capabilities = $capabilities }
-                } catch {
+                }
+ catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -348,7 +351,8 @@ Describe "Administrative Privilege Logic Tests" {
                         "Configure" { Set-Service -Name $ServiceName -StartupType Automatic }
                     }
                     return @{ Success = $true }
-                } catch {
+                }
+ catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -390,12 +394,14 @@ Describe "Administrative Privilege Logic Tests" {
                 try {
                     if ($Path -like "HKLM:*") {
                         Set-ItemProperty -Path $Path -Name $Name -Value $Value
-                    } else {
+                    }
+ else {
                         # HKCU operations should work
                         return @{ Success = $true; RequiresElevation = $false }
                     }
                     return @{ Success = $true; RequiresElevation = $false }
-                } catch {
+                }
+ catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -442,7 +448,8 @@ Describe "Administrative Privilege Logic Tests" {
                         "Create" {
                             $principal = if ($RequireElevation) {
                                 @{ RunLevel = "Highest" }
-                            } else {
+                            }
+ else {
                                 @{ RunLevel = "Limited" }
                             }
                             Register-ScheduledTask -TaskName $TaskName -Action @{} -Trigger @{} -Principal $principal
@@ -452,7 +459,8 @@ Describe "Administrative Privilege Logic Tests" {
                         }
                     }
                     return @{ Success = $true; RequiresElevation = $false }
-                } catch {
+                }
+ catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true

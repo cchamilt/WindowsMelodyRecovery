@@ -239,7 +239,8 @@ function Invoke-WSLDockerScript {
             if ($line.Trim() -ne "") {
                 $escapedLine = $line -replace '"', '\"' -replace '`', '\`' -replace '\$', '\\$'
                 $createCommands += "printf '%s\n' `"$escapedLine`" >> $scriptFile"
-            } else {
+            }
+ else {
                 $createCommands += "printf '\n' >> $scriptFile"
             }
         }

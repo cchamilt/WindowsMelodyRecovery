@@ -148,7 +148,7 @@ function Test-OperationSafety {
     return $safetyReport
 }
 
-function Add-SafetyTags {
+function Add-SafetyTag {
     param(
         [string]$FilePath,
         [object]$SafetyReport
@@ -226,8 +226,8 @@ foreach ($testFile in $testFiles) {
 
     # Status indicator
     $status = if ($safetyReport.RequiresCIOnly) { "❌ CI-ONLY" }
-              elseif ($safetyReport.Violations.Count -gt 0) { "⚠️  WARNINGS" }
-              else { "✅ SAFE" }
+    elseif ($safetyReport.Violations.Count -gt 0) { "⚠️  WARNINGS" }
+    else { "✅ SAFE" }
 
     Write-Information -MessageData "  $status $($testFile.Name)"  -InformationAction Continue-ForegroundColor $(
         if ($safetyReport.RequiresCIOnly) { "Red" }
@@ -294,7 +294,8 @@ if ($OutputReport) {
 Write-Information -MessageData "" -InformationAction Continue
 if ($ciOnlyTests.Count -eq 0) {
     Write-Information -MessageData "🎉 All integration tests are safe for development execution!" -InformationAction Continue
-} else {
+}
+ else {
     Write-Warning -Message "⚠️  $($ciOnlyTests.Count) test(s) require CI-only execution for safety."
 }
 
