@@ -1,7 +1,7 @@
-function Install-WindowsMelodyRecoveryTasks {
+﻿function Install-WindowsMelodyRecoveryTask {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$NoPrompt
     )
 
@@ -17,7 +17,8 @@ function Install-WindowsMelodyRecoveryTasks {
             Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
             return $false
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Could not verify administrator privileges: $_"
         return $false
     }
@@ -115,7 +116,8 @@ function Install-WindowsMelodyRecoveryTasks {
         try {
             Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description $task.Description -Force
             Write-Information -MessageData "Created scheduled task: $taskName" -InformationAction Continue
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to create scheduled task '$taskName': $_"
         }
     }

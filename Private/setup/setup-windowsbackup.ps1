@@ -1,4 +1,4 @@
-# Initialize-WindowsBackup.ps1 - Configure Windows Backup service and settings
+﻿# Initialize-WindowsBackup.ps1 - Configure Windows Backup service and settings
 
 function Initialize-WindowsBackup {
     [CmdletBinding()]
@@ -22,7 +22,8 @@ function Initialize-WindowsBackup {
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -42,14 +43,16 @@ function Initialize-WindowsBackup {
                 Write-Warning "Windows Backup feature is not enabled. This is normal for Windows 10/11 client versions."
                 Write-Warning -Message "Windows 10/11 uses File History and System Image Backup instead."
             }
-        } else {
+        }
+ else {
             Write-Information -MessageData "  Windows Backup service found: $($backupService.Status)" -InformationAction Continue
             if ($backupService.Status -ne "Running") {
                 Write-Warning -Message "  Starting Windows Backup service..."
                 try {
                     Start-Service -Name "SDRSVC" -ErrorAction Stop
                     Write-Information -MessageData "  Windows Backup service started successfully" -InformationAction Continue
-                } catch {
+                }
+ catch {
                     Write-Warning "  Failed to start Windows Backup service: $($_.Exception.Message)"
                 }
             }
@@ -81,13 +84,16 @@ function Initialize-WindowsBackup {
                         $fileHistoryConfig.SetState(1) | Out-Null # 1 = Enabled
 
                         Write-Information -MessageData "  File History configured successfully" -InformationAction Continue
-                    } else {
+                    }
+ else {
                         Write-Warning "  BackupLocation not specified. File History requires a target location."
                     }
-                } else {
+                }
+ else {
                     Write-Warning "  File History is not available on this system"
                 }
-            } catch {
+            }
+ catch {
                 Write-Warning "  Failed to configure File History: $($_.Exception.Message)"
             }
         }
@@ -118,10 +124,12 @@ function Initialize-WindowsBackup {
                     Set-ItemProperty -Path $backupPolicyPath -Name "RetentionDays" -Value $RetentionDays -Type DWord -ErrorAction SilentlyContinue
 
                     Write-Information -MessageData "  System image backup configuration saved" -InformationAction Continue
-                } else {
+                }
+ else {
                     Write-Warning "  BackupLocation not specified. System image backup requires a target location."
                 }
-            } catch {
+            }
+ catch {
                 Write-Warning "  Failed to configure System Image Backup: $($_.Exception.Message)"
             }
         }
@@ -218,10 +226,12 @@ try {
                 Write-Information -MessageData "  Task Name: $taskName" -InformationAction Continue
                 Write-Information -MessageData "  Frequency: $BackupFrequency" -InformationAction Continue
                 Write-Information -MessageData "  Next Run: $((Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath).NextRunTime)" -InformationAction Continue
-            } else {
+            }
+ else {
                 Write-Warning "  BackupLocation not specified. Cannot create backup task."
             }
-        } catch {
+        }
+ catch {
             Write-Warning "  Failed to configure backup schedule: $($_.Exception.Message)"
         }
 
@@ -258,7 +268,8 @@ try {
 
                 Write-Information -MessageData "  Backup retention policy configured (${RetentionDays} days)" -InformationAction Continue
             }
-        } catch {
+        }
+ catch {
             Write-Warning "  Failed to configure backup retention policy: $($_.Exception.Message)"
         }
 
@@ -276,7 +287,8 @@ try {
         $configSummary | Format-Table -AutoSize | Out-String | Write-Information -MessageData Write -InformationAction Continue-Information -MessageData "Windows Backup configuration completed successfully!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to configure Windows Backup: $($_.Exception.Message)"
         Write-Error -Message "Stack Trace: $($_.ScriptStackTrace)"
         return $false
@@ -293,26 +305,28 @@ function Test-WindowsBackupStatus {
 
         # Check Windows Backup service
         $backupService = Get-Service -Name "SDRSVC" -ErrorAction SilentlyContinue
-        $status.BackupServiceAvailable = $backupService -ne $null
+        $status.BackupServiceAvailable = $null -ne $backupService
         $status.BackupServiceStatus = if ($backupService) { $backupService.Status } else { "Not Available" }
 
         # Check File History
         try {
             $fileHistoryConfig = Get-WmiObject -Class "MSFT_FileHistoryConfig" -Namespace "root\Microsoft\Windows\FileHistory" -ErrorAction SilentlyContinue
-            $status.FileHistoryAvailable = $fileHistoryConfig -ne $null
+            $status.FileHistoryAvailable = $null -ne $fileHistoryConfig
             $status.FileHistoryEnabled = if ($fileHistoryConfig) { $fileHistoryConfig.State -eq 1 } else { $false }
-        } catch {
+        }
+ catch {
             $status.FileHistoryAvailable = $false
             $status.FileHistoryEnabled = $false
         }
 
         # Check scheduled backup tasks
         $backupTask = Get-ScheduledTask -TaskName "WindowsMelodyRecovery_SystemBackup" -TaskPath "\Microsoft\Windows\WindowsMelodyRecovery\" -ErrorAction SilentlyContinue
-        $status.BackupTaskConfigured = $backupTask -ne $null
+        $status.BackupTaskConfigured = $null -ne $backupTask
         $status.BackupTaskStatus = if ($backupTask) { $backupTask.State } else { "Not Configured" }
 
         return $status
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to check Windows Backup status: $($_.Exception.Message)"
         return $null
     }
@@ -339,18 +353,21 @@ function Start-WindowsBackupManual {
             Write-Warning -Message "Creating system image backup..."
             $wbadminCmd = "wbadmin start backup -backupTarget:$BackupLocation -include:$env:SystemDrive -allCritical -quiet"
             Invoke-Expression $wbadminCmd
-        } elseif ($FileHistoryOnly) {
+        }
+ elseif ($FileHistoryOnly) {
             Write-Warning -Message "Starting File History backup..."
             # File History backup is automatic when enabled
             Write-Information -MessageData "File History backup is managed automatically by Windows" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Warning -Message "Starting comprehensive backup..."
             # Perform both system and file backup
             Write-Information -MessageData "Manual backup completed. Check backup location: $BackupLocation" -InformationAction Continue
         }
 
         return $true
-    } catch {
+    }
+ catch {
         Write-Error "Manual backup failed: $($_.Exception.Message)"
         return $false
     }

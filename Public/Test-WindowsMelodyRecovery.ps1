@@ -1,10 +1,10 @@
-#Validates the recovery setup and backup integrity
+﻿#Validates the recovery setup and backup integrity
 #Also runs the private functions from the module individually
 
 function Test-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Detailed,
         [switch]$NoPrompt
     )
@@ -38,11 +38,13 @@ function Test-WindowsMelodyRecovery {
         if ($module) {
             $results.ModuleLoaded = $true
             Write-Information -MessageData "Module loaded successfully" -InformationAction Continue
-        } else {
+        }
+ else {
             $results.Errors += "Module not loaded"
             Write-Error -Message "Module not loaded"
         }
-    } catch {
+    }
+ catch {
         $results.Errors += "Failed to check module: $_"
         Write-Error -Message "Failed to check module: $_"
     }
@@ -62,11 +64,13 @@ function Test-WindowsMelodyRecovery {
                 Write-Information -MessageData "  Cloud Provider: $($config.CloudProvider)" -InformationAction Continue
                 Write-Information -MessageData "  Last Configured: $($config.LastConfigured)" -InformationAction Continue
             }
-        } else {
+        }
+ else {
             $results.Errors += "Configuration not initialized"
             Write-Error -Message "Configuration not initialized"
         }
-    } catch {
+    }
+ catch {
         $results.Errors += "Failed to check configuration: $_"
         Write-Error -Message "Failed to check configuration: $_"
     }
@@ -83,15 +87,18 @@ function Test-WindowsMelodyRecovery {
 
                 if (Test-Path $machineBackupDir) {
                     Write-Information -MessageData "Machine-specific backup directory exists" -InformationAction Continue
-                } else {
+                }
+ else {
                     $results.Warnings += "Machine-specific backup directory does not exist"
                     Write-Warning -Message "Machine-specific backup directory does not exist"
                 }
-            } else {
+            }
+ else {
                 $results.Errors += "Backup root location is not accessible"
                 Write-Error -Message "Backup root location is not accessible"
             }
-        } catch {
+        }
+ catch {
             $results.Errors += "Failed to check backup location: $_"
             Write-Error -Message "Failed to check backup location: $_"
         }
@@ -114,15 +121,18 @@ function Test-WindowsMelodyRecovery {
                     Write-Information -MessageData "  Backup Task: $($backupTask.State)" -InformationAction Continue
                     Write-Information -MessageData "  Update Task: $($updateTask.State)" -InformationAction Continue
                 }
-            } else {
+            }
+ else {
                 $results.Warnings += "Some scheduled tasks are missing"
                 Write-Warning -Message "Some scheduled tasks are missing"
             }
-        } catch {
+        }
+ catch {
             $results.Errors += "Failed to check scheduled tasks: $_"
             Write-Error -Message "Failed to check scheduled tasks: $_"
         }
-    } else {
+    }
+ else {
         $results.Warnings += "Scheduled tasks check skipped (not available on this platform)"
         Write-Warning -Message "Scheduled tasks check skipped (not available on this platform)"
     }
@@ -135,7 +145,8 @@ function Test-WindowsMelodyRecovery {
                 $results.BackupFunctionality = $true
                 Write-Information -MessageData "Backup functionality is available" -InformationAction Continue
             }
-        } catch {
+        }
+ catch {
             $results.Errors += "Backup functionality not available: $_"
             Write-Error -Message "Backup functionality not available: $_"
         }
@@ -149,7 +160,8 @@ function Test-WindowsMelodyRecovery {
                 $results.RestoreFunctionality = $true
                 Write-Information -MessageData "Restore functionality is available" -InformationAction Continue
             }
-        } catch {
+        }
+ catch {
             $results.Errors += "Restore functionality not available: $_"
             Write-Error -Message "Restore functionality not available: $_"
         }
@@ -162,7 +174,8 @@ function Test-WindowsMelodyRecovery {
             $results.UpdateFunctionality = $true
             Write-Information -MessageData "Update functionality is available" -InformationAction Continue
         }
-    } catch {
+    }
+ catch {
         $results.Errors += "Update functionality not available: $_"
         Write-Error -Message "Update functionality not available: $_"
     }

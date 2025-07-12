@@ -1,7 +1,7 @@
-function Start-WindowsMelodyRecovery {
+﻿function Start-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$InstallPath = "$env:USERPROFILE\Scripts\WindowsMelodyRecovery",
         [switch]$NoScheduledTasks,
         [switch]$NoPrompt,
@@ -28,13 +28,16 @@ function Start-WindowsMelodyRecovery {
                     if (!$config) {
                         throw "Failed to initialize Windows Recovery configuration"
                     }
-                } else {
+                }
+ else {
                     throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
                 }
-            } else {
+            }
+ else {
                 throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
             }
-        } else {
+        }
+ else {
             Write-Information -MessageData "Using existing configuration" -InformationAction Continue
         }
 
@@ -54,7 +57,8 @@ function Start-WindowsMelodyRecovery {
                 if ($setup.enabled) {
                     if ($NoPrompt -or $Force) {
                         $response = 'Y'
-                    } else {
+                    }
+ else {
                         $response = Read-Host "Run $($setup.name)? $($setup.description) (Y/N)"
                     }
 
@@ -64,20 +68,25 @@ function Start-WindowsMelodyRecovery {
                             if (Get-Command $setup.function -ErrorAction SilentlyContinue) {
                                 & $setup.function
                                 Write-Information -MessageData "✅ Completed $($setup.name)" -InformationAction Continue
-                            } else {
+                            }
+ else {
                                 Write-Warning "Setup function $($setup.function) not available"
                             }
-                        } catch {
+                        }
+ catch {
                             Write-Warning "Failed to run $($setup.name): $_"
                         }
-                    } else {
+                    }
+ else {
                         Write-Verbose -Message "⏭️ Skipped $($setup.name)"
                     }
-                } else {
+                }
+ else {
                     Write-Verbose "Setup script $($setup.name) is disabled in configuration"
                 }
             }
-        } else {
+        }
+ else {
             Write-Warning -Message "No setup scripts configured or available."
         }
 
@@ -104,7 +113,8 @@ function Start-WindowsMelodyRecovery {
                     Get-ScheduledTask -TaskName "WindowsMelodyRecovery_Backup" -ErrorAction SilentlyContinue,
                     Get-ScheduledTask -TaskName "WindowsMelodyRecovery_Update" -ErrorAction SilentlyContinue
                 ) | Where-Object { $_ }
-            } else { $null }
+            }
+ else { $null }
         }
 
         # Display verification results
@@ -116,7 +126,8 @@ function Start-WindowsMelodyRecovery {
 
         Write-Information -MessageData "`nWindows Recovery setup completed successfully!" -InformationAction Continue
         return $true
-    } catch {
+    }
+ catch {
         Write-Error -Message "`nSetup failed: $_"
         return $false
     }

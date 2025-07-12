@@ -1,11 +1,12 @@
-function Initialize-PackageManagers {
+﻿function Initialize-PackageManager {
     [CmdletBinding()]
     param()
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -28,13 +29,15 @@ function Initialize-PackageManagers {
                 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
                 # Refresh environment variables
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
                 Write-Information -MessageData "Chocolatey installed successfully" -InformationAction Continue
-            } catch {
+            }
+            catch {
                 Write-Error -Message "Failed to install Chocolatey: $($_.Exception.Message)"
             }
-        } else {
+        }
+        else {
             Write-Information -MessageData "✓ Chocolatey is already installed" -InformationAction Continue
         }
 
@@ -57,16 +60,19 @@ Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.
 
                 if ($process.ExitCode -eq 0) {
                     Write-Information -MessageData "Scoop installed successfully" -InformationAction Continue
-                } else {
+                }
+                else {
                     Write-Warning -Message "Scoop installation may have failed. Please check manually."
                 }
 
                 # Refresh environment variables
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-            } catch {
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+            }
+            catch {
                 Write-Error -Message "Failed to install Scoop: $($_.Exception.Message)"
             }
-        } else {
+        }
+        else {
             Write-Information -MessageData "✓ Scoop is already installed" -InformationAction Continue
         }
 
@@ -74,14 +80,16 @@ Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.
         if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
             Write-Warning -Message "Winget not found. Please ensure you have App Installer installed from the Microsoft Store"
             Write-Warning -Message "You can install it from: https://www.microsoft.com/store/productId/9NBLGGH4NNS1"
-        } else {
+        }
+        else {
             Write-Information -MessageData "✓ Winget is already installed" -InformationAction Continue
         }
 
         Write-Information -MessageData "Package manager setup complete!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+    catch {
         Write-Error -Message "Failed to setup package managers: $($_.Exception.Message)"
         return $false
     }

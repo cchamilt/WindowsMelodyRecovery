@@ -76,7 +76,7 @@ function Test-WmrTemplateSchema {
         [PSObject]$TemplateConfig
     )
 
-    Write-Host "NOTE: Schema validation is not yet fully implemented. This is a placeholder."
+    Write-Information "NOTE: Schema validation is not yet fully implemented. This is a placeholder." -InformationAction Continue
 
     # TODO: Implement comprehensive schema validation based on docs/TEMPLATE_SCHEMA.md
     # This function will check if the $TemplateConfig object conforms to the defined schema,
@@ -91,7 +91,7 @@ function Test-WmrTemplateSchema {
         throw "Template schema validation failed: 'metadata.name' is missing."
     }
 
-    Write-Host "Basic template schema validation passed."
+    Write-Information "Basic template schema validation passed." -InformationAction Continue
     return $true
 }
 

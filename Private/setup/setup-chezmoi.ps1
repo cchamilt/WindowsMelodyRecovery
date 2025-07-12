@@ -1,11 +1,12 @@
-function Initialize-Chezmoi {
+﻿function Initialize-Chezmoi {
     [CmdletBinding()]
     param()
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -25,7 +26,8 @@ function Initialize-Chezmoi {
                 Write-Error -Message "No WSL distributions found. Please install WSL first."
                 return $false
             }
-        } catch {
+        }
+ catch {
             Write-Error -Message "Could not access WSL distributions."
             return $false
         }
@@ -40,17 +42,20 @@ function Initialize-Chezmoi {
             try {
                 Initialize-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
                 Write-Information -MessageData "✅ chezmoi setup completed with repository" -InformationAction Continue
-            } catch {
+            }
+ catch {
                 Write-Error -Message "❌ Failed to setup chezmoi with repository: $($_.Exception.Message)"
                 Write-Warning -Message "Falling back to empty repository setup..."
                 Initialize-WSLChezmoi
             }
-        } else {
+        }
+ else {
             Write-Warning -Message "Setting up empty chezmoi repository..."
             try {
                 Initialize-WSLChezmoi
                 Write-Information -MessageData "✅ chezmoi setup completed (empty repository)" -InformationAction Continue
-            } catch {
+            }
+ catch {
                 Write-Error -Message "❌ Failed to setup chezmoi: $($_.Exception.Message)"
                 return $false
             }
@@ -77,7 +82,8 @@ function Initialize-Chezmoi {
 
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup chezmoi: $($_.Exception.Message)"
         return $false
     }

@@ -1,4 +1,4 @@
-# Windows Melody Recovery - Complete Backup/Restore Workflow End-to-End Tests
+﻿# Windows Melody Recovery - Complete Backup/Restore Workflow End-to-End Tests
 # Tests the entire user journey from installation to backup to restore
 
 BeforeAll {
@@ -21,7 +21,7 @@ BeforeAll {
 
     # Create test directory structure
     @($script:TestRoot, $script:InstallPath, $script:BackupRoot, $script:RestoreRoot,
-      $script:SourceSystem, $script:TargetSystem) | ForEach-Object {
+        $script:SourceSystem, $script:TargetSystem) | ForEach-Object {
         New-Item -Path $_ -ItemType Directory -Force | Out-Null
     }
 
@@ -215,7 +215,8 @@ function Test-BackupCompleteness {
             $files = Get-ChildItem -Path $componentPath -Recurse -File
             $completeness.ComponentCounts[$component] = $files.Count
             $completeness.BackupSize += ($files | Measure-Object -Property Length -Sum).Sum
-        } else {
+        }
+ else {
             $completeness.IsComplete = $false
             $completeness.MissingComponents += $component
         }
@@ -250,11 +251,13 @@ function Test-RestoreAccuracy {
 
             if ($originalContent -eq $restoredContent) {
                 $accuracy.FilesMatched++
-            } else {
+            }
+ else {
                 $accuracy.IsAccurate = $false
                 $accuracy.Differences += "Content mismatch: $relativePath"
             }
-        } else {
+        }
+ else {
             $accuracy.IsAccurate = $false
             $accuracy.Differences += "Missing file: $relativePath"
         }
@@ -262,7 +265,8 @@ function Test-RestoreAccuracy {
 
     $accuracy.MatchPercentage = if ($accuracy.FilesCompared -gt 0) {
         ($accuracy.FilesMatched / $accuracy.FilesCompared) * 100
-    } else { 100 }
+    }
+ else { 100 }
 
     return $accuracy
 }

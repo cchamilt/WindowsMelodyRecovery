@@ -1,4 +1,4 @@
-# Setup-BitLocker.ps1 - Configure BitLocker drive encryption settings
+﻿# Setup-BitLocker.ps1 - Configure BitLocker drive encryption settings
 
 function Enable-BitLocker {
     [CmdletBinding()]
@@ -19,7 +19,8 @@ function Enable-BitLocker {
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -34,7 +35,8 @@ function Enable-BitLocker {
             try {
                 Enable-WindowsOptionalFeature -Online -FeatureName "BitLocker" -All -NoRestart
                 Write-Warning -Message "BitLocker feature enabled. A restart may be required."
-            } catch {
+            }
+ catch {
                 Write-Error "Failed to enable BitLocker feature: $($_.Exception.Message)"
                 return $false
             }
@@ -52,10 +54,12 @@ function Enable-BitLocker {
                 if (-not $tpm.TpmEnabled) {
                     Write-Warning "  TPM is present but not enabled. Please enable TPM in BIOS/UEFI settings."
                 }
-            } else {
+            }
+ else {
                 Write-Warning "  TPM is not present. BitLocker will require alternative authentication methods."
             }
-        } catch {
+        }
+ catch {
             Write-Warning "Unable to check TPM status: $($_.Exception.Message)"
         }
 
@@ -74,7 +78,8 @@ function Enable-BitLocker {
                     Write-Verbose -Message "    - $($protector.KeyProtectorType): $($protector.KeyProtectorId)"
                 }
             }
-        } else {
+        }
+ else {
             Write-Warning -Message "  BitLocker is not currently configured for drive $Drive"
         }
 
@@ -95,10 +100,12 @@ function Enable-BitLocker {
                         Write-Warning -Message "  Adding TPM key protector..."
                         Add-BitLockerKeyProtector -MountPoint $Drive -TpmProtector | Out-Null
                         Write-Information -MessageData "  TPM key protector added successfully" -InformationAction Continue
-                    } else {
+                    }
+ else {
                         Write-Warning "  TPM is not ready. Skipping TPM protector."
                     }
-                } catch {
+                }
+ catch {
                     Write-Warning "  Failed to add TPM protector: $($_.Exception.Message)"
                 }
             }
@@ -126,10 +133,12 @@ function Enable-BitLocker {
                             Write-Information -MessageData "  Recovery key saved to: $recoveryKeyPath" -InformationAction Continue
                             Write-Warning "  IMPORTANT: Store this recovery key in a secure location!"
                         }
-                    } catch {
+                    }
+ catch {
                         Write-Warning "  Failed to save recovery key to file: $($_.Exception.Message)"
                     }
-                } catch {
+                }
+ catch {
                     Write-Warning "  Failed to add recovery key protector: $($_.Exception.Message)"
                 }
             }
@@ -156,12 +165,14 @@ function Enable-BitLocker {
                 Enable-BitLocker @encryptionParams
                 Write-Information -MessageData "  BitLocker encryption started successfully" -InformationAction Continue
                 Write-Warning -Message "  Encryption will continue in the background"
-            } catch {
+            }
+ catch {
                 Write-Error "  Failed to start BitLocker encryption: $($_.Exception.Message)"
                 return $false
             }
 
-        } elseif ($bitlockerStatus.ProtectionStatus -eq "On") {
+        }
+ elseif ($bitlockerStatus.ProtectionStatus -eq "On") {
             Write-Information -MessageData "BitLocker is already enabled and protecting drive $Drive" -InformationAction Continue
 
             # Configure auto-unlock for additional drives if requested
@@ -170,7 +181,8 @@ function Enable-BitLocker {
                 try {
                     Enable-BitLockerAutoUnlock -MountPoint $Drive
                     Write-Information -MessageData "  Auto-unlock enabled for drive $Drive" -InformationAction Continue
-                } catch {
+                }
+ catch {
                     Write-Warning "  Failed to enable auto-unlock: $($_.Exception.Message)"
                 }
             }
@@ -191,7 +203,8 @@ function Enable-BitLocker {
             Set-ItemProperty -Path $bitlockerPolicyPath -Name "OSRecoveryKey" -Value 2 -Type DWord -ErrorAction SilentlyContinue
 
             Write-Information -MessageData "  BitLocker policies configured" -InformationAction Continue
-        } catch {
+        }
+ catch {
             Write-Warning "  Failed to configure BitLocker policies: $($_.Exception.Message)"
         }
 
@@ -206,16 +219,19 @@ function Enable-BitLocker {
             if ($finalStatus.ProtectionStatus -eq "On") {
                 Write-Information -MessageData "BitLocker configuration completed successfully!" -InformationAction Continue
                 return $true
-            } else {
+            }
+ else {
                 Write-Warning "BitLocker configuration may not be complete. Check the status manually."
                 return $false
             }
-        } else {
+        }
+ else {
             Write-Warning "Unable to verify BitLocker status after configuration."
             return $false
         }
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to configure BitLocker: $($_.Exception.Message)"
         Write-Error -Message "Stack Trace: $($_.ScriptStackTrace)"
         return $false
@@ -238,7 +254,8 @@ function Test-BitLockerStatus {
                 VolumeStatus = $status.VolumeStatus
                 KeyProtectors = $status.KeyProtector
             }
-        } else {
+        }
+ else {
             return @{
                 IsEnabled = $false
                 EncryptionPercentage = 0
@@ -246,7 +263,8 @@ function Test-BitLockerStatus {
                 KeyProtectors = @()
             }
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to check BitLocker status: $($_.Exception.Message)"
         return $null
     }

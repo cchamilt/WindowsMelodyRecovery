@@ -27,8 +27,9 @@ function Test-WmrPrerequisite {
             switch ($prereq.type) {
                 "application" {
                     try {
-                        # Execute the check_command and capture output
-                        $commandOutput = Invoke-Expression $prereq.check_command | Out-String
+                        # Execute the check_command safely using script block
+                        $scriptBlock = [scriptblock]::Create($prereq.check_command)
+                        $commandOutput = & $scriptBlock | Out-String
                         $checkResult = "Output: `n$commandOutput`n"
                         if ($commandOutput -match $prereq.expected_output) {
                             $prereqMet = $true
@@ -64,12 +65,13 @@ function Test-WmrPrerequisite {
                 "script" {
                     try {
                         if ($prereq.path) {
-                            # Execute script from path
-                            $scriptOutput = Invoke-Expression $prereq.path | Out-String
+                            # Execute script from path using call operator
+                            $scriptOutput = & $prereq.path | Out-String
                         }
                         elseif ($prereq.inline_script) {
-                            # Execute inline script
-                            $scriptOutput = Invoke-Expression $prereq.inline_script | Out-String
+                            # Execute inline script using script block
+                            $scriptBlock = [scriptblock]::Create($prereq.inline_script)
+                            $scriptOutput = & $scriptBlock | Out-String
                         }
                         $checkResult = "Output: `n$scriptOutput`n"
                         if ($scriptOutput -match $prereq.expected_output) {

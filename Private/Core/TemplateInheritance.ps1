@@ -64,6 +64,7 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
     }
     catch {
         # Silently ignore Export-ModuleMember errors when not in module context
+        Write-Debug "Export-ModuleMember not available in current context, functions available via dot-sourcing"
     }
 }
 

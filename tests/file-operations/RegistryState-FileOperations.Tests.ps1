@@ -1,4 +1,4 @@
-# tests/file-operations/RegistryState-FileOperations.Tests.ps1
+﻿# tests/file-operations/RegistryState-FileOperations.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -37,7 +37,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
         try {
             $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
             Import-Module $ModulePath -Force -ErrorAction Stop
-        } catch {
+        }
+ catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
 
@@ -47,7 +48,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
         # Set up test registry path (only on Windows)
         if ($IsWindows) {
             $script:TestRegistryPath = "HKCU:\Software\WindowsMelodyRecovery\FileOperationsTest"
-        } else {
+        }
+ else {
             $script:TestRegistryPath = $null
         }
 
@@ -105,7 +107,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $content.ValueName | Should -Be "TestValue"
                 $content.ValueData | Should -Be "TestData"
                 $content.ValueType | Should -Be "String"
-            } finally {
+            }
+ finally {
                 Remove-Item $stateFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -133,7 +136,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $content = Get-Content $stateFile -Raw | ConvertFrom-Json
                 $content.Encrypted | Should -Be $true
                 $content.ValueName | Should -Be "EncryptedValue"
-            } finally {
+            }
+ finally {
                 Remove-Item $stateFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -160,7 +164,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $content = Get-Content $stateFile -Raw -Encoding UTF8 | ConvertFrom-Json
                 $content.ValueData | Should -Match "émojis 🚀"
                 $content.ValueData | Should -Match "中文"
-            } finally {
+            }
+ finally {
                 Remove-Item $stateFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -189,7 +194,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $value = Get-ItemProperty -Path $testKeyPath -Name "TestValue"
                 $value.TestValue | Should -Be "TestData"
 
-            } finally {
+            }
+ finally {
                 # Clean up test registry key
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -225,7 +231,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                     $props.BinaryValue | Should -Be @(1, 2, 3)
                 }
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -262,7 +269,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $l2Props.Level2Value | Should -Be "L2"
                 $l3Props.Level3Value | Should -Be "L3"
 
-            } finally {
+            }
+ finally {
                 # Clean up nested structure
                 if (Test-Path "$script:TestRegistryPath\Level1") {
                     Remove-Item "$script:TestRegistryPath\Level1" -Recurse -Force -ErrorAction SilentlyContinue
@@ -311,7 +319,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $readState.KeyName | Should -Be "BackupTest"
                 $readState.ValueName | Should -Be "BackupValue"
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -355,7 +364,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $restoredValue = Get-ItemProperty -Path $testKeyPath -Name $readState.ValueName
                 $restoredValue.RestoreValue | Should -Be "DataToRestore"
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -409,7 +419,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $readState.Values.Value2 | Should -Be "Data2"
                 $readState.Values.Value3 | Should -Be 12345
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -439,7 +450,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 # Attempting to parse should fail
                 { Get-Content $corruptedStateFile -Raw | ConvertFrom-Json } | Should -Throw
 
-            } finally {
+            }
+ finally {
                 Remove-Item $corruptedStateFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -484,7 +496,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $value = Get-ItemProperty -Path $testKeyPath -Name "PermissionValue"
                 $value.PermissionValue | Should -Be "TestData"
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -531,7 +544,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $readState.Value.Length | Should -Be 1000
                 $readState.Value | Should -Be $largeValue
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -581,7 +595,8 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                     $content.Value | Should -Match "TestValue_"
                 }
 
-            } finally {
+            }
+ finally {
                 # Clean up all state files
                 foreach ($fileName in $stateFiles) {
                     $filePath = Join-Path $script:TestEnvironment.TestState $fileName

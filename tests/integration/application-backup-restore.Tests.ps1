@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     # Import required modules and utilities
     . "$PSScriptRoot\..\utilities\Test-Utilities.ps1"
     . "$PSScriptRoot\..\utilities\Mock-Utilities.ps1"
@@ -13,7 +13,7 @@ BeforeAll {
     New-Item -Path $script:TempRestorePath -ItemType Directory -Force -ErrorAction SilentlyContinue
 
     # Mock application detection functions
-    function Get-MockWingetPackages {
+    function Get-MockWingetPackage {
         $wingetPath = "$script:TestDataPath\appdata\Users\TestUser\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\winget_installed_packages.json"
         if (Test-Path $wingetPath) {
             return Get-Content $wingetPath | ConvertFrom-Json
@@ -21,7 +21,7 @@ BeforeAll {
         return $null
     }
 
-    function Get-MockChocolateyPackages {
+    function Get-MockChocolateyPackage {
         $chocoPath = "$script:TestDataPath\appdata\Users\TestUser\AppData\Roaming\chocolatey\chocolatey_installed_packages.json"
         if (Test-Path $chocoPath) {
             return Get-Content $chocoPath | ConvertFrom-Json
@@ -29,7 +29,7 @@ BeforeAll {
         return $null
     }
 
-    function Get-MockScoopPackages {
+    function Get-MockScoopPackage {
         $scoopPath = "$script:TestDataPath\appdata\Users\TestUser\scoop\apps\scoop_installed_packages.json"
         if (Test-Path $scoopPath) {
             return Get-Content $scoopPath | ConvertFrom-Json
@@ -37,7 +37,7 @@ BeforeAll {
         return $null
     }
 
-    function Get-MockSteamGames {
+    function Get-MockSteamGame {
         $steamPath = "$script:TestDataPath\steam\userdata\123456789\config\localconfig.vdf"
         if (Test-Path $steamPath) {
             # Parse VDF format for Steam games

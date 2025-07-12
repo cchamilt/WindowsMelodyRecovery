@@ -8,6 +8,7 @@ $script:LoadedComponents = @()
 
 function Initialize-WindowsMelodyRecoveryModule {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     param(
         [Parameter(Mandatory = $false)]
         [switch]$Force,
@@ -23,6 +24,17 @@ function Initialize-WindowsMelodyRecoveryModule {
     )
 
     Write-Verbose "Starting WindowsMelodyRecovery module initialization..."
+
+    # Check if module is already initialized (unless Force is specified)
+    if ($script:ModuleInitialized -and -not $Force) {
+        Write-Verbose "Module already initialized. Use -Force to re-initialize."
+        return @{
+            Success = $true
+            Message = "Module already initialized"
+            LoadedComponents = $script:LoadedComponents
+            Warnings = @()
+        }
+    }
 
     try {
         # Step 1: Validate module structure
@@ -635,7 +647,7 @@ function Test-ModuleDependency {
 }
 
 function Set-ModuleAlias {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
     param()
 
     Write-Verbose "Setting up module aliases..."
@@ -655,8 +667,10 @@ function Set-ModuleAlias {
         foreach ($alias in $aliases.Keys) {
             try {
                 if (-not (Get-Alias -Name $alias -ErrorAction SilentlyContinue)) {
-                    Set-Alias -Name $alias -Value $aliases[$alias] -Scope Global
-                    $createdAliases += $alias
+                    if ($PSCmdlet.ShouldProcess("$alias", "Set module alias")) {
+                        Set-Alias -Name $alias -Value $aliases[$alias] -Scope Global
+                        $createdAliases += $alias
+                    }
                 }
             }
             catch {

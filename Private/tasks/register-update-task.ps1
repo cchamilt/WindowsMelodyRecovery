@@ -1,4 +1,4 @@
-# Requires admin privileges
+﻿# Requires admin privileges
 #Requires -RunAsAdministrator
 
 try {
@@ -82,11 +82,13 @@ try {
         Write-Information -MessageData "  Script: $updateScript" -InformationAction Continue
         Write-Information -MessageData "  Schedule: Monthly at 3 AM on the 1st" -InformationAction Continue
         Write-Information -MessageData "  User: $currentUser" -InformationAction Continue
-    } else {
+    }
+ else {
         throw "Failed to register task"
     }
 
-} catch {
+}
+ catch {
     Write-Error -Message "Failed to register system update task: $_"
     exit 1
 }
@@ -98,7 +100,8 @@ if ($response -eq "Y" -or $response -eq "y") {
     try {
         Write-Information -MessageData "Running system update..." -InformationAction Continue
         & $updateScript
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to run system update: $_"
     }
 }

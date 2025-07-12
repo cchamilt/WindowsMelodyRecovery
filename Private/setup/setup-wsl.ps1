@@ -1,11 +1,12 @@
-function Initialize-WSL {
+﻿function Initialize-WSL {
     [CmdletBinding()]
     param()
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -26,11 +27,13 @@ function Initialize-WSL {
             try {
                 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -All -NoRestart
                 Write-Information -MessageData "✅ WSL feature enabled (restart may be required)" -InformationAction Continue
-            } catch {
+            }
+ catch {
                 Write-Error -Message "❌ Failed to enable WSL feature: $($_.Exception.Message)"
                 return $false
             }
-        } else {
+        }
+ else {
             Write-Information -MessageData "✅ WSL feature is already enabled" -InformationAction Continue
         }
 
@@ -41,7 +44,8 @@ function Initialize-WSL {
             try {
                 Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -All -NoRestart
                 Write-Information -MessageData "✅ Virtual Machine Platform enabled" -InformationAction Continue
-            } catch {
+            }
+ catch {
                 Write-Error -Message "❌ Failed to enable Virtual Machine Platform: $($_.Exception.Message)"
             }
         }
@@ -63,7 +67,8 @@ function Initialize-WSL {
                 wsl --set-default-version 2 2>$null
                 Write-Information -MessageData "✅ Default WSL version set to WSL2" -InformationAction Continue
             }
-        } catch {
+        }
+ catch {
             Write-Warning -Message "Could not determine WSL version"
         }
 
@@ -73,12 +78,14 @@ function Initialize-WSL {
             if ($distros) {
                 Write-Information -MessageData "`nInstalled WSL distributions:" -InformationAction Continue
                 Write-Information -MessageData $distros  -InformationAction Continue-ForegroundColor Gray
-            } else {
+            }
+ else {
                 Write-Warning -Message "`nNo WSL distributions installed."
                 Write-Information -MessageData "You can install Ubuntu with: wsl --install -d Ubuntu" -InformationAction Continue
                 Write-Information -MessageData "Or browse available distributions with: wsl --list --online" -InformationAction Continue
             }
-        } catch {
+        }
+ catch {
             Write-Warning -Message "Could not list WSL distributions"
         }
 
@@ -91,7 +98,8 @@ function Initialize-WSL {
                     wsl --install -d Ubuntu
                     Write-Information -MessageData "✅ Ubuntu installation started" -InformationAction Continue
                     Write-Information -MessageData "Note: You'll need to complete the Ubuntu setup when it launches" -InformationAction Continue
-                } catch {
+                }
+ catch {
                     Write-Error -Message "❌ Failed to install Ubuntu: $($_.Exception.Message)"
                 }
             }
@@ -139,7 +147,8 @@ sparseVhd=true
 "@
             $wslConfig | Out-File -FilePath $wslConfigPath -Encoding UTF8
             Write-Information -MessageData "✅ WSL configuration file created at: $wslConfigPath" -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Information -MessageData "✅ WSL configuration file already exists" -InformationAction Continue
         }
 
@@ -206,12 +215,12 @@ check_directory() {
 
             if [ -n "\$current_branch" ]; then
                 local_commit=\$(git rev-parse HEAD 2>/dev/null)
-                remote_commit=\$(git rev-parse origin/\$current_branch 2>/dev/null || echo "")
+                remote_commit=\$(git rev-parse origin/\$current_branch 2>/dev/null || Write-Output "")
 
                 if [ "\$local_commit" != "\$remote_commit" ] && [ -n "\$remote_commit" ]; then
                     # Check if ahead or behind
-                    ahead=\$(git rev-list --count HEAD..origin/\$current_branch 2>/dev/null || echo "0")
-                    behind=\$(git rev-list --count origin/\$current_branch..HEAD 2>/dev/null || echo "0")
+                    ahead=\$(git rev-list --count HEAD..origin/\$current_branch 2>/dev/null || Write-Output "0")
+                    behind=\$(git rev-list --count origin/\$current_branch..HEAD 2>/dev/null || Write-Output "0")
 
                     if [ "\$ahead" -gt 0 ]; then
                         echo "    ⬇️  Behind remote by \$ahead commits"
@@ -224,7 +233,7 @@ check_directory() {
         fi
 
         # Check last commit date
-        last_commit=\$(git log -1 --format="%cr" 2>/dev/null || echo "unknown")
+        last_commit=\$(git log -1 --format="%cr" 2>/dev/null || Write-Output "unknown")
         echo "    📅 Last commit: \$last_commit"
 
         echo "    ✅ \$repo_name checked"
@@ -272,11 +281,13 @@ echo "Usage: check-repos"
                     Invoke-WSLScript -ScriptContent $installScript
                     Write-Information -MessageData "✅ Repository checking tool installed in WSL" -InformationAction Continue
                     Write-Information -MessageData "   Use 'wsl check-repos' from PowerShell or 'check-repos' from within WSL" -InformationAction Continue
-                } catch {
+                }
+ catch {
                     Write-Error -Message "❌ Failed to install repository checking tool: $($_.Exception.Message)"
                 }
             }
-        } catch {
+        }
+ catch {
             Write-Warning -Message "Could not setup WSL development tools (no active distributions)"
         }
 
@@ -290,15 +301,18 @@ echo "Usage: check-repos"
                     $gitRepo = Read-Host "Enter your dotfiles git repository URL (or press Enter to skip)"
                     if ($gitRepo) {
                         Initialize-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
-                    } else {
+                    }
+ else {
                         Initialize-WSLChezmoi
                     }
                     Write-Information -MessageData "✅ chezmoi setup completed" -InformationAction Continue
-                } else {
+                }
+ else {
                     Write-Verbose -Message "⏭️ Skipped chezmoi setup"
                 }
             }
-        } catch {
+        }
+ catch {
             Write-Error -Message "❌ Failed to setup chezmoi: $($_.Exception.Message)"
         }
 
@@ -315,7 +329,8 @@ echo "Usage: check-repos"
 
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup WSL: $($_.Exception.Message)"
         return $false
     }

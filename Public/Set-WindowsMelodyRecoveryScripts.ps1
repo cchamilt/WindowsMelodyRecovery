@@ -1,20 +1,20 @@
-function Set-WindowsMelodyRecoveryScripts {
+﻿function Set-WindowsMelodyRecoveryScript {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('backup', 'restore', 'setup')]
         [string]$Category,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ScriptName,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [bool]$Enabled,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$ListAll,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Interactive
     )
 
@@ -109,7 +109,8 @@ function Set-WindowsMelodyRecoveryScripts {
         if ($result) {
             $status = if ($Enabled) { "enabled" } else { "disabled" }
             Write-Information -MessageData "Successfully $status $ScriptName in $Category scripts." -InformationAction Continue
-        } else {
+        }
+ else {
             Write-Error -Message "Failed to update script configuration."
         }
         return

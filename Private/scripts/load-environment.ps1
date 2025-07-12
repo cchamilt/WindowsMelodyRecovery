@@ -1,4 +1,4 @@
-# Load environment variables and settings for WindowsMelodyRecovery
+﻿# Load environment variables and settings for WindowsMelodyRecovery
 # This script should be sourced using dot-sourcing, not executed directly
 
 # Check if environment is already loaded
@@ -38,7 +38,7 @@ if (!$MACHINE_NAME) {
 # Try to load configuration from file
 function Import-EnvFile {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path
     )
 
@@ -53,7 +53,8 @@ function Import-EnvFile {
             }
         }
         return $true
-    } else {
+    }
+ else {
         Write-Warning -Message "Base configuration file not found: $Path"
         return $false
     }
@@ -79,14 +80,16 @@ if ($configLoaded) {
         Write-Warning -Message "Please update your configuration file: $DEFAULT_CONFIG_FILE"
         $configLoaded = $false
     }
-} else {
+}
+ else {
     Write-Warning -Message "Failed to load environment configuration"
 }
 
 # Set backup paths
 if ($configLoaded -and $env:BACKUP_ROOT) {
     $BACKUP_ROOT = $env:BACKUP_ROOT
-} else {
+}
+ else {
     # Try generic OneDrive paths without hardcoding organization names
     $foundOneDrive = $false
 
@@ -108,7 +111,8 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
 # Export variables to be used by other scripts
 $WINDOWS_MELODY_RECOVERY_PATH = if ($env:WINDOWS_MELODY_RECOVERY_PATH) {
     $env:WINDOWS_MELODY_RECOVERY_PATH
-} else {
+}
+ else {
     Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "WindowsMelodyRecovery"
 }
 

@@ -1,13 +1,10 @@
-function Sync-WindowsMelodyRecoveryScripts {
-    [CmdletBinding()]
+﻿function Sync-WindowsMelodyRecoveryScript {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$false)]
-        [switch]$WhatIf,
-
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Force,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$NoPrompt
     )
 
@@ -20,9 +17,11 @@ function Sync-WindowsMelodyRecoveryScripts {
     $moduleInfo = Get-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
     if ($moduleInfo) {
         $moduleRoot = Split-Path $moduleInfo.Path -Parent
-    } elseif ($PSScriptRoot) {
+    }
+ elseif ($PSScriptRoot) {
         $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-    } else {
+    }
+ else {
         # Last resort: use current directory or workspace
         $moduleRoot = if (Test-Path "/workspace") { "/workspace" } else { Get-Location }
     }
@@ -60,10 +59,12 @@ function Sync-WindowsMelodyRecoveryScripts {
     if (Test-Path $configPath) {
         $currentConfig = Get-Content $configPath -Raw | ConvertFrom-Json
         Write-Information -MessageData "Found existing user configuration" -InformationAction Continue
-    } elseif (Test-Path $templatePath) {
+    }
+ elseif (Test-Path $templatePath) {
         $currentConfig = Get-Content $templatePath -Raw | ConvertFrom-Json
         Write-Warning -Message "Using template configuration as base"
-    } else {
+    }
+ else {
         Write-Error "No configuration template found"
         return
     }
@@ -109,7 +110,8 @@ function Sync-WindowsMelodyRecoveryScripts {
                         $status = if ($existingScript) { "EXISTS" } else { "NEW" }
                         Write-Information -MessageData "  [$status] $category`: $($discoveredScript.name)  -InformationAction Continue-> $functionName" -ForegroundColor $(if ($existingScript) { 'Green' } else { 'Cyan' })
                     }
-                } else {
+                }
+ else {
                     Write-Warning "Could not determine function name for script: $($script.Name)"
                 }
             }
@@ -163,6 +165,11 @@ function Sync-WindowsMelodyRecoveryScripts {
         $count = @($discoveredScripts[$category]).Count
         Write-Verbose -Message "  $category`: $count scripts configured"
     }
+}   # Show summary
+foreach ($category in $categories) {
+    $count = @($discoveredScripts[$category]).Count
+    Write-Verbose -Message "  $category`: $count scripts configured"
+}
 }
 
 

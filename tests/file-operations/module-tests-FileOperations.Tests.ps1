@@ -1,4 +1,4 @@
-# Windows Melody Recovery - Module File Operations Tests
+﻿# Windows Melody Recovery - Module File Operations Tests
 # Tests module functionality with actual file operations (File-Operations Level)
 # Logic tests moved to tests/unit/module-tests-Logic.Tests.ps1
 
@@ -23,10 +23,12 @@ BeforeAll {
         # Ensure we get the actual module file, not the directory
         if (Test-Path $path -PathType Container) {
             Join-Path $path "WindowsMelodyRecovery.psm1"
-        } else {
+        }
+ else {
             $path
         }
-    } else {
+    }
+ else {
         # Fallback: determine module path based on current environment
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
@@ -36,11 +38,12 @@ BeforeAll {
 
     # Create temporary test directory in environment-appropriate safe location
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
     if ($isDockerEnvironment) {
         $TestTempDir = Join-Path "/workspace/Temp" "WindowsMelodyRecovery-FileOps"
-    } else {
+    }
+ else {
         # Use project Temp directory for local Windows environments
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $TestTempDir = Join-Path $moduleRoot "Temp" "WindowsMelodyRecovery-FileOps"

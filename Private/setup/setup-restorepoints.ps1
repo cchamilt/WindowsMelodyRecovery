@@ -1,6 +1,6 @@
-# Initialize-RestorePoints.ps1 - Configure automatic system restore points
+﻿# Initialize-RestorePoints.ps1 - Configure automatic system restore points
 
-function Initialize-RestorePoints {
+function Initialize-RestorePoint {
     [CmdletBinding()]
     param()
 
@@ -13,7 +13,8 @@ function Initialize-RestorePoints {
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -49,7 +50,8 @@ function Initialize-RestorePoints {
                     $canCreate = $false
                 }
             }
-        } catch {
+        }
+ catch {
             Write-Warning -Message "Warning: Could not check last restore point time: $($_.Exception.Message)"
         }
 
@@ -94,7 +96,8 @@ function Initialize-RestorePoints {
         Write-Information -MessageData "System Restore configuration completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to configure System Restore: $($_.Exception.Message)"
         return $false
     }

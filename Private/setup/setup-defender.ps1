@@ -1,4 +1,4 @@
-# Setup-Defender.ps1 - Configure Windows Defender settings
+﻿# Setup-Defender.ps1 - Configure Windows Defender settings
 
 function Enable-Defender {
     [CmdletBinding()]
@@ -13,7 +13,8 @@ function Enable-Defender {
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -100,7 +101,8 @@ function Enable-Defender {
         Write-Information -MessageData "Windows Defender configuration completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to configure Windows Defender: $($_.Exception.Message)"
         return $false
     }

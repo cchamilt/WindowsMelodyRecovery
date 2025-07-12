@@ -1,8 +1,8 @@
-# Requires admin privileges
-function Remove-WindowsMelodyRecoveryTasks {
+﻿# Requires admin privileges
+function Remove-WindowsMelodyRecoveryTask {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$NoPrompt
     )
 
@@ -18,7 +18,8 @@ function Remove-WindowsMelodyRecoveryTasks {
             Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
             return $false
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Could not verify administrator privileges: $_"
         return $false
     }
@@ -54,10 +55,12 @@ function Remove-WindowsMelodyRecoveryTasks {
                 Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false
                 Write-Information -MessageData "Removed scheduled task: $taskName" -InformationAction Continue
                 $removedCount++
-            } else {
+            }
+ else {
                 Write-Warning -Message "Task '$taskName' not found, skipping..."
             }
-        } catch {
+        }
+ catch {
             Write-Warning "Failed to remove scheduled task '$taskName': $_"
         }
     }

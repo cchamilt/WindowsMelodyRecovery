@@ -1,14 +1,15 @@
-function Initialize-CustomProfiles {
+﻿function Initialize-CustomProfile {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Force
     )
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -21,7 +22,8 @@ function Initialize-CustomProfiles {
             $null = Get-Command chezmoi -ErrorAction Stop
             $chezmoiInstalled = $true
             Write-Information -MessageData "Chezmoi is already installed." -InformationAction Continue
-        } catch {
+        }
+ catch {
             Write-Warning -Message "Chezmoi is not installed."
         }
 
@@ -34,15 +36,18 @@ function Initialize-CustomProfiles {
                     winget install twpayne.chezmoi
                     if ($LASTEXITCODE -eq 0) {
                         Write-Information -MessageData "Chezmoi installed successfully!" -InformationAction Continue
-                    } else {
+                    }
+ else {
                         Write-Warning "Failed to install chezmoi. Please install manually."
                         return $false
                     }
-                } catch {
+                }
+ catch {
                     Write-Warning "Failed to install chezmoi. Please install manually."
                     return $false
                 }
-            } else {
+            }
+ else {
                 Write-Warning -Message "Chezmoi installation cancelled."
                 return $false
             }
@@ -51,7 +56,8 @@ function Initialize-CustomProfiles {
         Write-Information -MessageData "Custom profiles setup completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup custom profiles"
         return $false
     }

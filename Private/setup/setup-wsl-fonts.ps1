@@ -1,6 +1,6 @@
-# Initialize-WSLFonts.ps1 - Install development fonts for WSL
+﻿# Initialize-WSLFonts.ps1 - Install development fonts for WSL
 
-function Initialize-WSLFonts {
+function Initialize-WSLFont {
     [CmdletBinding()]
     param()
 
@@ -13,7 +13,8 @@ function Initialize-WSLFonts {
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -81,7 +82,8 @@ function Initialize-WSLFonts {
                 Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
                 Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
 
-            } catch {
+            }
+ catch {
                 Write-Error -Message "Failed to install $font : $($_.Exception.Message)"
                 continue
             }
@@ -121,7 +123,8 @@ function Initialize-WSLFonts {
             Remove-Item $fontZip -Force -ErrorAction SilentlyContinue
             Remove-Item $fontExtract -Recurse -Force -ErrorAction SilentlyContinue
 
-        } catch {
+        }
+ catch {
             Write-Error -Message "Failed to install Ubuntu fonts: $($_.Exception.Message)"
         }
 
@@ -159,14 +162,16 @@ function Initialize-WSLFonts {
                 # Make script executable and run it with sudo
                 wsl --exec bash -c "chmod +x '$wslTempScript' && sudo '$wslTempScript'"
                 Write-Information -MessageData "Successfully configured WSL fonts" -InformationAction Continue
-            } catch {
+            }
+ catch {
                 Write-Error -Message "Failed to configure WSL fonts: $($_.Exception.Message)"
                 Write-Warning -Message "You may need to manually copy fonts to WSL"
             }
 
             # Cleanup temporary script
             Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
-        } else {
+        }
+ else {
             Write-Warning -Message "WSL not found. Fonts installed for Windows only."
         }
 
@@ -174,7 +179,8 @@ function Initialize-WSLFonts {
         Write-Warning -Message "Note: You may need to restart your WSL terminal to see the changes"
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to configure WSL fonts: $($_.Exception.Message)"
         return $false
     }

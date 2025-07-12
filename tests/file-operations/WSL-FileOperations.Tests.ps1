@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     WSL File Operations Tests
@@ -22,7 +22,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+ catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -323,7 +324,8 @@ export PATH=`$HOME/bin:`$PATH
                 $templateContent = Get-Content $templateBackupFile -Raw | ConvertFrom-Json
                 $templateContent.template | Should -Be "wsl.yaml"
                 $templateContent.operations.Count | Should -Be 3
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "wsl.yaml template not found"
             }
         }
@@ -380,7 +382,8 @@ backup:
             try {
                 $null = Get-Content $invalidPath -ErrorAction Stop
                 $errorOccurred = $false
-            } catch {
+            }
+ catch {
                 $errorOccurred = $true
                 $_.Exception.Message | Should -Match "(Cannot find path|does not exist)"
             }

@@ -1,4 +1,4 @@
-function Backup-WindowsMelodyRecovery {
+﻿function Backup-WindowsMelodyRecovery {
     <#
     .SYNOPSIS
         Backs up Windows system configuration and applications using templates.
@@ -24,10 +24,10 @@ function Backup-WindowsMelodyRecovery {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$TemplatePath,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$BackupRoot
     )
 
@@ -90,7 +90,8 @@ function Backup-WindowsMelodyRecovery {
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
                         Write-Information -MessageData "Template completed: $($templateFile.Name)" -InformationAction Continue
-                    } catch {
+                    }
+ catch {
                         Write-Error -Message "Template failed: $($templateFile.Name) - $($_.Exception.Message)"
                     }
                 }
@@ -103,11 +104,13 @@ function Backup-WindowsMelodyRecovery {
                     TotalTemplates = $totalTemplates
                     Method = "Templates"
                 }
-            } else {
+            }
+ else {
                 # Run single template
                 $templateFullPath = if (Test-Path $TemplatePath) {
                     $TemplatePath
-                } else {
+                }
+ else {
                     Join-Path $PSScriptRoot "..\Templates\System\$TemplatePath"
                 }
 
@@ -134,7 +137,8 @@ function Backup-WindowsMelodyRecovery {
                     Method = "Template"
                 }
             }
-        } else {
+        }
+ else {
             # Default template backup
             $templateDir = Join-Path $PSScriptRoot "..\Templates\System"
             $templateFiles = Get-ChildItem -Path $templateDir -Filter "*.yaml" -ErrorAction SilentlyContinue
@@ -159,7 +163,8 @@ function Backup-WindowsMelodyRecovery {
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
                         Write-Information -MessageData "Completed: $($templateFile.Name)" -InformationAction Continue
-                    } catch {
+                    }
+ catch {
                         Write-Error -Message "Failed: $($templateFile.Name)"
                     }
                 }
@@ -171,7 +176,8 @@ function Backup-WindowsMelodyRecovery {
                     BackupPath = $MACHINE_BACKUP
                     Method = "Templates"
                 }
-            } else {
+            }
+ else {
                 Write-Warning -Message "No templates found, using script-based backup"
 
                 # Fallback to script-based backup
@@ -196,7 +202,8 @@ function Backup-WindowsMelodyRecovery {
                             & $backup.function @params
                             $availableBackups++
                             Write-Information -MessageData "Executed: $($backup.function)" -InformationAction Continue
-                        } catch {
+                        }
+ catch {
                             Write-Error -Message "Failed: $($backup.function)"
                         }
                     }
@@ -211,7 +218,8 @@ function Backup-WindowsMelodyRecovery {
                 }
             }
         }
-    } finally {
+    }
+ finally {
         Stop-Transcript
     }
 }

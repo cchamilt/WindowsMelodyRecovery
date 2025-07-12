@@ -1,16 +1,16 @@
-function Set-WindowsMelodyRecovery {
+﻿function Set-WindowsMelodyRecovery {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$BackupRoot,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$MachineName,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$CloudProvider,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$WindowsMelodyRecoveryPath
     )
 

@@ -1,4 +1,4 @@
-# Backup and Restore Workflow Validation Tests
+﻿# Backup and Restore Workflow Validation Tests
 # Tests for complete backup/restore workflows with BitLocker and Windows Backup integration
 
 BeforeAll {
@@ -68,7 +68,8 @@ AfterAll {
             if ($task) {
                 Unregister-ScheduledTask -TaskName $taskName -TaskPath "\Microsoft\Windows\WindowsMelodyRecovery\" -Confirm:$false -ErrorAction SilentlyContinue
             }
-        } catch {
+        }
+ catch {
             # Ignore cleanup errors
         }
     }

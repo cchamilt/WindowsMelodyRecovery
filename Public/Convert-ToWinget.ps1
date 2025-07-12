@@ -1,4 +1,4 @@
-# Script to uninstall existing applications and reinstall them via winget
+﻿# Script to uninstall existing applications and reinstall them via winget
 
 function Convert-ToWinget {
     [CmdletBinding()]
@@ -35,7 +35,8 @@ function Convert-ToWinget {
                     Source = $matches[2]
                 }
             }
-        } catch {
+        }
+ catch {
             Write-Error -Message "Failed to search for $AppName in winget: $_"
         }
         return $null
@@ -92,7 +93,8 @@ function Convert-ToWinget {
                     UninstallString = $app.UninstallString
                 }
                 Write-Information -MessageData "Found in winget: $($wingetInfo.Id) from $($wingetInfo.Source)" -InformationAction Continue
-            } else {
+            }
+ else {
                 $nonConvertible += $app
                 Write-Error -Message "Not found in winget"
             }
@@ -115,7 +117,8 @@ function Convert-ToWinget {
                         if ($app.UninstallString -match "msiexec") {
                             $uninstallString = $app.UninstallString -replace "msiexec.exe", "" -replace "/I", "/X" -replace "/i", "/x"
                             Start-Process "msiexec.exe" -ArgumentList "$uninstallString /quiet" -Wait
-                        } else {
+                        }
+ else {
                             $uninstallProcess = Start-Process $app.UninstallString -Wait -PassThru
                             if ($uninstallProcess.ExitCode -ne 0) {
                                 throw "Uninstall process exited with code: $($uninstallProcess.ExitCode)"
@@ -127,7 +130,8 @@ function Convert-ToWinget {
                         winget install --id $app.WingetId --source $app.Source --accept-package-agreements --accept-source-agreements
 
                         Write-Information -MessageData "Successfully converted $($app.Name) to winget" -InformationAction Continue
-                    } catch {
+                    }
+ catch {
                         Write-Error -Message "Failed to convert $($app.Name): $_"
                     }
                 }
@@ -142,7 +146,8 @@ function Convert-ToWinget {
         }
 
         return $true
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to convert applications to winget: $_"
         return $false
     }

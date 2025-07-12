@@ -1,4 +1,4 @@
-# BitLocker and Windows Backup Setup Integration Tests
+﻿# BitLocker and Windows Backup Setup Integration Tests
 # Tests for setup-bitlocker.ps1 and Initialize-WindowsBackup.ps1
 
 BeforeAll {
@@ -48,7 +48,8 @@ AfterAll {
             if ($task) {
                 Unregister-ScheduledTask -TaskName $taskName -TaskPath "\Microsoft\Windows\WindowsMelodyRecovery\" -Confirm:$false -ErrorAction SilentlyContinue
             }
-        } catch {
+        }
+ catch {
             # Ignore cleanup errors
         }
     }

@@ -1,4 +1,4 @@
-function Restore-SystemSettings {
+﻿function Restore-SystemSetting {
     <#
     .SYNOPSIS
     Restores system settings from backup data.
@@ -28,14 +28,11 @@ function Restore-SystemSettings {
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$BackupPath,
 
-        [Parameter(Mandatory=$false)]
-        [string]$RestoreManifest,
-
-        [Parameter(Mandatory=$false)]
-        [switch]$WhatIf
+        [Parameter(Mandatory = $false)]
+        [string]$RestoreManifest
     )
 
     Write-Information -MessageData "Starting system settings restore from: $BackupPath" -InformationAction Continue
@@ -47,7 +44,8 @@ function Restore-SystemSettings {
     # Check for restore manifest
     $manifestPath = if ($RestoreManifest) {
         $RestoreManifest
-    } else {
+    }
+    else {
         Join-Path $BackupPath "backup-manifest.json"
     }
 
@@ -56,7 +54,8 @@ function Restore-SystemSettings {
         try {
             $manifest = Get-Content $manifestPath | ConvertFrom-Json
             Write-Information -MessageData "Found backup manifest with $($manifest.Items.Count) items" -InformationAction Continue
-        } catch {
+        }
+        catch {
             Write-Warning "Failed to read backup manifest: $($_.Exception.Message)"
         }
     }
@@ -67,9 +66,10 @@ function Restore-SystemSettings {
         Write-Warning -Message "Restoring registry settings..."
 
         Get-ChildItem $registryPath -Filter "*.reg" | ForEach-Object {
-            if ($WhatIf) {
+            if ($WhatIfPreference) {
                 Write-Warning -Message "  WhatIf: Would import registry file: $($_.Name)"
-            } else {
+            }
+            else {
                 try {
                     Write-Information -MessageData "  Importing registry file: $($_.Name)" -InformationAction Continue
                     # Note: In a real implementation, this would use reg.exe import
@@ -78,7 +78,8 @@ function Restore-SystemSettings {
                     if ($regContent -match "Windows Registry Editor") {
                         Write-Information -MessageData "    Registry file validated successfully" -InformationAction Continue
                     }
-                } catch {
+                }
+                catch {
                     Write-Warning "    Failed to process registry file $($_.Name): $($_.Exception.Message)"
                 }
             }
@@ -91,9 +92,10 @@ function Restore-SystemSettings {
         Write-Warning -Message "Restoring user preferences..."
 
         Get-ChildItem $preferencesPath -Filter "*.json" | ForEach-Object {
-            if ($WhatIf) {
+            if ($WhatIfPreference) {
                 Write-Warning -Message "  WhatIf: Would restore preferences from: $($_.Name)"
-            } else {
+            }
+            else {
                 try {
                     Write-Information -MessageData "  Restoring preferences from: $($_.Name)" -InformationAction Continue
                     $preferences = Get-Content $_.FullName | ConvertFrom-Json
@@ -104,7 +106,8 @@ function Restore-SystemSettings {
                     foreach ($prop in $preferences.PSObject.Properties) {
                         Write-Verbose -Message "      $($prop.Name): $($prop.Value)"
                     }
-                } catch {
+                }
+                catch {
                     Write-Warning "    Failed to restore preferences from $($_.Name): $($_.Exception.Message)"
                 }
             }
@@ -117,9 +120,10 @@ function Restore-SystemSettings {
         Write-Warning -Message "Restoring system configuration..."
 
         Get-ChildItem $configPath -Filter "*.json" | ForEach-Object {
-            if ($WhatIf) {
+            if ($WhatIfPreference) {
                 Write-Warning -Message "  WhatIf: Would restore configuration from: $($_.Name)"
-            } else {
+            }
+            else {
                 try {
                     Write-Information -MessageData "  Restoring configuration from: $($_.Name)" -InformationAction Continue
                     $config = Get-Content $_.FullName | ConvertFrom-Json
@@ -134,7 +138,8 @@ function Restore-SystemSettings {
                             Write-Verbose -Message "        Properties: $sectionProps"
                         }
                     }
-                } catch {
+                }
+                catch {
                     Write-Warning "    Failed to restore configuration from $($_.Name): $($_.Exception.Message)"
                 }
             }
@@ -149,7 +154,8 @@ function Restore-SystemSettings {
         Version = "1.0.0"
         SourceBackup = $BackupPath
         RestoredItems = @()
-        Status = if ($WhatIf) { "Simulated" } else { "Completed" }
+        Status = if ($WhatIfPreference) { "Simulated" }
+        else { "Completed" }
     }
 
     # Add restored items to manifest
@@ -187,11 +193,12 @@ function Restore-SystemSettings {
     }
 
     # Save restore manifest
-    if (-not $WhatIf) {
+    if (-not $WhatIfPreference) {
         try {
             $restoreManifest | ConvertTo-Json -Depth 3 | Set-Content $restoreManifestPath -Encoding UTF8
             Write-Information -MessageData "Restore manifest saved to: $restoreManifestPath" -InformationAction Continue
-        } catch {
+        }
+        catch {
             Write-Warning "Failed to save restore manifest: $($_.Exception.Message)"
         }
     }
@@ -199,7 +206,7 @@ function Restore-SystemSettings {
     Write-Information -MessageData "System settings restore completed!" -InformationAction Continue
     Write-Information -MessageData "Items restored: $($restoreManifest.RestoredItems.Count)" -InformationAction Continue
 
-    if ($WhatIf) {
+    if ($WhatIfPreference) {
         Write-Warning -Message "This was a simulation - no actual changes were made."
     }
 

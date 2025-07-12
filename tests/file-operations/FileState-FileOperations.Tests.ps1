@@ -1,4 +1,4 @@
-# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+﻿# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
 param()
 
@@ -40,7 +40,7 @@ BeforeAll {
     $script:testPassphrase = ConvertTo-SecureString -String "TestPassphrase123!" -AsPlainText -Force
 
     # Function to safely remove items
-    function Remove-TestItems {
+    function Remove-TestItem {
         param([string]$Path)
         if ((Test-Path $Path) -and (Test-SafeTestPath $Path)) {
             Remove-Item -Path $Path -Force -Recurse -ErrorAction SilentlyContinue -Confirm:$false
@@ -56,13 +56,13 @@ BeforeAll {
 
     # Mock encryption functions
     Mock Protect-WmrData {
-        param($Data, $Passphrase)
+        param($Data, [SecureString] $Passphrase)
         $base64 = [Convert]::ToBase64String($Data)
         return "ENCRYPTED:$base64"
     }
 
     Mock Unprotect-WmrData {
-        param($EncodedData, $Passphrase)
+        param($EncodedData, [SecureString] $Passphrase)
         $base64 = $EncodedData -replace '^ENCRYPTED:', ''
         return [Convert]::FromBase64String($base64)
     }

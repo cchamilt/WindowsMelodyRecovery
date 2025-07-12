@@ -1,16 +1,17 @@
-function Initialize-EAGames {
+﻿function Initialize-EAGame {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$GamesListPath = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Install
     )
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -46,7 +47,7 @@ function Initialize-EAGames {
         return $false
     }
 
-    function Get-InstalledGames {
+    function Get-InstalledGame {
         $installedGames = @()
 
         # Check EA app installation
@@ -86,15 +87,18 @@ function Initialize-EAGames {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.EA) {
                     $gamesList = $applications.EA
-                } else {
+                }
+ else {
                     Write-Warning -Message "No EA games found in backup"
                     $gamesList = @()
                 }
-            } else {
+            }
+ else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
-        } else {
+        }
+ else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -116,7 +120,8 @@ function Initialize-EAGames {
             $installedGames | ForEach-Object {
                 Write-Information -MessageData "- $($_.Name) (ID: $($_.Id))" -InformationAction Continue
             }
-        } else {
+        }
+ else {
             Write-Verbose -Message "No EA games currently installed"
         }
 
@@ -127,7 +132,8 @@ function Initialize-EAGames {
                 $gamesToInstall | ForEach-Object {
                     Write-Warning -Message "- $($_.Name) (ID: $($_.Id))"
                 }
-            } else {
+            }
+ else {
                 Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
@@ -144,14 +150,16 @@ function Initialize-EAGames {
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
                 Write-Warning -Message "`nRun with -Install to begin installation process"
             }
-        } else {
+        }
+ else {
             Write-Verbose -Message "`nNo games list found to install from"
         }
 
         Write-Information -MessageData "`nEA Games setup completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup EA Games: $($_.Exception.Message)"
         return $false
     }

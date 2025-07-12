@@ -2,6 +2,7 @@
 
 function Import-Environment {
     [CmdletBinding()]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory = $false)]
         [string]$ConfigPath = $null
@@ -124,7 +125,7 @@ function Get-ScriptsConfig {
 }
 
 function Set-ScriptsConfig {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Category,
@@ -160,12 +161,15 @@ function Set-ScriptsConfig {
         # Find and update the script
         $scriptConfig = $config.$Category.enabled | Where-Object { $_.name -eq $ScriptName -or $_.function -eq $ScriptName }
         if ($scriptConfig) {
-            $scriptConfig.enabled = $Enabled
+            if ($PSCmdlet.ShouldProcess("$userConfigPath", "Update $ScriptName in $Category to enabled=$Enabled")) {
+                $scriptConfig.enabled = $Enabled
 
-            # Save the updated configuration
-            $config | ConvertTo-Json -Depth 10 | Set-Content -Path $userConfigPath -Force
-            Write-Verbose "Updated $ScriptName in $Category to enabled=$Enabled"
-            return $true
+                # Save the updated configuration
+                $config | ConvertTo-Json -Depth 10 | Set-Content -Path $userConfigPath -Force
+                Write-Verbose "Updated $ScriptName in $Category to enabled=$Enabled"
+                return $true
+            }
+            return $false
         }
         else {
             Write-Warning "Script '$ScriptName' not found in category '$Category'"

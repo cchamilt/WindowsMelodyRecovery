@@ -1,4 +1,4 @@
-# Setup-ApplicationDiscovery.ps1 - Configure application discovery and management workflows
+﻿# Setup-ApplicationDiscovery.ps1 - Configure application discovery and management workflows
 
 <#
 .SYNOPSIS
@@ -39,21 +39,21 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet('Full', 'Quick', 'Manual')]
     [string]$DiscoveryMode = 'Quick',
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet('JSON', 'CSV', 'YAML')]
     [string]$OutputFormat = 'JSON',
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$UserListPath = $null,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$CreateUserLists,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$DocumentInstallation
 )
 
@@ -65,7 +65,8 @@ $modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
 $coreUtilitiesPath = Join-Path $modulePath "Private\Core\WindowsMelodyRecovery.Core.ps1"
 if (Test-Path $coreUtilitiesPath) {
     . $coreUtilitiesPath
-} else {
+}
+ else {
     Write-Warning "Core utilities not found at: $coreUtilitiesPath"
 }
 
@@ -73,28 +74,29 @@ if (Test-Path $coreUtilitiesPath) {
 $loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath
-} else {
+}
+ else {
     Write-Warning "Load environment script not found at: $loadEnvPath"
 }
 
 function Initialize-ApplicationDiscovery {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('Full', 'Quick', 'Manual')]
         [string]$DiscoveryMode = 'Quick',
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$OutputFormat = 'JSON',
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$UserListPath = $null,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$CreateUserLists,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$DocumentInstallation
     )
 
@@ -117,7 +119,8 @@ function Initialize-ApplicationDiscovery {
             }
             $backupRoot = $config.BackupRoot
             $machineName = $config.MachineName
-        } catch {
+        }
+ catch {
             Write-Warning "Module configuration not available. Using defaults."
             $backupRoot = "$env:USERPROFILE\WindowsMelodyRecovery"
             $machineName = $env:COMPUTERNAME
@@ -146,7 +149,8 @@ function Initialize-ApplicationDiscovery {
                 # Save unmanaged applications list
                 $unmanagedPath = Join-Path $outputPath "unmanaged-applications.$($OutputFormat.ToLower())"
                 Save-ApplicationList -Applications $unmanagedApps -Path $unmanagedPath -Format $OutputFormat
-            } else {
+            }
+ else {
                 Write-Warning -Message "No unmanaged applications found or discovery was skipped"
             }
 
@@ -175,7 +179,8 @@ function Initialize-ApplicationDiscovery {
             Write-Information -MessageData "Application discovery and management setup completed successfully!" -InformationAction Continue
             return $true
 
-        } catch {
+        }
+ catch {
             Write-Error "Failed to setup application discovery: $_"
             return $false
         }
@@ -185,7 +190,7 @@ function Initialize-ApplicationDiscovery {
 function Invoke-UnmanagedApplicationDiscovery {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('Full', 'Quick', 'Manual')]
         [string]$Mode
     )
@@ -202,11 +207,13 @@ function Invoke-UnmanagedApplicationDiscovery {
             Write-Verbose -Message "Running unmanaged application analysis..."
             $result = & $analyzeScript -WhatIf:$WhatIfPreference
             return $result
-        } else {
+        }
+ else {
             Write-Warning "Find-UnmanagedApplication script not found at: $analyzeScript"
             return @()
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to run unmanaged application discovery: $_"
         return @()
     }
@@ -215,13 +222,13 @@ function Invoke-UnmanagedApplicationDiscovery {
 function Save-ApplicationList {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$Applications,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$Format
     )
@@ -254,7 +261,8 @@ function Save-ApplicationList {
             }
         }
         Write-Information -MessageData "Application list saved to: $Path" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to save application list: $_"
     }
 }
@@ -262,7 +270,7 @@ function Save-ApplicationList {
 function New-InstallationDocumentation {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$Applications
     )
 
@@ -311,13 +319,13 @@ function New-InstallationDocumentation {
 function Save-InstallationDocumentation {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [array]$Documentation,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$Format
     )
@@ -373,18 +381,19 @@ function Save-InstallationDocumentation {
             }
         }
         Write-Information -MessageData "Installation documentation saved to: $Path" -InformationAction Continue
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to save installation documentation: $_"
     }
 }
 
-function New-UserEditableApplicationLists {
+function New-UserEditableApplicationList {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$OutputPath,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('JSON', 'CSV', 'YAML')]
         [string]$Format
     )
@@ -513,15 +522,16 @@ Tips:
         Write-Verbose -Message "  Games: $gamesPath"
         Write-Verbose -Message "  Instructions: $instructionsPath"
 
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to create user-editable lists: $_"
     }
 }
 
-function Initialize-ApplicationDecisionWorkflows {
+function Initialize-ApplicationDecisionWorkflow {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$OutputPath
     )
 
@@ -595,7 +605,8 @@ function Initialize-ApplicationDecisionWorkflows {
 
         Write-Information -MessageData "Application decision workflows initialized: $workflowPath" -InformationAction Continue
 
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to initialize application decision workflows: $_"
     }
 }
@@ -603,7 +614,7 @@ function Initialize-ApplicationDecisionWorkflows {
 function Test-ApplicationDiscoveryStatus {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$OutputPath = $null
     )
 
@@ -645,7 +656,8 @@ function Test-ApplicationDiscoveryStatus {
 
         return $status
 
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to check application discovery status: $_"
         return @{
             ApplicationDiscoveryConfigured = $false

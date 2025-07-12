@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Updates GitHub username in repository files
@@ -75,12 +75,14 @@ foreach ($File in $FilesToUpdate) {
 
         if ($WhatIfPreference) {
             Write-Warning -Message "  ✏️  Would replace $Replacements instances of '$OldUsername'"
-        } else {
+        }
+ else {
             $Content | Set-Content $File -NoNewline
             Write-Information -MessageData "  ✅ Replaced $Replacements instances of '$OldUsername'" -InformationAction Continue
             $UpdatedFiles++
         }
-    } else {
+    }
+ else {
         Write-Verbose -Message "  ℹ️  No replacements needed"
     }
 }
@@ -93,7 +95,8 @@ if ($WhatIfPreference) {
     Write-Warning -Message "  - Total replacements that would be made: $TotalReplacements"
     Write-Information -MessageData "" -InformationAction Continue
     Write-Information -MessageData "💡 Run without -WhatIf to apply changes" -InformationAction Continue
-} else {
+}
+ else {
     Write-Information -MessageData "📊 Summary:" -InformationAction Continue
     Write-Information -MessageData "  - Files updated: $UpdatedFiles" -InformationAction Continue
     Write-Information -MessageData "  - Total replacements made: $TotalReplacements" -InformationAction Continue
@@ -129,7 +132,8 @@ if (-not $WhatIfPreference -and $UpdatedFiles -gt 0) {
 
     if ($ValidationErrors -eq 0) {
         Write-Information -MessageData "✅ All files validated successfully" -InformationAction Continue
-    } else {
+    }
+ else {
         Write-Warning "⚠️  $ValidationErrors files may need manual review"
     }
 }

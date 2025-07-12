@@ -1,16 +1,17 @@
-function Initialize-EpicGames {
+﻿function Initialize-EpicGame {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$GamesListPath = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Install
     )
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -60,7 +61,7 @@ function Initialize-EpicGames {
         return $false
     }
 
-    function Get-InstalledGames {
+    function Get-InstalledGame {
         if (!(Get-Command legendary -ErrorAction SilentlyContinue)) {
             Write-Error -Message "Legendary CLI not found"
             return @()
@@ -87,7 +88,7 @@ function Initialize-EpicGames {
         return $installedGames
     }
 
-    function Install-EpicGames {
+    function Install-EpicGame {
         param(
             [array]$Games
         )
@@ -141,15 +142,18 @@ function Initialize-EpicGames {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.Epic) {
                     $gamesList = $applications.Epic
-                } else {
+                }
+ else {
                     Write-Warning -Message "No Epic games found in backup"
                     $gamesList = @()
                 }
-            } else {
+            }
+ else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
-        } else {
+        }
+ else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -175,7 +179,8 @@ function Initialize-EpicGames {
             $installedGames | ForEach-Object {
                 Write-Information -MessageData "- $($_.Name) (AppID: $($_.AppId))" -InformationAction Continue
             }
-        } else {
+        }
+ else {
             Write-Verbose -Message "No Epic games currently installed"
         }
 
@@ -186,7 +191,8 @@ function Initialize-EpicGames {
                 $gamesToInstall | ForEach-Object {
                     Write-Warning -Message "- $($_.Name) (AppID: $($_.AppId))"
                 }
-            } else {
+            }
+ else {
                 Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
@@ -197,14 +203,16 @@ function Initialize-EpicGames {
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
                 Write-Warning -Message "`nRun with -Install to install missing games"
             }
-        } else {
+        }
+ else {
             Write-Verbose -Message "`nNo games list found to install from"
         }
 
         Write-Information -MessageData "`nEpic Games setup completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup Epic Games: $($_.Exception.Message)"
         return $false
     }

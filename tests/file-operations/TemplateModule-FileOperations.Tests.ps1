@@ -1,4 +1,4 @@
-# tests/file-operations/TemplateModule-FileOperations.Tests.ps1
+﻿# tests/file-operations/TemplateModule-FileOperations.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -24,11 +24,12 @@ BeforeAll {
 
     # Set up environment-aware test paths
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-                          (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+    (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
 
     if ($isDockerEnvironment) {
         $script:TempTemplateDir = "/workspace/Temp"
-    } else {
+    }
+ else {
         # Use project Temp directory for local Windows environments
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $script:TempTemplateDir = Join-Path $moduleRoot "Temp"
@@ -94,7 +95,8 @@ metadata:
 
             try {
                 { Read-WmrTemplateConfig -TemplatePath $invalidYamlPath } | Should -Throw
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $invalidYamlPath -ErrorAction SilentlyContinue
             }
         }
@@ -114,7 +116,8 @@ prerequisites: []
                 $config = Read-WmrTemplateConfig -TemplatePath $utf8TemplatePath
                 $config.metadata.name | Should -Be "UTF-8 测试模板"
                 $config.metadata.description | Should -Match "émojis 🚀"
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $utf8TemplatePath -ErrorAction SilentlyContinue
             }
         }
@@ -143,7 +146,8 @@ prerequisites: []
             try {
                 $config = Read-WmrTemplateConfig -TemplatePath $nestedTemplatePath
                 $config.metadata.name | Should -Be "Nested Template"
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $nestedTemplatePath -Force -ErrorAction SilentlyContinue
                 Remove-Item -Path $nestedDir -Force -ErrorAction SilentlyContinue
             }
@@ -165,7 +169,8 @@ prerequisites: []
 
                 try {
                     { Read-WmrTemplateConfig -TemplatePath $testPath } | Should -Not -Throw
-                } finally {
+                }
+ finally {
                     Remove-Item -Path $testPath -ErrorAction SilentlyContinue
                 }
             }
@@ -212,7 +217,8 @@ applications:
             try {
                 $config = Read-WmrTemplateConfig -TemplatePath $completeTemplatePath
                 { Test-WmrTemplateSchema -TemplateConfig $config } | Should -Not -Throw
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $completeTemplatePath -ErrorAction SilentlyContinue
             }
         }
@@ -230,7 +236,8 @@ prerequisites: []
             try {
                 $config = Read-WmrTemplateConfig -TemplatePath $incompleteTemplatePath
                 { Test-WmrTemplateSchema -TemplateConfig $config } | Should -Throw
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $incompleteTemplatePath -ErrorAction SilentlyContinue
             }
         }
@@ -252,7 +259,8 @@ prerequisites: []
             try {
                 $config = Read-WmrTemplateConfig -TemplatePath $backupTemplatePath
                 $config.metadata.name | Should -Be "Test Template"
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $backupTemplatePath -Force -ErrorAction SilentlyContinue
                 Remove-Item -Path $backupDir -Force -ErrorAction SilentlyContinue
             }
@@ -279,7 +287,8 @@ prerequisites: []
                 $config = Read-WmrTemplateConfig -TemplatePath $versionedTemplatePath
                 $config.metadata.name | Should -Be "Versioned Template"
                 $config.metadata.version | Should -Be "1.0"
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $versionedTemplatePath -Force -ErrorAction SilentlyContinue
                 Remove-Item -Path $versionDir -Force -ErrorAction SilentlyContinue
             }
@@ -297,7 +306,8 @@ prerequisites: []
             try {
                 # On Linux/Docker, we can't easily set read-only, so just test normal access
                 { Read-WmrTemplateConfig -TemplatePath $readOnlyPath } | Should -Not -Throw
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $readOnlyPath -Force -ErrorAction SilentlyContinue
             }
         }
@@ -310,7 +320,8 @@ prerequisites: []
 
             try {
                 { Read-WmrTemplateConfig -TemplatePath $corruptedPath } | Should -Throw
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $corruptedPath -ErrorAction SilentlyContinue
             }
         }
@@ -344,7 +355,8 @@ prerequisites:
                 $config = Read-WmrTemplateConfig -TemplatePath $largeTemplatePath
                 $config.metadata.name | Should -Be "Large Template"
                 $config.prerequisites.Count | Should -Be 100
-            } finally {
+            }
+ finally {
                 Remove-Item -Path $largeTemplatePath -ErrorAction SilentlyContinue
             }
         }

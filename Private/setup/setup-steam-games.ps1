@@ -1,16 +1,17 @@
-function Initialize-SteamGames {
+﻿function Initialize-SteamGame {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$GamesListPath = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Install
     )
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -26,15 +27,18 @@ function Initialize-SteamGames {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.Steam) {
                     $gamesList = $applications.Steam
-                } else {
+                }
+ else {
                     Write-Warning -Message "No Steam games found in backup"
                     $gamesList = @()
                 }
-            } else {
+            }
+ else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
-        } else {
+        }
+ else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -45,7 +49,8 @@ function Initialize-SteamGames {
         Write-Information -MessageData "Steam games setup completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Error setting up Steam games: $_"
         return $false
     }

@@ -1,4 +1,4 @@
-# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+﻿# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
 param()
 
@@ -16,7 +16,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+ catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -114,7 +115,8 @@ Microsoft Edge       Microsoft.Edge        100.0.1
 Windows Terminal    Microsoft.WindowsTerminal 1.0.0
 Package A           App.PackageA          1.2.3
 "@
-                } else { throw "Unexpected Command: $Command" }
+                }
+ else { throw "Unexpected Command: $Command" }
             }
 
             $appConfig = @{

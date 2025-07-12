@@ -1,16 +1,17 @@
-function Initialize-GOGGames {
+﻿function Initialize-GOGGame {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$GamesListPath = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Install
     )
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -46,7 +47,7 @@ function Initialize-GOGGames {
         return $false
     }
 
-    function Get-InstalledGames {
+    function Get-InstalledGame {
         $installedGames = @()
 
         $gogPath = "C:\Program Files (x86)\GOG Galaxy"
@@ -59,7 +60,8 @@ function Initialize-GOGGames {
                         Write-Warning -Message "Installing SQLite..."
                         if (Get-Command scoop -ErrorAction SilentlyContinue) {
                             scoop install sqlite
-                        } else {
+                        }
+ else {
                             Write-Warning -Message "SQLite not available. Cannot read GOG Galaxy database."
                             return $installedGames
                         }
@@ -97,15 +99,18 @@ function Initialize-GOGGames {
                 $applications = Get-Content $backupGamesPath | ConvertFrom-Json
                 if ($applications.GOG) {
                     $gamesList = $applications.GOG
-                } else {
+                }
+ else {
                     Write-Warning -Message "No GOG games found in backup"
                     $gamesList = @()
                 }
-            } else {
+            }
+ else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
-        } else {
+        }
+ else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -128,7 +133,8 @@ function Initialize-GOGGames {
             $installedGames | ForEach-Object {
                 Write-Information -MessageData "- $($_.Name) (ID: $($_.Id))" -InformationAction Continue
             }
-        } else {
+        }
+ else {
             Write-Verbose -Message "No GOG games currently installed"
         }
 
@@ -139,7 +145,8 @@ function Initialize-GOGGames {
                 $gamesToInstall | ForEach-Object {
                     Write-Warning -Message "- $($_.Name) (ID: $($_.Id))"
                 }
-            } else {
+            }
+ else {
                 Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
@@ -156,14 +163,16 @@ function Initialize-GOGGames {
             elseif (!$Install -and $gamesToInstall.Count -gt 0) {
                 Write-Warning -Message "`nRun with -Install to begin installation process"
             }
-        } else {
+        }
+ else {
             Write-Verbose -Message "`nNo games list found to install from"
         }
 
         Write-Information -MessageData "`nGOG Games setup completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup GOG Games: $($_.Exception.Message)"
         return $false
     }

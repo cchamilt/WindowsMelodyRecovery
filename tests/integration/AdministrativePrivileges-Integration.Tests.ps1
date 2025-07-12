@@ -1,4 +1,4 @@
-# tests/integration/AdministrativePrivileges-Integration.Tests.ps1
+﻿# tests/integration/AdministrativePrivileges-Integration.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -21,11 +21,11 @@
 BeforeAll {
     # CRITICAL SAFETY CHECK: Only run in CI/CD environment
     $isCICD = $env:GITHUB_ACTIONS -eq "true" -or
-              $env:AZURE_PIPELINES -eq "True" -or
-              $env:CI -eq "true" -or
-              $env:BUILD_BUILDID -or
-              $env:SYSTEM_TEAMPROJECT -or
-              $env:RUNNER_OS -eq "Windows"
+    $env:AZURE_PIPELINES -eq "True" -or
+    $env:CI -eq "true" -or
+    $env:BUILD_BUILDID -or
+    $env:SYSTEM_TEAMPROJECT -or
+    $env:RUNNER_OS -eq "Windows"
 
     $isWindowsCI = $IsWindows -and $isCICD
 
@@ -44,7 +44,8 @@ BeforeAll {
     # Verify we're running with admin privileges in CI/CD
     $isAdmin = try {
         ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    } catch {
+    }
+ catch {
         $false
     }
 
@@ -205,11 +206,13 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                 $createdTask | Should -Not -BeNull
                 $createdTask.Principal.RunLevel | Should -Be "Highest"
 
-            } finally {
+            }
+ finally {
                 # Clean up test task
                 try {
                     Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
-                } catch {
+                }
+ catch {
                     Write-Warning "Failed to clean up test scheduled task: $_"
                 }
             }
@@ -273,11 +276,13 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                 $retrievedValue = Get-ItemProperty -Path $testKeyPath -Name $testValueName
                 $retrievedValue.$testValueName | Should -Be $testValueData
 
-            } finally {
+            }
+ finally {
                 # Clean up test registry key
                 try {
                     Remove-Item -Path $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
-                } catch {
+                }
+ catch {
                     Write-Warning "Failed to clean up test registry key: $_"
                 }
             }
@@ -315,11 +320,13 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                 $stateContent.TestValue1 | Should -Be "Data1"
                 $stateContent.TestValue2 | Should -Be "Data2"
 
-            } finally {
+            }
+ finally {
                 # Clean up test registry key
                 try {
                     Remove-Item -Path $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
-                } catch {
+                }
+ catch {
                     Write-Warning "Failed to clean up test registry key: $_"
                 }
             }
@@ -361,7 +368,8 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
                 # In CI/CD, we can test service state queries without modification
                 $originalService.Name | Should -Be $testServiceName
-            } else {
+            }
+ else {
                 Set-ItResult -Skipped -Because "Test service '$testServiceName' not available"
             }
         }
@@ -397,7 +405,8 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                     $scriptContent | Should -Match "Administrator|Elevated|RunAsAdministrator"
 
                     Write-Verbose -Message "Verified admin privilege requirements in $scriptName"
-                } else {
+                }
+ else {
                     Write-Warning "Setup script not found: $scriptPath"
                 }
             }
@@ -489,7 +498,8 @@ Describe "Administrative Privilege Error Handling" -Tag "WindowsOnly", "AdminReq
             $result = try {
                 Get-Content $restrictedPath -ErrorAction Stop
                 $true
-            } catch {
+            }
+ catch {
                 $false
             }
 
@@ -503,7 +513,8 @@ Describe "Administrative Privilege Error Handling" -Tag "WindowsOnly", "AdminReq
             $result = try {
                 Test-WmrAdminPrivilege
                 $true
-            } catch {
+            }
+ catch {
                 $false
             }
 
@@ -525,7 +536,8 @@ AfterAll {
             Remove-Item -Path $script:TestBackupDir -Recurse -Force -ErrorAction SilentlyContinue
             Write-Verbose -Message "Cleaned up test backup directory: $script:TestBackupDir"
         }
-    } catch {
+    }
+ catch {
         Write-Warning "Failed to clean up test backup directory: $_"
     }
 

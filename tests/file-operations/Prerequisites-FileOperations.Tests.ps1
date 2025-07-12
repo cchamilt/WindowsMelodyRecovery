@@ -1,4 +1,4 @@
-# tests/file-operations/Prerequisites-FileOperations.Tests.ps1
+﻿# tests/file-operations/Prerequisites-FileOperations.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -28,7 +28,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+ catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -72,7 +73,8 @@ Write-Output "Current directory: `$(Get-Location)"
                 $result | Should -Contain "Script executed successfully"
                 ($result | Where-Object { $_ -match "Current directory:" }) | Should -Not -BeNullOrEmpty
 
-            } finally {
+            }
+ finally {
                 if ($scriptPath) {
                     Remove-Item $scriptPath -Force -ErrorAction SilentlyContinue
                 }
@@ -100,7 +102,8 @@ Write-Output "ASCII safe output"
                 $rawContent = Get-Content $utf8Script -Raw
                 $rawContent | Should -Match "UTF-8 test content"
 
-            } finally {
+            }
+ finally {
                 if ($utf8Script) {
                     Remove-Item $utf8Script -Force -ErrorAction SilentlyContinue
                 }
@@ -137,7 +140,8 @@ try {
                 $result = & $validationScript -ExpectedVersion "1.0.0"
                 $result | Should -Match "PASS:"
 
-            } finally {
+            }
+ finally {
                 if ($validationScript) {
                     Remove-Item $validationScript -Force -ErrorAction SilentlyContinue
                 }
@@ -169,7 +173,8 @@ try {
                 $value = Get-ItemProperty -Path $testKeyPath -Name "TestValue"
                 $value.TestValue | Should -Be "TestData"
 
-            } finally {
+            }
+ finally {
                 # Clean up test registry key
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -192,7 +197,8 @@ try {
                 $value = Get-ItemProperty -Path $specialKeyPath -Name "Special Value"
                 $value."Special Value" | Should -Be "Data with émojis 🚀"
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $specialKeyPath) {
                     Remove-Item $specialKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -222,7 +228,8 @@ try {
                     $props.BinaryValue | Should -Be @(1, 2, 3)
                 }
 
-            } finally {
+            }
+ finally {
                 # Clean up
                 if (Test-Path $testKeyPath) {
                     Remove-Item $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -258,7 +265,8 @@ switch (`$Command) {
                 $helpResult = & $mockAppPath "--help"
                 $helpResult | Should -Be "MockApp Help"
 
-            } finally {
+            }
+ finally {
                 if ($mockAppPath) {
                     Remove-Item $mockAppPath -Force -ErrorAction SilentlyContinue
                 }
@@ -299,7 +307,8 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $nonExistentResult = & $testAppPath "nonexistent" 2>&1
                 $LASTEXITCODE | Should -Be 1
 
-            } finally {
+            }
+ finally {
                 if ($testAppPath) {
                     Remove-Item $testAppPath -Force -ErrorAction SilentlyContinue
                 }
@@ -340,7 +349,8 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $readConfig.prerequisites[0].type | Should -Be "script"
                 $readConfig.prerequisites[1].type | Should -Be "registry"
 
-            } finally {
+            }
+ finally {
                 if ($configPath) {
                     Remove-Item $configPath -Force -ErrorAction SilentlyContinue
                 }
@@ -377,7 +387,8 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $readConfig = Get-Content $largeConfigPath -Raw | ConvertFrom-Json
                 $readConfig.prerequisites.Count | Should -Be 50
 
-            } finally {
+            }
+ finally {
                 if ($largeConfigPath) {
                     Remove-Item $largeConfigPath -Force -ErrorAction SilentlyContinue
                 }
@@ -408,7 +419,8 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 "Write-Output 'Test'" | Out-File $testFile
                 Test-Path $testFile | Should -Be $true
 
-            } finally {
+            }
+ finally {
                 # Clean up temporary directory
                 if ($tempDir -and (Test-Path $tempDir)) {
                     Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -433,11 +445,13 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                     try {
                         "New content" | Out-File $restrictedPath 2>$null
                         $isReadOnly = (Get-Content $restrictedPath) -eq $beforeWrite
-                    } catch {
+                    }
+ catch {
                         $isReadOnly = $true
                     }
                     $isReadOnly | Should -Be $true
-                } else {
+                }
+ else {
                     # Windows: Use Set-ItemProperty
                     Set-ItemProperty -Path $restrictedPath -Name IsReadOnly -Value $true
                     $fileInfo = Get-Item $restrictedPath
@@ -448,12 +462,14 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 $content = Get-Content $restrictedPath
                 $content | Should -Be "Test content"
 
-            } finally {
+            }
+ finally {
                 # Clean up (remove read-only first)
                 if (Test-Path $restrictedPath) {
                     if ($IsLinux -or $env:DOCKER_TEST -eq 'true') {
                         & chmod 644 $restrictedPath
-                    } else {
+                    }
+ else {
                         Set-ItemProperty -Path $restrictedPath -Name IsReadOnly -Value $false
                     }
                     Remove-Item $restrictedPath -Force -ErrorAction SilentlyContinue
@@ -476,7 +492,8 @@ if (`$testApps.ContainsKey(`$AppName) -and `$testApps[`$AppName]) {
                 # Attempting to parse should fail
                 { Get-Content $corruptedConfigPath -Raw | ConvertFrom-Json } | Should -Throw
 
-            } finally {
+            }
+ finally {
                 if ($corruptedConfigPath) {
                     Remove-Item $corruptedConfigPath -Force -ErrorAction SilentlyContinue
                 }

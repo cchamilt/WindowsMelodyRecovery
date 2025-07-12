@@ -1,16 +1,17 @@
-# Initialize-[Feature].ps1 - Template for setup scripts
+﻿# Initialize-[Feature].ps1 - Template for setup scripts
 
 function Initialize-[Feature] {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [switch]$Force
     )
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -54,7 +55,8 @@ function Initialize-[Feature] {
         Write-Information -MessageData "[Feature] setup completed!" -InformationAction Continue
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup [Feature]: $_"
         return $false
     }

@@ -1,11 +1,12 @@
-function Initialize-KeePassXC {
+﻿function Initialize-KeePassXC {
     [CmdletBinding()]
     param()
 
     # Load environment configuration (optional - module will use fallback configuration)
     try {
         Import-Environment | Out-Null
-    } catch {
+    }
+ catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -20,15 +21,18 @@ function Initialize-KeePassXC {
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning -Message "KeePassXC not found, installing..."
                 winget install -e --id KeePassXCTeam.KeePassXC
-            } else {
+            }
+ else {
                 Write-Information -MessageData "KeePassXC is already installed" -InformationAction Continue
             }
-        } catch {
+        }
+ catch {
             # Fallback to chocolatey if winget fails
             if (Get-Command choco -ErrorAction SilentlyContinue) {
                 Write-Warning -Message "Attempting to install via Chocolatey..."
                 choco install keepassxc -y
-            } else {
+            }
+ else {
                 Write-Warning "Failed to install KeePassXC. Please install manually."
                 return $false
             }
@@ -38,7 +42,8 @@ function Initialize-KeePassXC {
         Write-Warning -Message "You can configure your database location manually after installation."
         return $true
 
-    } catch {
+    }
+ catch {
         Write-Error -Message "Failed to setup KeePassXC: $_"
         return $false
     }
