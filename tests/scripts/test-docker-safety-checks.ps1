@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Tests Docker safety checks for Enhanced Mock Infrastructure
@@ -41,7 +41,7 @@ try {
     Write-Information -MessageData "  Testing Initialize-EnhancedMockInfrastructure..." -InformationAction Continue
     try {
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
-        if ($result -eq $null) {
+        if ($null -eq $result) {
             Write-Information -MessageData "  ✅ Initialize correctly blocked in local environment" -InformationAction Continue
         } else {
             Write-Error -Message "  ❌ Initialize should have been blocked"
@@ -53,7 +53,7 @@ try {
     Write-Information -MessageData "  Testing Reset-EnhancedMockData..." -InformationAction Continue
     try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal
-        if ($result -eq $null) {
+        if ($null -eq $result) {
             Write-Information -MessageData "  ✅ Reset correctly blocked in local environment" -InformationAction Continue
         } else {
             Write-Error -Message "  ❌ Reset should have been blocked"
@@ -75,7 +75,7 @@ try {
     try {
         Initialize-StandardTestEnvironment -TestType Unit -IsolationLevel Basic -Force | Out-Null
         $result = Initialize-EnhancedMockInfrastructure -TestType Unit -Scope Minimal
-        if ($result -ne $null -or $?) {
+        if ($null -ne $result -or $?) {
             Write-Information -MessageData "  ✅ Initialize correctly allowed in Docker environment" -InformationAction Continue
         } else {
             Write-Error -Message "  ❌ Initialize should have been allowed"
@@ -87,7 +87,7 @@ try {
     Write-Information -MessageData "  Testing Reset-EnhancedMockData..." -InformationAction Continue
     try {
         $result = Reset-EnhancedMockData -Component "applications" -Scope Minimal
-        if ($result -ne $null -or $?) {
+        if ($null -ne $result -or $?) {
             Write-Information -MessageData "  ✅ Reset correctly allowed in Docker environment" -InformationAction Continue
         } else {
             Write-Error -Message "  ❌ Reset should have been allowed"

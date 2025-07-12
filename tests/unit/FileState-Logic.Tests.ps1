@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 
 # PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
@@ -47,11 +47,11 @@ BeforeAll {
 
         # Mock encryption functions
         Mock Protect-WmrData {
-            param($Data, $Passphrase)
+            param($Data, [SecureString] $Passphrase)
             return "ENCRYPTED:$([Convert]::ToBase64String($Data))"
         }
         Mock Unprotect-WmrData {
-            param($EncodedData, $Passphrase)
+            param($EncodedData, [SecureString] $Passphrase)
             $base64 = $EncodedData -replace '^ENCRYPTED:', ''
             return [Convert]::FromBase64String($base64)
         }

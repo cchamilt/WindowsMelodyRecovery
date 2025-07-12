@@ -4,7 +4,8 @@ Describe "System Settings Restore Tests" {
         try {
             $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
             Import-Module $ModulePath -Force -ErrorAction Stop
-        } catch {
+        }
+        catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
 
@@ -84,9 +85,9 @@ Windows Registry Editor Version 5.00
 
             $mockPrefFile = Join-Path $preferencesPath "user-preferences.json"
             @{
-                Theme = "Dark"
-                Language = "en-US"
-                TimeZone = "UTC"
+                Theme       = "Dark"
+                Language    = "en-US"
+                TimeZone    = "UTC"
                 RestoreTest = "RestoredPreference"
             } | ConvertTo-Json | Out-File -FilePath $mockPrefFile -Encoding UTF8
 
@@ -116,19 +117,19 @@ Windows Registry Editor Version 5.00
             $mockConfigFile = Join-Path $configPath "system-config.json"
             @{
                 Display = @{
-                    Resolution = "1920x1080"
+                    Resolution  = "1920x1080"
                     RefreshRate = 60
-                    Scaling = 100
+                    Scaling     = 100
                 }
-                Power = @{
-                    Plan = "Balanced"
-                    SleepTimeout = 15
+                Power   = @{
+                    Plan             = "Balanced"
+                    SleepTimeout     = 15
                     HibernateTimeout = 30
                 }
                 Network = @{
-                    WiFiEnabled = $true
+                    WiFiEnabled     = $true
                     EthernetEnabled = $true
-                    VPNEnabled = $false
+                    VPNEnabled      = $false
                 }
             } | ConvertTo-Json -Depth 3 | Out-File -FilePath $mockConfigFile -Encoding UTF8
 
@@ -155,9 +156,9 @@ Windows Registry Editor Version 5.00
             $manifestPath = Join-Path $testBackupPath "backup-manifest.json"
             @{
                 BackupType = "SystemSettings"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
-                Items = @(
+                Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version    = "1.0.0"
+                Items      = @(
                     @{ Type = "Registry"; Path = "registry" },
                     @{ Type = "Preferences"; Path = "preferences" },
                     @{ Type = "Config"; Path = "config" }
@@ -174,16 +175,16 @@ Windows Registry Editor Version 5.00
         It "Should create restore manifest" {
             $restoreManifestPath = Join-Path $testRestorePath "restore-manifest.json"
             @{
-                RestoreType = "SystemSettings"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
-                SourceBackup = $testBackupPath
+                RestoreType   = "SystemSettings"
+                Timestamp     = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version       = "1.0.0"
+                SourceBackup  = $testBackupPath
                 RestoredItems = @(
                     @{ Type = "Registry"; Path = "registry/restored-registry.reg" },
                     @{ Type = "Preferences"; Path = "preferences/restored-preferences.json" },
                     @{ Type = "Config"; Path = "config/restored-system-config.json" }
                 )
-                Status = "Completed"
+                Status        = "Completed"
             } | ConvertTo-Json -Depth 3 | Out-File -FilePath $restoreManifestPath -Encoding UTF8
 
             Test-Path $restoreManifestPath | Should -Be $true

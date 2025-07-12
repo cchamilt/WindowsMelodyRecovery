@@ -1,4 +1,4 @@
-# Docker Test Bootstrap for Windows Melody Recovery
+﻿# Docker Test Bootstrap for Windows Melody Recovery
 # This script sets up the test environment for Docker-based testing
 
 # Detect if running in Docker environment
@@ -239,11 +239,10 @@ if ($script:IsDockerEnvironment) {
 
     if (-not (Get-Command Unregister-ScheduledTask -ErrorAction SilentlyContinue)) {
         function Unregister-ScheduledTask {
-            [CmdletBinding()]
+            [CmdletBinding(SupportsShouldProcess)]
             param(
                 [Parameter(Mandatory)]
-                [string]$TaskName,
-                [switch]$Confirm
+                [string]$TaskName
             )
 
             return $true
@@ -394,7 +393,7 @@ if ($script:IsDockerEnvironment) {
 
     # Mock prerequisite functions that tests expect
     if (-not (Get-Command Test-WmrPrerequisites -ErrorAction SilentlyContinue)) {
-        function Test-WmrPrerequisites {
+        function Test-WmrPrerequisite {
             [CmdletBinding()]
             param(
                 $TemplateConfig,
@@ -406,7 +405,7 @@ if ($script:IsDockerEnvironment) {
     }
 
     if (-not (Get-Command Backup-WindowsFeatures -ErrorAction SilentlyContinue)) {
-        function Backup-WindowsFeatures {
+        function Backup-WindowsFeature {
             [CmdletBinding()]
             param(
                 [string]$BackupPath
@@ -717,7 +716,7 @@ function Get-WmrTestPath {
 }
 
 # Helper function to normalize line endings for cross-platform tests
-function ConvertTo-UnixLineEndings {
+function ConvertTo-UnixLineEnding {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]

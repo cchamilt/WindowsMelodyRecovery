@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
 Test wrapper for backing up templates to test directories.
@@ -41,7 +41,7 @@ $testPaths = @{
     MachineBackup = Join-Path $testDirectories.BackupsRoot "TEST-MACHINE"
 }
 
-function Initialize-TestDirectories {
+function Initialize-TestDirectory {
     if (-not (Test-Path $testDirectories.BackupsRoot)) {
         New-Item -ItemType Directory -Path $testDirectories.BackupsRoot -Force | Out-Null
     }
@@ -58,7 +58,7 @@ function Get-TestConfig {
     }
 }
 
-function Show-DirectoryContents {
+function Show-DirectoryContent {
     param(
         [string]$Path,
         [string]$BasePathForDisplay

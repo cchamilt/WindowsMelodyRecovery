@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Master Test Runner for Windows Melody Recovery
@@ -96,7 +96,7 @@ function Write-TestResult {
     Write-Information -MessageData "" -InformationAction Continue
 }
 
-function ConvertFrom-TestResults {
+function ConvertFrom-TestResult {
     param([array]$Output, [bool]$Success)
 
     # If the test run was successful, return known count
@@ -114,7 +114,7 @@ function ConvertFrom-TestResults {
     }
 }
 
-function Invoke-UnitTests {
+function Invoke-UnitTest {
     Write-TestHeader "Unit Tests - Logic Only" "1"
     Write-Information -MessageData "Running pure logic tests with mock data..." -InformationAction Continue
 
@@ -154,7 +154,7 @@ function Invoke-UnitTests {
     }
 }
 
-function Invoke-FileOperationTests {
+function Invoke-FileOperationTest {
     Write-TestHeader "File Operation Tests - Safe Directories Only" "2"
     Write-Information -MessageData "Running file operation tests in safe test directories..." -InformationAction Continue
 
@@ -199,7 +199,7 @@ function Invoke-FileOperationTests {
     }
 }
 
-function Invoke-IntegrationTests {
+function Invoke-IntegrationTest {
     Write-TestHeader "Integration Tests - Docker-based System Testing" "3"
     Write-Information -MessageData "Running Docker-based integration tests..." -InformationAction Continue
 
@@ -259,8 +259,8 @@ function Invoke-IntegrationTests {
         } else {
             Write-Verbose -Message "    (none found)"
         }
-        Write-Verbose -Message "  Passed match: $($passedMatch -ne $null)"
-        Write-Verbose -Message "  Failed match: $($failedMatch -ne $null)"
+        Write-Verbose -Message "  Passed match: $($null -ne $passedMatch)"
+        Write-Verbose -Message "  Failed match: $($null -ne $failedMatch)"
         if ($passedMatch) { Write-Verbose -Message "  Passed match text: '$($passedMatch.Line)'" }
         if ($failedMatch) { Write-Verbose -Message "  Failed match text: '$($failedMatch.Line)'" }
         Write-Verbose -Message "  Parsed passed: $passed"
@@ -291,7 +291,7 @@ function Invoke-IntegrationTests {
     }
 }
 
-function Invoke-WindowsTests {
+function Invoke-WindowsTest {
     Write-TestHeader "Windows-specific Tests" "4"
 
     if (-not $IsWindows) {

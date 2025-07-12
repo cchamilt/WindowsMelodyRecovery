@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
 Test wrapper for restoring templates from test directories.
@@ -56,7 +56,7 @@ $testPaths = @{
     RestoreTarget = Join-Path $testDirectories.RestoreRoot "restored"
 }
 
-function Initialize-TestDirectories {
+function Initialize-TestDirectory {
     foreach ($dir in $testDirectories.Values) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -76,7 +76,7 @@ function Get-TestConfig {
     }
 }
 
-function Show-DirectoryContents {
+function Show-DirectoryContent {
     param(
         [string]$Path,
         [string]$BasePathForDisplay

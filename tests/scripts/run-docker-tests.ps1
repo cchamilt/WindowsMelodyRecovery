@@ -1,4 +1,4 @@
-# Docker Test Runner Script
+﻿# Docker Test Runner Script
 # Runs PowerShell tests in Docker containers for cross-platform validation
 
 param(
@@ -153,7 +153,7 @@ function Start-DockerTestEnvironment {
     }
 }
 
-function Invoke-DockerTests {
+function Invoke-DockerTest {
     param(
         [string]$TestCategory,
         [string]$OutputFile

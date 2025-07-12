@@ -133,7 +133,8 @@ Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Instal
                 $cmd = Get-Command $function -ErrorAction SilentlyContinue
                 if ($cmd) {
                     Write-Information -MessageData "✓ Found core function: $function" -InformationAction Continue
-                } else {
+                }
+                else {
                     Write-Error -Message "✗ Missing core function: $function"
                 }
                 $cmd | Should -Not -BeNullOrEmpty
@@ -287,7 +288,8 @@ Describe "Windows Melody Recovery - Initialization Integration Tests" -Tag "Init
         It "Should provide meaningful error messages" {
             try {
                 Initialize-WindowsMelodyRecovery -InstallPath "" -NoPrompt -ErrorAction Stop
-            } catch {
+            }
+            catch {
                 $_.Exception.Message | Should -Not -BeNullOrEmpty
                 $_.Exception.Message | Should -Match "configuration|install|path"
             }

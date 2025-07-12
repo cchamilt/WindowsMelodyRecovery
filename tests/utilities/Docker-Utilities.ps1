@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Docker Utilities for Windows Melody Recovery Integration Tests
@@ -47,7 +47,7 @@ function Test-ServiceEndpoint {
     }
 }
 
-function Get-ContainerLogs {
+function Get-ContainerLog {
     param(
         [string]$ContainerName,
         [int]$TailLines = 50

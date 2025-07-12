@@ -1,5 +1,7 @@
 # PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSReviewUnusedParameter", "")]
 param()
 
 # Test for encrypted backup tasks integration

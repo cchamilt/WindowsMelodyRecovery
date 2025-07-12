@@ -17,7 +17,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -46,7 +47,8 @@ BeforeAll {
         if ($wslVersion) {
             $script:WSLAvailable = $true
         }
-    } catch {
+    }
+    catch {
         Write-Warning "WSL not available for testing"
     }
 
@@ -55,7 +57,8 @@ BeforeAll {
     $script:WSLConnectivity = Test-WSLDockerConnectivity -ContainerName $script:ContainerName
     if ($script:WSLConnectivity) {
         Write-Information -MessageData "WSL Docker container connectivity: PASSED" -InformationAction Continue
-    } else {
+    }
+    else {
         Write-Error -Message "WSL Docker container connectivity: FAILED"
     }
 }
@@ -67,7 +70,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
             if ($script:WSLAvailable) {
                 { wsl --version } | Should -Not -Throw
                 wsl --version | Should -Not -BeNullOrEmpty
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -77,7 +81,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $distros = wsl --list --quiet
                 $distros | Should -Not -BeNullOrEmpty
                 $distros | Should -Contain $script:WSLDistro
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -86,7 +91,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
             if ($script:WSLAvailable) {
                 $result = wsl -d $script:WSLDistro -- echo "test"
                 $result | Should -Be "test"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -96,7 +102,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
         It "Should have working WSL Docker container communication" {
             if ($script:WSLConnectivity) {
                 $script:WSLConnectivity | Should -Be $true
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -107,7 +114,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $distributions | Should -Not -BeNullOrEmpty
                 $distributions.Name | Should -Be "Ubuntu-22.04"
                 $distributions.Status | Should -Be "Running"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -117,7 +125,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "whoami" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Be "testuser"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -127,7 +136,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "nonexistentcommand" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $false
                 $result.ExitCode | Should -Not -Be 0
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -139,7 +149,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "echo `$HOME" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Be "/home/testuser"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -152,7 +163,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                     $result.Success | Should -Be $true
                     $result.Output | Should -Not -BeNullOrEmpty
                 }
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -165,7 +177,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                     $result.Success | Should -Be $true
                     $result.Output | Should -Not -BeNullOrEmpty
                 }
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -176,7 +189,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result.Success | Should -Be $true
                 $result.Output | Should -Match "/usr/bin"
                 $result.Output | Should -Match "/usr/local/bin"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -189,7 +203,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $packages.Success | Should -Be $true
                 $packages.Count | Should -BeGreaterThan 100
                 $packages.Packages | Should -Match "install"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -200,7 +215,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $packages.Success | Should -Be $true
                 $packages.Count | Should -BeGreaterThan 0
                 $packages.Packages | Should -Match "=="
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -211,7 +227,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $packages.Success | Should -Be $true
                 # NPM global packages might be empty, so just check it doesn't error
                 $packages.Packages | Should -Not -BeNullOrEmpty
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -223,7 +240,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
 
                 $result | Should -Not -BeNullOrEmpty
                 $result | Should -Match "install"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -235,7 +253,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
 
                 $result | Should -Not -BeNullOrEmpty
                 { $result | ConvertFrom-Json } | Should -Not -Throw
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -246,7 +265,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = wsl -d $script:WSLDistro -u testuser -- bash -c "pip3 list --format=freeze 2>/dev/null || echo '# No packages'"
 
                 $result | Should -Not -BeNullOrEmpty
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -257,7 +277,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = wsl -d $script:WSLDistro -u testuser -- bash -c "sudo apt update && sudo apt install -y tree && tree --version"
 
                 $result | Should -Match "tree"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -275,7 +296,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 # Test npm version
                 $result = Invoke-WSLDockerCommand -Command "npm --version" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -298,7 +320,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
 
                 # Clean up
                 Invoke-WSLDockerCommand -Command "rm -f $testFile" -ContainerName $script:ContainerName | Out-Null
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -318,7 +341,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
 
                 # Clean up
                 Invoke-WSLDockerCommand -Command "rmdir $testDir" -ContainerName $script:ContainerName | Out-Null
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -334,7 +358,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "test -w /home/testuser && echo 'writable'" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Be "writable"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -347,7 +372,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
 
                 $result | Should -Not -BeNullOrEmpty
                 $result | Should -Match "chezmoi"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -357,7 +383,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "chezmoi --version" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Match "chezmoi"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -367,7 +394,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "test -d /home/testuser/.config/chezmoi && echo 'exists'" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Be "exists"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -377,7 +405,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result = Invoke-WSLDockerCommand -Command "test -d /home/testuser/.local/share/chezmoi && echo 'exists'" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Be "exists"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -388,7 +417,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 $result.Success | Should -Be $true
                 # chezmoi doctor should not report critical errors
                 $result.Output | Should -Not -Match "FATAL|ERROR"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -397,7 +427,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
             if ($script:WSLConnectivity) {
                 $result = Invoke-WSLDockerCommand -Command "chezmoi status" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -406,7 +437,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
             if ($script:WSLConnectivity) {
                 $result = Invoke-WSLDockerCommand -Command "chezmoi managed" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -418,7 +450,8 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
                 # Check that the output contains JSON with arch and username (use -match with multiline)
                 ($result.Output -join "`n") | Should -Match "arch.*amd64"
                 ($result.Output -join "`n") | Should -Match "username.*testuser"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -434,7 +467,9 @@ chezmoi status
 
                 # Should not throw errors
                 $LASTEXITCODE | Should -Be 0
-            } else {
+                $result | Should -Not -BeNullOrEmpty
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -445,7 +480,8 @@ chezmoi status
                 $result = wsl -d $script:WSLDistro -u testuser -- bash -c "ls -la ~/.local/share/chezmoi 2>/dev/null || echo 'not initialized'"
 
                 $result | Should -Not -BeNullOrEmpty
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL not available"
             }
         }
@@ -469,14 +505,16 @@ chezmoi status
                 try {
                     Invoke-WmrTemplate -TemplatePath $fullTemplatePath -Operation "Backup" -StateFilesDirectory $backupPath
                     $templateProcessed = $true
-                } catch {
+                }
+                catch {
                     $templateProcessed = $false
                     Write-Warning "Template processing failed: $($_.Exception.Message)"
                 }
 
                 # Template should be processed without errors
                 $templateProcessed | Should -Be $true
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "wsl.yaml template not found"
             }
         }
@@ -488,7 +526,8 @@ chezmoi status
                 $result = Invoke-WSLDockerCommand -Command "echo 'Docker exec test'" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Be "Docker exec test"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -499,7 +538,8 @@ chezmoi status
                 $result = Invoke-WSLDockerCommand -Command $complexCommand -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 [int]$result.Output | Should -BeGreaterThan 0
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -509,7 +549,7 @@ chezmoi status
                 $script = @"
 echo "Multi-line script test"
 cd /tmp
-touch test-file-$(date +%s).txt
+touch test-file-$(Get-Date +%s).txt
 ls -la test-file-*.txt | wc -l
 rm -f test-file-*.txt
 "@
@@ -517,7 +557,8 @@ rm -f test-file-*.txt
                 $result = Invoke-WSLDockerScript -ScriptContent $script -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Match "Multi-line script test"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
@@ -527,7 +568,8 @@ rm -f test-file-*.txt
                 $result = Invoke-WSLDockerCommand -Command "echo `$HOME:`$USER" -ContainerName $script:ContainerName
                 $result.Success | Should -Be $true
                 $result.Output | Should -Match "/home/testuser:testuser"
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }

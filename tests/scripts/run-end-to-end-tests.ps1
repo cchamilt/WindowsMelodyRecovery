@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 
 <#
 .SYNOPSIS
@@ -84,8 +84,8 @@ if ($runInDocker) {
 
         # Use PowerShell job for timeout control
         $job = Start-Job -ScriptBlock {
-            param($Command)
-            docker exec wmr-test-runner pwsh -Command $Command
+            param($using:Command)
+            docker exec wmr-test-runner pwsh -Command $using:Command
         } -ArgumentList $testCommand
 
         $completed = Wait-Job -Job $job -Timeout $timeoutSeconds
@@ -160,8 +160,8 @@ if ($runInDocker) {
 
         # Execute with timeout using PowerShell job
         $job = Start-Job -ScriptBlock {
-            param($Config)
-            Invoke-Pester -Configuration $Config
+            param($using:Config)
+            Invoke-Pester -Configuration $using:Config
         } -ArgumentList $pesterConfig
 
         $timeoutSeconds = $Timeout * 60

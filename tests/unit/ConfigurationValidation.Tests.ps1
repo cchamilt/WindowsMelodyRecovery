@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
@@ -16,7 +16,7 @@ BeforeAll {
 
     # Mock or define Merge-Configurations if not available
     if (-not (Get-Command Merge-Configurations -ErrorAction SilentlyContinue)) {
-        function Merge-Configurations {
+        function Merge-Configuration {
             [CmdletBinding()]
             param(
                 [Parameter(Mandatory=$true)]

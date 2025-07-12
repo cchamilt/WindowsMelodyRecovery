@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
 Unified test manager for template backup and restore workflows.
@@ -89,7 +89,7 @@ $testPaths = @{
     TestData = $testDirectories.TestDataRoot
 }
 
-function Initialize-TestDirectories {
+function Initialize-TestDirectory {
     foreach ($dir in $testDirectories.Values) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -372,7 +372,7 @@ function Invoke-TestWorkflow {
     return $true
 }
 
-function Show-DirectoryContents {
+function Show-DirectoryContent {
     param(
         [string]$Path,
         [string]$BasePathForDisplay
@@ -404,7 +404,7 @@ function Invoke-CleanTest {
     Write-Information -MessageData "✓ All test directories cleaned" -InformationAction Continue
 }
 
-function Invoke-ListBackups {
+function Invoke-ListBackup {
     Write-Information -MessageData "=== AVAILABLE TEST BACKUPS ===" -InformationAction Continue
 
     if (-not (Test-Path $testPaths.MachineBackup)) {

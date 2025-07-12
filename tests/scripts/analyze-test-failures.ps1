@@ -1,4 +1,4 @@
-# analyze-test-failures.ps1
+﻿# analyze-test-failures.ps1
 # Comprehensive analysis of failing tests to categorize for Docker vs Windows-only environments
 
 [CmdletBinding()]
@@ -210,7 +210,7 @@ function New-MigrationPlan {
     return $migrationPlan
 }
 
-function Export-AnalysisResults {
+function Export-AnalysisResult {
     param(
         [hashtable]$AnalysisResults,
         [hashtable]$MigrationPlan,

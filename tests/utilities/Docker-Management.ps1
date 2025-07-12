@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Docker Container Management Utilities for Windows Melody Recovery Tests
@@ -124,7 +124,7 @@ function Test-ContainersRunning {
     return $true
 }
 
-function Start-TestContainers {
+function Start-TestContainer {
     <#
     .SYNOPSIS
         Starts all test containers using Docker Compose
@@ -272,7 +272,7 @@ function Start-TestContainers {
     }
 }
 
-function Stop-TestContainers {
+function Stop-TestContainer {
     <#
     .SYNOPSIS
         Stops all test containers
@@ -312,7 +312,7 @@ function Stop-TestContainers {
     }
 }
 
-function Remove-TestContainers {
+function Remove-TestContainer {
     <#
     .SYNOPSIS
         Removes all test containers and volumes
@@ -439,7 +439,7 @@ function Show-ContainerStatus {
     Write-Information -MessageData "" -InformationAction Continue
 }
 
-function Show-ContainerLogs {
+function Show-ContainerLog {
     <#
     .SYNOPSIS
         Shows recent logs from all test containers

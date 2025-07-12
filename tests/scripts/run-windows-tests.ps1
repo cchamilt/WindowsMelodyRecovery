@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 
 <#
 .SYNOPSIS
@@ -82,7 +82,7 @@ if (-not $isCICD -and -not $Force) {
 }
 
 # Administrative privilege check
-function Test-AdminPrivileges {
+function Test-AdminPrivilege {
     try {
         $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
         return $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)

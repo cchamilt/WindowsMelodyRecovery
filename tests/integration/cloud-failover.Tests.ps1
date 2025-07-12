@@ -45,15 +45,15 @@ Describe "Cloud Provider Failover Scenario Tests" {
         $script:TestData = @{
             "critical_data.json" = @{
                 system_restore_point = "2024-01-15T08:00:00Z"
-                user_profile_backup  = "enabled"
+                user_profile_backup = "enabled"
                 application_settings = @("vscode", "chrome", "office")
             } | ConvertTo-Json -Depth 3
 
             "recovery_info.json" = @{
                 backup_timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                machine_id       = "TEST-PC-001"
-                backup_size      = "150MB"
-                file_count       = 1250
+                machine_id = "TEST-PC-001"
+                backup_size = "150MB"
+                file_count = 1250
             } | ConvertTo-Json -Depth 3
         }
 
@@ -84,8 +84,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
             if ($PSCmdlet.ShouldProcess($failureMarker, "Create failure simulation marker")) {
                 @{
                     failure_type = $FailureType
-                    timestamp    = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                    simulated    = $true
+                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    simulated = $true
                 } | ConvertTo-Json | Out-File -FilePath $failureMarker -Encoding UTF8
             }
         }
@@ -111,6 +111,7 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
         # Function to simulate network issues
         function Set-NetworkIssue {
+            [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
             param(
                 [string]$ProviderName,
                 [int]$Latency = 5000,
@@ -127,12 +128,14 @@ Describe "Cloud Provider Failover Scenario Tests" {
             $providerPath = Join-Path $mockCloudRoot $ProviderName
             $networkIssueMarker = Join-Path $providerPath ".network_issue"
 
-            @{
-                latency_ms          = $Latency
-                packet_loss_percent = $PacketLoss
-                timestamp           = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                simulated           = $true
-            } | ConvertTo-Json | Out-File -FilePath $networkIssueMarker -Encoding UTF8
+            if ($PSCmdlet.ShouldProcess($networkIssueMarker, "Create network issue simulation marker")) {
+                @{
+                    latency_ms = $Latency
+                    packet_loss_percent = $PacketLoss
+                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    simulated = $true
+                } | ConvertTo-Json | Out-File -FilePath $networkIssueMarker -Encoding UTF8
+            }
         }
 
         # Function to clear network issues
@@ -367,10 +370,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Simulate storage quota exceeded
                 $quotaExceededMarker = Join-Path $testProvider.BackupPath ".quota_exceeded"
                 @{
-                    quota_exceeded    = $true
-                    used_storage      = $testProvider.StorageTotal
+                    quota_exceeded = $true
+                    used_storage = $testProvider.StorageTotal
                     available_storage = "0 GB"
-                    timestamp         = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json | Out-File -FilePath $quotaExceededMarker -Encoding UTF8
 
                 try {
@@ -410,10 +413,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Simulate small storage provider being full
                 $quotaExceededMarker = Join-Path $smallStorageProvider.BackupPath ".quota_exceeded"
                 @{
-                    quota_exceeded    = $true
-                    used_storage      = $smallStorageProvider.StorageTotal
+                    quota_exceeded = $true
+                    used_storage = $smallStorageProvider.StorageTotal
                     available_storage = "0 GB"
-                    timestamp         = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json | Out-File -FilePath $quotaExceededMarker -Encoding UTF8
 
                 try {
@@ -570,12 +573,12 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                 # Simulate failover event
                 $failoverEvent = @{
-                    timestamp          = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                    event_type         = "failover"
-                    primary_provider   = $primaryProvider.Name
+                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    event_type = "failover"
+                    primary_provider = $primaryProvider.Name
                     secondary_provider = $secondaryProvider.Name
-                    reason             = "primary_provider_unavailable"
-                    success            = $true
+                    reason = "primary_provider_unavailable"
+                    success = $true
                 }
 
                 $failoverEvent | ConvertTo-Json | Out-File -FilePath $failoverLogPath -Append -Encoding UTF8

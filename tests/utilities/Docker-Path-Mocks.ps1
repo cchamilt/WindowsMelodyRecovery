@@ -1,4 +1,4 @@
-# Docker Path Mocks for Windows Melody Recovery Testing
+﻿# Docker Path Mocks for Windows Melody Recovery Testing
 # This utility provides cross-platform path handling for tests running in Docker
 
 # Global path mappings for Docker testing
@@ -27,7 +27,7 @@ function Test-WmrAdminPrivilege {
     return $false
 }
 
-function Get-WmrPrivilegeRequirements {
+function Get-WmrPrivilegeRequirement {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -53,7 +53,7 @@ function Get-WmrPrivilegeRequirements {
     return $requirements
 }
 
-function Test-WmrAdministrativePrivileges {
+function Test-WmrAdministrativePrivilege {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param()
@@ -91,14 +91,11 @@ function Invoke-WmrSafeAdminOperation {
 }
 
 function Invoke-WmrWithElevation {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType([System.Object])]
     param(
         [Parameter(Mandatory)]
         [ScriptBlock]$ScriptBlock,
-
-        [Parameter()]
-        [switch]$WhatIf,
 
         [Parameter()]
         [switch]$NoPrompt
@@ -208,7 +205,7 @@ function Get-WmrRegistryState {
 }
 
 # Mock functions for AdministrativePrivileges-Logic tests
-function Backup-WindowsFeatures {
+function Backup-WindowsFeature {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -224,7 +221,7 @@ function Backup-WindowsFeatures {
     }
 }
 
-function Test-WmrPrerequisites {
+function Test-WmrPrerequisite {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -533,7 +530,7 @@ function New-Item {
 }
 
 function Remove-Item {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType([System.Void])]
     param(
         [Parameter()]
@@ -543,10 +540,7 @@ function Remove-Item {
         [switch]$Recurse,
 
         [Parameter()]
-        [switch]$Force,
-
-        [Parameter()]
-        [switch]$Confirm
+        [switch]$Force
     )
 
     # Handle null or empty paths gracefully
@@ -653,7 +647,7 @@ function Get-WmrMachineContext {
     }
 }
 
-function Test-WmrMachineSelectors {
+function Test-WmrMachineSelector {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(
@@ -691,7 +685,7 @@ function Test-WmrStringComparison {
     }
 }
 
-function Get-WmrApplicableMachineConfigurations {
+function Get-WmrApplicableMachineConfiguration {
     [CmdletBinding()]
     [OutputType([System.Array])]
     param(
@@ -736,7 +730,7 @@ function Merge-WmrMachineSpecificConfiguration {
     return $ResolvedConfig
 }
 
-function Invoke-WmrInheritanceRules {
+function Invoke-WmrInheritanceRule {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -766,7 +760,7 @@ function Test-WmrInheritanceRuleCondition {
     return $true
 }
 
-function Invoke-WmrConditionalSections {
+function Invoke-WmrConditionalSection {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param(
@@ -781,7 +775,7 @@ function Invoke-WmrConditionalSections {
     return $ResolvedConfig
 }
 
-function Test-WmrConditionalSectionConditions {
+function Test-WmrConditionalSectionCondition {
     [CmdletBinding()]
     [OutputType([System.Boolean])]
     param(

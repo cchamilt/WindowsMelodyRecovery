@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Mock Integration for Windows Melody Recovery Testing
@@ -47,7 +47,7 @@ function Get-MockDataPath {
     return Join-Path $mockDataRoot $DataType
 }
 
-function Test-MockDataExists {
+function Test-MockDataExist {
     <#
     .SYNOPSIS
         Legacy compatibility wrapper for mock data existence checks.

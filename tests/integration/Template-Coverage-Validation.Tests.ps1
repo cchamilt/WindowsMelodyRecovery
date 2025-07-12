@@ -22,7 +22,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -75,10 +76,12 @@ BeforeAll {
                     applications = @()
                     prerequisites = @()
                 }
-            } else {
+            }
+            else {
                 throw "Invalid YAML structure"
             }
-        } catch {
+        }
+        catch {
             throw "Failed to parse YAML: $($_.Exception.Message)"
         }
     }
@@ -116,7 +119,8 @@ BeforeAll {
         # Check required metadata
         if (-not $TemplateContent.metadata) {
             $issues += "Missing metadata section"
-        } else {
+        }
+        else {
             $metadata = $TemplateContent.metadata
             if (-not $metadata.name) { $issues += "Missing metadata.name" }
             if (-not $metadata.description) { $issues += "Missing metadata.description" }
@@ -183,7 +187,8 @@ BeforeAll {
             $reparsed = $parsed | ConvertTo-Json -Depth 5
             $finalParsed = $reparsed | ConvertFrom-Json
             return $true
-        } catch {
+        }
+        catch {
             return $false
         }
     }
@@ -490,7 +495,7 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
                     Test-Path $template.FullName | Should -Be $true
                 }
 
-                Write-Information -MessageData "$category: $($categoryTemplates.Count) templates" -InformationAction Continue
+                Write-Information -MessageData "${category}: $($categoryTemplates.Count) templates" -InformationAction Continue
             }
         }
     }

@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Enhanced Mock Utilities for Windows Melody Recovery Testing
@@ -17,7 +17,7 @@
 . (Join-Path $PSScriptRoot "Mock-Integration.ps1")
 
 # Enhanced mock environment utilities with backwards compatibility
-function Test-MockDataExists {
+function Test-MockDataExist {
     <#
     .SYNOPSIS
         Tests if mock data exists for the specified data type and path.

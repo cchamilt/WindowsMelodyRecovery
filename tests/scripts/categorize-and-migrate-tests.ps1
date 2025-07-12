@@ -1,4 +1,4 @@
-# categorize-and-migrate-tests.ps1
+﻿# categorize-and-migrate-tests.ps1
 # Automatically categorize and migrate tests based on analysis results
 
 [CmdletBinding()]
@@ -29,8 +29,8 @@ $TargetDirectories = @{
 }
 
 function Initialize-DirectoryStructure {
-    [CmdletBinding()]
-    param([switch]$WhatIf)
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
 
     Write-Information -MessageData "📁 Creating target directory structure..." -InformationAction Continue
 
@@ -143,12 +143,11 @@ function Get-TestMigrationPlan {
 }
 
 function Move-TestFile {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$SourcePath,
         [string]$TargetPath,
-        [string]$Action,
-        [switch]$WhatIf
+        [string]$Action
     )
 
     if (-not (Test-Path $SourcePath)) {
@@ -183,9 +182,9 @@ function Move-TestFile {
     return $true
 }
 
-function New-WindowsOnlyTestSafeguards {
-    [CmdletBinding()]
-    param([switch]$WhatIf)
+function New-WindowsOnlyTestSafeguard {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
 
     $safeguardScript = @'
 # Windows-Only Test Safeguards
@@ -237,9 +236,9 @@ AfterAll {
     }
 }
 
-function New-DockerTestEnhancements {
-    [CmdletBinding()]
-    param([switch]$WhatIf)
+function New-DockerTestEnhancement {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
 
     $enhancementScript = @'
 # Docker Test Enhancements
