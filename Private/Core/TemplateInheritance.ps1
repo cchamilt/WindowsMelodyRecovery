@@ -24,40 +24,49 @@
 . "$PSScriptRoot\ConfigurationValidation.ps1"
 . "$PSScriptRoot\TemplateResolution.ps1"
 
-# Re-export all functions for backward compatibility
-Export-ModuleMember -Function @(
-    # Main template resolution functions
-    'Resolve-WmrTemplateInheritance',
-    'Get-WmrInheritanceConfiguration',
+# Re-export all functions for backward compatibility (only when in module context)
+if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
+    # Only export when loaded as a module, not when dot-sourced
+    try {
+        Export-ModuleMember -Function @(
+            # Main template resolution functions
+            'Resolve-WmrTemplateInheritance',
+            'Get-WmrInheritanceConfiguration',
 
-    # Machine context functions
-    'Get-WmrMachineContext',
-    'Get-WmrApplicableMachineConfigurations',
-    'Test-WmrMachineSelector',
-    'Test-WmrStringComparison',
+            # Machine context functions
+            'Get-WmrMachineContext',
+            'Get-WmrApplicableMachineConfigurations',
+            'Test-WmrMachineSelector',
+            'Test-WmrStringComparison',
 
-    # Configuration merging functions
-    'Merge-WmrSharedConfiguration',
-    'Merge-WmrMachineSpecificConfiguration',
-    'Merge-WmrConfigurationItem',
-    'Merge-WmrSingleConfigurationItem',
-    'Merge-WmrRegistryValue',
+            # Configuration merging functions
+            'Merge-WmrSharedConfiguration',
+            'Merge-WmrMachineSpecificConfiguration',
+            'Merge-WmrConfigurationItem',
+            'Merge-WmrSingleConfigurationItem',
+            'Merge-WmrRegistryValue',
 
-    # Conditional processing functions
-    'Invoke-WmrInheritanceRule',
-    'Test-WmrInheritanceRuleCondition',
-    'Invoke-WmrInheritanceRuleToSection',
-    'Invoke-WmrConditionalSection',
-    'Test-WmrConditionalSectionCondition',
-    'Test-WmrRuleItemMatch',
+            # Conditional processing functions
+            'Invoke-WmrInheritanceRule',
+            'Test-WmrInheritanceRuleCondition',
+            'Invoke-WmrInheritanceRuleToSection',
+            'Invoke-WmrConditionalSection',
+            'Test-WmrConditionalSectionCondition',
+            'Test-WmrRuleItemMatch',
 
-    # Configuration validation functions
-    'Test-WmrResolvedConfiguration',
-    'Test-WmrStrictConfigurationValidation',
-    'Test-WmrModerateConfigurationValidation',
-    'Test-WmrRelaxedConfigurationValidation',
-    'Test-WmrConfigurationItemValidity'
-)
+            # Configuration validation functions
+            'Test-WmrResolvedConfiguration',
+            'Test-WmrStrictConfigurationValidation',
+            'Test-WmrModerateConfigurationValidation',
+            'Test-WmrRelaxedConfigurationValidation',
+            'Test-WmrConfigurationItemValidity'
+        )
+    } catch {
+        # Silently ignore Export-ModuleMember errors when not in module context
+    }
+}
+
+# Functions are available when dot-sourced, no need to export when not in module context
 
 
 

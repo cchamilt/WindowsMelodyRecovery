@@ -80,7 +80,7 @@ BeforeAll {
     }
     Mock Backup-WindowsMelodyRecovery { }
     Mock Restore-WindowsMelodyRecovery { }
-    Mock Setup-WindowsMelodyRecovery { }
+    Mock Start-WindowsMelodyRecovery { }
     Mock Convert-ToWinget { }
     Mock Set-WindowsMelodyRecoveryScripts { }
     Mock Sync-WindowsMelodyRecoveryScripts { }
