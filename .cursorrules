@@ -15,6 +15,10 @@
   "Prefer native PowerShell cmdlets over external executables": true,
   // Enforce consistent use of `Write-Verbose`, `Write-Debug`, and `Write-Warning` for logging.
   "Use standard PowerShell logging cmdlets (Write-Verbose, Write-Debug, Write-Warning)": true,
+  "Follow all naming best practices for PSGallery and approved verbs": true,
+  "Do not reuse automatic variable names": true,
+  "Use {}'s around all variables substitutions near : in strings": true,
+  "Write only code that will pass PSScriptAnalyzer": true,
   // Encourage modular design for PowerShell scripts and functions.
   "Promote modular design for PowerShell scripts and functions": true,
   // All scripts should handle errors gracefully using try-catch-finally.

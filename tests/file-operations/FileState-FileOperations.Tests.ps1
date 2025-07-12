@@ -32,6 +32,8 @@ BeforeAll {
     $script:SourceDir = Join-Path $script:TestPaths.TestRestore "source"
     $script:DestDir = Join-Path $script:TestPaths.TestRestore "dest"
     $script:TempStateDir = Join-Path $script:TestPaths.Temp "FileStateTests"
+    # PSScriptAnalyzer suppression: Test setup requires known plaintext password
+    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     $script:testPassphrase = ConvertTo-SecureString -String "TestPassphrase123!" -AsPlainText -Force
 
     # Function to safely remove items

@@ -22,6 +22,8 @@ docker-compose.*.yml.bak
 *.ps1.bak
 *.psm1.bak
 *.psd1.bak
+Microsoft/
+ModuleAnalysisCache/
 
 # Test artifacts
 PesterTestResults.xml
@@ -160,5 +162,5 @@ gog-backup/
 package-backup/
 chocolatey-backup/
 scoop-backup/
-winget-backup/ 
+winget-backup/
 testResults.xml

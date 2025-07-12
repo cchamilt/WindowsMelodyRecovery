@@ -339,6 +339,8 @@ function Test-WmrEncryption {
         Write-Information -MessageData "  Original data: $($originalBytes.Length) bytes" -InformationAction Continue
 
         # Create a test passphrase
+        # PSScriptAnalyzer suppression: This is a test function that requires a known plaintext password
+        [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
         $testPassphrase = ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force
 
         # Encrypt

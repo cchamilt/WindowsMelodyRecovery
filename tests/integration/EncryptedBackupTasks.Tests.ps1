@@ -15,6 +15,8 @@ BeforeAll {
     $script:TestBackupDir = Join-Path $script:TestDataPath "BackupTasks"
     $script:TestConfigDir = Join-Path $script:TestDataPath "Config"
     $script:TestPassword = "BackupTask_P@ssw0rd123!"
+    # PSScriptAnalyzer suppression: Test setup requires known plaintext password
+    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     $script:TestSecureString = ConvertTo-SecureString -String $script:TestPassword -AsPlainText -Force
 
     # Create test directories
@@ -387,6 +389,8 @@ Describe 'Encrypted Backup Task Integration Tests' {
             # Arrange
             $currentKey = Get-WmrEncryptionKey -Passphrase $script:TestSecureString
             $newPassword = "NewRotated_P@ssw0rd456!"
+            # PSScriptAnalyzer suppression: Test key rotation requires known plaintext password
+            [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
             $newSecureString = ConvertTo-SecureString -String $newPassword -AsPlainText -Force
 
             # Act - Simulate key rotation
