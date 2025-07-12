@@ -43,7 +43,7 @@
 
         # Load setup scripts on demand
         Write-Warning -Message "Loading setup scripts..."
-        Import-PrivateScripts -Category 'setup'
+        Import-PrivateScript -Category 'setup'
 
         # Verify setup functions are loaded
         $loadedFunctions = Get-Command -Name "Setup-*" -ErrorAction SilentlyContinue

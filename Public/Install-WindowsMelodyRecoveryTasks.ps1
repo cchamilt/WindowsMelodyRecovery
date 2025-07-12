@@ -30,7 +30,7 @@
     }
 
     # Load task scripts on demand
-    Import-PrivateScripts -Category 'tasks'
+    Import-PrivateScript -Category 'tasks'
 
     # Define scheduled tasks
     $tasks = @(

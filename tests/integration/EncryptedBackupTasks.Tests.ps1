@@ -40,10 +40,10 @@ BeforeAll {
     Mock Register-ScheduledTask {
         param($TaskName, $TaskPath, $Description, $Action, $Trigger, $Settings, $Principal)
         return @{
-            TaskName    = $TaskName
-            TaskPath    = $TaskPath
+            TaskName = $TaskName
+            TaskPath = $TaskPath
             Description = $Description
-            State       = "Ready"
+            State = "Ready"
             LastRunTime = $null
             NextRunTime = (Get-Date).AddDays(1)
         }
@@ -65,8 +65,8 @@ BeforeAll {
     Mock New-ScheduledTaskAction {
         param($Execute, $Argument, $WorkingDirectory)
         return @{
-            Execute          = $Execute
-            Arguments        = $Argument
+            Execute = $Execute
+            Arguments = $Argument
             WorkingDirectory = $WorkingDirectory
         }
     }
@@ -74,8 +74,8 @@ BeforeAll {
     Mock New-ScheduledTaskTrigger {
         param($Weekly, $DaysOfWeek, $At)
         return @{
-            TriggerType   = "Weekly"
-            DaysOfWeek    = $DaysOfWeek
+            TriggerType = "Weekly"
+            DaysOfWeek = $DaysOfWeek
             StartBoundary = (Get-Date $At).ToString("yyyy-MM-ddTHH:mm:ss")
         }
     }
@@ -85,23 +85,23 @@ BeforeAll {
             $RunOnlyIfNetworkAvailable, $WakeToRun, $DontStopOnIdleEnd,
             $RestartInterval, $RestartCount)
         return @{
-            AllowStartIfOnBatteries    = $AllowStartIfOnBatteries
+            AllowStartIfOnBatteries = $AllowStartIfOnBatteries
             DontStopIfGoingOnBatteries = $DontStopIfGoingOnBatteries
-            StartWhenAvailable         = $StartWhenAvailable
-            RunOnlyIfNetworkAvailable  = $RunOnlyIfNetworkAvailable
-            WakeToRun                  = $WakeToRun
-            DontStopOnIdleEnd          = $DontStopOnIdleEnd
-            RestartInterval            = $RestartInterval
-            RestartCount               = $RestartCount
+            StartWhenAvailable = $StartWhenAvailable
+            RunOnlyIfNetworkAvailable = $RunOnlyIfNetworkAvailable
+            WakeToRun = $WakeToRun
+            DontStopOnIdleEnd = $DontStopOnIdleEnd
+            RestartInterval = $RestartInterval
+            RestartCount = $RestartCount
         }
     }
 
     Mock New-ScheduledTaskPrincipal {
         param($UserId, $LogonType, $RunLevel)
         return @{
-            UserId    = $UserId
+            UserId = $UserId
             LogonType = $LogonType
-            RunLevel  = $RunLevel
+            RunLevel = $RunLevel
         }
     }
 }
@@ -117,30 +117,30 @@ Describe 'Encrypted Backup Task Integration Tests' {
         It 'Should validate encryption configuration for backup tasks' {
             # Arrange
             $taskConfig = @{
-                TaskName          = "WindowsMelodyRecovery_Encrypted_Backup"
-                Description       = "Encrypted backup of Windows configuration"
+                TaskName = "WindowsMelodyRecovery_Encrypted_Backup"
+                Description = "Encrypted backup of Windows configuration"
                 EncryptionEnabled = $true
-                BackupPaths       = @(
+                BackupPaths = @(
                     @{
-                        Path    = "C:\Users\TestUser\.ssh\config"
+                        Path = "C:\Users\TestUser\.ssh\config"
                         Encrypt = $false
-                        Type    = "file"
+                        Type = "file"
                     },
                     @{
-                        Path    = "C:\Users\TestUser\.ssh\id_rsa"
+                        Path = "C:\Users\TestUser\.ssh\id_rsa"
                         Encrypt = $true
-                        Type    = "file"
+                        Type = "file"
                     },
                     @{
-                        Path    = "C:\Users\TestUser\Documents\credentials.json"
+                        Path = "C:\Users\TestUser\Documents\credentials.json"
                         Encrypt = $true
-                        Type    = "file"
+                        Type = "file"
                     }
                 )
-                Schedule          = @{
+                Schedule = @{
                     Frequency = "Weekly"
                     DayOfWeek = "Sunday"
-                    Time      = "02:00"
+                    Time = "02:00"
                 }
             }
 
@@ -190,13 +190,13 @@ Describe 'Encrypted Backup Task Integration Tests' {
             $configPath = Join-Path $script:TestConfigDir "task_encryption.json"
             $encryptionConfig = @{
                 encryption_enabled = $true
-                password_storage   = "secure"
-                key_derivation     = @{
-                    algorithm   = "PBKDF2"
-                    iterations  = 100000
+                password_storage = "secure"
+                key_derivation = @{
+                    algorithm = "PBKDF2"
+                    iterations = 100000
                     salt_length = 32
                 }
-                encrypted_paths    = @(
+                encrypted_paths = @(
                     "C:\Users\TestUser\.ssh\id_rsa",
                     "C:\Users\TestUser\.ssh\id_ed25519",
                     "C:\Users\TestUser\Documents\passwords.txt"
@@ -234,10 +234,10 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 $pathInfo.Path -notmatch "(\.pub|config|known_hosts|settings)$"
 
                 $analysisResults += @{
-                    Path     = $pathInfo.Path
+                    Path = $pathInfo.Path
                     Expected = $pathInfo.ShouldEncrypt
-                    Actual   = $requiresEncryption
-                    Match    = $pathInfo.ShouldEncrypt -eq $requiresEncryption
+                    Actual = $requiresEncryption
+                    Match = $pathInfo.ShouldEncrypt -eq $requiresEncryption
                 }
             }
 
@@ -250,21 +250,21 @@ Describe 'Encrypted Backup Task Integration Tests' {
         It 'Should execute backup task with encryption parameters' {
             # Arrange
             $taskParameters = @{
-                TemplatePath        = "ssh.yaml"
+                TemplatePath = "ssh.yaml"
                 StateFilesDirectory = $script:TestBackupDir
-                EncryptionEnabled   = $true
-                LogPath             = Join-Path $script:TestBackupDir "backup.log"
+                EncryptionEnabled = $true
+                LogPath = Join-Path $script:TestBackupDir "backup.log"
             }
 
             # Mock the template execution
             Mock Invoke-WmrTemplate {
                 param($TemplatePath, $Operation, $StateFilesDirectory, $Passphrase)
                 return @{
-                    Success          = $true
-                    EncryptedFiles   = @("ssh_private_key", "winscp_sessions")
+                    Success = $true
+                    EncryptedFiles = @("ssh_private_key", "winscp_sessions")
                     UnencryptedFiles = @("ssh_config", "known_hosts")
-                    Operation        = $Operation
-                    EncryptionUsed   = $Passphrase -ne $null
+                    Operation = $Operation
+                    EncryptionUsed = $Passphrase -ne $null
                 }
             }
 
@@ -334,10 +334,10 @@ Describe 'Encrypted Backup Task Integration Tests' {
                 param($TemplatePath, $Operation, $StateFilesDirectory, $Passphrase)
                 Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 500)
                 return @{
-                    Success        = $true
-                    Template       = $TemplatePath
+                    Success = $true
+                    Template = $TemplatePath
                     EncryptionUsed = $Passphrase -ne $null
-                    ExecutionTime  = (Get-Date)
+                    ExecutionTime = (Get-Date)
                 }
             }
 
@@ -370,10 +370,10 @@ Describe 'Encrypted Backup Task Integration Tests' {
         It 'Should validate backup task security configuration' {
             # Arrange
             $securityConfig = @{
-                RequireAdminPrivileges      = $true
-                EncryptionMandatory         = $true
-                SecurePasswordStorage       = $true
-                LogEncryptionOperations     = $true
+                RequireAdminPrivileges = $true
+                EncryptionMandatory = $true
+                SecurePasswordStorage = $true
+                LogEncryptionOperations = $true
                 ValidateEncryptionIntegrity = $true
             }
 
@@ -415,11 +415,11 @@ Describe 'Encrypted Backup Task Integration Tests' {
         It 'Should validate backup task encryption compliance' {
             # Arrange
             $complianceRequirements = @{
-                MinimumKeyLength   = 256
-                RequiredAlgorithm  = "AES"
-                RequiredMode       = "CBC"
-                RequiredPadding    = "PKCS7"
-                MinimumIterations  = 100000
+                MinimumKeyLength = 256
+                RequiredAlgorithm = "AES"
+                RequiredMode = "CBC"
+                RequiredPadding = "PKCS7"
+                MinimumIterations = 100000
                 RequiredSaltLength = 32
             }
 

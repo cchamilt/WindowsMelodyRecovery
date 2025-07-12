@@ -1,35 +1,35 @@
 @{
-    RootModule = 'WindowsMelodyRecovery.psm1'
-    ModuleVersion = '1.0.0'
-    GUID = '8a7f6674-c759-45f3-b26d-9a8e54d2eb14'
-    Author = 'Chris Hamilton'
-    CompanyName = 'Fyber Labs'
-    Copyright = '(c) 2024 Chris Hamilton. All rights reserved.'
-    Description = 'Comprehensive Windows system recovery, backup, and configuration management tool with WSL integration and cloud storage support.'
-    PowerShellVersion = '5.1'
+    RootModule             = 'WindowsMelodyRecovery.psm1'
+    ModuleVersion          = '1.0.0'
+    GUID                   = '8a7f6674-c759-45f3-b26d-9a8e54d2eb14'
+    Author                 = 'Chris Hamilton'
+    CompanyName            = 'Fyber Labs'
+    Copyright              = '(c) 2024 Chris Hamilton. All rights reserved.'
+    Description            = 'Comprehensive Windows system recovery, backup, and configuration management tool with WSL integration and cloud storage support.'
+    PowerShellVersion      = '5.1'
     DotNetFrameworkVersion = '4.7.2'
-    CLRVersion = '4.0.30319'
-    ProcessorArchitecture = 'Amd64'
+    CLRVersion             = '4.0.30319'
+    ProcessorArchitecture  = 'Amd64'
 
     # Module dependencies
-    RequiredModules = @()
+    RequiredModules        = @()
 
     # Required assemblies
-    RequiredAssemblies = @()
+    RequiredAssemblies     = @()
 
     # Script files to process as modules
-    ScriptsToProcess = @(
+    ScriptsToProcess       = @(
         'Private\Core\WindowsMelodyRecovery.Core.ps1'
     )
 
     # Types to process
-    TypesToProcess = @()
+    TypesToProcess         = @()
 
     # Format files
-    FormatsToProcess = @()
+    FormatsToProcess       = @()
 
     # Functions to export
-    FunctionsToExport = @(
+    FunctionsToExport      = @(
         # Core functions
         'Get-WindowsMelodyRecovery',
         'Set-WindowsMelodyRecovery',
@@ -75,7 +75,7 @@
         'Remove-WindowsMelodyRecoveryTasks',
 
         # Utility functions
-        'Import-PrivateScripts',
+        'Import-PrivateScript',
         'Convert-WmrPath',
 
         # Encryption functions
@@ -95,15 +95,15 @@
     )
 
     # Cmdlets to export
-    CmdletsToExport = @()
+    CmdletsToExport        = @()
 
     # Variables to export
-    VariablesToExport = @(
+    VariablesToExport      = @(
         'WindowsMelodyRecoveryConfig'
     )
 
     # Aliases to export
-    AliasesToExport = @(
+    AliasesToExport        = @(
         'wmr-init',
         'wmr-backup',
         'wmr-restore',
@@ -113,9 +113,9 @@
     )
 
     # Module-specific data
-    PrivateData = @{
+    PrivateData            = @{
         PSData = @{
-            Tags = @(
+            Tags                       = @(
                 'Windows',
                 'Backup',
                 'Restore',
@@ -135,9 +135,9 @@
                 'SystemAdministration',
                 'DevOps'
             )
-            ProjectUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery'
-            LicenseUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery/blob/main/LICENSE'
-            ReleaseNotes = @'
+            ProjectUri                 = 'https://github.com/fyberlabs/WindowsMelodyRecovery'
+            LicenseUri                 = 'https://github.com/fyberlabs/WindowsMelodyRecovery/blob/main/LICENSE'
+            ReleaseNotes               = @'
 ## Version 1.0.0
 - Initial release of Windows Melody Recovery
 - Comprehensive backup and restore functionality
@@ -151,12 +151,12 @@
 - Enhanced module initialization system
 - Comprehensive status reporting
 '@
-            Prerelease = $false
-            RequireLicenseAcceptance = $false
+            Prerelease                 = $false
+            RequireLicenseAcceptance   = $false
             ExternalModuleDependencies = @()
         }
     }
 
     # Help info URI
-    HelpInfoUri = 'https://github.com/fyberlabs/WindowsMelodyRecovery/wiki'
+    HelpInfoUri            = 'https://github.com/fyberlabs/WindowsMelodyRecovery/wiki'
 }

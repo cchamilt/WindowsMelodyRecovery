@@ -181,7 +181,7 @@
                 Write-Warning -Message "No templates found, using script-based backup"
 
                 # Fallback to script-based backup
-                Import-PrivateScripts -Category 'backup'
+                Import-PrivateScript -Category 'backup'
 
                 $backupFunctions = Get-ScriptsConfig -Category 'backup'
                 if (-not $backupFunctions) {

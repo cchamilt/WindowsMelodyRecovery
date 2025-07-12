@@ -56,7 +56,7 @@
             Write-Information -MessageData "Performing script-based restore..." -InformationAction Continue
 
             # Load restore scripts on demand
-            Import-PrivateScripts -Category 'restore'
+            Import-PrivateScript -Category 'restore'
 
             # Define this function directly in the script to avoid dependency issues
             function Test-BackupPath {

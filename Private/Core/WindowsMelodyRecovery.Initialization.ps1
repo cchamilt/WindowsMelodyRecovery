@@ -52,13 +52,13 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         # Step 3: Load core utilities
-        $coreResult = Import-CoreUtilities
+        $coreResult = Import-CoreUtility
         if (-not $coreResult.Success) {
             throw "Core utilities loading failed: $($coreResult.Message)"
         }
 
         # Step 4: Load public functions
-        $publicResult = Import-PublicFunctions
+        $publicResult = Import-PublicFunction
         if (-not $publicResult.Success) {
             throw "Public functions loading failed: $($publicResult.Message)"
         }
@@ -70,14 +70,14 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         # Step 6: Validate dependencies
-        $depResult = Test-ModuleDependencies
+        $depResult = Test-ModuleDependency
         if (-not $depResult.Success) {
             Write-Warning "Dependency validation failed: $($depResult.Message)"
             $script:InitializationErrors += $depResult.Message
         }
 
         # Step 7: Setup aliases
-        $aliasResult = Set-ModuleAliases
+        $aliasResult = Set-ModuleAlias
         if (-not $aliasResult.Success) {
             Write-Warning "Alias setup failed: $($aliasResult.Message)"
             $script:InitializationErrors += $aliasResult.Message

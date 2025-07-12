@@ -1,17 +1,17 @@
-# Helper functions for encryption-related tests
+﻿# Helper functions for encryption-related tests
 using namespace System.Security.Cryptography
 using namespace System.Text
 
 function New-TestEncryptionKey {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [int]$KeySize = 256,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Password = "TestP@ssw0rd!",
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [byte[]]$Salt
     )
 
@@ -58,7 +58,7 @@ function New-TestInitializationVector {
 function New-TestSecureString {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$PlainText
     )
 
@@ -77,13 +77,13 @@ function New-TestSecureString {
 function New-TestEncryptedData {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [byte[]]$Key,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [byte[]]$InitializationVector,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [AllowEmptyString()]
         [string]$PlainText
     )
@@ -135,10 +135,10 @@ function New-TestEncryptedData {
 function Test-DecryptedDataEquals {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [byte[]]$DecryptedData,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ExpectedPlainText
     )
 
@@ -149,7 +149,7 @@ function Test-DecryptedDataEquals {
 function New-TestTempDirectory {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Prefix = "WMR_Test_"
     )
 
@@ -161,7 +161,7 @@ function New-TestTempDirectory {
 function Remove-TestTempDirectory {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Path
     )
 

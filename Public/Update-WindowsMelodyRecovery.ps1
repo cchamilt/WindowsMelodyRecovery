@@ -11,7 +11,7 @@
     }
 
     # Load scripts on demand if needed
-    Import-PrivateScripts -Category 'scripts'
+    Import-PrivateScript -Category 'scripts'
 
     # Define proper backup paths using config values
     $WINDOWS_CONFIG_PATH = $config.WindowsMelodyRecoveryPath

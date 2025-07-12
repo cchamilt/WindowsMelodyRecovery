@@ -108,7 +108,7 @@
 
                     if ($WhatIf) {
                         $status = if ($existingScript) { "EXISTS" } else { "NEW" }
-                        Write-Information -MessageData "  [$status] $category`: $($discoveredScript.name)  -InformationAction Continue-> $functionName" -ForegroundColor $(if ($existingScript) { 'Green' } else { 'Cyan' })
+                        Write-Information -MessageData "  [$status] $category`: $($discoveredScript.name) -> $functionName" -InformationAction Continue
                     }
                 }
                 else {
@@ -165,11 +165,6 @@
         $count = @($discoveredScripts[$category]).Count
         Write-Verbose -Message "  $category`: $count scripts configured"
     }
-}   # Show summary
-foreach ($category in $categories) {
-    $count = @($discoveredScripts[$category]).Count
-    Write-Verbose -Message "  $category`: $count scripts configured"
-}
 }
 
 

@@ -159,7 +159,7 @@ function Import-PrivateScript {
         The category of scripts to load.
 
     .EXAMPLE
-        Import-PrivateScripts -Category "backup"
+        Import-PrivateScript -Category "backup"
     #>
     [CmdletBinding()]
     param(
@@ -168,12 +168,12 @@ function Import-PrivateScript {
         [string]$Category
     )
 
-    # Prevent infinite loops by checking if Import-PrivateScripts is being called recursively
+    # Prevent infinite loops by checking if Import-PrivateScript is being called recursively
     $callStack = Get-PSCallStack
-    $importCallCount = ($callStack | Where-Object { $_.Command -eq "Import-PrivateScripts" }).Count
+    $importCallCount = ($callStack | Where-Object { $_.Command -eq "Import-PrivateScript" }).Count
 
     if ($importCallCount -gt 1) {
-        Write-Verbose "Recursive Import-PrivateScripts call detected (depth: $importCallCount) - preventing infinite loop"
+        Write-Verbose "Recursive Import-PrivateScript call detected (depth: $importCallCount) - preventing infinite loop"
         return
     }
 
@@ -366,7 +366,7 @@ else {
 }
 
 # Export all functions - only public functions, not private ones
-$ModuleFunctions = @('Import-PrivateScripts', 'Get-WindowsMelodyRecovery', 'Set-WindowsMelodyRecovery')
+$ModuleFunctions = @('Import-PrivateScript', 'Get-WindowsMelodyRecovery', 'Set-WindowsMelodyRecovery')
 
 # Add backup functions if they were loaded in test environment
 if ($isTestEnvironment) {
@@ -485,7 +485,7 @@ foreach ($indicator in $testIndicators) {
 if ($isTestEnvironment) {
     Write-Verbose "Test environment detected, creating minimal stub functions"
     try {
-        # Create minimal stub functions for tests without calling Import-PrivateScripts
+        # Create minimal stub functions for tests without calling Import-PrivateScript
         if (-not (Get-Command Backup-Applications -ErrorAction SilentlyContinue)) {
             function Global:Backup-Application {
                 [CmdletBinding(SupportsShouldProcess)]

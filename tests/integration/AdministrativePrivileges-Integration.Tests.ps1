@@ -229,7 +229,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             }
 
             # Mock private script loading
-            Mock -CommandName "Import-PrivateScripts" -MockWith { }
+            Mock -CommandName "Import-PrivateScript" -MockWith { }
 
             # Mock the actual task registration functions
             Mock -CommandName "Register-BackupTask" -MockWith {
@@ -245,7 +245,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             $result | Should -Be $true
 
             Assert-MockCalled -CommandName "Get-WindowsMelodyRecovery" -Times 1
-            Assert-MockCalled -CommandName "Import-PrivateScripts" -Times 1
+            Assert-MockCalled -CommandName "Import-PrivateScript" -Times 1
         }
     }
 
@@ -422,7 +422,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                 }
             }
 
-            Mock -CommandName "Import-PrivateScripts" -MockWith { }
+            Mock -CommandName "Import-PrivateScript" -MockWith { }
 
             # Mock setup functions to avoid actual system changes
             Mock -CommandName "Initialize-PackageManagers" -MockWith { return @{ Success = $true } }
