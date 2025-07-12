@@ -46,11 +46,11 @@ try {
     if ($applications.Count -eq 0) {
         Write-Output "[]"
     }
- else {
+    else {
         Write-Output ($applications | ConvertTo-Json -Depth 10 -AsArray)
     }
 }
- catch {
+catch {
     Write-Error "Failed to parse WSL distribution data: $($_.Exception.Message)"
     Write-Output "[]"
 }

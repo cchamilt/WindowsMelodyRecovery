@@ -18,7 +18,7 @@ try {
     if ($null -eq $packages) {
         $packages = @()
     }
- elseif ($packages -isnot [array]) {
+    elseif ($packages -isnot [array]) {
         $packages = @($packages)
     }
 
@@ -38,11 +38,11 @@ try {
     if ($applications.Count -eq 0) {
         Write-Output "[]"
     }
- else {
+    else {
         Write-Output ($applications | ConvertTo-Json -Depth 5)
     }
 }
- catch {
+catch {
     Write-Error "Failed to parse WSL package data: $($_.Exception.Message)"
     Write-Output "[]"
 }

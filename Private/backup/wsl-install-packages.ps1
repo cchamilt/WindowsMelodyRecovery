@@ -26,7 +26,7 @@ function Install-WSLAptPackage {
             wsl --exec bash -c "sudo apt-get update && sudo apt-get install -y $packageList"
             Write-Information -MessageData "Successfully restored APT packages" -InformationAction Continue
         }
- catch {
+        catch {
             Write-Warning "Failed to restore some APT packages: $($_.Exception.Message)"
         }
     }
@@ -48,7 +48,7 @@ function Install-WSLNpmPackage {
             wsl --exec bash -c "npm install -g $packageSpec"
             Write-Information -MessageData "  Installed $packageSpec" -InformationAction Continue
         }
- catch {
+        catch {
             Write-Warning "  Failed to install $($pkg.Name): $($_.Exception.Message)"
         }
     }
@@ -70,7 +70,7 @@ function Install-WSLPipPackage {
             wsl --exec bash -c "pip install $packageSpec"
             Write-Information -MessageData "  Installed $packageSpec" -InformationAction Continue
         }
- catch {
+        catch {
             Write-Warning "  Failed to install $($pkg.Name): $($_.Exception.Message)"
         }
     }
@@ -103,7 +103,7 @@ try {
     Write-Information -MessageData "WSL package restoration completed" -InformationAction Continue
 
 }
- catch {
+catch {
     Write-Error "Failed to restore WSL packages: $($_.Exception.Message)"
 }
 

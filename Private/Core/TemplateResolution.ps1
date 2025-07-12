@@ -136,7 +136,7 @@ function Resolve-WmrTemplateInheritance {
         return $resolvedConfig
 
     }
- catch {
+    catch {
         Write-Error "Failed to resolve template inheritance: $($_.Exception.Message)"
         throw
     }
@@ -168,7 +168,7 @@ function Get-WmrInheritanceConfiguration {
         if ($TemplateConfig.PSObject.Properties.Name -contains $key) {
             $config[$key] = $TemplateConfig.$key
         }
- elseif ($TemplateConfig -is [hashtable] -and $TemplateConfig.ContainsKey($key)) {
+        elseif ($TemplateConfig -is [hashtable] -and $TemplateConfig.ContainsKey($key)) {
             $config[$key] = $TemplateConfig[$key]
         }
     }
@@ -182,7 +182,7 @@ function Get-WmrInheritanceConfiguration {
                 }
             }
         }
- else {
+        else {
             foreach ($property in $TemplateConfig.configuration.PSObject.Properties) {
                 if ($property.Name -in $defaultConfig.Keys) {
                     $config[$property.Name] = $property.Value

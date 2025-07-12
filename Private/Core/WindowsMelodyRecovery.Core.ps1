@@ -20,7 +20,7 @@ function Import-Environment {
             Write-Verbose "Environment loaded from module configuration"
             return $true
         }
- else {
+        else {
             Write-Warning "Module not initialized and no ConfigPath provided. Please run Initialize-WindowsMelodyRecovery first."
             return $false
         }
@@ -38,7 +38,7 @@ function Import-Environment {
         }
         return $true
     }
- catch {
+    catch {
         Write-Warning "Failed to load environment from ${ConfigPath}: $($_.Exception.Message)"
         return $false
     }
@@ -113,11 +113,11 @@ function Get-ScriptsConfig {
         if ($Category) {
             return $config.$Category.enabled | Where-Object { $_.enabled -eq $true }
         }
- else {
+        else {
             return $config
         }
     }
- catch {
+    catch {
         Write-Warning "Failed to load scripts configuration: $($_.Exception.Message)"
         return $null
     }
@@ -167,12 +167,12 @@ function Set-ScriptsConfig {
             Write-Verbose "Updated $ScriptName in $Category to enabled=$Enabled"
             return $true
         }
- else {
+        else {
             Write-Warning "Script '$ScriptName' not found in category '$Category'"
             return $false
         }
     }
- catch {
+    catch {
         Write-Error "Failed to update scripts configuration: $($_.Exception.Message)"
         return $false
     }
@@ -197,7 +197,7 @@ function Initialize-ModuleFromConfig {
             Write-Verbose "Module configuration loaded from: $configFile"
             return $true
         }
- catch {
+        catch {
             Write-Warning "Failed to load configuration from: $configFile - $($_.Exception.Message)"
             return $false
         }
@@ -298,7 +298,7 @@ $ScriptContent
         if ($AsRoot) {
             $bashCommand += " && sudo '$wslScriptPath'"
         }
- else {
+        else {
             $bashCommand += " && '$wslScriptPath'"
         }
         $wslArgs += $bashCommand
@@ -318,7 +318,7 @@ $ScriptContent
                 Success = $process.ExitCode -eq 0
             }
         }
- else {
+        else {
             # Direct execution
             & wsl @wslArgs
             if ($LASTEXITCODE -ne 0) {
@@ -327,7 +327,7 @@ $ScriptContent
         }
 
     }
- finally {
+    finally {
         # Cleanup temporary script
         if (Test-Path $tempScript) {
             Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
@@ -360,7 +360,7 @@ function Sync-WSLPackage {
         if ($config.CloudProvider -eq "OneDrive") {
             $BackupPath = "$env:USERPROFILE\OneDrive\WSL-Packages"
         }
- else {
+        else {
             $BackupPath = "$env:USERPROFILE\WSL-Packages"
         }
     }
@@ -396,7 +396,7 @@ echo "Package sync completed!"
         Write-Information -MessageData "WSL packages synced to: $BackupPath" -InformationAction Continue
         return $true
     }
- catch {
+    catch {
         Write-Error -Message "Failed to sync WSL packages: $($_.Exception.Message)"
         return $false
     }
@@ -456,7 +456,7 @@ echo "Home directory sync completed!"
         Write-Information -MessageData "WSL home directory synced successfully" -InformationAction Continue
         return $true
     }
- catch {
+    catch {
         Write-Error -Message "Failed to sync WSL home directory: $($_.Exception.Message)"
         return $false
     }
@@ -538,7 +538,7 @@ echo "Repository check completed!"
         Invoke-WSLScript -ScriptContent $repoCheckScript
         return $true
     }
- catch {
+    catch {
         Write-Error -Message "Failed to check WSL repositories: $($_.Exception.Message)"
         return $false
     }
@@ -673,7 +673,7 @@ echo "  cm, cma, cme, cms, cmd, cmu, cmcd"
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "❌ Failed to setup chezmoi in WSL: $($_.Exception.Message)"
         return $false
     }
@@ -770,7 +770,7 @@ echo "✅ chezmoi backup completed!"
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "❌ Failed to backup chezmoi: $($_.Exception.Message)"
         return $false
     }
@@ -872,7 +872,7 @@ echo "✅ chezmoi restore completed!"
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "❌ Failed to restore chezmoi: $($_.Exception.Message)"
         return $false
     }

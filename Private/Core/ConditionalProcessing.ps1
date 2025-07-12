@@ -46,7 +46,7 @@ function Invoke-WmrInheritanceRule {
                 }
             }
         }
- else {
+        else {
             Write-Verbose "Inheritance rule '$($rule.name)' conditions not met, skipping"
         }
     }
@@ -135,7 +135,7 @@ function Invoke-WmrInheritanceRuleToSection {
         if (Test-WmrRuleItemMatch -Item $item -Rule $Rule) {
             $matchingItems += $item
         }
- else {
+        else {
             $nonMatchingItems += $item
         }
     }
@@ -169,7 +169,7 @@ function Invoke-WmrInheritanceRuleToSection {
                 }
                 $matchingItems = $transformedItems
             }
- elseif ($Rule.script) {
+            elseif ($Rule.script) {
                 $scriptBlock = [ScriptBlock]::Create($Rule.script)
                 $transformedItems = @()
                 foreach ($item in $matchingItems) {
@@ -243,13 +243,13 @@ function Invoke-WmrConditionalSection {
                     if ($ResolvedConfig.$configSection) {
                         $ResolvedConfig.$configSection = @($ResolvedConfig.$configSection) + @($section.$configSection)
                     }
- else {
+                    else {
                         $ResolvedConfig | Add-Member -NotePropertyName $configSection -NotePropertyValue $section.$configSection -Force
                     }
                 }
             }
         }
- else {
+        else {
             Write-Verbose "Conditional section '$($section.name)' conditions not met, skipping"
         }
     }
@@ -289,7 +289,7 @@ function Test-WmrConditionalSectionCondition {
                     $scriptResult = & $scriptBlock $MachineContext
                     $result = Test-WmrStringComparison -Value $scriptResult -Expected $condition.expected_result -Operator "equals"
                 }
- catch {
+                catch {
                     Write-Verbose "Failed to execute conditional script: $($_.Exception.Message)"
                     $result = $false
                 }
@@ -300,7 +300,7 @@ function Test-WmrConditionalSectionCondition {
                     $checkResult = & $scriptBlock
                     $result = $checkResult -match $condition.expected_result
                 }
- catch {
+                catch {
                     Write-Verbose "Failed to execute hardware check: $($_.Exception.Message)"
                     $result = $false
                 }
@@ -310,7 +310,7 @@ function Test-WmrConditionalSectionCondition {
                 if ($envValue) {
                     $result = Test-WmrStringComparison -Value $envValue -Expected $condition.expected_value -Operator $condition.operator
                 }
- else {
+                else {
                     $result = $false
                 }
             }

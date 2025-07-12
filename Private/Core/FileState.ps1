@@ -18,7 +18,7 @@ function Test-WmrFileConfig {
         try {
             $propValue = $FileConfig.$prop
         }
- catch {
+        catch {
             # Property doesn't exist
         }
 
@@ -81,7 +81,7 @@ function Get-WmrFileState {
         if (-not (Test-Path $resolvedPath)) {
             Write-Warning "WhatIf: Source path not found: $resolvedPath. Would skip backup for this item."
         }
- else {
+        else {
             Write-Warning -Message "WhatIf: Would create state file directory: $stateFileDirectory"
             Write-Warning -Message "WhatIf: Would backup $($FileConfig.type) content"
         }
@@ -121,7 +121,7 @@ function Get-WmrFileState {
             # Save encrypted content
             Set-Content -Path $stateFilePath -Value $encryptedContent -Encoding UTF8 -NoNewline
         }
- else {
+        else {
             $fileState.Content = [System.Convert]::ToBase64String($contentBytes)
             $fileState.Encrypted = $false
 
@@ -144,7 +144,7 @@ function Get-WmrFileState {
         $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8 -NoNewline
 
     }
- elseif ($FileConfig.type -eq "directory") {
+    elseif ($FileConfig.type -eq "directory") {
         # For directories, capture a list of files and their hashes/metadata INCLUDING file contents
         $dirContent = Get-ChildItem -Path $resolvedPath -Recurse | ForEach-Object {
             Write-Debug "Processing item: $($_.FullName)"
@@ -156,7 +156,7 @@ function Get-WmrFileState {
                 $relativePath = $_.FullName.Substring($basePath.Length).TrimStart('\')
                 $relativePath = $relativePath -replace '^.*?\\source\\test_dir\\', ''
             }
- else {
+            else {
                 # For regular paths, ensure consistent path separators and trim trailing separator
                 $fullPath = $_.FullName.Replace('/', '\').TrimEnd('\')
                 $basePath = $resolvedPath.Replace('/', '\').TrimEnd('\')
@@ -182,7 +182,7 @@ function Get-WmrFileState {
                     $item.Content = $content
                     Write-Debug "Captured content for file: $($_.FullName)"
                 }
- catch {
+                catch {
                     Write-Warning "Could not read content for file $($_.FullName): $($_.Exception.Message)"
                     $item.Content = $null
                 }
@@ -275,11 +275,11 @@ function Set-WmrFileState {
             $decryptedBytes = Unprotect-WmrData -EncodedData $content -Passphrase $Passphrase
             Set-Content -Path $destinationPath -Value ([System.Text.Encoding]::UTF8.GetString($decryptedBytes)) -Encoding UTF8 -NoNewline
         }
- else {
+        else {
             Set-Content -Path $destinationPath -Value $content -Encoding UTF8 -NoNewline
         }
     }
- elseif ($FileConfig.type -eq "directory") {
+    elseif ($FileConfig.type -eq "directory") {
         $dirContent = Get-Content -Path $stateFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
         # Create the target directory if it doesn't exist
@@ -309,7 +309,7 @@ function Set-WmrFileState {
                     New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
                 }
             }
- else {
+            else {
                 # Ensure parent directory exists
                 $parentDir = Split-Path -Path $targetPath -Parent
                 if (-not (Test-Path $parentDir)) {
@@ -322,7 +322,7 @@ function Set-WmrFileState {
                     Write-Debug "Creating file with content: $targetPath"
                     Set-Content -Path $targetPath -Value $item.Content -Encoding UTF8 -NoNewline
                 }
- else {
+                else {
                     # Create empty file to maintain structure
                     if (-not (Test-Path $targetPath)) {
                         Write-Debug "Creating empty file: $targetPath"

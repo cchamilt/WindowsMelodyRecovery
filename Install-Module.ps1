@@ -41,18 +41,18 @@ if ([string]::IsNullOrEmpty($documentsPath)) {
         $standardModulePath = if ($psVersion -ge 7) {
             "/usr/local/share/powershell/Modules"
         }
- else {
+        else {
             "$HOME/.local/share/powershell/Modules"
         }
         $modulesPath = Join-Path $standardModulePath $moduleName
     }
- else {
+    else {
         # Fallback for Windows when Documents path is not detected
         $documentsPath = Join-Path $userProfile "Documents"
         $modulesPath = Join-Path $documentsPath "$moduleRoot\Modules\$moduleName"
     }
 }
- else {
+else {
     # Normal Windows path logic
     if ($documentsPath -notmatch "OneDrive" -and $userProfile -match "OneDrive") {
         # OneDrive is in use but not properly detected
@@ -86,10 +86,10 @@ if (!(Test-Path $modulesPath)) {
     New-Item -ItemType Directory -Path $modulesPath -Force | Out-Null
     Write-Information -MessageData "Created module directory: $modulesPath" -InformationAction Continue
 }
- elseif ($Force -or $CleanInstall) {
+elseif ($Force -or $CleanInstall) {
     Write-Warning -Message "Module directory exists. Updating files..."
 }
- else {
+else {
     Write-Warning -Message "Module directory exists: $modulesPath"
     Write-Information -MessageData "Use -Force to overwrite existing files or -CleanInstall for a fresh installation." -InformationAction Continue
 }
@@ -117,7 +117,7 @@ if ($Force -or $CleanInstall -or !(Test-Path $modulesPath)) {
     Copy-Item -Path "$moduleName.psd1" -Destination $modulesPath -Force
     Copy-Item -Path "$moduleName.psm1" -Destination $modulesPath -Force
 }
- else {
+else {
     Write-Warning -Message "Skipping module files (use -Force to overwrite)"
 }
 
@@ -135,7 +135,7 @@ foreach ($dir in @("Public", "Private", "Templates", "docs")) {
                 Copy-Item -Path $_.FullName -Destination $targetDir -Force
             }
         }
- else {
+        else {
             Write-Warning -Message "Skipping $dir directory (use -Force to overwrite)"
             continue
         }
@@ -154,7 +154,7 @@ foreach ($dir in @("Public", "Private", "Templates", "docs")) {
             if (Get-Command robocopy -ErrorAction SilentlyContinue) {
                 & robocopy "$($_.FullName)" "$targetSubDir" /E /IS /IT /IM > $null
             }
- else {
+            else {
                 Copy-Item -Path "$($_.FullName)\*" -Destination $targetSubDir -Recurse -Force
             }
         }

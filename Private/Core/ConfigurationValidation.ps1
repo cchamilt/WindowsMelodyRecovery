@@ -121,7 +121,7 @@ function Validate-SharedConfigurationMerging {
             if ($Source[$key] -is [hashtable]) {
                 $clone[$key] = Clone-Hashtable $Source[$key]
             }
- else {
+            else {
                 $clone[$key] = $Source[$key]
             }
         }
@@ -153,13 +153,13 @@ function Validate-SharedConfigurationMerging {
                         $OverriddenKeys.Value += $key
                     }
                 }
- else {
+                else {
                     # Simple override
                     $merged[$key] = $Override[$key]
                     $OverriddenKeys.Value += $key
                 }
             }
- else {
+            else {
                 # New key
                 $merged[$key] = $Override[$key]
                 $AddedKeys.Value += $key
@@ -227,7 +227,7 @@ function Validate-SharedConfigurationMerging {
             }
         }
     }
- catch {
+    catch {
         return @{
             Success = $false
             Errors = @("Configuration merging failed: $($_.Exception.Message)")
@@ -313,7 +313,7 @@ function Test-ConfigurationInheritance {
                         OverrideHistory = @()
                     }
                 }
- else {
+                else {
                     $keyOrigins[$key].OverrideHistory += @{
                         Level = $level
                         OldValue = $oldValue
@@ -370,7 +370,7 @@ function Test-ConfigurationInheritance {
             }
         }
     }
- catch {
+    catch {
         return @{
             Success = $false
             Errors = @("Configuration inheritance test failed: $($_.Exception.Message)")
@@ -437,28 +437,28 @@ function Test-ConfigurationFilePath {
                                 $warnings += "Configuration file '$path' is empty"
                                 $pathInfo.ValidContent = $false
                             }
- elseif ($pathInfo.Extension -eq ".json") {
+                            elseif ($pathInfo.Extension -eq ".json") {
                                 try {
                                     $null = $content | ConvertFrom-Json
                                     $pathInfo.ValidContent = $true
                                 }
- catch {
+                                catch {
                                     $errors += "Invalid JSON content in file '$path': $($_.Exception.Message)"
                                     $pathInfo.ValidContent = $false
                                 }
                             }
- else {
+                            else {
                                 $pathInfo.ValidContent = $true
                             }
                         }
                     }
- catch {
+                    catch {
                         $pathInfo.Accessible = $false
                         $errors += "Cannot access file '$path': $($_.Exception.Message)"
                     }
                 }
             }
- else {
+            else {
                 $pathInfo.Exists = $false
                 $pathInfo.Accessible = $false
                 $warnings += "Configuration file '$path' does not exist"
@@ -474,7 +474,7 @@ function Test-ConfigurationFilePath {
             PathAnalysis = $pathAnalysis
         }
     }
- catch {
+    catch {
         return @{
             Success = $false
             Errors = @("Configuration file path test failed: $($_.Exception.Message)")
@@ -525,7 +525,7 @@ function Test-WmrResolvedConfiguration {
         }
         return $validationResult
     }
- catch {
+    catch {
         Write-Error "Configuration validation failed: $($_.Exception.Message)"
         return $false
     }

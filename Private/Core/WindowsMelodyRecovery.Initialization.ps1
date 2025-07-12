@@ -91,7 +91,7 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
     }
- catch {
+    catch {
         $script:ModuleInitialized = $false
         $script:InitializationErrors += $_.Exception.Message
 
@@ -223,7 +223,7 @@ function Initialize-ModuleConfiguration {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Configuration initialization failed: $($_.Exception.Message)"
@@ -271,7 +271,7 @@ function Import-ConfigurationFromFile {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Failed to load configuration from $ConfigPath : $($_.Exception.Message)"
@@ -322,7 +322,7 @@ function Import-ConfigurationFromTemplate {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Failed to load configuration from template $TemplatePath : $($_.Exception.Message)"
@@ -395,7 +395,7 @@ function Merge-Configuration {
         if ($Override[$key] -is [hashtable] -and $merged[$key] -is [hashtable]) {
             $merged[$key] = Merge-Configurations -Base $merged[$key] -Override $Override[$key]
         }
- else {
+        else {
             $merged[$key] = $Override[$key]
         }
     }
@@ -448,7 +448,7 @@ function Import-CoreUtility {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Failed to load core utilities: $($_.Exception.Message)"
@@ -495,11 +495,11 @@ function Import-PublicFunction {
                 if (Get-Command $functionName -ErrorAction SilentlyContinue) {
                     $loadedFunctions += $functionName
                 }
- else {
+                else {
                     $failedFunctions += $functionName
                 }
             }
- catch {
+            catch {
                 $failedFunctions += $script.BaseName
                 Write-Warning "Failed to load function $($script.BaseName): $($_.Exception.Message)"
             }
@@ -522,7 +522,7 @@ function Import-PublicFunction {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Failed to load public functions: $($_.Exception.Message)"
@@ -568,7 +568,7 @@ function Initialize-ModuleEnvironment {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Failed to setup module environment: $($_.Exception.Message)"
@@ -626,7 +626,7 @@ function Test-ModuleDependency {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Dependency validation failed: $($_.Exception.Message)"
@@ -659,7 +659,7 @@ function Set-ModuleAlias {
                     $createdAliases += $alias
                 }
             }
- catch {
+            catch {
                 $failedAliases += $alias
             }
         }
@@ -680,7 +680,7 @@ function Set-ModuleAlias {
         }
 
     }
- catch {
+    catch {
         return @{
             Success = $false
             Message = "Failed to setup module aliases: $($_.Exception.Message)"

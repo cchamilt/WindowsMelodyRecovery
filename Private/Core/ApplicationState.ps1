@@ -45,7 +45,7 @@ function Get-WmrApplicationState {
                 # Execute script from file path
                 $parseResult = & $AppConfig.parse_script -DiscoveryOutput $discoveryOutput
             }
- else {
+            else {
                 # Execute inline script (from YAML template)
                 $scriptBlock = [ScriptBlock]::Create($AppConfig.parse_script)
                 $parseResult = & $scriptBlock $discoveryOutput
@@ -61,31 +61,31 @@ function Get-WmrApplicationState {
                 # Parse script returned JSON string
                 $installedAppsJson = $parseResult
             }
- elseif ($parseResult -is [array]) {
+            elseif ($parseResult -is [array]) {
                 # Parse script returned PowerShell array
                 if ($parseResult.Count -eq 0) {
                     $installedAppsJson = "[]"
                 }
- else {
+                else {
                     $installedAppsJson = $parseResult | ConvertTo-Json -Depth 10 -AsArray
                 }
             }
- elseif ($parseResult -is [PSCustomObject] -or $parseResult -is [Hashtable]) {
+            elseif ($parseResult -is [PSCustomObject] -or $parseResult -is [Hashtable]) {
                 # Parse script returned PowerShell objects, convert to JSON
                 $installedAppsJson = $parseResult | ConvertTo-Json -Depth 10
             }
- else {
+            else {
                 # Convert other types to JSON
                 try {
                     $installedAppsJson = $parseResult | ConvertTo-Json -Depth 10
                 }
- catch {
+                catch {
                     # If conversion fails, treat as empty array
                     $installedAppsJson = "[]"
                 }
             }
         }
- catch {
+        catch {
             # If parse script fails, log the error and return empty array
             Write-Warning "Parse script execution failed for $($AppConfig.name): $($_.Exception.Message)"
             $installedAppsJson = "[]"
@@ -96,7 +96,7 @@ function Get-WmrApplicationState {
             if ($installedAppsJson.Trim() -eq "[]") {
                 $parsedApps = @()
             }
- else {
+            else {
                 $parsedApps = $installedAppsJson | ConvertFrom-Json
 
                 # Ensure consistent array format
@@ -106,7 +106,7 @@ function Get-WmrApplicationState {
                 }
             }
         }
- catch {
+        catch {
             Write-Warning "JSON validation failed for $($AppConfig.name): $($_.Exception.Message). Using empty array."
             $installedAppsJson = "[]"
             $parsedApps = @()
@@ -124,7 +124,7 @@ function Get-WmrApplicationState {
             $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
             $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8
         }
- else {
+        else {
             Set-Content -Path $stateFilePath -Value $installedAppsJson -Encoding Utf8
 
             # Save metadata about non-encryption
@@ -135,7 +135,7 @@ function Get-WmrApplicationState {
         Write-Information -MessageData "  Application list for $($AppConfig.name) captured and saved to $stateFilePath." -InformationAction Continue
 
     }
- catch {
+    catch {
         Write-Warning "    Failed to get application state for $($AppConfig.name): $($_.Exception.Message). Skipping."
     }
 }
@@ -171,7 +171,7 @@ function Set-WmrApplicationState {
                     $wasEncrypted = $metadata.Encrypted -eq $true
                 }
             }
- catch {
+            catch {
                 $wasEncrypted = $AppConfig.encrypt -eq $true
             }
 
@@ -185,12 +185,12 @@ function Set-WmrApplicationState {
                 $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
                 Write-Warning -Message "    WhatIf: Would run install script for $appCount applications"
             }
- else {
+            else {
                 Write-Warning -Message "    WhatIf: Would run install script for encrypted application data"
             }
             Write-Warning -Message "    WhatIf: Install script: $($AppConfig.install_script)"
         }
- catch {
+        catch {
             Write-Warning -Message "    WhatIf: Would attempt to restore applications (state file parse failed)"
         }
         return
@@ -207,7 +207,7 @@ function Set-WmrApplicationState {
                 $wasEncrypted = $metadata.Encrypted -eq $true
             }
         }
- catch {
+        catch {
             # Fallback: assume encryption based on file config
             $wasEncrypted = $AppConfig.encrypt -eq $true
         }
@@ -227,7 +227,7 @@ function Set-WmrApplicationState {
             # Execute script from file path
             & $AppConfig.install_script -StateJson $installedAppsJson
         }
- else {
+        else {
             # Execute inline script (from YAML template)
             $scriptBlock = [ScriptBlock]::Create($AppConfig.install_script)
             & $scriptBlock $installedAppsJson
@@ -236,7 +236,7 @@ function Set-WmrApplicationState {
         Write-Information -MessageData "  Applications for $($AppConfig.name) restored." -InformationAction Continue
 
     }
- catch {
+    catch {
         Write-Warning "    Failed to set application state for $($AppConfig.name): $($_.Exception.Message)"
     }
 }
@@ -277,7 +277,7 @@ function Uninstall-WmrApplicationState {
                     $wasEncrypted = $metadata.Encrypted -eq $true
                 }
             }
- catch {
+            catch {
                 $wasEncrypted = $AppConfig.encrypt -eq $true
             }
 
@@ -291,12 +291,12 @@ function Uninstall-WmrApplicationState {
                 $appCount = if ($parsedApps -is [array]) { $parsedApps.Count } else { 1 }
                 Write-Warning -Message "    WhatIf: Would run uninstall script for $appCount applications"
             }
- else {
+            else {
                 Write-Warning -Message "    WhatIf: Would run uninstall script for encrypted application data"
             }
             Write-Warning -Message "    WhatIf: Uninstall script: $($AppConfig.uninstall_script)"
         }
- catch {
+        catch {
             Write-Warning -Message "    WhatIf: Would attempt to uninstall applications (state file parse failed)"
         }
         return
@@ -313,7 +313,7 @@ function Uninstall-WmrApplicationState {
                 $wasEncrypted = $metadata.Encrypted -eq $true
             }
         }
- catch {
+        catch {
             # Fallback: assume encryption based on file config
             $wasEncrypted = $AppConfig.encrypt -eq $true
         }
@@ -333,7 +333,7 @@ function Uninstall-WmrApplicationState {
             # Execute script from file path
             & $AppConfig.uninstall_script -StateJson $installedAppsJson
         }
- else {
+        else {
             # Execute inline script (from YAML template)
             $scriptBlock = [ScriptBlock]::Create($AppConfig.uninstall_script)
             & $scriptBlock $installedAppsJson
@@ -342,7 +342,7 @@ function Uninstall-WmrApplicationState {
         Write-Information -MessageData "  Applications for $($AppConfig.name) uninstalled." -InformationAction Continue
 
     }
- catch {
+    catch {
         Write-Warning "    Failed to uninstall applications for $($AppConfig.name): $($_.Exception.Message)"
     }
 }

@@ -53,7 +53,7 @@ function Merge-WmrSharedConfiguration {
             if ($ResolvedConfig.$section) {
                 $ResolvedConfig.$section = @($ResolvedConfig.$section) + @($sharedItems)
             }
- else {
+            else {
                 $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $sharedItems -Force
             }
         }
@@ -105,7 +105,7 @@ function Merge-WmrMachineSpecificConfiguration {
                     if ($ResolvedConfig.PSObject.Properties.Name -contains $section) {
                         $ResolvedConfig.$section = $machineItems
                     }
- else {
+                    else {
                         $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $machineItems -Force
                     }
                 }
@@ -114,7 +114,7 @@ function Merge-WmrMachineSpecificConfiguration {
                     if ($ResolvedConfig.PSObject.Properties.Name -contains $section -and $ResolvedConfig.$section) {
                         $ResolvedConfig.$section = @($ResolvedConfig.$section) + @($machineItems)
                     }
- else {
+                    else {
                         $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $machineItems -Force
                     }
                 }
@@ -124,7 +124,7 @@ function Merge-WmrMachineSpecificConfiguration {
                     if ($ResolvedConfig.PSObject.Properties.Name -contains $section) {
                         $ResolvedConfig.$section = $mergedItems
                     }
- else {
+                    else {
                         $ResolvedConfig | Add-Member -NotePropertyName $section -NotePropertyValue $mergedItems -Force
                     }
                 }
@@ -186,7 +186,7 @@ function Merge-WmrConfigurationItem {
             $index = $mergedItems.IndexOf($matchingItem)
             $mergedItems[$index] = $mergedItem
         }
- else {
+        else {
             # Add new item
             $mergedItems += $newItem
         }
@@ -222,13 +222,13 @@ function Merge-WmrSingleConfigurationItem {
     if ($NewItem.conflict_resolution) {
         $conflictResolution = $NewItem.conflict_resolution
     }
- elseif ($ExistingItem.conflict_resolution) {
+    elseif ($ExistingItem.conflict_resolution) {
         $conflictResolution = $ExistingItem.conflict_resolution
     }
- elseif ($InheritanceConfig.machine_precedence) {
+    elseif ($InheritanceConfig.machine_precedence) {
         $conflictResolution = "machine_wins"
     }
- else {
+    else {
         $conflictResolution = "shared_wins"
     }
 
@@ -240,12 +240,12 @@ function Merge-WmrSingleConfigurationItem {
                 Write-Verbose "Machine-specific item wins, replacing shared configuration"
                 return $NewItem
             }
- elseif ($InheritanceConfig.machine_precedence -and $newPriority -gt $existingPriority) {
+            elseif ($InheritanceConfig.machine_precedence -and $newPriority -gt $existingPriority) {
                 # Higher priority wins when machine precedence is enabled
                 Write-Verbose "Higher priority item wins due to machine precedence"
                 return $NewItem
             }
- else {
+            else {
                 # Keep existing item but update inheritance info
                 Write-Verbose "Keeping existing item (no machine override)"
                 return $ExistingItem
@@ -257,7 +257,7 @@ function Merge-WmrSingleConfigurationItem {
                 Write-Verbose "Shared item wins, keeping existing"
                 return $ExistingItem
             }
- else {
+            else {
                 # New item wins
                 Write-Verbose "New item wins over non-shared existing"
                 return $NewItem
@@ -273,7 +273,7 @@ function Merge-WmrSingleConfigurationItem {
                     try {
                         $mergedItem | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value -Force
                     }
- catch {
+                    catch {
                         Write-Verbose "Failed to set property $($prop.Name): $($_.Exception.Message)"
                     }
                 }
@@ -288,7 +288,7 @@ function Merge-WmrSingleConfigurationItem {
                 Write-Verbose "New item wins by priority ($newPriority > $existingPriority)"
                 return $NewItem
             }
- else {
+            else {
                 Write-Verbose "Existing item wins by priority ($existingPriority >= $newPriority)"
                 return $ExistingItem
             }
@@ -321,7 +321,7 @@ function Merge-WmrRegistryValue {
         if ($group.Count -eq 1) {
             $mergedItems += $group.Group[0]
         }
- else {
+        else {
             # Merge multiple items for same path
             $mergedItem = $group.Group[0] | ConvertTo-Json -Depth 100 | ConvertFrom-Json
 
@@ -337,7 +337,7 @@ function Merge-WmrRegistryValue {
                         if ($mergedItem.inheritance_source -eq "shared") {
                             # Keep merged item
                         }
- else {
+                        else {
                             $mergedItem = $item
                         }
                     }

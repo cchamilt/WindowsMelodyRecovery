@@ -34,7 +34,7 @@ function Test-WmrPrerequisite {
                             $prereqMet = $true
                         }
                     }
- catch {
+                    catch {
                         $checkResult = "Error: $($_.Exception.Message)`n"
                     }
                 }
@@ -49,7 +49,7 @@ function Test-WmrPrerequisite {
                                 $prereqMet = $true
                             }
                         }
- else {
+                        else {
                             # Check if the registry key exists
                             if (Test-Path $regPath -ErrorAction Stop) {
                                 $checkResult = "Key exists.`n"
@@ -57,7 +57,7 @@ function Test-WmrPrerequisite {
                             }
                         }
                     }
- catch {
+                    catch {
                         $checkResult = "Error: $($_.Exception.Message)`n"
                     }
                 }
@@ -67,7 +67,7 @@ function Test-WmrPrerequisite {
                             # Execute script from path
                             $scriptOutput = Invoke-Expression $prereq.path | Out-String
                         }
- elseif ($prereq.inline_script) {
+                        elseif ($prereq.inline_script) {
                             # Execute inline script
                             $scriptOutput = Invoke-Expression $prereq.inline_script | Out-String
                         }
@@ -76,7 +76,7 @@ function Test-WmrPrerequisite {
                             $prereqMet = $true
                         }
                     }
- catch {
+                    catch {
                         $checkResult = "Error: $($_.Exception.Message)`n"
                     }
                 }
@@ -113,7 +113,7 @@ function Test-WmrPrerequisite {
                     }
                 }
             }
- else {
+            else {
                 Write-Information -MessageData " PASSED." -InformationAction Continue
             }
         }
@@ -122,7 +122,7 @@ function Test-WmrPrerequisite {
     if ($allPrerequisitesMet) {
         Write-Information -MessageData "All specified prerequisites passed for $($TemplateConfig.metadata.name) ($Operation operation)." -InformationAction Continue
     }
- else {
+    else {
         Write-Information -MessageData "Some prerequisites failed for $($TemplateConfig.metadata.name) ($Operation operation). Check warnings/errors above." -InformationAction Continue
     }
 

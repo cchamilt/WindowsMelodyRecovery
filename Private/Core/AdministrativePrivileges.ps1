@@ -77,15 +77,15 @@ function Test-WmrAdministrativePrivilege {
             if ($privilegeInfo.IsElevated) {
                 $privilegeInfo.ElevationMethod = "Already Elevated"
             }
- elseif ($privilegeInfo.CanElevate) {
+            elseif ($privilegeInfo.CanElevate) {
                 $privilegeInfo.ElevationMethod = "UAC Available"
             }
- else {
+            else {
                 $privilegeInfo.ElevationMethod = "No Elevation Available"
             }
 
         }
- else {
+        else {
             # Non-Windows environment
             $privilegeInfo.CurrentUser = $env:USER
             $privilegeInfo.IsElevated = (id -u) -eq 0  # Check if root on Unix-like systems
@@ -103,7 +103,7 @@ function Test-WmrAdministrativePrivilege {
         }
 
     }
- catch {
+    catch {
         $privilegeInfo.Errors += $_.Exception.Message
         if ($ThrowIfNotAdmin) {
             throw
@@ -155,7 +155,7 @@ function Test-WmrElevationCapability {
         return $false
 
     }
- catch {
+    catch {
         Write-Verbose "Failed to check elevation capability: $($_.Exception.Message)"
         return $false
     }
@@ -219,7 +219,7 @@ function Invoke-WmrWithElevation {
             return & $ScriptBlock @ArgumentList
 
         }
- elseif ($privilegeInfo.CanElevate -and -not $NoPrompt) {
+        elseif ($privilegeInfo.CanElevate -and -not $NoPrompt) {
             # Can elevate, but would require UAC prompt
             Write-Warning "This operation requires administrative privileges."
             Write-Warning "In a production environment, this would prompt for UAC elevation."
@@ -238,12 +238,12 @@ function Invoke-WmrWithElevation {
             throw "UAC elevation required but not implemented in this context"
 
         }
- else {
+        else {
             # Cannot elevate
             $message = if ($NoPrompt) {
                 "Administrative privileges required but elevation prompting is disabled"
             }
- else {
+            else {
                 "Administrative privileges required but elevation is not available"
             }
 
@@ -256,7 +256,7 @@ function Invoke-WmrWithElevation {
         }
 
     }
- catch {
+    catch {
         Write-Error "Failed to execute with elevation: $($_.Exception.Message)"
         return @{
             Success = $false
@@ -449,7 +449,7 @@ function Get-WmrPrivilegeRequirement {
                     $requirements.RequiresAdmin = $true
                     $requirements.AdminOperations += "Registry: $($reg.path)"
                 }
- else {
+                else {
                     $requirements.SafeOperations += "Registry: $($reg.path)"
                 }
             }
@@ -467,7 +467,7 @@ function Get-WmrPrivilegeRequirement {
                     $requirements.RequiresAdmin = $true
                     $requirements.AdminOperations += "File: $($file.path)"
                 }
- else {
+                else {
                     $requirements.SafeOperations += "File: $($file.path)"
                 }
             }
@@ -483,7 +483,7 @@ function Get-WmrPrivilegeRequirement {
                 $requirements.RequiresAdmin = $true
                 $requirements.AdminOperations += "Windows Feature/Capability: $($app.name)"
             }
- else {
+            else {
                 $requirements.SafeOperations += "Application: $($app.name)"
             }
         }
@@ -572,7 +572,7 @@ function Invoke-WmrSafeAdminOperation {
             $result.Success = $true
 
         }
- elseif ($FallbackScriptBlock) {
+        elseif ($FallbackScriptBlock) {
             # Execute fallback operation
             Write-Warning "$OperationName requires $RequiredPrivileges privileges. Using fallback operation."
             $result.Data = & $FallbackScriptBlock
@@ -581,7 +581,7 @@ function Invoke-WmrSafeAdminOperation {
             $result.Warnings += "Used fallback operation due to insufficient privileges"
 
         }
- else {
+        else {
             # Cannot proceed
             $message = "$OperationName requires $RequiredPrivileges privileges but only $($result.ActualPrivileges) privileges are available"
             $result.Errors += $message
@@ -590,7 +590,7 @@ function Invoke-WmrSafeAdminOperation {
         }
 
     }
- catch {
+    catch {
         $result.Errors += $_.Exception.Message
         Write-Warning "Failed to execute $OperationName`: $($_.Exception.Message)"
 
@@ -603,7 +603,7 @@ function Invoke-WmrSafeAdminOperation {
                 $result.UsedFallback = $true
                 $result.Warnings += "Used fallback operation due to error in main operation"
             }
- catch {
+            catch {
                 $result.Errors += "Fallback also failed: $($_.Exception.Message)"
                 Write-Warning "Fallback operation for $OperationName also failed: $($_.Exception.Message)"
             }

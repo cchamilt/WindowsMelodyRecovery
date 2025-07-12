@@ -33,7 +33,7 @@ function Get-WSLAptPackage {
             return $packages
         }
     }
- catch {
+    catch {
         Write-Warning "Failed to get APT packages: $($_.Exception.Message)"
     }
     return @()
@@ -63,7 +63,7 @@ function Get-WSLNpmPackage {
             return $packages
         }
     }
- catch {
+    catch {
         Write-Warning "Failed to get NPM packages: $($_.Exception.Message)"
     }
     return @()
@@ -91,7 +91,7 @@ function Get-WSLPipPackage {
             return $packages
         }
     }
- catch {
+    catch {
         Write-Warning "Failed to get PIP packages: $($_.Exception.Message)"
     }
     return @()
@@ -127,11 +127,11 @@ try {
     if ($allPackages.Count -eq 0) {
         Write-Output "[]"
     }
- else {
+    else {
         Write-Output ($allPackages | ConvertTo-Json -Depth 5)
     }
 }
- catch {
+catch {
     Write-Error "Failed to discover WSL packages: $($_.Exception.Message)"
     Write-Output "[]"
 }

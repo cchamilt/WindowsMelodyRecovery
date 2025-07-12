@@ -62,7 +62,7 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
             'Test-WmrConfigurationItemValidity'
         )
     }
- catch {
+    catch {
         # Silently ignore Export-ModuleMember errors when not in module context
     }
 }

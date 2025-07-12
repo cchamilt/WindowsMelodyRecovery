@@ -31,7 +31,7 @@ try {
             $wslInfo.WSLVersion = ($versionOutput | Select-Object -First 1).Trim()
         }
     }
- catch {
+    catch {
         $wslInfo.WSLVersion = "Legacy WSL 1"
     }
 
@@ -63,13 +63,13 @@ try {
             $wslInfo.Distributions = $distributions
         }
     }
- catch {
+    catch {
         $wslInfo.Message = "Could not enumerate distributions"
     }
 
     Write-Output ($wslInfo | ConvertTo-Json -Depth 10)
 }
- catch {
+catch {
     $errorResult = @{
         WSLAvailable = $false
         Distributions = @()

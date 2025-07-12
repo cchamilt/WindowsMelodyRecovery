@@ -62,7 +62,7 @@ function Get-WmrMachineContext {
             $context.HardwareInfo.Memory = Get-CimInstance -ClassName Win32_PhysicalMemory -ErrorAction SilentlyContinue | Measure-Object -Property Capacity -Sum | Select-Object -ExpandProperty Sum
             $context.HardwareInfo.VideoControllers = Get-CimInstance -ClassName Win32_VideoController -ErrorAction SilentlyContinue | Select-Object Name, AdapterRAM
         }
- catch {
+        catch {
             Write-Warning "Failed to collect hardware information: $($_.Exception.Message)"
         }
 
@@ -71,7 +71,7 @@ function Get-WmrMachineContext {
             $context.SoftwareInfo.PowerShellVersion = $PSVersionTable.PSVersion.ToString()
             $context.SoftwareInfo.DotNetVersion = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
         }
- catch {
+        catch {
             Write-Warning "Failed to collect software information: $($_.Exception.Message)"
         }
 
@@ -79,7 +79,7 @@ function Get-WmrMachineContext {
         return $context
 
     }
- catch {
+    catch {
         Write-Error "Failed to collect machine context: $($_.Exception.Message)"
         throw
     }
@@ -157,7 +157,7 @@ function Test-WmrMachineSelector {
                         $result = Test-WmrStringComparison -Value $regValue.$($selector.key_name) -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $caseSensitive
                     }
                 }
- catch {
+                catch {
                     Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
                 }
             }
@@ -168,7 +168,7 @@ function Test-WmrMachineSelector {
                     $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
                     $result = Test-WmrStringComparison -Value $scriptResult -Expected $selector.expected_result -Operator $selector.operator -CaseSensitive $caseSensitive
                 }
- catch {
+                catch {
                     Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
                 }
             }
@@ -208,7 +208,7 @@ function Test-WmrStringComparison {
             if ($CaseSensitive) {
                 return $Value -ceq $Expected
             }
- else {
+            else {
                 return $Value -eq $Expected
             }
         }
@@ -216,7 +216,7 @@ function Test-WmrStringComparison {
             if ($CaseSensitive) {
                 return $Value -cne $Expected
             }
- else {
+            else {
                 return $Value -ne $Expected
             }
         }
@@ -224,7 +224,7 @@ function Test-WmrStringComparison {
             if ($CaseSensitive) {
                 return $Value -clike "*$Expected*"
             }
- else {
+            else {
                 return $Value -like "*$Expected*"
             }
         }
@@ -232,7 +232,7 @@ function Test-WmrStringComparison {
             if ($CaseSensitive) {
                 return $Value -cmatch $Expected
             }
- else {
+            else {
                 return $Value -match $Expected
             }
         }
@@ -240,7 +240,7 @@ function Test-WmrStringComparison {
             if ($CaseSensitive) {
                 return $Value -cgt $Expected
             }
- else {
+            else {
                 return $Value -gt $Expected
             }
         }
@@ -248,7 +248,7 @@ function Test-WmrStringComparison {
             if ($CaseSensitive) {
                 return $Value -clt $Expected
             }
- else {
+            else {
                 return $Value -lt $Expected
             }
         }

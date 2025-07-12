@@ -33,13 +33,13 @@ function Read-WmrTemplateConfig {
     try {
         Import-Module Yayaml -ErrorAction Stop
     }
- catch {
+    catch {
         Write-Warning "Yayaml module not found. Attempting to install..."
         try {
             Install-Module Yayaml -Scope CurrentUser -Force -ErrorAction Stop
             Import-Module Yayaml -ErrorAction Stop
         }
- catch {
+        catch {
             throw "Failed to install and import Yayaml module. Please install it manually: Install-Module -Name Yayaml"
         }
     }
@@ -49,7 +49,7 @@ function Read-WmrTemplateConfig {
         $templateConfig = $yamlContent | ConvertFrom-Yaml -ErrorAction Stop
         return $templateConfig
     }
- catch {
+    catch {
         throw "Failed to parse YAML template file '$TemplatePath': $($_.Exception.Message)"
     }
 }

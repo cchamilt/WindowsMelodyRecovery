@@ -23,7 +23,7 @@ function Get-WmrRegistryState {
         if (-not (Test-Path $RegistryConfig.path)) {
             Write-Warning "    WhatIf: Registry path not found: $($RegistryConfig.path). Would skip backup for this item."
         }
- else {
+        else {
             Write-Warning -Message "    WhatIf: Would capture registry $($RegistryConfig.type) values"
         }
         return $null
@@ -69,13 +69,13 @@ function Get-WmrRegistryState {
                 # Remove unencrypted value
                 $registryState.Remove('Value')
             }
- else {
+            else {
                 $registryState.Encrypted = $false
             }
             ($registryState | ConvertTo-Json -Compress) | Set-Content -Path $stateFilePath -Encoding Utf8
 
         }
- elseif ($RegistryConfig.type -eq "key") {
+        elseif ($RegistryConfig.type -eq "key") {
             # Get all values under a registry key
             $keyValues = Get-ItemProperty -Path $resolvedPath -ErrorAction Stop | Select-Object -ExcludeProperty PSPath, PSParentPath, PSChildName, PSDrive, PSProvider
             $registryState.Values = $keyValues
@@ -87,7 +87,7 @@ function Get-WmrRegistryState {
         return $registryState
 
     }
- catch {
+    catch {
         $errorMessage = $_.Exception.Message
         Write-Warning ("    Failed to get registry state for " + $RegistryConfig.name + ": " + $errorMessage + ". Skipping.")
         return $null
@@ -128,26 +128,26 @@ function Set-WmrRegistryState {
                         Write-Warning -Message "    WhatIf: Would decrypt registry value with AES-256"
                         $valueToShow = "<encrypted>"
                     }
- elseif ($stateData.Value) {
+                    elseif ($stateData.Value) {
                         $valueToShow = $stateData.Value
                     }
- elseif ($RegistryConfig.value_data) {
+                    elseif ($RegistryConfig.value_data) {
                         $valueToShow = $RegistryConfig.value_data
                     }
                     Write-Warning -Message "    WhatIf: Would set registry value '$($RegistryConfig.key_name)' to '$valueToShow' at $resolvedPath"
                 }
- elseif ($RegistryConfig.type -eq "key") {
+                elseif ($RegistryConfig.type -eq "key") {
                     if ($stateData.Values) {
                         $valueCount = ($stateData.Values.PSObject.Properties | Measure-Object).Count
                         Write-Warning -Message "    WhatIf: Would restore $valueCount registry values under key $resolvedPath"
                     }
                 }
             }
- catch {
+            catch {
                 Write-Warning -Message "    WhatIf: Would attempt to restore registry from $stateFilePath (state file parse failed)"
             }
         }
- else {
+        else {
             Write-Warning "    WhatIf: No state data found for registry $($RegistryConfig.name). Would skip."
         }
         return
@@ -158,7 +158,7 @@ function Set-WmrRegistryState {
         try {
             $stateData = (Get-Content -Path $stateFilePath -Raw -Encoding Utf8) | ConvertFrom-Json
         }
- catch {
+        catch {
             $errorMessage = $_.Exception.Message
             Write-Warning ("    Failed to read or parse state file for " + $RegistryConfig.name + " at " + $stateFilePath + ": " + $errorMessage + ". Trying default value if available.")
         }
@@ -173,11 +173,11 @@ function Set-WmrRegistryState {
                     $decryptedBytes = Unprotect-WmrData -EncodedData $stateData.EncryptedValue
                     $valueToSet = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
                 }
- elseif ($stateData.Value) {
+                elseif ($stateData.Value) {
                     $valueToSet = $stateData.Value
                 }
             }
- elseif ($RegistryConfig.value_data) {
+            elseif ($RegistryConfig.value_data) {
                 $valueToSet = $RegistryConfig.value_data
                 Write-Information -MessageData "    Using default value_data from template for $($RegistryConfig.name)." -InformationAction Continue
             }
@@ -186,12 +186,12 @@ function Set-WmrRegistryState {
                 Set-ItemProperty -Path $resolvedPath -Name $RegistryConfig.key_name -Value $valueToSet -Force -ErrorAction Stop
                 Write-Information -MessageData "  Registry value $($RegistryConfig.name) set to $valueToSet at $resolvedPath/$($RegistryConfig.key_name)." -InformationAction Continue
             }
- else {
+            else {
                 Write-Warning "    No state data or default value_data found for registry value $($RegistryConfig.name). Skipping."
             }
 
         }
- elseif ($RegistryConfig.type -eq "key") {
+        elseif ($RegistryConfig.type -eq "key") {
             if ($stateData -and $stateData.Values) {
                 # Restore all values under the key from state data
                 foreach ($prop in $stateData.Values.PSObject.Properties) {
@@ -200,12 +200,12 @@ function Set-WmrRegistryState {
                 }
                 Write-Information -MessageData "  Registry key $($RegistryConfig.name) values restored at $resolvedPath." -InformationAction Continue
             }
- else {
+            else {
                 Write-Warning "    No state data found for registry key $($RegistryConfig.name). Skipping."
             }
         }
     }
- catch {
+    catch {
         $errorMessage = $_.Exception.Message
         Write-Warning ("    Failed to set registry state for " + $RegistryConfig.name + ": " + $errorMessage)
     }
