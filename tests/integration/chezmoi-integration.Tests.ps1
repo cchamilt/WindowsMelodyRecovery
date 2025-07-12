@@ -59,7 +59,7 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
             if (Test-Path $chezmoiSetupPath) {
                 { [System.Management.Automation.PSParser]::Tokenize((Get-Content $chezmoiSetupPath -Raw), [ref]$null) } | Should -Not -Throw
             }
- else {
+            else {
                 Write-Warning "Chezmoi setup script not found at expected location"
             }
         }
@@ -206,7 +206,7 @@ echo "Username: {{ .chezmoi.username }}"
                             $subFile.Value | Out-File -FilePath $filePath -Encoding UTF8
                         }
                     }
- else {
+                    else {
                         $filePath = Join-Path $dirPath $file.Key
                         $file.Value | Out-File -FilePath $filePath -Encoding UTF8
                     }
@@ -278,7 +278,7 @@ echo "Username: {{ .chezmoi.username }}"
             if (Test-Path $wslTemplatePath) {
                 Test-Path $wslTemplatePath | Should -Be $true
             }
- else {
+            else {
                 Set-ItResult -Skipped -Because "wsl.yaml template not found"
             }
         }
@@ -342,7 +342,7 @@ echo "Username: {{ .chezmoi.username }}"
             try {
                 Initialize-Chezmoi -ErrorAction Stop
             }
- catch {
+            catch {
                 $_.Exception.Message | Should -Match "WSL"
             }
         }
@@ -362,7 +362,7 @@ exit 1
             try {
                 & bash $scriptFile
             }
- catch {
+            catch {
                 $LASTEXITCODE | Should -Be 1
             }
 

@@ -6,7 +6,7 @@
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -22,17 +22,17 @@
                 Write-Warning -Message "KeePassXC not found, installing..."
                 winget install -e --id KeePassXCTeam.KeePassXC
             }
- else {
+            else {
                 Write-Information -MessageData "KeePassXC is already installed" -InformationAction Continue
             }
         }
- catch {
+        catch {
             # Fallback to chocolatey if winget fails
             if (Get-Command choco -ErrorAction SilentlyContinue) {
                 Write-Warning -Message "Attempting to install via Chocolatey..."
                 choco install keepassxc -y
             }
- else {
+            else {
                 Write-Warning "Failed to install KeePassXC. Please install manually."
                 return $false
             }
@@ -43,7 +43,7 @@
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to setup KeePassXC: $_"
         return $false
     }

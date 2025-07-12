@@ -11,7 +11,7 @@
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -28,17 +28,17 @@
                 if ($applications.Steam) {
                     $gamesList = $applications.Steam
                 }
- else {
+                else {
                     Write-Warning -Message "No Steam games found in backup"
                     $gamesList = @()
                 }
             }
- else {
+            else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         }
- else {
+        else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -50,7 +50,7 @@
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Error setting up Steam games: $_"
         return $false
     }

@@ -110,7 +110,7 @@
             $status = if ($Enabled) { "enabled" } else { "disabled" }
             Write-Information -MessageData "Successfully $status $ScriptName in $Category scripts." -InformationAction Continue
         }
- else {
+        else {
             Write-Error -Message "Failed to update script configuration."
         }
         return

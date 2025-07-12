@@ -11,7 +11,7 @@
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -61,7 +61,7 @@
                         if (Get-Command scoop -ErrorAction SilentlyContinue) {
                             scoop install sqlite
                         }
- else {
+                        else {
                             Write-Warning -Message "SQLite not available. Cannot read GOG Galaxy database."
                             return $installedGames
                         }
@@ -100,17 +100,17 @@
                 if ($applications.GOG) {
                     $gamesList = $applications.GOG
                 }
- else {
+                else {
                     Write-Warning -Message "No GOG games found in backup"
                     $gamesList = @()
                 }
             }
- else {
+            else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         }
- else {
+        else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -134,7 +134,7 @@
                 Write-Information -MessageData "- $($_.Name) (ID: $($_.Id))" -InformationAction Continue
             }
         }
- else {
+        else {
             Write-Verbose -Message "No GOG games currently installed"
         }
 
@@ -146,7 +146,7 @@
                     Write-Warning -Message "- $($_.Name) (ID: $($_.Id))"
                 }
             }
- else {
+            else {
                 Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
@@ -164,7 +164,7 @@
                 Write-Warning -Message "`nRun with -Install to begin installation process"
             }
         }
- else {
+        else {
             Write-Verbose -Message "`nNo games list found to install from"
         }
 
@@ -172,7 +172,7 @@
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to setup GOG Games: $($_.Exception.Message)"
         return $false
     }

@@ -14,7 +14,7 @@ function Enable-Defender {
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -102,7 +102,7 @@ function Enable-Defender {
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to configure Windows Defender: $($_.Exception.Message)"
         return $false
     }

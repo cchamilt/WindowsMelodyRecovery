@@ -29,15 +29,15 @@
                         throw "Failed to initialize Windows Recovery configuration"
                     }
                 }
- else {
+                else {
                     throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
                 }
             }
- else {
+            else {
                 throw "Setup requires initialization. Please run Initialize-WindowsMelodyRecovery first."
             }
         }
- else {
+        else {
             Write-Information -MessageData "Using existing configuration" -InformationAction Continue
         }
 
@@ -58,7 +58,7 @@
                     if ($NoPrompt -or $Force) {
                         $response = 'Y'
                     }
- else {
+                    else {
                         $response = Read-Host "Run $($setup.name)? $($setup.description) (Y/N)"
                     }
 
@@ -69,24 +69,24 @@
                                 & $setup.function
                                 Write-Information -MessageData "✅ Completed $($setup.name)" -InformationAction Continue
                             }
- else {
+                            else {
                                 Write-Warning "Setup function $($setup.function) not available"
                             }
                         }
- catch {
+                        catch {
                             Write-Warning "Failed to run $($setup.name): $_"
                         }
                     }
- else {
+                    else {
                         Write-Verbose -Message "⏭️ Skipped $($setup.name)"
                     }
                 }
- else {
+                else {
                     Write-Verbose "Setup script $($setup.name) is disabled in configuration"
                 }
             }
         }
- else {
+        else {
             Write-Warning -Message "No setup scripts configured or available."
         }
 
@@ -114,7 +114,7 @@
                     Get-ScheduledTask -TaskName "WindowsMelodyRecovery_Update" -ErrorAction SilentlyContinue
                 ) | Where-Object { $_ }
             }
- else { $null }
+            else { $null }
         }
 
         # Display verification results
@@ -127,7 +127,7 @@
         Write-Information -MessageData "`nWindows Recovery setup completed successfully!" -InformationAction Continue
         return $true
     }
- catch {
+    catch {
         Write-Error -Message "`nSetup failed: $_"
         return $false
     }

@@ -69,7 +69,7 @@ AfterAll {
                 Unregister-ScheduledTask -TaskName $taskName -TaskPath "\Microsoft\Windows\WindowsMelodyRecovery\" -Confirm:$false -ErrorAction SilentlyContinue
             }
         }
- catch {
+        catch {
             # Ignore cleanup errors
         }
     }

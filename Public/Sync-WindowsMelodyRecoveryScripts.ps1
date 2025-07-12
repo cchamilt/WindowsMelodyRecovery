@@ -18,10 +18,10 @@
     if ($moduleInfo) {
         $moduleRoot = Split-Path $moduleInfo.Path -Parent
     }
- elseif ($PSScriptRoot) {
+    elseif ($PSScriptRoot) {
         $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     }
- else {
+    else {
         # Last resort: use current directory or workspace
         $moduleRoot = if (Test-Path "/workspace") { "/workspace" } else { Get-Location }
     }
@@ -60,11 +60,11 @@
         $currentConfig = Get-Content $configPath -Raw | ConvertFrom-Json
         Write-Information -MessageData "Found existing user configuration" -InformationAction Continue
     }
- elseif (Test-Path $templatePath) {
+    elseif (Test-Path $templatePath) {
         $currentConfig = Get-Content $templatePath -Raw | ConvertFrom-Json
         Write-Warning -Message "Using template configuration as base"
     }
- else {
+    else {
         Write-Error "No configuration template found"
         return
     }
@@ -111,7 +111,7 @@
                         Write-Information -MessageData "  [$status] $category`: $($discoveredScript.name)  -InformationAction Continue-> $functionName" -ForegroundColor $(if ($existingScript) { 'Green' } else { 'Cyan' })
                     }
                 }
- else {
+                else {
                     Write-Warning "Could not determine function name for script: $($script.Name)"
                 }
             }

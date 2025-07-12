@@ -49,7 +49,7 @@
     if ($moduleInfo) {
         $moduleVersion = $moduleInfo.Version
     }
- else {
+    else {
         # Try to get version from manifest file using an absolute path in the container
         $manifestPath = "/workspace/WindowsMelodyRecovery.psd1"
         Write-Verbose "Could not find module, trying absolute manifest path: $manifestPath"
@@ -61,7 +61,7 @@
                     Write-Verbose "Found version $moduleVersion in manifest"
                 }
             }
- catch {
+            catch {
                 Write-Warning "Could not read manifest file at ${manifestPath}: $($_.Exception.Message)"
             }
         }
@@ -129,7 +129,7 @@
         if (Get-Command $function -ErrorAction SilentlyContinue) {
             $status.Functions.Available += $function
         }
- else {
+        else {
             $status.Functions.Missing += $function
         }
     }
@@ -193,11 +193,11 @@
         Write-Verbose "Using ModuleInfo.Version: $($status.ModuleInfo.Version)"
         $status.ModuleInfo.Version
     }
- elseif ($moduleVersion) {
+    elseif ($moduleVersion) {
         Write-Verbose "Using moduleVersion: $moduleVersion"
         $moduleVersion
     }
- else {
+    else {
         Write-Verbose "Using fallback version: 1.0.0"
         "1.0.0"  # Fallback version
     }
@@ -250,7 +250,7 @@ function Show-WindowsMelodyRecoveryStatus {
         Write-Information -MessageData "  Version: $($status.ModuleInfo.Version)"  -InformationAction Continue-ForegroundColor White
         Write-Verbose -Message "  Path: $($status.ModuleInfo.Path)"
     }
- else {
+    else {
         Write-Error -Message "  Module not loaded"
     }
 
@@ -264,7 +264,7 @@ function Show-WindowsMelodyRecoveryStatus {
             Write-Verbose -Message "  Components: $($status.Initialization.LoadedComponents -join ', ')"
         }
     }
- else {
+    else {
         Write-Error -Message "  Module not initialized"
     }
 
@@ -278,7 +278,7 @@ function Show-WindowsMelodyRecoveryStatus {
         Write-Information -MessageData "  Cloud Provider: $($status.Configuration.CloudProvider)"  -InformationAction Continue-ForegroundColor White
         Write-Verbose -Message "  Last Configured: $($status.Configuration.LastConfigured)"
     }
- else {
+    else {
         Write-Warning -Message "  Configuration not initialized"
     }
 
@@ -299,13 +299,13 @@ function Show-WindowsMelodyRecoveryStatus {
     if ($status.Dependencies.Pester) {
         Write-Information -MessageData "  Pester module available" -InformationAction Continue
     }
- else {
+    else {
         Write-Error -Message "  Pester module not found"
     }
     if ($status.Dependencies.PowerShellVersion) {
         Write-Information -MessageData "  PowerShell version compatible" -InformationAction Continue
     }
- else {
+    else {
         Write-Warning -Message "  PowerShell 5.1+ recommended"
     }
 
@@ -360,10 +360,10 @@ function Show-WindowsMelodyRecoveryStatus {
     if ($status.Initialization.Initialized -and $status.Functions.Missing.Count -eq 0) {
         Write-Information -MessageData "Module is ready for use!" -InformationAction Continue
     }
- elseif ($status.Initialization.Initialized) {
+    elseif ($status.Initialization.Initialized) {
         Write-Warning -Message "Module is initialized but some functions are missing"
     }
- else {
+    else {
         Write-Error -Message "Module needs initialization"
     }
     Write-Information -MessageData $separator  -InformationAction Continue-ForegroundColor Cyan

@@ -14,7 +14,7 @@ function Initialize-RestorePoint {
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -51,7 +51,7 @@ function Initialize-RestorePoint {
                 }
             }
         }
- catch {
+        catch {
             Write-Warning -Message "Warning: Could not check last restore point time: $($_.Exception.Message)"
         }
 
@@ -97,7 +97,7 @@ function Initialize-RestorePoint {
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to configure System Restore: $($_.Exception.Message)"
         return $false
     }

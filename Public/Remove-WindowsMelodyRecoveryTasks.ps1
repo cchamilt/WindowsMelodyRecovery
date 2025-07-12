@@ -19,7 +19,7 @@ function Remove-WindowsMelodyRecoveryTask {
             return $false
         }
     }
- catch {
+    catch {
         Write-Warning "Could not verify administrator privileges: $_"
         return $false
     }
@@ -56,11 +56,11 @@ function Remove-WindowsMelodyRecoveryTask {
                 Write-Information -MessageData "Removed scheduled task: $taskName" -InformationAction Continue
                 $removedCount++
             }
- else {
+            else {
                 Write-Warning -Message "Task '$taskName' not found, skipping..."
             }
         }
- catch {
+        catch {
             Write-Warning "Failed to remove scheduled task '$taskName': $_"
         }
     }

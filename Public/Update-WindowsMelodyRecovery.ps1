@@ -35,7 +35,7 @@
                 Invoke-CimMethod -MethodName UpdateScanMethod
             Write-Information -MessageData "Windows Store apps check completed" -InformationAction Continue
         }
- catch {
+        catch {
             $errorMessage = "Failed to check Windows Store apps: $_"
             Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
             $updateErrors += $errorMessage
@@ -47,7 +47,7 @@
             winget upgrade --all --accept-source-agreements --accept-package-agreements --include-unknown --silent
             Write-Information -MessageData "Winget packages updated successfully" -InformationAction Continue
         }
- catch {
+        catch {
             $errorMessage = "Failed to update Winget packages: $_"
             Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
             $updateErrors += $errorMessage
@@ -60,7 +60,7 @@
                 choco upgrade all -y
                 Write-Information -MessageData "Chocolatey packages updated successfully" -InformationAction Continue
             }
- catch {
+            catch {
                 $errorMessage = "Failed to update Chocolatey packages: $_"
                 Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
                 $updateErrors += $errorMessage
@@ -75,7 +75,7 @@
                 scoop update *
                 Write-Information -MessageData "Scoop packages updated successfully" -InformationAction Continue
             }
- catch {
+            catch {
                 $errorMessage = "Failed to update Scoop packages: $_"
                 Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
                 $updateErrors += $errorMessage
@@ -98,7 +98,7 @@
                             Uninstall-Module -Force
                     }
                 }
- catch {
+                catch {
                     $errorMessage = "Failed to update module $($module.Name): $_"
                     Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
                     $updateErrors += $errorMessage
@@ -106,7 +106,7 @@
             }
             Write-Information -MessageData "PowerShell modules updated successfully" -InformationAction Continue
         }
- catch {
+        catch {
             $errorMessage = "Failed to update PowerShell modules: $_"
             Write-Information -MessageData $errorMessage  -InformationAction Continue-ForegroundColor Red
             $updateErrors += $errorMessage
@@ -116,7 +116,7 @@
         Write-Warning -Message "Note: Some updates may require a system restart to take effect"
 
     }
- finally {
+    finally {
         # Stop transcript
         Stop-Transcript
 

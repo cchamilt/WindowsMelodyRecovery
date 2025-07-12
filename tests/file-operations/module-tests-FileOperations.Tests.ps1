@@ -24,11 +24,11 @@ BeforeAll {
         if (Test-Path $path -PathType Container) {
             Join-Path $path "WindowsMelodyRecovery.psm1"
         }
- else {
+        else {
             $path
         }
     }
- else {
+    else {
         # Fallback: determine module path based on current environment
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
@@ -43,7 +43,7 @@ BeforeAll {
     if ($isDockerEnvironment) {
         $TestTempDir = Join-Path "/workspace/Temp" "WindowsMelodyRecovery-FileOps"
     }
- else {
+    else {
         # Use project Temp directory for local Windows environments
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $TestTempDir = Join-Path $moduleRoot "Temp" "WindowsMelodyRecovery-FileOps"

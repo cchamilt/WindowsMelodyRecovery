@@ -36,7 +36,7 @@ function Convert-ToWinget {
                 }
             }
         }
- catch {
+        catch {
             Write-Error -Message "Failed to search for $AppName in winget: $_"
         }
         return $null
@@ -94,7 +94,7 @@ function Convert-ToWinget {
                 }
                 Write-Information -MessageData "Found in winget: $($wingetInfo.Id) from $($wingetInfo.Source)" -InformationAction Continue
             }
- else {
+            else {
                 $nonConvertible += $app
                 Write-Error -Message "Not found in winget"
             }
@@ -118,7 +118,7 @@ function Convert-ToWinget {
                             $uninstallString = $app.UninstallString -replace "msiexec.exe", "" -replace "/I", "/X" -replace "/i", "/x"
                             Start-Process "msiexec.exe" -ArgumentList "$uninstallString /quiet" -Wait
                         }
- else {
+                        else {
                             $uninstallProcess = Start-Process $app.UninstallString -Wait -PassThru
                             if ($uninstallProcess.ExitCode -ne 0) {
                                 throw "Uninstall process exited with code: $($uninstallProcess.ExitCode)"
@@ -131,7 +131,7 @@ function Convert-ToWinget {
 
                         Write-Information -MessageData "Successfully converted $($app.Name) to winget" -InformationAction Continue
                     }
- catch {
+                    catch {
                         Write-Error -Message "Failed to convert $($app.Name): $_"
                     }
                 }
@@ -147,7 +147,7 @@ function Convert-ToWinget {
 
         return $true
     }
- catch {
+    catch {
         Write-Error -Message "Failed to convert applications to winget: $_"
         return $false
     }

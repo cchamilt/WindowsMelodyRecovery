@@ -65,7 +65,7 @@ $coreUtilitiesPath = Join-Path $modulePath "Private\Core\WindowsMelodyRecovery.C
 if (Test-Path $coreUtilitiesPath) {
     . $coreUtilitiesPath
 }
- else {
+else {
     Write-Warning "Core utilities not found at: $coreUtilitiesPath"
 }
 
@@ -74,7 +74,7 @@ $loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath
 }
- else {
+else {
     Write-Warning "Load environment script not found at: $loadEnvPath"
 }
 
@@ -111,7 +111,7 @@ function Initialize-ConfigurationSelection {
             $backupRoot = $config.BackupRoot
             $machineName = $config.MachineName
         }
- catch {
+        catch {
             Write-Warning "Module configuration not available. Using defaults."
             $backupRoot = "$env:USERPROFILE\WindowsMelodyRecovery"
             $machineName = $env:COMPUTERNAME
@@ -139,7 +139,7 @@ function Initialize-ConfigurationSelection {
             if ($CreateProfile -or -not (Test-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath)) {
                 $configProfile = New-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath -AvailableScripts $availableScripts
             }
- else {
+            else {
                 $configProfile = Get-ConfigurationProfile -ProfileName $ProfileName -OutputPath $OutputPath
             }
 
@@ -184,7 +184,7 @@ function Initialize-ConfigurationSelection {
             return $true
 
         }
- catch {
+        catch {
             Write-Error "Failed to setup configuration selection: $_"
             return $false
         }
@@ -239,7 +239,7 @@ function Get-AvailableSetupScript {
         return $scripts
 
     }
- catch {
+    catch {
         Write-Warning "Failed to get available setup scripts: $_"
         return @()
     }
@@ -288,7 +288,7 @@ function Test-ConfigurationProfile {
         $profilePath = Join-Path $OutputPath "$ProfileName-profile.json"
         return Test-Path $profilePath
     }
- catch {
+    catch {
         return $false
     }
 }
@@ -369,7 +369,7 @@ function New-ConfigurationProfile {
         return $configProfile
 
     }
- catch {
+    catch {
         Write-Warning "Failed to create configuration profile: $_"
         return @{}
     }
@@ -396,7 +396,7 @@ function Save-ConfigurationProfile {
             $Profile | ConvertTo-Json -Depth 10 | Out-File -FilePath $profilePath -Encoding UTF8
             Write-Information -MessageData "Configuration profile saved: $profilePath" -InformationAction Continue
         }
- catch {
+        catch {
             Write-Warning "Failed to save configuration profile: $_"
         }
     }
@@ -419,11 +419,11 @@ function Get-ConfigurationProfile {
             $profileContent = Get-Content $profilePath -Raw | ConvertFrom-Json
             return $profileContent
         }
- else {
+        else {
             return $null
         }
     }
- catch {
+    catch {
         Write-Warning "Failed to get configuration profile: $_"
         return $null
     }
@@ -466,7 +466,7 @@ function Invoke-InteractiveScriptSelection {
         if ($userInput -eq 'all') {
             $selectedScripts = $AvailableScripts.Name
         }
- else {
+        else {
             $indices = $userInput -split ',' | ForEach-Object { [int]$_.Trim() - 1 }
             $selectedScripts = $AvailableScripts[$indices].Name
         }
@@ -474,7 +474,7 @@ function Invoke-InteractiveScriptSelection {
         return $selectedScripts
 
     }
- catch {
+    catch {
         Write-Warning "Failed to perform interactive script selection: $_"
         return @()
     }
@@ -531,7 +531,7 @@ function Invoke-AutomaticScriptSelection {
         return $selectedScripts
 
     }
- catch {
+    catch {
         Write-Warning "Failed to perform automatic script selection: $_"
         return @()
     }
@@ -548,7 +548,7 @@ function Get-ProfileScriptSelection {
     try {
         return $Profile.setup_scripts
     }
- catch {
+    catch {
         Write-Warning "Failed to get profile script selection: $_"
         return @()
     }
@@ -576,7 +576,7 @@ function Get-SystemInformation {
             $wslResult = wsl --list --quiet 2>$null
             $systemInfo.HasWSL = $LASTEXITCODE -eq 0
         }
- catch {
+        catch {
             # WSL not installed or not available
             $systemInfo.HasWSL = $false
         }
@@ -586,7 +586,7 @@ function Get-SystemInformation {
             git --version 2>$null | Out-Null
             $systemInfo.HasGit = $LASTEXITCODE -eq 0
         }
- catch {
+        catch {
             # Git not installed or not available
             $systemInfo.HasGit = $false
         }
@@ -618,7 +618,7 @@ function Get-SystemInformation {
         return $systemInfo
 
     }
- catch {
+    catch {
         Write-Warning "Failed to get system information: $_"
         return @{}
     }
@@ -697,7 +697,7 @@ function New-SetupExecutionPlan {
         return $executionPlan
 
     }
- catch {
+    catch {
         Write-Warning "Failed to create setup execution plan: $_"
         return @{}
     }
@@ -719,7 +719,7 @@ function Save-ExecutionPlan {
             $ExecutionPlan | ConvertTo-Json -Depth 10 | Out-File -FilePath $Path -Encoding UTF8
             Write-Information -MessageData "Execution plan saved: $Path" -InformationAction Continue
         }
- catch {
+        catch {
             Write-Warning "Failed to save execution plan: $_"
         }
     }
@@ -771,7 +771,7 @@ function Test-ConfigurationSelectionStatus {
         return $status
 
     }
- catch {
+    catch {
         Write-Warning "Failed to check configuration selection status: $_"
         return @{
             ConfigurationSelectionConfigured = $false

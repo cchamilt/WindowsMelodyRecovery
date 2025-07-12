@@ -51,7 +51,7 @@
             Write-Information -MessageData "Template-based restore operation completed successfully." -InformationAction Continue
 
         }
- else {
+        else {
             # Original script-based restore logic
             Write-Information -MessageData "Performing script-based restore..." -InformationAction Continue
 
@@ -115,11 +115,11 @@
                         $availableRestores++
                         Write-Verbose "Successfully executed $($restore.function)"
                     }
- catch {
+                    catch {
                         Write-Error -Message "Failed to execute $($restore.function) : $_"
                     }
                 }
- else {
+                else {
                     Write-Verbose "Restore function $($restore.function) not available"
                 }
             }
@@ -127,7 +127,7 @@
             if ($availableRestores -eq 0) {
                 Write-Warning -Message "No restore functions were found. Check that restore scripts exist in the Private\restore directory."
             }
- else {
+            else {
                 Write-Information -MessageData "Script-based restoration completed! ($availableRestores functions executed)" -InformationAction Continue
 
                 # Run final post-restore applications analysis
@@ -164,28 +164,28 @@
                                         Write-Information -MessageData "  - restored-apps.json: List of successfully restored applications" -InformationAction Continue
                                         Write-Warning -Message "`nThese applications were not restored by any package manager and must be installed manually."
                                     }
- else {
+                                    else {
                                         Write-Information -MessageData "`n🎉 CONGRATULATIONS: All originally unmanaged applications have been successfully restored!" -InformationAction Continue
                                         Write-Information -MessageData "Check 'restored-apps.json' to see what was automatically restored." -InformationAction Continue
                                     }
                                 }
                             }
                         }
- else {
+                        else {
                             Write-Warning -Message "Compare-PostRestoreApplications function not found"
                         }
                     }
- else {
+                    else {
                         Write-Warning -Message "Analysis script not found - skipping final post-restore analysis"
                     }
                 }
- catch {
+                catch {
                     Write-Error -Message "Failed to run final post-restore applications analysis: $_"
                 }
             }
         }
     }
- finally {
+    finally {
         Stop-Transcript
     }
 

@@ -11,7 +11,7 @@
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -88,17 +88,17 @@
                 if ($applications.EA) {
                     $gamesList = $applications.EA
                 }
- else {
+                else {
                     Write-Warning -Message "No EA games found in backup"
                     $gamesList = @()
                 }
             }
- else {
+            else {
                 Write-Warning -Message "No games list found in backup location"
                 $gamesList = @()
             }
         }
- else {
+        else {
             if (!(Test-Path $GamesListPath)) {
                 Write-Error -Message "Games list not found at: $GamesListPath"
                 return $false
@@ -121,7 +121,7 @@
                 Write-Information -MessageData "- $($_.Name) (ID: $($_.Id))" -InformationAction Continue
             }
         }
- else {
+        else {
             Write-Verbose -Message "No EA games currently installed"
         }
 
@@ -133,7 +133,7 @@
                     Write-Warning -Message "- $($_.Name) (ID: $($_.Id))"
                 }
             }
- else {
+            else {
                 Write-Information -MessageData "All games from backup are already installed!" -InformationAction Continue
             }
 
@@ -151,7 +151,7 @@
                 Write-Warning -Message "`nRun with -Install to begin installation process"
             }
         }
- else {
+        else {
             Write-Verbose -Message "`nNo games list found to install from"
         }
 
@@ -159,7 +159,7 @@
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to setup EA Games: $($_.Exception.Message)"
         return $false
     }

@@ -54,7 +54,7 @@ function Import-EnvFile {
         }
         return $true
     }
- else {
+    else {
         Write-Warning -Message "Base configuration file not found: $Path"
         return $false
     }
@@ -81,7 +81,7 @@ if ($configLoaded) {
         $configLoaded = $false
     }
 }
- else {
+else {
     Write-Warning -Message "Failed to load environment configuration"
 }
 
@@ -89,7 +89,7 @@ if ($configLoaded) {
 if ($configLoaded -and $env:BACKUP_ROOT) {
     $BACKUP_ROOT = $env:BACKUP_ROOT
 }
- else {
+else {
     # Try generic OneDrive paths without hardcoding organization names
     $foundOneDrive = $false
 
@@ -112,7 +112,7 @@ if ($configLoaded -and $env:BACKUP_ROOT) {
 $WINDOWS_MELODY_RECOVERY_PATH = if ($env:WINDOWS_MELODY_RECOVERY_PATH) {
     $env:WINDOWS_MELODY_RECOVERY_PATH
 }
- else {
+else {
     Join-Path $DEFAULT_WINDOWS_CONFIG_PATH "WindowsMelodyRecovery"
 }
 

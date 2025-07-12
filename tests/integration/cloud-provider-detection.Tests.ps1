@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Integration tests for cloud provider detection and path resolution
@@ -14,16 +14,19 @@ Describe "Cloud Provider Detection and Path Resolution Tests" {
         try {
             $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
             Import-Module $ModulePath -Force -ErrorAction Stop
-        } catch {
+        }
+        catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
 
         # Import cloud provider detection functions
         $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {
             "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1"
-        } elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
+        }
+        elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
             "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1"
-        } else {
+        }
+        else {
             throw "Cannot find cloud-provider-detection.ps1 script"
         }
         . $CloudDetectionScript
@@ -31,7 +34,8 @@ Describe "Cloud Provider Detection and Path Resolution Tests" {
         # Set up test environment
         $script:MockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
             "/workspace/tests/mock-data/cloud"
-        } else {
+        }
+        else {
             "$PSScriptRoot\..\mock-data\cloud"
         }
 

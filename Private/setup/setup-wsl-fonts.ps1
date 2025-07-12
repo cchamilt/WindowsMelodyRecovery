@@ -14,7 +14,7 @@ function Initialize-WSLFont {
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -83,7 +83,7 @@ function Initialize-WSLFont {
                 Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
 
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to install $font : $($_.Exception.Message)"
                 continue
             }
@@ -124,7 +124,7 @@ function Initialize-WSLFont {
             Remove-Item $fontExtract -Recurse -Force -ErrorAction SilentlyContinue
 
         }
- catch {
+        catch {
             Write-Error -Message "Failed to install Ubuntu fonts: $($_.Exception.Message)"
         }
 
@@ -163,7 +163,7 @@ function Initialize-WSLFont {
                 wsl --exec bash -c "chmod +x '$wslTempScript' && sudo '$wslTempScript'"
                 Write-Information -MessageData "Successfully configured WSL fonts" -InformationAction Continue
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to configure WSL fonts: $($_.Exception.Message)"
                 Write-Warning -Message "You may need to manually copy fonts to WSL"
             }
@@ -171,7 +171,7 @@ function Initialize-WSLFont {
             # Cleanup temporary script
             Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
         }
- else {
+        else {
             Write-Warning -Message "WSL not found. Fonts installed for Windows only."
         }
 
@@ -180,7 +180,7 @@ function Initialize-WSLFont {
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to configure WSL fonts: $($_.Exception.Message)"
         return $false
     }

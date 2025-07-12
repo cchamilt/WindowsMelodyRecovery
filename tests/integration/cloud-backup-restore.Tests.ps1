@@ -15,7 +15,7 @@ Describe "Cloud Backup and Restore Workflow Tests" {
             $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
             Import-Module $ModulePath -Force -ErrorAction Stop
         }
- catch {
+        catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
 
@@ -23,10 +23,10 @@ Describe "Cloud Backup and Restore Workflow Tests" {
         $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {
             "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1"
         }
- elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
+        elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
             "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1"
         }
- else {
+        else {
             throw "Cannot find cloud-provider-detection.ps1 script"
         }
         . $CloudDetectionScript
@@ -35,14 +35,14 @@ Describe "Cloud Backup and Restore Workflow Tests" {
         $script:TestBackupRoot = if ($env:TEMP) {
             Join-Path $env:TEMP "WMR-Cloud-Backup-Tests"
         }
- else {
+        else {
             "/tmp/WMR-Cloud-Backup-Tests"
         }
 
         $script:TestRestoreRoot = if ($env:TEMP) {
             Join-Path $env:TEMP "WMR-Cloud-Restore-Tests"
         }
- else {
+        else {
             "/tmp/WMR-Cloud-Restore-Tests"
         }
 

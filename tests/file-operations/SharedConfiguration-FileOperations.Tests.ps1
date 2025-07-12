@@ -27,7 +27,7 @@ BeforeAll {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
     }
- catch {
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -95,7 +95,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content.Source | Should -Be "Machine"
                 $content.Priority | Should -Be 1
             }
- finally {
+            finally {
                 # Clean up test files
                 Remove-Item $machineFile -Force -ErrorAction SilentlyContinue
                 Remove-Item $sharedFile -Force -ErrorAction SilentlyContinue
@@ -116,7 +116,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content.Source | Should -Be "Shared"
                 $content.Type | Should -Be "Fallback"
             }
- finally {
+            finally {
                 # Clean up test files
                 Remove-Item $sharedFile -Force -ErrorAction SilentlyContinue
             }
@@ -143,7 +143,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                     $result | Should -Be $sharedFile
                     Test-Path $result | Should -Be $true
                 }
- finally {
+                finally {
                     Remove-Item $sharedFile -Force -ErrorAction SilentlyContinue
                 }
             }
@@ -162,7 +162,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content.Name | Should -Be "UTF-8 测试"
                 $content.Description | Should -Match "émojis 🚀"
             }
- finally {
+            finally {
                 Remove-Item $utf8File -Force -ErrorAction SilentlyContinue
             }
         }
@@ -194,7 +194,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content = Get-Content $result | ConvertFrom-Json
                 $content.Location | Should -Be "Machine"
             }
- finally {
+            finally {
                 # Clean up
                 Remove-Item $machineFile -Force -ErrorAction SilentlyContinue
                 Remove-Item $sharedFile -Force -ErrorAction SilentlyContinue
@@ -219,7 +219,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content = Get-Content $result | ConvertFrom-Json
                 $content.DeepLevel | Should -Be "Level3"
             }
- finally {
+            finally {
                 Remove-Item (Join-Path $script:TestSharedBackup "level1") -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
@@ -250,7 +250,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content.Settings.Theme | Should -Be "Dark"
                 $content.Settings.Features.Count | Should -Be 3
             }
- finally {
+            finally {
                 Remove-Item $jsonFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -281,7 +281,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $propertyCount = ($content.LargeData.PSObject.Properties | Measure-Object).Count
                 $propertyCount | Should -Be 100
             }
- finally {
+            finally {
                 Remove-Item $largeConfigFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -303,7 +303,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                     $content = Get-Content $result | ConvertFrom-Json
                     $content.FileName | Should -Be $file
                 }
- finally {
+                finally {
                     Remove-Item $sharedFile -Force -ErrorAction SilentlyContinue
                 }
             }
@@ -320,7 +320,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content = Get-Content $result | ConvertFrom-Json
                 $content.FileName | Should -Be $bracketFile
             }
- finally {
+            finally {
                 Remove-Item $sharedBracketFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -339,7 +339,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 # Attempting to parse should throw, but file discovery should work
                 { Get-Content $result | ConvertFrom-Json } | Should -Throw
             }
- finally {
+            finally {
                 Remove-Item $corruptedFile -Force -ErrorAction SilentlyContinue
             }
         }
@@ -359,7 +359,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
                 $content = Get-Content $result | ConvertFrom-Json
                 $content.ReadOnly | Should -Be $true
             }
- finally {
+            finally {
                 # Remove read-only attribute and clean up
                 if (Test-Path $readOnlyFile) {
                     Set-ItemProperty -Path $readOnlyFile -Name IsReadOnly -Value $false

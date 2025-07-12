@@ -11,7 +11,7 @@ function Initialize-[Feature] {
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -56,7 +56,7 @@ function Initialize-[Feature] {
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to setup [Feature]: $_"
         return $false
     }

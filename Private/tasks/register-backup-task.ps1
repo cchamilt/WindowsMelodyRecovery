@@ -84,7 +84,7 @@ if ($existingTask) {
         $dayOfWeek = Read-Host "Enter day of week to run [default: Sunday]"
     }
 }
- else {
+else {
     $triggerTime = "02:00"  # Default 2 AM
     $dayOfWeek = "Sunday"   # Default Sunday
 }
@@ -153,12 +153,12 @@ try {
         Write-Information -MessageData "  Schedule: Every $dayOfWeek at $triggerTime" -InformationAction Continue
         Write-Information -MessageData "  User: $currentUser" -InformationAction Continue
     }
- else {
+    else {
         throw "Failed to register task"
     }
 
 }
- catch {
+catch {
     Write-Error -Message "Failed to register backup task: $_"
     exit 1
 }

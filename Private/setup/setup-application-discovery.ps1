@@ -66,7 +66,7 @@ $coreUtilitiesPath = Join-Path $modulePath "Private\Core\WindowsMelodyRecovery.C
 if (Test-Path $coreUtilitiesPath) {
     . $coreUtilitiesPath
 }
- else {
+else {
     Write-Warning "Core utilities not found at: $coreUtilitiesPath"
 }
 
@@ -75,7 +75,7 @@ $loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
 if (Test-Path $loadEnvPath) {
     . $loadEnvPath
 }
- else {
+else {
     Write-Warning "Load environment script not found at: $loadEnvPath"
 }
 
@@ -120,7 +120,7 @@ function Initialize-ApplicationDiscovery {
             $backupRoot = $config.BackupRoot
             $machineName = $config.MachineName
         }
- catch {
+        catch {
             Write-Warning "Module configuration not available. Using defaults."
             $backupRoot = "$env:USERPROFILE\WindowsMelodyRecovery"
             $machineName = $env:COMPUTERNAME
@@ -150,7 +150,7 @@ function Initialize-ApplicationDiscovery {
                 $unmanagedPath = Join-Path $outputPath "unmanaged-applications.$($OutputFormat.ToLower())"
                 Save-ApplicationList -Applications $unmanagedApps -Path $unmanagedPath -Format $OutputFormat
             }
- else {
+            else {
                 Write-Warning -Message "No unmanaged applications found or discovery was skipped"
             }
 
@@ -180,7 +180,7 @@ function Initialize-ApplicationDiscovery {
             return $true
 
         }
- catch {
+        catch {
             Write-Error "Failed to setup application discovery: $_"
             return $false
         }
@@ -208,12 +208,12 @@ function Invoke-UnmanagedApplicationDiscovery {
             $result = & $analyzeScript -WhatIf:$WhatIfPreference
             return $result
         }
- else {
+        else {
             Write-Warning "Find-UnmanagedApplication script not found at: $analyzeScript"
             return @()
         }
     }
- catch {
+    catch {
         Write-Warning "Failed to run unmanaged application discovery: $_"
         return @()
     }
@@ -262,7 +262,7 @@ function Save-ApplicationList {
         }
         Write-Information -MessageData "Application list saved to: $Path" -InformationAction Continue
     }
- catch {
+    catch {
         Write-Warning "Failed to save application list: $_"
     }
 }
@@ -382,7 +382,7 @@ function Save-InstallationDocumentation {
         }
         Write-Information -MessageData "Installation documentation saved to: $Path" -InformationAction Continue
     }
- catch {
+    catch {
         Write-Warning "Failed to save installation documentation: $_"
     }
 }
@@ -523,7 +523,7 @@ Tips:
         Write-Verbose -Message "  Instructions: $instructionsPath"
 
     }
- catch {
+    catch {
         Write-Warning "Failed to create user-editable lists: $_"
     }
 }
@@ -606,7 +606,7 @@ function Initialize-ApplicationDecisionWorkflow {
         Write-Information -MessageData "Application decision workflows initialized: $workflowPath" -InformationAction Continue
 
     }
- catch {
+    catch {
         Write-Warning "Failed to initialize application decision workflows: $_"
     }
 }
@@ -657,7 +657,7 @@ function Test-ApplicationDiscoveryStatus {
         return $status
 
     }
- catch {
+    catch {
         Write-Warning "Failed to check application discovery status: $_"
         return @{
             ApplicationDiscoveryConfigured = $false

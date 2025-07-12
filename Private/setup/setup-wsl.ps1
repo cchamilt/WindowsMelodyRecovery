@@ -6,7 +6,7 @@
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -28,12 +28,12 @@
                 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -All -NoRestart
                 Write-Information -MessageData "✅ WSL feature enabled (restart may be required)" -InformationAction Continue
             }
- catch {
+            catch {
                 Write-Error -Message "❌ Failed to enable WSL feature: $($_.Exception.Message)"
                 return $false
             }
         }
- else {
+        else {
             Write-Information -MessageData "✅ WSL feature is already enabled" -InformationAction Continue
         }
 
@@ -45,7 +45,7 @@
                 Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -All -NoRestart
                 Write-Information -MessageData "✅ Virtual Machine Platform enabled" -InformationAction Continue
             }
- catch {
+            catch {
                 Write-Error -Message "❌ Failed to enable Virtual Machine Platform: $($_.Exception.Message)"
             }
         }
@@ -68,7 +68,7 @@
                 Write-Information -MessageData "✅ Default WSL version set to WSL2" -InformationAction Continue
             }
         }
- catch {
+        catch {
             Write-Warning -Message "Could not determine WSL version"
         }
 
@@ -79,13 +79,13 @@
                 Write-Information -MessageData "`nInstalled WSL distributions:" -InformationAction Continue
                 Write-Information -MessageData $distros  -InformationAction Continue-ForegroundColor Gray
             }
- else {
+            else {
                 Write-Warning -Message "`nNo WSL distributions installed."
                 Write-Information -MessageData "You can install Ubuntu with: wsl --install -d Ubuntu" -InformationAction Continue
                 Write-Information -MessageData "Or browse available distributions with: wsl --list --online" -InformationAction Continue
             }
         }
- catch {
+        catch {
             Write-Warning -Message "Could not list WSL distributions"
         }
 
@@ -99,7 +99,7 @@
                     Write-Information -MessageData "✅ Ubuntu installation started" -InformationAction Continue
                     Write-Information -MessageData "Note: You'll need to complete the Ubuntu setup when it launches" -InformationAction Continue
                 }
- catch {
+                catch {
                     Write-Error -Message "❌ Failed to install Ubuntu: $($_.Exception.Message)"
                 }
             }
@@ -148,7 +148,7 @@ sparseVhd=true
             $wslConfig | Out-File -FilePath $wslConfigPath -Encoding UTF8
             Write-Information -MessageData "✅ WSL configuration file created at: $wslConfigPath" -InformationAction Continue
         }
- else {
+        else {
             Write-Information -MessageData "✅ WSL configuration file already exists" -InformationAction Continue
         }
 
@@ -282,12 +282,12 @@ echo "Usage: check-repos"
                     Write-Information -MessageData "✅ Repository checking tool installed in WSL" -InformationAction Continue
                     Write-Information -MessageData "   Use 'wsl check-repos' from PowerShell or 'check-repos' from within WSL" -InformationAction Continue
                 }
- catch {
+                catch {
                     Write-Error -Message "❌ Failed to install repository checking tool: $($_.Exception.Message)"
                 }
             }
         }
- catch {
+        catch {
             Write-Warning -Message "Could not setup WSL development tools (no active distributions)"
         }
 
@@ -302,17 +302,17 @@ echo "Usage: check-repos"
                     if ($gitRepo) {
                         Initialize-WSLChezmoi -GitRepository $gitRepo -InitializeRepo
                     }
- else {
+                    else {
                         Initialize-WSLChezmoi
                     }
                     Write-Information -MessageData "✅ chezmoi setup completed" -InformationAction Continue
                 }
- else {
+                else {
                     Write-Verbose -Message "⏭️ Skipped chezmoi setup"
                 }
             }
         }
- catch {
+        catch {
             Write-Error -Message "❌ Failed to setup chezmoi: $($_.Exception.Message)"
         }
 
@@ -330,7 +330,7 @@ echo "Usage: check-repos"
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to setup WSL: $($_.Exception.Message)"
         return $false
     }

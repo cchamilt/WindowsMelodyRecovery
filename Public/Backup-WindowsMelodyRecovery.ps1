@@ -91,7 +91,7 @@
                         $successfulTemplates++
                         Write-Information -MessageData "Template completed: $($templateFile.Name)" -InformationAction Continue
                     }
- catch {
+                    catch {
                         Write-Error -Message "Template failed: $($templateFile.Name) - $($_.Exception.Message)"
                     }
                 }
@@ -105,12 +105,12 @@
                     Method = "Templates"
                 }
             }
- else {
+            else {
                 # Run single template
                 $templateFullPath = if (Test-Path $TemplatePath) {
                     $TemplatePath
                 }
- else {
+                else {
                     Join-Path $PSScriptRoot "..\Templates\System\$TemplatePath"
                 }
 
@@ -138,7 +138,7 @@
                 }
             }
         }
- else {
+        else {
             # Default template backup
             $templateDir = Join-Path $PSScriptRoot "..\Templates\System"
             $templateFiles = Get-ChildItem -Path $templateDir -Filter "*.yaml" -ErrorAction SilentlyContinue
@@ -164,7 +164,7 @@
                         $successfulTemplates++
                         Write-Information -MessageData "Completed: $($templateFile.Name)" -InformationAction Continue
                     }
- catch {
+                    catch {
                         Write-Error -Message "Failed: $($templateFile.Name)"
                     }
                 }
@@ -177,7 +177,7 @@
                     Method = "Templates"
                 }
             }
- else {
+            else {
                 Write-Warning -Message "No templates found, using script-based backup"
 
                 # Fallback to script-based backup
@@ -203,7 +203,7 @@
                             $availableBackups++
                             Write-Information -MessageData "Executed: $($backup.function)" -InformationAction Continue
                         }
- catch {
+                        catch {
                             Write-Error -Message "Failed: $($backup.function)"
                         }
                     }
@@ -219,7 +219,7 @@
             }
         }
     }
- finally {
+    finally {
         Stop-Transcript
     }
 }

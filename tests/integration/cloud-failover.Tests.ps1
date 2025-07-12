@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Integration tests for cloud provider failover scenarios
@@ -14,16 +14,19 @@ Describe "Cloud Provider Failover Scenario Tests" {
         try {
             $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
             Import-Module $ModulePath -Force -ErrorAction Stop
-        } catch {
+        }
+        catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
 
         # Import cloud provider detection functions
         $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {
             "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1"
-        } elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
+        }
+        elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
             "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1"
-        } else {
+        }
+        else {
             throw "Cannot find cloud-provider-detection.ps1 script"
         }
         . $CloudDetectionScript
@@ -31,7 +34,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
         # Set up test environment
         $script:TestBackupRoot = if ($env:TEMP) {
             Join-Path $env:TEMP "WMR-Failover-Tests"
-        } else {
+        }
+        else {
             "/tmp/WMR-Failover-Tests"
         }
 
@@ -41,15 +45,15 @@ Describe "Cloud Provider Failover Scenario Tests" {
         $script:TestData = @{
             "critical_data.json" = @{
                 system_restore_point = "2024-01-15T08:00:00Z"
-                user_profile_backup = "enabled"
+                user_profile_backup  = "enabled"
                 application_settings = @("vscode", "chrome", "office")
             } | ConvertTo-Json -Depth 3
 
             "recovery_info.json" = @{
                 backup_timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                machine_id = "TEST-PC-001"
-                backup_size = "150MB"
-                file_count = 1250
+                machine_id       = "TEST-PC-001"
+                backup_size      = "150MB"
+                file_count       = 1250
             } | ConvertTo-Json -Depth 3
         }
 
@@ -61,6 +65,7 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
         # Function to simulate provider failure
         function Set-ProviderFailure {
+            [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
             param(
                 [string]$ProviderName,
                 [string]$FailureType = "unavailable"
@@ -68,18 +73,21 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
             $mockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
                 "/workspace/tests/mock-data/cloud"
-            } else {
+            }
+            else {
                 "$PSScriptRoot\..\mock-data\cloud"
             }
 
             $providerPath = Join-Path $mockCloudRoot $ProviderName
             $failureMarker = Join-Path $providerPath ".failure_simulation"
 
-            @{
-                failure_type = $FailureType
-                timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                simulated = $true
-            } | ConvertTo-Json | Out-File -FilePath $failureMarker -Encoding UTF8
+            if ($PSCmdlet.ShouldProcess($failureMarker, "Create failure simulation marker")) {
+                @{
+                    failure_type = $FailureType
+                    timestamp    = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    simulated    = $true
+                } | ConvertTo-Json | Out-File -FilePath $failureMarker -Encoding UTF8
+            }
         }
 
         # Function to clear provider failure
@@ -88,7 +96,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
             $mockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
                 "/workspace/tests/mock-data/cloud"
-            } else {
+            }
+            else {
                 "$PSScriptRoot\..\mock-data\cloud"
             }
 
@@ -110,7 +119,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
             $mockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
                 "/workspace/tests/mock-data/cloud"
-            } else {
+            }
+            else {
                 "$PSScriptRoot\..\mock-data\cloud"
             }
 
@@ -118,10 +128,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
             $networkIssueMarker = Join-Path $providerPath ".network_issue"
 
             @{
-                latency_ms = $Latency
+                latency_ms          = $Latency
                 packet_loss_percent = $PacketLoss
-                timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                simulated = $true
+                timestamp           = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                simulated           = $true
             } | ConvertTo-Json | Out-File -FilePath $networkIssueMarker -Encoding UTF8
         }
 
@@ -131,7 +141,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
             $mockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
                 "/workspace/tests/mock-data/cloud"
-            } else {
+            }
+            else {
                 "$PSScriptRoot\..\mock-data\cloud"
             }
 
@@ -164,7 +175,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 if ($result.ResponseTime -gt 1000) {
                     Write-Warning -Message "Provider $($primaryProvider.Name) showing high latency - potential failure detected"
                 }
-            } finally {
+            }
+            finally {
                 # Clean up failure simulation
                 Clear-ProviderFailure -ProviderName $primaryProvider.Name
             }
@@ -208,7 +220,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                     Test-Path $backupFile | Should -Be $true
                 }
 
-            } finally {
+            }
+            finally {
                 # Clean up failure simulation
                 Clear-ProviderFailure -ProviderName $primaryProvider.Name
             }
@@ -249,7 +262,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                     # Verify cascading failover backup succeeded
                     Test-Path $backupPath | Should -Be $true
 
-                } finally {
+                }
+                finally {
                     # Clean up failure simulations
                     Clear-ProviderFailure -ProviderName $primaryProvider.Name
                     Clear-ProviderFailure -ProviderName $secondaryProvider.Name
@@ -278,7 +292,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                     Write-Warning -Message "High latency detected for $($testProvider.Name): $($result.ResponseTime)ms"
                 }
 
-            } finally {
+            }
+            finally {
                 # Clean up network issue simulation
                 Clear-NetworkIssue -ProviderName $testProvider.Name
             }
@@ -303,7 +318,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                     Write-Warning -Message "Packet loss detected for $($testProvider.Name)"
                 }
 
-            } finally {
+            }
+            finally {
                 # Clean up network issue simulation
                 Clear-NetworkIssue -ProviderName $testProvider.Name
             }
@@ -351,10 +367,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Simulate storage quota exceeded
                 $quotaExceededMarker = Join-Path $testProvider.BackupPath ".quota_exceeded"
                 @{
-                    quota_exceeded = $true
-                    used_storage = $testProvider.StorageTotal
+                    quota_exceeded    = $true
+                    used_storage      = $testProvider.StorageTotal
                     available_storage = "0 GB"
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    timestamp         = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json | Out-File -FilePath $quotaExceededMarker -Encoding UTF8
 
                 try {
@@ -369,12 +385,14 @@ Describe "Cloud Provider Failover Scenario Tests" {
                         # In a real scenario, this would fail or trigger failover
                         Write-Warning -Message "Quota exceeded simulation - would trigger failover in real scenario"
 
-                    } catch {
+                    }
+                    catch {
                         # Expected behavior when quota is exceeded
                         Write-Information -MessageData "Quota exceeded - backup operation blocked as expected" -InformationAction Continue
                     }
 
-                } finally {
+                }
+                finally {
                     # Clean up quota exceeded simulation
                     if (Test-Path $quotaExceededMarker) {
                         Remove-Item $quotaExceededMarker -Force
@@ -392,10 +410,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Simulate small storage provider being full
                 $quotaExceededMarker = Join-Path $smallStorageProvider.BackupPath ".quota_exceeded"
                 @{
-                    quota_exceeded = $true
-                    used_storage = $smallStorageProvider.StorageTotal
+                    quota_exceeded    = $true
+                    used_storage      = $smallStorageProvider.StorageTotal
                     available_storage = "0 GB"
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    timestamp         = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json | Out-File -FilePath $quotaExceededMarker -Encoding UTF8
 
                 try {
@@ -418,7 +436,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                         Test-Path $backupFile | Should -Be $true
                     }
 
-                } finally {
+                }
+                finally {
                     # Clean up quota exceeded simulation
                     if (Test-Path $quotaExceededMarker) {
                         Remove-Item $quotaExceededMarker -Force
@@ -499,7 +518,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                         $primaryContent | Should -Be $secondaryContent
                     }
 
-                } finally {
+                }
+                finally {
                     # Clean up failure simulation
                     Clear-ProviderFailure -ProviderName $primaryProvider.Name
                 }
@@ -525,7 +545,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Health status should show degradation
                 $degradedStatus.ResponseTime | Should -BeGreaterThan $initialStatus.ResponseTime
 
-            } finally {
+            }
+            finally {
                 # Clean up network issue simulation
                 Clear-NetworkIssue -ProviderName $testProvider.Name
             }
@@ -549,12 +570,12 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                 # Simulate failover event
                 $failoverEvent = @{
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                    event_type = "failover"
-                    primary_provider = $primaryProvider.Name
+                    timestamp          = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    event_type         = "failover"
+                    primary_provider   = $primaryProvider.Name
                     secondary_provider = $secondaryProvider.Name
-                    reason = "primary_provider_unavailable"
-                    success = $true
+                    reason             = "primary_provider_unavailable"
+                    success            = $true
                 }
 
                 $failoverEvent | ConvertTo-Json | Out-File -FilePath $failoverLogPath -Append -Encoding UTF8

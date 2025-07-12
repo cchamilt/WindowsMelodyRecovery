@@ -9,7 +9,7 @@
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -23,7 +23,7 @@
             $chezmoiInstalled = $true
             Write-Information -MessageData "Chezmoi is already installed." -InformationAction Continue
         }
- catch {
+        catch {
             Write-Warning -Message "Chezmoi is not installed."
         }
 
@@ -37,17 +37,17 @@
                     if ($LASTEXITCODE -eq 0) {
                         Write-Information -MessageData "Chezmoi installed successfully!" -InformationAction Continue
                     }
- else {
+                    else {
                         Write-Warning "Failed to install chezmoi. Please install manually."
                         return $false
                     }
                 }
- catch {
+                catch {
                     Write-Warning "Failed to install chezmoi. Please install manually."
                     return $false
                 }
             }
- else {
+            else {
                 Write-Warning -Message "Chezmoi installation cancelled."
                 return $false
             }
@@ -57,7 +57,7 @@
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to setup custom profiles"
         return $false
     }

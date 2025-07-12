@@ -14,16 +14,19 @@ Describe "Cloud Provider Connectivity Tests" {
         try {
             $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
             Import-Module $ModulePath -Force -ErrorAction Stop
-        } catch {
+        }
+        catch {
             throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
         }
 
         # Import cloud provider detection functions
         $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {
             "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1"
-        } elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
+        }
+        elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
             "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1"
-        } else {
+        }
+        else {
             throw "Cannot find cloud-provider-detection.ps1 script"
         }
         . $CloudDetectionScript
@@ -31,7 +34,8 @@ Describe "Cloud Provider Connectivity Tests" {
         # Set up test environment
         $script:TestBackupRoot = if ($env:TEMP) {
             Join-Path $env:TEMP "WMR-Cloud-Tests"
-        } else {
+        }
+        else {
             "/tmp/WMR-Cloud-Tests"
         }
 
@@ -195,7 +199,8 @@ Describe "Cloud Provider Connectivity Tests" {
             # Temporarily rename a provider directory
             $mockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
                 "/workspace/tests/mock-data/cloud"
-            } else {
+            }
+            else {
                 "$PSScriptRoot\..\mock-data\cloud"
             }
 
@@ -210,7 +215,8 @@ Describe "Cloud Provider Connectivity Tests" {
                 $providers = Get-MockCloudProviders
                 $testProvider = $providers | Where-Object { $_.Name -eq "TestProvider" }
                 $testProvider | Should -BeNullOrEmpty
-            } finally {
+            }
+            finally {
                 # Restore the directory if it was renamed
                 if (Test-Path $hiddenProviderPath) {
                     Rename-Item -Path $hiddenProviderPath -NewName "TestProvider"
@@ -243,11 +249,11 @@ Describe "Cloud Provider Connectivity Tests" {
             $jobs = @()
 
             foreach ($provider in $providers) {
+                $providerName = $provider.Name
                 $job = Start-Job -ScriptBlock {
-                    param($ProviderName, $ScriptPath)
-                    . $ScriptPath
-                    Test-CloudProviderConnectivity -ProviderName $ProviderName
-                } -ArgumentList $provider.Name, $CloudDetectionScript
+                    . $Using:CloudDetectionScript
+                    Test-CloudProviderConnectivity -ProviderName $Using:providerName
+                }
                 $jobs += $job
             }
 

@@ -18,7 +18,7 @@ function Remove-Bloat {
     try {
         Import-Environment | Out-Null
     }
- catch {
+    catch {
         Write-Verbose "Using module configuration fallback"
     }
 
@@ -87,11 +87,11 @@ function Remove-Bloat {
                     Write-Information -MessageData "Successfully removed $app" -InformationAction Continue
                     $removedCount++
                 }
- else {
+                else {
                     Write-Verbose -Message "Skipping $app (not installed)"
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to remove $app : $($_.Exception.Message)"
                 continue
             }
@@ -113,12 +113,12 @@ function Remove-Bloat {
                 if ($result.RestartNeeded) {
                     Write-Warning -Message "Restart required after disabling $feature"
                 }
- else {
+                else {
                     Write-Information -MessageData "Successfully disabled $feature" -InformationAction Continue
                 }
                 $disabledFeatures++
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to disable feature $feature : $($_.Exception.Message)"
                 continue
             }
@@ -145,11 +145,11 @@ function Remove-Bloat {
                     Write-Information -MessageData "Successfully disabled $task" -InformationAction Continue
                     $disabledTasks++
                 }
- else {
+                else {
                     Write-Verbose -Message "Skipping task $task (not found)"
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to disable task $task : $($_.Exception.Message)"
                 continue
             }
@@ -189,15 +189,15 @@ function Remove-Bloat {
                         Write-Information -MessageData "Successfully removed $program" -InformationAction Continue
                         $removedPrograms++
                     }
- else {
+                    else {
                         throw "Uninstall returned error code: $($result.ReturnValue)"
                     }
                 }
- else {
+                else {
                     Write-Verbose -Message "Skipping $program (not installed)"
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to remove $program : $($_.Exception.Message)"
                 continue
             }
@@ -232,11 +232,11 @@ function Remove-Bloat {
                     Write-Information -MessageData "Successfully removed $app" -InformationAction Continue
                     $removedLenovo++
                 }
- else {
+                else {
                     Write-Verbose -Message "Skipping $app (not installed)"
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to remove $app : $($_.Exception.Message)"
                 continue
             }
@@ -266,7 +266,7 @@ function Remove-Bloat {
             $installedPrograms += Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.Publisher -like "*Lenovo*" }
             $installedPrograms += Get-ItemProperty "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.Publisher -like "*Lenovo*" }
         }
- catch {
+        catch {
             Write-Warning -Message "Warning: Could not enumerate all installed programs"
         }
 
@@ -282,14 +282,14 @@ function Remove-Bloat {
                             $productCode = $uninstallString -replace ".*({.*})", '$1'
                             Start-Process "msiexec.exe" -ArgumentList "/x $productCode /qn /norestart" -Wait -NoNewWindow
                         }
- else {
+                        else {
                             $uninstallString = $uninstallString -replace "/I", "/X"
                             Start-Process "cmd.exe" -ArgumentList "/c $uninstallString /quiet /norestart" -Wait -NoNewWindow
                         }
                         Write-Information -MessageData "Successfully uninstalled $($program.Name)$($program.DisplayName)" -InformationAction Continue
                     }
                 }
- catch {
+                catch {
                     Write-Error -Message "Failed to uninstall $($program.Name)$($program.DisplayName) : $($_.Exception.Message)"
                 }
             }
@@ -313,7 +313,7 @@ function Remove-Bloat {
                     Write-Information -MessageData "Disabled service: $service" -InformationAction Continue
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to disable service $service : $($_.Exception.Message)"
             }
         }
@@ -336,7 +336,7 @@ function Remove-Bloat {
                     }
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to remove tasks from $taskPath : $($_.Exception.Message)"
                 continue
             }
@@ -360,7 +360,7 @@ function Remove-Bloat {
                     Write-Information -MessageData "Successfully removed folder: $folder" -InformationAction Continue
                 }
             }
- catch {
+            catch {
                 Write-Error -Message "Failed to remove folder $folder : $($_.Exception.Message)"
                 continue
             }
@@ -375,7 +375,7 @@ function Remove-Bloat {
                 Write-Information -MessageData "Disabled UDCService" -InformationAction Continue
             }
         }
- catch {
+        catch {
             Write-Verbose -Message "UDCService not found or already disabled"
         }
 
@@ -386,7 +386,7 @@ function Remove-Bloat {
                 Write-Information -MessageData "Removed UDCService registry entries" -InformationAction Continue
             }
         }
- catch {
+        catch {
             Write-Verbose -Message "UDCService registry entries not found"
         }
 
@@ -412,7 +412,7 @@ function Remove-Bloat {
                     }
                     Write-Information -MessageData "Successfully disabled $($device.FriendlyName)" -InformationAction Continue
                 }
- catch {
+                catch {
                     Write-Error -Message "Failed to disable device $($device.FriendlyName) : $($_.Exception.Message)"
                 }
             }
@@ -420,11 +420,11 @@ function Remove-Bloat {
             if ($lenovoDevices.Count -eq 0) {
                 Write-Verbose -Message "No Lenovo UDC devices found"
             }
- else {
+            else {
                 Write-Information -MessageData "Lenovo UDC devices processing completed" -InformationAction Continue
             }
         }
- catch {
+        catch {
             Write-Error -Message "Failed to process Lenovo UDC devices: $($_.Exception.Message)"
         }
 
@@ -519,7 +519,7 @@ function Remove-Bloat {
         return $true
 
     }
- catch {
+    catch {
         Write-Error -Message "Failed to remove bloatware: $($_.Exception.Message)"
         return $false
     }

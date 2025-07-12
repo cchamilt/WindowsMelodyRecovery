@@ -23,7 +23,7 @@ function Initialize-WindowsMelodyRecovery {
         if ($moduleInfo) {
             $InstallPath = Split-Path $moduleInfo.Path -Parent
         }
- else {
+        else {
             # Fallback to default location
             $InstallPath = "$env:USERPROFILE\Scripts\WindowsMelodyRecovery"
             Write-Warning "Could not detect module path. Using default: $InstallPath"
@@ -48,22 +48,22 @@ function Initialize-WindowsMelodyRecovery {
                 New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
                 Remove-Item -Path $testFile -Force -ErrorAction Stop
             }
- catch {
+            catch {
                 throw "The installation path '$InstallPath' exists but is not writable: $($_.Exception.Message)"
             }
         }
- else {
+        else {
             # Path doesn't exist, check if we can create it
             try {
                 New-Item -Path $InstallPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
                 Remove-Item -Path $InstallPath -Force -ErrorAction Stop
             }
- catch {
+            catch {
                 throw "Cannot create the installation path '$InstallPath': $($_.Exception.Message)"
             }
         }
     }
- catch {
+    catch {
         throw "Invalid installation path '$InstallPath': $($_.Exception.Message)"
     }
 
@@ -106,7 +106,7 @@ function Initialize-WindowsMelodyRecovery {
                 return $true
             }
         }
- else {
+        else {
             # When -NoPrompt is used and config exists, just return the existing config
             Write-Information -MessageData "Using existing configuration (NoPrompt mode)" -InformationAction Continue
             return $true
@@ -120,11 +120,11 @@ function Initialize-WindowsMelodyRecovery {
         $machineName = if ([string]::IsNullOrWhiteSpace($userInput)) {
             $env:COMPUTERNAME
         }
- else {
+        else {
             $userInput
         }
     }
- else {
+    else {
         $machineName = $env:COMPUTERNAME
     }
 
@@ -163,13 +163,13 @@ function Initialize-WindowsMelodyRecovery {
         if ($NoPrompt) {
             $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
         }
- else {
+        else {
             do {
                 $userInput = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMelodyRecovery)"
                 $path = if ([string]::IsNullOrWhiteSpace($userInput)) {
                     Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
                 }
- else {
+                else {
                     $userInput
                 }
                 $valid = Test-Path (Split-Path $path -Parent)
@@ -180,7 +180,7 @@ function Initialize-WindowsMelodyRecovery {
             $backupRoot = $path
         }
     }
- elseif ($selectedProvider -eq 'OneDrive') {
+    elseif ($selectedProvider -eq 'OneDrive') {
         # Find OneDrive paths (including mock paths for testing)
         $onedrivePaths = @(
             "$env:USERPROFILE\OneDrive",
@@ -199,7 +199,7 @@ function Initialize-WindowsMelodyRecovery {
                 Write-Information -MessageData "  Found: $($item.FullName)" -InformationAction Continue
                 $possiblePaths += $item
             }
- else {
+            else {
                 Write-Error -Message "  Not found: $path"
             }
         }
@@ -221,20 +221,20 @@ function Initialize-WindowsMelodyRecovery {
                     if ($selection -eq "C") {
                         $backupRoot = Read-Host "Enter custom backup location"
                     }
- elseif ($selection -match '^\d+$' -and [int]$selection -lt $possiblePaths.Count) {
+                    elseif ($selection -match '^\d+$' -and [int]$selection -lt $possiblePaths.Count) {
                         $selectedOneDrive = $possiblePaths[$selection].FullName
                         $backupRoot = Join-Path $selectedOneDrive "WindowsMelodyRecovery"
                     }
- else {
+                    else {
                         Write-Error -Message "Invalid selection. Please choose a valid number or C."
                     }
                 } while (-not $backupRoot)
             }
- else {
+            else {
                 $backupRoot = Join-Path $possiblePaths[0].FullName "WindowsMelodyRecovery"
             }
         }
- else {
+        else {
             Write-Warning "No OneDrive paths found. Using default backup location."
             # Use a more robust default location that works in test environments
             if ($NoPrompt) {
@@ -242,16 +242,16 @@ function Initialize-WindowsMelodyRecovery {
                 $backupRoot = if (Test-Path "/tmp") {
                     "/tmp/Backups/WindowsMelodyRecovery"
                 }
- else {
+                else {
                     Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
                 }
             }
- else {
+            else {
                 $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
             }
         }
     }
- else {
+    else {
         # For other cloud providers, use a default location with provider name
         $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMelodyRecovery"
         Write-Warning -Message "Using default location for $selectedProvider : $backupRoot"
@@ -271,7 +271,7 @@ function Initialize-WindowsMelodyRecovery {
         try {
             New-Item -ItemType Directory -Path $configDir -Force | Out-Null
         }
- catch {
+        catch {
             Write-Warning "Could not create config directory: $_"
         }
     }
@@ -288,7 +288,7 @@ function Initialize-WindowsMelodyRecovery {
             try {
                 New-Item -ItemType Directory -Path $dir -Force | Out-Null
             }
- catch {
+            catch {
                 Write-Warning "Could not create directory $dir : $_"
             }
         }
