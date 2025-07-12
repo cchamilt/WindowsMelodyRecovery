@@ -1,17 +1,9 @@
-# tests/file-operations/ApplicationState-FileOperations.Tests.ps1
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
 
-<#
-.SYNOPSIS
-    File Operations Tests for ApplicationState
-
-.DESCRIPTION
-    Tests the ApplicationState functions' file operations within safe test directories.
-    Performs actual file operations but only in designated test paths.
-
-.NOTES
-    These are file operation tests - they create and manipulate actual files!
-    Pure logic tests are in tests/unit/ApplicationState-Logic.Tests.ps1
-#>
+# Test for ApplicationState file operations
+# Tests the Get-WmrApplicationState and Set-WmrApplicationState functions for file operations
 
 BeforeAll {
     # Import test environment utilities
@@ -53,8 +45,6 @@ BeforeAll {
         return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedData)) # Simply Base64 decode for mock
     }
     # Mock Read-Host to prevent interactive prompts
-    # PSScriptAnalyzer suppression: Test mocking requires known plaintext password
-    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     Mock Read-Host { return (ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force) } -ParameterFilter { $AsSecureString }
 
     # Define a parse script that properly handles spaces in application names and empty input

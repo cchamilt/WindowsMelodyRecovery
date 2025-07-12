@@ -1,5 +1,9 @@
-# tests/integration/EncryptionWorkflow-Integration.Tests.ps1
-# Phase 6.1: Encryption Workflow Testing - Integration Tests
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
+
+# Test for encryption workflow integration
+# Tests the end-to-end encryption workflow integration
 
 BeforeAll {
     # Import the module with standardized pattern

@@ -3,15 +3,19 @@
 # EditorConfig is awesome: https://EditorConfig.org
 
 root = true
+root = true
 
-# Universal settings (apply to all files)
+# General settings for all files
 [*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
 trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
 
-# Settings specific to shell scripts
-[*.sh]
+# PowerShell-specific files
+[*.{ps1,psm1,psd1}]
+indent_size = 4
 trim_trailing_whitespace = true
-
-# Settings specific to PowerShell scripts
-[*.ps1]
-trim_trailing_whitespace = true
+insert_final_newline = true

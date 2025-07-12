@@ -1,4 +1,9 @@
-# tests/unit/FileState.Tests.ps1
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
+
+# Test for FileState file operations
+# Tests the Get-WmrFileState and Set-WmrFileState functions for file operations
 
 # Disable confirmation prompts
 $ConfirmPreference = 'None'
@@ -32,8 +37,6 @@ BeforeAll {
     $script:SourceDir = Join-Path $script:TestPaths.TestRestore "source"
     $script:DestDir = Join-Path $script:TestPaths.TestRestore "dest"
     $script:TempStateDir = Join-Path $script:TestPaths.Temp "FileStateTests"
-    # PSScriptAnalyzer suppression: Test setup requires known plaintext password
-    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     $script:testPassphrase = ConvertTo-SecureString -String "TestPassphrase123!" -AsPlainText -Force
 
     # Function to safely remove items

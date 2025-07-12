@@ -1,5 +1,9 @@
-# tests/integration/EncryptedBackupTasks.Tests.ps1
-# Phase 6.1: Encryption Workflow Testing - Encrypted Backup Task Tests
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
+
+# Test for encrypted backup tasks integration
+# Tests the encrypted backup task integration and handling
 
 BeforeAll {
     # Import the module with standardized pattern

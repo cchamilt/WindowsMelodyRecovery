@@ -1,5 +1,9 @@
-# ApplicationState Logic Tests
-# Tests the core logic of ApplicationState.ps1 functions without file operations
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
+
+# Test for ApplicationState logic
+# Tests the application state logic and core functionality
 
 BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility

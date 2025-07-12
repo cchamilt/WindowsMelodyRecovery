@@ -1,21 +1,13 @@
 #!/usr/bin/env pwsh
 
-<#
-.SYNOPSIS
-    Pure Unit Tests for FileState Logic
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
 
-.DESCRIPTION
-    Tests the FileState functions' logic without any actual file operations.
-    Uses mock data and tests the decision-making logic only.
+# Test for FileState logic
+# Tests the file state logic and core functionality
 
-.NOTES
-    These are pure unit tests - no file system operations!
-    File operation tests are in tests/file-operations/
-#>
-
-Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
-
-    BeforeAll {
+BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 

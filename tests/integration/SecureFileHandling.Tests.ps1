@@ -1,5 +1,9 @@
-# tests/integration/SecureFileHandling.Tests.ps1
-# Phase 6.1: Encryption Workflow Testing - Secure File Handling Tests
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()
+
+# Test for secure file handling integration
+# Tests the secure file handling and encryption integration
 
 BeforeAll {
     # Import the module with standardized pattern
