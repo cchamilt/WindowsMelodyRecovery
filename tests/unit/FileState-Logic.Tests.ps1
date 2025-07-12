@@ -104,6 +104,8 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
             }
 
             # Need to provide passphrase for encryption to work
+            # PSScriptAnalyzer suppression: Test requires known plaintext password
+            [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
             $passphrase = ConvertTo-SecureString "test" -AsPlainText -Force
             $result = Get-WmrFileState -FileConfig $encryptedConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase $passphrase
             $result.Encrypted | Should -Be $true
@@ -246,6 +248,8 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
                 action = "backup"
                 dynamic_state_path = "files/encrypted.txt"
                 encrypt = $true
+            # PSScriptAnalyzer suppression: Test requires known plaintext password
+            [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
             }
 
             $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
@@ -288,6 +292,8 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
             # Mock the encrypted state file exists and has encrypted content
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq $expectedStatePath }
             Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq $expectedStatePath }
+# PSScriptAnalyzer suppression: Test requires known plaintext password
+[System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
 
             # Mock the target directory exists (parent of destination)
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/test" }
@@ -331,6 +337,9 @@ Describe "FileState Logic Tests" -Tag "Unit", "Logic" {
         }
     }
 }
+
+
+
 
 
 

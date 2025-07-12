@@ -16,6 +16,8 @@ BeforeAll {
     $script:TestSourceDir = Join-Path $script:TestDataPath "SourceFiles"
     $script:TestBackupDir = Join-Path $script:TestDataPath "BackupFiles"
     $script:TestPassword = "Integration_Test_P@ssw0rd123!"
+    # PSScriptAnalyzer suppression: Test requires known plaintext password
+    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     $script:TestSecureString = ConvertTo-SecureString -String $script:TestPassword -AsPlainText -Force
 
     # Create test directories
@@ -508,6 +510,7 @@ AfterAll {
         Remove-Item -Path $script:TestDataPath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
+
 
 
 

@@ -34,6 +34,8 @@ BeforeAll {
         return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedData)) # Simply Base64 decode for mock
     }
     # Mock Read-Host to prevent interactive prompts
+    # PSScriptAnalyzer suppression: Test requires known plaintext password
+    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     Mock Read-Host { return (ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force) } -ParameterFilter { $AsSecureString }
 
     # Define a parse script that properly handles spaces in application names and empty input
@@ -310,6 +312,7 @@ Another App          Another.App           2.0.0
         }
     }
 }
+
 
 
 
