@@ -1,4 +1,4 @@
-# PowerShell Profile for Test Runner Container
+﻿# PowerShell Profile for Test Runner Container
 
 # Set up environment
 $env:PSModulePath = "/workspace/Public:/workspace/Private:$env:PSModulePath"

@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Health Check for Test Runner Container
@@ -10,9 +10,9 @@
 Write-Information -MessageData "🏥 Performing health checks..." -InformationAction Continue
 
 $healthStatus = @{
-    PowerShell = $false
-    Pester = $false
-    Docker = $false
+    PowerShell      = $false
+    Pester          = $false
+    Docker          = $false
     TestDirectories = $false
 }
 
@@ -21,7 +21,8 @@ try {
     $psVersion = $PSVersionTable.PSVersion
     Write-Information -MessageData "✓ PowerShell $psVersion is available" -InformationAction Continue
     $healthStatus.PowerShell = $true
-} catch {
+}
+catch {
     Write-Error -Message "✗ PowerShell check failed"
 }
 
@@ -30,7 +31,8 @@ try {
     $pesterVersion = (Get-Module Pester -ListAvailable | Select-Object -First 1).Version
     Write-Information -MessageData "✓ Pester $pesterVersion is available" -InformationAction Continue
     $healthStatus.Pester = $true
-} catch {
+}
+catch {
     Write-Error -Message "✗ Pester check failed"
 }
 
@@ -40,10 +42,12 @@ try {
     if ($dockerVersion) {
         Write-Information -MessageData "✓ Docker CLI is available: $dockerVersion" -InformationAction Continue
         $healthStatus.Docker = $true
-    } else {
+    }
+    else {
         Write-Error -Message "✗ Docker CLI not available"
     }
-} catch {
+}
+catch {
     Write-Error -Message "✗ Docker CLI check failed"
 }
 
@@ -54,7 +58,8 @@ $allDirsExist = $true
 foreach ($dir in $requiredDirs) {
     if (Test-Path $dir) {
         Write-Information -MessageData "✓ Directory exists: $dir" -InformationAction Continue
-    } else {
+    }
+    else {
         Write-Error -Message "✗ Directory missing: $dir"
         $allDirsExist = $false
     }
@@ -68,7 +73,8 @@ $overallHealth = $healthStatus.Values -notcontains $false
 if ($overallHealth) {
     Write-Information -MessageData "✅ All health checks passed!" -InformationAction Continue
     exit 0
-} else {
+}
+else {
     Write-Error -Message "❌ Some health checks failed"
     exit 1
 }

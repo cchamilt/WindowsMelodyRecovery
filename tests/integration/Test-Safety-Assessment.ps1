@@ -1,4 +1,4 @@
-# Windows Melody Recovery - Integration Test Safety Assessment
+﻿# Windows Melody Recovery - Integration Test Safety Assessment
 # Identifies dangerous operations and marks tests for CI-only execution
 
 <#

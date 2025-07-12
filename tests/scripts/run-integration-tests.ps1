@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 
 <#
 .SYNOPSIS
@@ -68,7 +68,8 @@ if ($runInDocker) {
         $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && "
         if ($TestName) {
             $testCommand += "Invoke-Pester -Path './tests/integration/$TestName.Tests.ps1'"
-        } else {
+        }
+        else {
             $testCommand += "Invoke-Pester -Path './tests/integration/'"
         }
         $testCommand += " -OutputFormat $OutputFormat"
@@ -83,11 +84,13 @@ if ($runInDocker) {
         }
 
         exit $exitCode
-    } else {
+    }
+    else {
         Write-Error -Message "✗ Docker management utilities not found"
         exit 1
     }
-} else {
+}
+else {
     Write-Information -MessageData "🪟 Running integration tests in native Windows environment..." -InformationAction Continue
     Write-Warning -Message "   All tests including Windows-only will be executed"
 
@@ -97,7 +100,8 @@ if ($runInDocker) {
         $testEnvPath = Join-Path $PSScriptRoot ".." "utilities" "Test-Environment.ps1"
         if (Test-Path $testEnvPath) {
             . $testEnvPath
-        } else {
+        }
+        else {
             Write-Error -Message "✗ Test environment not found at: $testEnvPath"
             exit 1
         }
@@ -114,10 +118,11 @@ if ($runInDocker) {
         Write-Information -MessageData "Executing integration tests..." -InformationAction Continue
 
         $pesterConfig = @{
-            Run = @{
+            Run    = @{
                 Path = if ($TestName) {
                     Join-Path $PSScriptRoot ".." "integration" "$TestName.Tests.ps1"
-                } else {
+                }
+                else {
                     Join-Path $PSScriptRoot ".." "integration"
                 }
             }
@@ -128,7 +133,7 @@ if ($runInDocker) {
 
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
-                Enabled = $true
+                Enabled    = $true
                 OutputPath = Join-Path $moduleRoot "test-results" "integration-test-results.xml"
             }
         }
@@ -151,12 +156,14 @@ if ($runInDocker) {
         if ($result.FailedCount -gt 0) {
             Write-Error -Message "✗ Some integration tests failed"
             exit 1
-        } else {
+        }
+        else {
             Write-Information -MessageData "✓ All integration tests passed!" -InformationAction Continue
             exit 0
         }
 
-    } catch {
+    }
+    catch {
         Write-Error -Message "✗ Error running integration tests: $($_.Exception.Message)"
         exit 1
     }

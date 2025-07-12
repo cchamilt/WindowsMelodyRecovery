@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Standardized Test Environment Management for Windows Melody Recovery
@@ -104,7 +104,7 @@ function Initialize-StandardTestEnvironment {
         [ValidateSet('None', 'Basic', 'Enhanced', 'Complete')]
         [string]$IsolationLevel = 'Basic',
 
-        [switch]$ValidateSafety = $true
+        [bool]$ValidateSafety = $true
     )
 
     Write-Information -MessageData "🔧 Initializing Standardized Test Environment" -InformationAction Continue
@@ -176,7 +176,8 @@ function New-TestDirectoryStructure {
     .PARAMETER IsolationLevel
         Level of directory isolation to implement.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
+    [OutputType([hashtable])]
     param(
         [string]$TestType,
         [string]$IsolationLevel
@@ -196,9 +197,12 @@ function New-TestDirectoryStructure {
 
         # Create directory if needed
         if (-not (Test-Path $fullPath)) {
-            New-Item -ItemType Directory -Path $fullPath -Force | Out-Null
-            Write-Information -MessageData "  ✓ Created $dirName : $fullPath" -InformationAction Continue
-        } else {
+            if ($PSCmdlet.ShouldProcess($fullPath, "Create test directory")) {
+                New-Item -ItemType Directory -Path $fullPath -Force | Out-Null
+                Write-Information -MessageData "  ✓ Created $dirName : $fullPath" -InformationAction Continue
+            }
+        }
+        else {
             Write-Warning -Message "  ✓ Verified $dirName : $fullPath"
         }
     }
@@ -234,6 +238,7 @@ function New-TestDirectoryStructure {
 }
 
 function New-UnitTestStructure {
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
     param([hashtable]$BasePaths)
 
     # Unit tests only need minimal structure - no file operations
@@ -244,7 +249,9 @@ function New-UnitTestStructure {
 
     foreach ($path in $unitPaths) {
         if (-not (Test-Path $path)) {
-            New-Item -ItemType Directory -Path $path -Force | Out-Null
+            if ($PSCmdlet.ShouldProcess($path, "Create unit test directory")) {
+                New-Item -ItemType Directory -Path $path -Force | Out-Null
+            }
         }
     }
 }
@@ -275,6 +282,7 @@ function New-IntegrationTestStructure {
 }
 
 function New-FileOperationsTestStructure {
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
     param([hashtable]$BasePaths)
 
     # File operations need safe test directories with isolation
@@ -286,12 +294,15 @@ function New-FileOperationsTestStructure {
 
     foreach ($path in $fileOpsPaths) {
         if (-not (Test-Path $path)) {
-            New-Item -ItemType Directory -Path $path -Force | Out-Null
+            if ($PSCmdlet.ShouldProcess($path, "Create file operations test directory")) {
+                New-Item -ItemType Directory -Path $path -Force | Out-Null
+            }
         }
     }
 }
 
 function New-EndToEndTestStructure {
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
     param([hashtable]$BasePaths)
 
     # End-to-end tests need complete environment simulation
@@ -304,12 +315,15 @@ function New-EndToEndTestStructure {
 
     foreach ($path in $e2ePaths) {
         if (-not (Test-Path $path)) {
-            New-Item -ItemType Directory -Path $path -Force | Out-Null
+            if ($PSCmdlet.ShouldProcess($path, "Create end-to-end test directory")) {
+                New-Item -ItemType Directory -Path $path -Force | Out-Null
+            }
         }
     }
 }
 
-function New-IsolationDirectories {
+function New-IsolationDirectory {
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
     param([hashtable]$BasePaths, [string]$IsolationLevel)
 
     $isolationPaths = @(
@@ -327,12 +341,14 @@ function New-IsolationDirectories {
 
     foreach ($path in $isolationPaths) {
         if (-not (Test-Path $path)) {
-            New-Item -ItemType Directory -Path $path -Force | Out-Null
+            if ($PSCmdlet.ShouldProcess($path, "Create isolation directory")) {
+                New-Item -ItemType Directory -Path $path -Force | Out-Null
+            }
         }
     }
 }
 
-function Set-TestEnvironmentVariables {
+function Set-TestEnvironmentVariable {
     <#
     .SYNOPSIS
         Sets standardized test environment variables.
@@ -423,7 +439,7 @@ function Copy-MockDataForIntegration {
     }
 }
 
-function Copy-MockDataForFileOps {
+function Copy-MockDataForFileOp {
     param([string]$SourcePath)
 
     $destination = Join-Path $script:StandardPaths.SafeWorkspace "file-operations\mock-data"
@@ -504,12 +520,13 @@ function Test-EnvironmentSafety {
 
     # Check available disk space
     $testDrive = (Get-Item $script:ModuleRoot).PSDrive
-    $freeSpaceGB = (Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='$($testDrive.Name):'" | Select-Object -ExpandProperty FreeSpace) / 1GB
+    $freeSpaceGB = (Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$($testDrive.Name):'" | Select-Object -ExpandProperty FreeSpace) / 1GB
 
     if ($freeSpaceGB -lt 1) {
         $safetyResult.IsSafe = $false
         $safetyResult.Violations += "Insufficient disk space for test environment (< 1GB free)"
-    } elseif ($freeSpaceGB -lt 5) {
+    }
+    elseif ($freeSpaceGB -lt 5) {
         $safetyResult.Warnings += "Low disk space for test environment ($([math]::Round($freeSpaceGB, 1))GB free)"
     }
 
@@ -543,14 +560,16 @@ function Test-EnvironmentIntegrity {
         if (-not (Test-Path $path)) {
             $validation.IsValid = $false
             $validation.Issues += "Missing path: $pathName ($path)"
-        } else {
+        }
+        else {
             # Test read/write access
             try {
                 $testFile = Join-Path $path "test-access-$(Get-Random).tmp"
                 "test" | Out-File -FilePath $testFile -ErrorAction Stop
                 Remove-Item -Path $testFile -Force -ErrorAction Stop
                 $validation.Verified += $pathName
-            } catch {
+            }
+            catch {
                 $validation.IsValid = $false
                 $validation.Issues += "No write access to: $pathName ($path)"
             }
@@ -579,28 +598,27 @@ function Start-ResourceMonitoring {
 
     # Start a background job to monitor resource usage
     $script:ResourceMonitorJob = Start-Job -ScriptBlock {
-        param($MaxMemoryMB, $MaxProcesses)
-
         while ($true) {
             try {
                 # Check memory usage
                 $process = Get-Process -Id $PID -ErrorAction SilentlyContinue
-                if ($process -and $process.WorkingSet64 / 1MB -gt $MaxMemoryMB) {
+                if ($process -and $process.WorkingSet64 / 1MB -gt $Using:script:TestConfiguration.Environment.Isolation.MaxMemoryMB) {
                     Write-Warning "Test process exceeding memory limit: $([math]::Round($process.WorkingSet64 / 1MB, 1))MB"
                 }
 
                 # Check process count
                 $processCount = (Get-Process | Where-Object { $_.ProcessName -like "*test*" -or $_.ProcessName -like "*pester*" }).Count
-                if ($processCount -gt $MaxProcesses) {
+                if ($processCount -gt $Using:script:TestConfiguration.Environment.Isolation.MaxProcesses) {
                     Write-Warning "Test process count exceeding limit: $processCount"
                 }
 
                 Start-Sleep -Seconds 30
             } catch {
                 # Silently continue on monitoring errors
+                Write-Verbose "Resource monitoring error: $($_.Exception.Message)" -Verbose:$false
             }
         }
-    } -ArgumentList $script:TestConfiguration.Environment.Isolation.MaxMemoryMB, $script:TestConfiguration.Environment.Isolation.MaxProcesses
+    }
 }
 
 function Stop-ResourceMonitoring {
@@ -632,9 +650,8 @@ function Remove-StandardTestEnvironment {
     .PARAMETER GenerateReport
         Generate cleanup report.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param(
-        [bool]$Confirm = $true,
         [switch]$PreserveLogs,
         [switch]$GenerateReport
     )
@@ -663,7 +680,9 @@ function Remove-StandardTestEnvironment {
     # Clean environment variables
     $testVars = Get-ChildItem -Path env: | Where-Object { $_.Name -like "WMR_TEST*" }
     foreach ($var in $testVars) {
-        Remove-Item -Path "env:$($var.Name)" -ErrorAction SilentlyContinue
+        if ($PSCmdlet.ShouldProcess("env:$($var.Name)", "Remove test environment variable")) {
+            Remove-Item -Path "env:$($var.Name)" -ErrorAction SilentlyContinue
+        }
     }
     Write-Information -MessageData "✓ Cleaned test environment variables" -InformationAction Continue
 
@@ -687,9 +706,11 @@ function Remove-StandardTestEnvironment {
                 if (Test-SafeTestPath -Path $path) {
                     try {
                         if (Test-Path $path) {
-                            Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
-                            $cleanupReport.RemovedPaths += $path
-                            Write-Information -MessageData "  ✓ Removed $pathName : $path" -InformationAction Continue
+                            if ($PSCmdlet.ShouldProcess($path, "Remove test directory")) {
+                                Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
+                                $cleanupReport.RemovedPaths += $path
+                                Write-Information -MessageData "  ✓ Removed $pathName : $path" -InformationAction Continue
+                            }
                         }
                     } catch {
                         $cleanupReport.FailedPaths += @{ Path = $path; Error = $_.Exception.Message }
@@ -817,7 +838,7 @@ function Test-SafeTestPath {
     return $hasRequiredPattern
 }
 
-function Get-StandardTestPaths {
+function Get-StandardTestPath {
     <#
     .SYNOPSIS
         Returns standardized test paths for use in tests.
@@ -849,7 +870,7 @@ function Get-TestEnvironmentStatus {
     return @{
         Initialized = $script:EnvironmentInitialized
         SafetyValidated = $script:SafetyValidated
-        ResourceMonitoring = ($script:ResourceMonitorJob -ne $null)
+        ResourceMonitoring = ($null -ne $script:ResourceMonitorJob)
         Paths = if ($script:StandardPaths) { $script:StandardPaths.Count } else { 0 }
         EnvironmentVariables = (Get-ChildItem -Path env: | Where-Object { $_.Name -like "WMR_TEST*" }).Count
     }

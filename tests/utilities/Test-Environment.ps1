@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Unified Test Environment Management for Windows Melody Recovery
@@ -394,7 +394,7 @@ function Remove-TestEnvironment {
     Write-Information -MessageData "✓ Test environment cleaned successfully" -InformationAction Continue
 }
 
-function Get-TestPaths {
+function Get-TestPath {
     <#
     .SYNOPSIS
         Returns standardized test paths for use in unit tests.

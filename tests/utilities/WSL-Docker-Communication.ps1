@@ -1,4 +1,4 @@
-# tests/utilities/WSL-Docker-Communication.ps1
+﻿# tests/utilities/WSL-Docker-Communication.ps1
 # WSL Docker Container Communication Utilities
 # Provides functions to communicate with WSL containers in Docker environment
 
@@ -147,7 +147,7 @@ The name of the WSL container
 .EXAMPLE
 Get-WSLDockerDistributions
 #>
-function Get-WSLDockerDistributions {
+function Get-WSLDockerDistribution {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
@@ -310,7 +310,7 @@ The name of the WSL container
 Get-WSLDockerPackages -PackageManager "apt"
 Get-WSLDockerPackages -PackageManager "pip3"
 #>
-function Get-WSLDockerPackages {
+function Get-WSLDockerPackage {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]

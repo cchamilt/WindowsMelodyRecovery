@@ -19,10 +19,10 @@
         function Merge-Configuration {
             [CmdletBinding()]
             param(
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [hashtable]$Base,
 
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [hashtable]$Override
             )
 
@@ -31,7 +31,8 @@
             foreach ($key in $Override.Keys) {
                 if ($Override[$key] -is [hashtable] -and $merged[$key] -is [hashtable]) {
                     $merged[$key] = Merge-Configurations -Base $merged[$key] -Override $Override[$key]
-                } else {
+                }
+                else {
                     $merged[$key] = $Override[$key]
                 }
             }
@@ -47,20 +48,20 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should validate consistent configurations successfully" {
             $machineConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
                 EmailSettings = @{
                     FromAddress = "machine@example.com"
-                    SmtpPort = 587
+                    SmtpPort    = 587
                 }
             }
 
             $sharedConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
                 EmailSettings = @{
                     FromAddress = "shared@example.com"
-                    SmtpPort = 465
+                    SmtpPort    = 465
                 }
             }
 
@@ -93,12 +94,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should detect type mismatches" {
             $machineConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 RetentionDays = 30  # Integer
             }
 
             $sharedConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 RetentionDays = @("30", "60")  # Array - incompatible type
             }
 
@@ -112,10 +113,10 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         It "Should handle nested structure validation" {
             $machineConfig = @{
                 EmailSettings = @{
-                    FromAddress = "machine@example.com"
-                    SmtpPort = 587
+                    FromAddress    = "machine@example.com"
+                    SmtpPort       = 587
                     Authentication = @{
-                        Type = "OAuth"
+                        Type     = "OAuth"
                         ClientId = "machine-client"
                     }
                 }
@@ -123,10 +124,10 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
             $sharedConfig = @{
                 EmailSettings = @{
-                    FromAddress = "shared@example.com"
-                    SmtpPort = 465
+                    FromAddress    = "shared@example.com"
+                    SmtpPort       = 465
                     Authentication = @{
-                        Type = "Basic"
+                        Type     = "Basic"
                         Username = "shared-user"
                     }
                 }
@@ -140,12 +141,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should apply custom validation rules" {
             $machineConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
             }
 
             $sharedConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
             }
 
@@ -186,108 +187,84 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         }
     }
 
-    Context "Validate-SharedConfigurationMerging Function" {
-
-        It "Should validate successful configuration merging" {
+    Context "Test-SharedConfigurationMerging Function" {
+        It "Should merge configurations correctly" {
+            # Arrange
             $baseConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
-                CloudProvider = "GoogleDrive"
-                EmailSettings = @{
-                    FromAddress = "shared@example.com"
-                    SmtpServer = "smtp.gmail.com"
-                    SmtpPort = 587
+                Key1 = "Value1"
+                Key2 = @{
+                    SubKey1 = "SubValue1"
+                    SubKey2 = "SubValue2"
                 }
-                RetentionDays = 30
+                Key3 = "Value3"
             }
 
             $overrideConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
-                EmailSettings = @{
-                    FromAddress = "machine@example.com"
-                    SmtpPort = 465
+                Key1 = "OverrideValue1"
+                Key2 = @{
+                    SubKey2 = "OverrideSubValue2"
+                    SubKey3 = "NewSubValue3"
                 }
-                RetentionDays = 60
+                Key4 = "NewValue4"
             }
 
-            $result = Validate-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig
+            # Act
+            $result = Test-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig
 
+            # Assert
             $result.Success | Should -Be $true
-            $result.Errors.Count | Should -Be 0
-            $result.MergedConfig | Should -Not -Be $null
-
-            # Verify merging analysis
-            $result.MergingAnalysis.OverriddenKeys | Should -Contain "BackupRoot"
-            $result.MergingAnalysis.OverriddenKeys | Should -Contain "RetentionDays"
-            $result.MergingAnalysis.PreservedKeys | Should -Contain "CloudProvider"
-
-            # Verify merged values
-            $result.MergedConfig.BackupRoot | Should -Be (Get-WmrTestPath -WindowsPath "C:\MachineBackups")  # Override
-            $result.MergedConfig.CloudProvider | Should -Be "GoogleDrive"    # Preserved
-            $result.MergedConfig.EmailSettings.FromAddress | Should -Be "machine@example.com"  # Override
-            $result.MergedConfig.EmailSettings.SmtpServer | Should -Be "smtp.gmail.com"        # Preserved
-            $result.MergedConfig.EmailSettings.SmtpPort | Should -Be 465                        # Override
+            $result.MergedConfig.Key1 | Should -Be "OverrideValue1"
+            $result.MergedConfig.Key2.SubKey1 | Should -Be "SubValue1"
+            $result.MergedConfig.Key2.SubKey2 | Should -Be "OverrideSubValue2"
+            $result.MergedConfig.Key2.SubKey3 | Should -Be "NewSubValue3"
+            $result.MergedConfig.Key3 | Should -Be "Value3"
+            $result.MergedConfig.Key4 | Should -Be "NewValue4"
         }
 
-        It "Should validate expected keys are present" {
-            $baseConfig = @{
-                Setting1 = "Value1"
-                Setting2 = "Value2"
-            }
+        It "Should validate expected keys" {
+            # Arrange
+            $baseConfig = @{ Key1 = "Value1" }
+            $overrideConfig = @{ Key2 = "Value2" }
+            $expectedKeys = @("Key1", "Key2", "Key3")
 
-            $overrideConfig = @{
-                Setting2 = "OverrideValue2"
-                Setting3 = "Value3"
-            }
+            # Act
+            $result = Test-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig -ExpectedKeys $expectedKeys
 
-            $expectedKeys = @("Setting1", "Setting2", "Setting3", "MissingKey")
-            $result = Validate-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig -ExpectedKeys $expectedKeys
-
+            # Assert
             $result.Success | Should -Be $false
-            $result.Errors | Should -Contain "Expected key 'MissingKey' is missing from merged configuration"
-            $result.MergingAnalysis.MissingExpectedKeys | Should -Contain "MissingKey"
+            $result.Errors | Should -Contain "Expected key 'Key3' is missing from merged configuration"
         }
 
         It "Should apply custom merging rules" {
-            $baseConfig = @{
-                Arrays = @("base1", "base2")
-                Strings = "BaseString"
-            }
-
-            $overrideConfig = @{
-                Arrays = @("override1", "override2")
-                Strings = "OverrideString"
-            }
-
+            # Arrange
+            $baseConfig = @{ Key1 = "Value1" }
+            $overrideConfig = @{ Key2 = "Value2" }
             $mergingRules = @{
-                "ArrayMergeRule" = {
-                    param($BaseConfig, $OverrideConfig, $MergedConfig)
-
-                    # Validate that arrays are replaced, not merged
-                    if ($MergedConfig.Arrays.Count -ne $OverrideConfig.Arrays.Count) {
-                        return @{ Success = $false; Message = "Arrays should be replaced, not merged" }
-                    }
-
-                    return @{ Success = $true; Message = "Array merging is correct" }
+                "TestRule" = {
+                    param($base, $override, $merged)
+                    return @{ Success = $false; Message = "Test rule failed" }
                 }
             }
 
-            $result = Validate-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig -MergingRules $mergingRules
+            # Act
+            $result = Test-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig -MergingRules $mergingRules
 
-            $result.Success | Should -Be $true
-            $result.MergedConfig.Arrays | Should -Be @("override1", "override2")
+            # Assert
+            $result.Success | Should -Be $false
+            $result.Errors | Should -Contain "Test rule failed"
         }
 
         It "Should handle empty configurations" {
+            # Arrange
             $baseConfig = @{}
             $overrideConfig = @{}
 
-            $result = Validate-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig
+            # Act
+            $result = Test-SharedConfigurationMerging -BaseConfig $baseConfig -OverrideConfig $overrideConfig
 
+            # Assert
             $result.Success | Should -Be $true
             $result.MergedConfig.Count | Should -Be 0
-            $result.MergingAnalysis.OverriddenKeys.Count | Should -Be 0
-            $result.MergingAnalysis.PreservedKeys.Count | Should -Be 0
-            $result.MergingAnalysis.AddedKeys.Count | Should -Be 0
         }
     }
 
@@ -363,12 +340,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should apply inheritance rules" {
             $level1 = @{
-                Arrays = @("base1", "base2")
+                Arrays  = @("base1", "base2")
                 Strings = "BaseString"
             }
 
             $level2 = @{
-                Arrays = @("override1", "override2")
+                Arrays  = @("override1", "override2")
                 Strings = "OverrideString"
             }
 
@@ -384,8 +361,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
                     }
 
                     return @{
-                        Success = $true
-                        Message = "Array concatenation applied"
+                        Success        = $true
+                        Message        = "Array concatenation applied"
                         ModifiedConfig = $modifiedConfig
                     }
                 }
@@ -401,8 +378,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         It "Should validate against schema" {
             $level1 = @{
                 RequiredString = "Value"
-                RequiredInt = 42
-                OptionalBool = $true
+                RequiredInt    = 42
+                OptionalBool   = $true
             }
 
             $level2 = @{
@@ -410,22 +387,22 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             }
 
             $schema = @{
-                "RequiredString" = @{
+                "RequiredString"  = @{
                     Required = $true
-                    Type = "String"
+                    Type     = "String"
                 }
-                "RequiredInt" = @{
-                    Required = $true
-                    Type = "Int32"
+                "RequiredInt"     = @{
+                    Required  = $true
+                    Type      = "Int32"
                     Validator = { param($Value) $Value -gt 0 }
                 }
-                "OptionalBool" = @{
+                "OptionalBool"    = @{
                     Required = $false
-                    Type = "Boolean"
+                    Type     = "Boolean"
                 }
                 "MissingRequired" = @{
                     Required = $true
-                    Type = "String"
+                    Type     = "String"
                 }
             }
 

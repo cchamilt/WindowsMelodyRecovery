@@ -92,10 +92,10 @@ function Test-ConfigurationConsistency {
     return $result
 }
 
-function Validate-SharedConfigurationMerging {
+function Test-SharedConfigurationMerging {
     <#
     .SYNOPSIS
-        Validates shared configuration merging operations.
+        Tests shared configuration merging operations.
     #>
     [CmdletBinding()]
     [OutputType([PSObject])]
@@ -114,12 +114,12 @@ function Validate-SharedConfigurationMerging {
     )
 
     # Helper function for deep cloning hashtables
-    function Clone-Hashtable {
+    function Copy-Hashtable {
         param([hashtable]$Source)
         $clone = @{}
         foreach ($key in $Source.Keys) {
             if ($Source[$key] -is [hashtable]) {
-                $clone[$key] = Clone-Hashtable $Source[$key]
+                $clone[$key] = Copy-Hashtable $Source[$key]
             }
             else {
                 $clone[$key] = $Source[$key]
@@ -137,7 +137,7 @@ function Validate-SharedConfigurationMerging {
             [ref]$AddedKeys
         )
 
-        $merged = Clone-Hashtable $Base
+        $merged = Copy-Hashtable $Base
 
         foreach ($key in $Override.Keys) {
             if ($merged.ContainsKey($key)) {

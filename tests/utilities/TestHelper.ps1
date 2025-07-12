@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Test Helper Functions
@@ -64,7 +64,7 @@ function Get-MockDataPath {
     }
 }
 
-function Test-MockDataExists {
+function Test-MockDataExist {
     param(
         [string]$DataType,
         [string]$Path

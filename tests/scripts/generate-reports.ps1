@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Comprehensive Test Result Aggregation and Reporting System
@@ -52,7 +52,7 @@
 #>
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [object]$TestResults,
 
     [string]$OutputPath = "/test-results/reports",
@@ -89,10 +89,10 @@ function Write-ReportLog {
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $colorMap = @{
-        "INFO" = "White"
+        "INFO"    = "White"
         "SUCCESS" = "Green"
-        "WARN" = "Yellow"
-        "ERROR" = "Red"
+        "WARN"    = "Yellow"
+        "ERROR"   = "Red"
     }
 
     $logMessage = "[$timestamp] [$Level] [$Component] $Message"
@@ -115,15 +115,15 @@ class TestResultAggregator {
     TestResultAggregator() {
         $this.GeneratedAt = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
         $this.Summary = @{
-            TotalTestSuites = 0
-            TotalTests = 0
-            TotalPassed = 0
-            TotalFailed = 0
-            TotalSkipped = 0
+            TotalTestSuites    = 0
+            TotalTests         = 0
+            TotalPassed        = 0
+            TotalFailed        = 0
+            TotalSkipped       = 0
             OverallSuccessRate = 0.0
-            TotalDuration = [TimeSpan]::Zero
+            TotalDuration      = [TimeSpan]::Zero
             TestSuiteBreakdown = @{}
-            CategoryBreakdown = @{}
+            CategoryBreakdown  = @{}
         }
     }
 
@@ -131,27 +131,28 @@ class TestResultAggregator {
         Write-ReportLog "Adding Pester results for test suite: $TestSuite" "INFO" "AGGREGATOR"
 
         $testSuiteResult = @{
-            Type = "Pester"
-            TestSuite = $TestSuite
-            TotalCount = $PesterResults.TotalCount
-            PassedCount = $PesterResults.PassedCount
-            FailedCount = $PesterResults.FailedCount
+            Type         = "Pester"
+            TestSuite    = $TestSuite
+            TotalCount   = $PesterResults.TotalCount
+            PassedCount  = $PesterResults.PassedCount
+            FailedCount  = $PesterResults.FailedCount
             SkippedCount = $PesterResults.SkippedCount
-            Duration = $PesterResults.Duration
-            SuccessRate = if ($PesterResults.TotalCount -gt 0) {
+            Duration     = $PesterResults.Duration
+            SuccessRate  = if ($PesterResults.TotalCount -gt 0) {
                 [math]::Round(($PesterResults.PassedCount / $PesterResults.TotalCount) * 100, 2)
-            } else { 0 }
-            Timestamp = $this.GeneratedAt
-            Tests = @()
+            }
+            else { 0 }
+            Timestamp    = $this.GeneratedAt
+            Tests        = @()
         }
 
         # Extract individual test details if available
         if ($PesterResults.Tests) {
             foreach ($test in $PesterResults.Tests) {
                 $testSuiteResult.Tests += @{
-                    Name = $test.Name
-                    Result = $test.Result
-                    Duration = $test.Duration
+                    Name        = $test.Name
+                    Result      = $test.Result
+                    Duration    = $test.Duration
                     ErrorRecord = if ($test.ErrorRecord) { $test.ErrorRecord.ToString() } else { $null }
                 }
             }
@@ -171,22 +172,23 @@ class TestResultAggregator {
             if ($jsonContent.TestSuite) {
                 # Custom test suite format
                 $testSuiteResult = @{
-                    Type = "JSON"
-                    TestSuite = $jsonContent.TestSuite
-                    TotalCount = $jsonContent.Summary.TotalPassed + $jsonContent.Summary.TotalFailed + $jsonContent.Summary.TotalSkipped
-                    PassedCount = $jsonContent.Summary.TotalPassed
-                    FailedCount = $jsonContent.Summary.TotalFailed
+                    Type         = "JSON"
+                    TestSuite    = $jsonContent.TestSuite
+                    TotalCount   = $jsonContent.Summary.TotalPassed + $jsonContent.Summary.TotalFailed + $jsonContent.Summary.TotalSkipped
+                    PassedCount  = $jsonContent.Summary.TotalPassed
+                    FailedCount  = $jsonContent.Summary.TotalFailed
                     SkippedCount = $jsonContent.Summary.TotalSkipped
-                    Duration = [TimeSpan]::Parse("00:00:00")  # Default if not available
-                    SuccessRate = $jsonContent.Summary.SuccessRate
-                    Timestamp = $jsonContent.TestRun.StartTime
-                    Tests = $jsonContent.Results
+                    Duration     = [TimeSpan]::Parse("00:00:00")  # Default if not available
+                    SuccessRate  = $jsonContent.Summary.SuccessRate
+                    Timestamp    = $jsonContent.TestRun.StartTime
+                    Tests        = $jsonContent.Results
                 }
 
                 $this.AllResults.Add($testSuiteResult)
                 $this.UpdateSummary($testSuiteResult)
             }
-        } catch {
+        }
+        catch {
             Write-ReportLog "Failed to parse JSON file $JsonPath`: $($_.Exception.Message)" "ERROR" "AGGREGATOR"
         }
     }
@@ -199,29 +201,30 @@ class TestResultAggregator {
 
             foreach ($testSuite in $junitXml.SelectNodes("//test-suite[@type='TestFixture']")) {
                 $testSuiteResult = @{
-                    Type = "JUnit"
-                    TestSuite = $testSuite.name
-                    TotalCount = [int]$testSuite.asserts
-                    PassedCount = 0
-                    FailedCount = 0
+                    Type         = "JUnit"
+                    TestSuite    = $testSuite.name
+                    TotalCount   = [int]$testSuite.asserts
+                    PassedCount  = 0
+                    FailedCount  = 0
                     SkippedCount = 0
-                    Duration = [TimeSpan]::FromSeconds([double]$testSuite.time)
-                    SuccessRate = 0
-                    Timestamp = $this.GeneratedAt
-                    Tests = @()
+                    Duration     = [TimeSpan]::FromSeconds([double]$testSuite.time)
+                    SuccessRate  = 0
+                    Timestamp    = $this.GeneratedAt
+                    Tests        = @()
                 }
 
                 # Count test results
                 foreach ($testCase in $testSuite.SelectNodes(".//test-case")) {
                     $testResult = @{
-                        Name = $testCase.name
+                        Name     = $testCase.name
                         Duration = [TimeSpan]::FromSeconds([double]$testCase.time)
                     }
 
                     if ($testCase.success -eq "True") {
                         $testSuiteResult.PassedCount++
                         $testResult.Result = "Passed"
-                    } else {
+                    }
+                    else {
                         $testSuiteResult.FailedCount++
                         $testResult.Result = "Failed"
                         $testResult.ErrorRecord = $testCase.SelectSingleNode(".//message")?.InnerText
@@ -238,7 +241,8 @@ class TestResultAggregator {
                 $this.AllResults.Add($testSuiteResult)
                 $this.UpdateSummary($testSuiteResult)
             }
-        } catch {
+        }
+        catch {
             Write-ReportLog "Failed to parse JUnit XML file $JUnitPath`: $($_.Exception.Message)" "ERROR" "AGGREGATOR"
         }
     }
@@ -258,23 +262,23 @@ class TestResultAggregator {
 
         # Update test suite breakdown
         $this.Summary.TestSuiteBreakdown[$TestSuiteResult.TestSuite] = @{
-            TotalCount = $TestSuiteResult.TotalCount
-            PassedCount = $TestSuiteResult.PassedCount
-            FailedCount = $TestSuiteResult.FailedCount
+            TotalCount   = $TestSuiteResult.TotalCount
+            PassedCount  = $TestSuiteResult.PassedCount
+            FailedCount  = $TestSuiteResult.FailedCount
             SkippedCount = $TestSuiteResult.SkippedCount
-            SuccessRate = $TestSuiteResult.SuccessRate
-            Duration = $TestSuiteResult.Duration
+            SuccessRate  = $TestSuiteResult.SuccessRate
+            Duration     = $TestSuiteResult.Duration
         }
 
         # Update category breakdown (categorize by test suite name)
         $category = $this.CategorizeTestSuite($TestSuiteResult.TestSuite)
         if (-not $this.Summary.CategoryBreakdown.ContainsKey($category)) {
             $this.Summary.CategoryBreakdown[$category] = @{
-                TotalCount = 0
-                PassedCount = 0
-                FailedCount = 0
+                TotalCount   = 0
+                PassedCount  = 0
+                FailedCount  = 0
                 SkippedCount = 0
-                TestSuites = @()
+                TestSuites   = @()
             }
         }
 
@@ -287,11 +291,11 @@ class TestResultAggregator {
 
     [string] CategorizeTestSuite([string]$TestSuiteName) {
         $categories = @{
-            "Unit" = @("unit", "module", "function", "class")
+            "Unit"        = @("unit", "module", "function", "class")
             "Integration" = @("integration", "backup", "restore", "wsl", "installation")
-            "System" = @("system", "registry", "file", "application")
-            "Network" = @("network", "cloud", "connectivity")
-            "Security" = @("security", "encryption", "auth")
+            "System"      = @("system", "registry", "file", "application")
+            "Network"     = @("network", "cloud", "connectivity")
+            "Security"    = @("security", "encryption", "auth")
             "Performance" = @("performance", "load", "stress")
         }
 
@@ -309,14 +313,14 @@ class TestResultAggregator {
 
     [hashtable] GetAggregatedResults() {
         return @{
-            Metadata = @{
-                GeneratedAt = $this.GeneratedAt
-                Version = $this.Version
+            Metadata   = @{
+                GeneratedAt    = $this.GeneratedAt
+                Version        = $this.Version
                 AggregatorType = "WindowsMelodyRecovery"
             }
-            Summary = $this.Summary
+            Summary    = $this.Summary
             TestSuites = $this.AllResults
-            TrendData = $this.TrendData
+            TrendData  = $this.TrendData
         }
     }
 
@@ -332,14 +336,14 @@ class TestResultAggregator {
 
                     if ($historicalData.Summary -and $historicalData.Metadata) {
                         $trendPoint = @{
-                            Date = $historicalData.Metadata.GeneratedAt
-                            TotalTests = $historicalData.Summary.TotalTests
+                            Date        = $historicalData.Metadata.GeneratedAt
+                            TotalTests  = $historicalData.Summary.TotalTests
                             PassedTests = $historicalData.Summary.TotalPassed
                             FailedTests = $historicalData.Summary.TotalFailed
                             SuccessRate = $historicalData.Summary.OverallSuccessRate
-                            Duration = $historicalData.Summary.TotalDuration
-                            TestSuites = $historicalData.Summary.TotalTestSuites
-                            FileName = $file.Name
+                            Duration    = $historicalData.Summary.TotalDuration
+                            TestSuites  = $historicalData.Summary.TotalTestSuites
+                            FileName    = $file.Name
                         }
 
                         if (-not $this.TrendData.ContainsKey("Historical")) {
@@ -351,10 +355,12 @@ class TestResultAggregator {
                 }
 
                 Write-ReportLog "Loaded $($this.TrendData["Historical"].Count) historical data points" "SUCCESS" "TREND"
-            } catch {
+            }
+            catch {
                 Write-ReportLog "Failed to load historical data: $($_.Exception.Message)" "ERROR" "TREND"
             }
-        } else {
+        }
+        else {
             Write-ReportLog "No historical data directory found at: $HistoryPath" "WARN" "TREND"
         }
     }
@@ -363,14 +369,14 @@ class TestResultAggregator {
         Write-ReportLog "Calculating test trends and metrics" "INFO" "TREND"
 
         $trends = @{
-            SuccessRateTrend = "stable"
+            SuccessRateTrend  = "stable"
             SuccessRateChange = 0
-            TestCountTrend = "stable"
-            TestCountChange = 0
-            DurationTrend = "stable"
-            DurationChange = 0
+            TestCountTrend    = "stable"
+            TestCountChange   = 0
+            DurationTrend     = "stable"
+            DurationChange    = 0
             RecentPerformance = @()
-            Recommendations = @()
+            Recommendations   = @()
         }
 
         if ($this.TrendData.ContainsKey("Historical") -and $this.TrendData["Historical"].Count -gt 1) {
@@ -384,7 +390,8 @@ class TestResultAggregator {
 
             if ($successRateChange -gt 5) {
                 $trends.SuccessRateTrend = "improving"
-            } elseif ($successRateChange -lt -5) {
+            }
+            elseif ($successRateChange -lt -5) {
                 $trends.SuccessRateTrend = "declining"
             }
 
@@ -394,7 +401,8 @@ class TestResultAggregator {
 
             if ($testCountChange -gt 10) {
                 $trends.TestCountTrend = "increasing"
-            } elseif ($testCountChange -lt -10) {
+            }
+            elseif ($testCountChange -lt -10) {
                 $trends.TestCountTrend = "decreasing"
             }
 
@@ -408,10 +416,12 @@ class TestResultAggregator {
 
                     if ($durationChange -gt 60) {
                         $trends.DurationTrend = "slower"
-                    } elseif ($durationChange -lt -60) {
+                    }
+                    elseif ($durationChange -lt -60) {
                         $trends.DurationTrend = "faster"
                     }
-                } catch {
+                }
+                catch {
                     Write-ReportLog "Could not parse duration data for trend analysis" "WARN" "TREND"
                 }
             }
@@ -420,23 +430,25 @@ class TestResultAggregator {
             $recentData = $historicalData | Select-Object -Last 5
             foreach ($dataPoint in $recentData) {
                 $trends.RecentPerformance += @{
-                    Date = $dataPoint.Date
+                    Date        = $dataPoint.Date
                     SuccessRate = $dataPoint.SuccessRate
-                    TotalTests = $dataPoint.TotalTests
-                    Duration = $dataPoint.Duration
+                    TotalTests  = $dataPoint.TotalTests
+                    Duration    = $dataPoint.Duration
                 }
             }
 
             # Generate recommendations
             if ($trends.SuccessRateTrend -eq "declining") {
                 $trends.Recommendations += "🔴 Success rate is declining. Review failed tests and improve test stability."
-            } elseif ($trends.SuccessRateTrend -eq "improving") {
+            }
+            elseif ($trends.SuccessRateTrend -eq "improving") {
                 $trends.Recommendations += "🟢 Success rate is improving. Continue current testing practices."
             }
 
             if ($trends.DurationTrend -eq "slower") {
                 $trends.Recommendations += "🟡 Test execution is getting slower. Consider optimizing test performance."
-            } elseif ($trends.DurationTrend -eq "faster") {
+            }
+            elseif ($trends.DurationTrend -eq "faster") {
                 $trends.Recommendations += "🟢 Test execution is getting faster. Good optimization work!"
             }
 
@@ -448,10 +460,12 @@ class TestResultAggregator {
             $avgSuccessRate = ($recentData | Measure-Object -Property SuccessRate -Average).Average
             if ($avgSuccessRate -lt 70) {
                 $trends.Recommendations += "⚠️ Average success rate is below 70%. Focus on test stability and bug fixes."
-            } elseif ($avgSuccessRate -gt 90) {
+            }
+            elseif ($avgSuccessRate -gt 90) {
                 $trends.Recommendations += "🎉 Excellent test success rate! Consider adding more challenging test scenarios."
             }
-        } else {
+        }
+        else {
             $trends.Recommendations += "📊 Insufficient historical data for trend analysis. Continue running tests to build trend data."
         }
 
@@ -480,7 +494,8 @@ class TestResultAggregator {
                 Remove-Item $oldFile.FullName -Force
                 Write-ReportLog "Cleaned up old history file: $($oldFile.Name)" "INFO" "TREND"
             }
-        } catch {
+        }
+        catch {
             Write-ReportLog "Failed to save current results to history: $($_.Exception.Message)" "ERROR" "TREND"
         }
     }
@@ -502,13 +517,13 @@ function New-HtmlDashboard {
 
     # Calculate additional analytics
     $analytics = @{
-        AverageTestsPerSuite = if ($summary.TotalTestSuites -gt 0) { [math]::Round($summary.TotalTests / $summary.TotalTestSuites, 1) } else { 0 }
+        AverageTestsPerSuite   = if ($summary.TotalTestSuites -gt 0) { [math]::Round($summary.TotalTests / $summary.TotalTestSuites, 1) } else { 0 }
         AverageDurationPerTest = if ($summary.TotalTests -gt 0) { [math]::Round($summary.TotalDuration.TotalSeconds / $summary.TotalTests, 2) } else { 0 }
-        FastestSuite = ($testSuites | Sort-Object { [double]$_.Duration.TotalSeconds } | Select-Object -First 1)
-        SlowestSuite = ($testSuites | Sort-Object { [double]$_.Duration.TotalSeconds } -Descending | Select-Object -First 1)
-        MostTestsSuite = ($testSuites | Sort-Object TotalCount -Descending | Select-Object -First 1)
-        HighestSuccessRate = ($testSuites | Sort-Object SuccessRate -Descending | Select-Object -First 1)
-        LowestSuccessRate = ($testSuites | Sort-Object SuccessRate | Select-Object -First 1)
+        FastestSuite           = ($testSuites | Sort-Object { [double]$_.Duration.TotalSeconds } | Select-Object -First 1)
+        SlowestSuite           = ($testSuites | Sort-Object { [double]$_.Duration.TotalSeconds } -Descending | Select-Object -First 1)
+        MostTestsSuite         = ($testSuites | Sort-Object TotalCount -Descending | Select-Object -First 1)
+        HighestSuccessRate     = ($testSuites | Sort-Object SuccessRate -Descending | Select-Object -First 1)
+        LowestSuccessRate      = ($testSuites | Sort-Object SuccessRate | Select-Object -First 1)
     }
 
     $htmlContent = @"
@@ -865,7 +880,7 @@ function New-HtmlDashboard {
 
         # Add individual test details if available
         if ($testSuite.Tests -and $testSuite.Tests.Count -gt 0) {
-            foreach ($test in ($testSuite.Tests | Select-Object -First 20)) {  # Limit to first 20 for performance
+            foreach ($test in ($testSuite.Tests | Select-Object -First 20)) { # Limit to first 20 for performance
                 $testClass = switch ($test.Result) {
                     "Passed" { "test-passed" }
                     "Failed" { "test-failed" }
@@ -889,7 +904,8 @@ function New-HtmlDashboard {
                                 </div>
 "@
             }
-        } else {
+        }
+        else {
             $htmlContent += @"
                                 <div class="test-item">
                                     <p>No detailed test information available for this suite.</p>
@@ -1128,15 +1144,15 @@ function New-CsvReport {
     $csvData = @()
     foreach ($testSuite in $AggregatedResults.TestSuites) {
         $csvData += [PSCustomObject]@{
-            TestSuite = $testSuite.TestSuite
-            Type = $testSuite.Type
-            TotalTests = $testSuite.TotalCount
-            PassedTests = $testSuite.PassedCount
-            FailedTests = $testSuite.FailedCount
+            TestSuite    = $testSuite.TestSuite
+            Type         = $testSuite.Type
+            TotalTests   = $testSuite.TotalCount
+            PassedTests  = $testSuite.PassedCount
+            FailedTests  = $testSuite.FailedCount
             SkippedTests = $testSuite.SkippedCount
-            SuccessRate = $testSuite.SuccessRate
-            Duration = $testSuite.Duration
-            Timestamp = $testSuite.Timestamp
+            SuccessRate  = $testSuite.SuccessRate
+            Duration     = $testSuite.Duration
+            Timestamp    = $testSuite.Timestamp
         }
     }
 
@@ -1218,7 +1234,8 @@ Windows Melody Recovery Test Framework
             # Note: This requires SMTP configuration
             Write-ReportLog "Send-MailMessage available but requires SMTP configuration" "WARN" "EMAIL"
             Write-ReportLog "Email body prepared for manual sending or external integration" "INFO" "EMAIL"
-        } else {
+        }
+        else {
             Write-ReportLog "Send-MailMessage not available in this environment" "WARN" "EMAIL"
         }
 
@@ -1233,7 +1250,8 @@ $emailBody
 
         Write-ReportLog "Email content saved to: $emailFile" "SUCCESS" "EMAIL"
 
-    } catch {
+    }
+    catch {
         Write-ReportLog "Failed to prepare email notification: $($_.Exception.Message)" "ERROR" "EMAIL"
     }
 }
@@ -1256,11 +1274,11 @@ function Send-SlackNotification {
     $color = if ($Summary.OverallSuccessRate -ge 90) { "good" } elseif ($Summary.OverallSuccessRate -ge 70) { "warning" } else { "danger" }
 
     $slackPayload = @{
-        text = "Windows Melody Recovery Test Report"
+        text        = "Windows Melody Recovery Test Report"
         attachments = @(
             @{
-                color = $color
-                title = "Test Execution Summary"
+                color  = $color
+                title  = "Test Execution Summary"
                 fields = @(
                     @{
                         title = "Success Rate"
@@ -1284,7 +1302,7 @@ function Send-SlackNotification {
                     }
                 )
                 footer = "Windows Melody Recovery"
-                ts = [int][double]::Parse((Get-Date -UFormat %s))
+                ts     = [int][double]::Parse((Get-Date -UFormat %s))
             }
         )
     }
@@ -1295,7 +1313,7 @@ function Send-SlackNotification {
         $slackPayload.attachments += @{
             color = "#36a64f"
             title = "Trend Analysis $trendIcon"
-            text = "Success Rate: $($Trends.SuccessRateTrend) ($($Trends.SuccessRateChange)%) • Test Count: $($Trends.TestCountTrend) ($($Trends.TestCountChange)) • Performance: $($Trends.DurationTrend)"
+            text  = "Success Rate: $($Trends.SuccessRateTrend) ($($Trends.SuccessRateChange)%) • Test Count: $($Trends.TestCountTrend) ($($Trends.TestCountChange)) • Performance: $($Trends.DurationTrend)"
         }
     }
 
@@ -1305,14 +1323,16 @@ function Send-SlackNotification {
         if (Get-Command Invoke-RestMethod -ErrorAction SilentlyContinue) {
             $response = Invoke-RestMethod -Uri $SlackWebhook -Method Post -Body $jsonPayload -ContentType "application/json"
             Write-ReportLog "Slack notification sent successfully" "SUCCESS" "SLACK"
-        } else {
+        }
+        else {
             # Save payload for external processing
             $slackFile = Join-Path $OutputPath "slack-notification.json"
             $jsonPayload | Out-File -FilePath $slackFile -Encoding UTF8
             Write-ReportLog "Slack payload saved to: $slackFile (Invoke-RestMethod not available)" "INFO" "SLACK"
         }
 
-    } catch {
+    }
+    catch {
         Write-ReportLog "Failed to send Slack notification: $($_.Exception.Message)" "ERROR" "SLACK"
     }
 }
@@ -1383,7 +1403,8 @@ For spreadsheet analysis, use test-results-summary.csv.
 
         Write-ReportLog "Reports successfully saved to cloud storage: $cloudReportDir" "SUCCESS" "CLOUD"
 
-    } catch {
+    }
+    catch {
         Write-ReportLog "Failed to save reports to cloud storage: $($_.Exception.Message)" "ERROR" "CLOUD"
     }
 }
@@ -1525,9 +1546,9 @@ function Invoke-ReportGeneration {
 
     return @{
         AggregatedResults = $aggregatedResults
-        GeneratedReports = $generatedReports
-        Summary = $aggregatedResults.Summary
-        Trends = $trends
+        GeneratedReports  = $generatedReports
+        Summary           = $aggregatedResults.Summary
+        Trends            = $trends
     }
 }
 

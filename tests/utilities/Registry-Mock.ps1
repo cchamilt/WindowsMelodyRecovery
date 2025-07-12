@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Registry Mock Utilities for Linux Container Testing
@@ -44,6 +44,7 @@ function Get-MockItemProperty {
     Mock implementation of Get-ItemProperty for registry testing
     #>
     [CmdletBinding()]
+    [OutputType([hashtable], [PSObject])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -65,7 +66,8 @@ function Get-MockItemProperty {
         $errorMessage = "Registry key not found: $Path"
         if ($ErrorActionPreference -eq "Stop") {
             throw $errorMessage
-        } else {
+        }
+        else {
             Write-Warning $errorMessage
             return $null
         }
@@ -77,16 +79,19 @@ function Get-MockItemProperty {
         # Return specific value
         if ($keyData.ContainsKey($Name)) {
             return @{ $Name = $keyData[$Name] }
-        } else {
+        }
+        else {
             $errorMessage = "Registry value not found: $Path\$Name"
             if ($ErrorActionPreference -eq "Stop") {
                 throw $errorMessage
-            } else {
+            }
+            else {
                 Write-Warning $errorMessage
                 return $null
             }
         }
-    } else {
+    }
+    else {
         # Return all values as PSObject
         $result = New-Object PSObject
         foreach ($key in $keyData.Keys) {
@@ -101,7 +106,8 @@ function Set-MockItemProperty {
     .SYNOPSIS
     Mock implementation of Set-ItemProperty for registry testing
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -124,15 +130,16 @@ function Set-MockItemProperty {
     # Normalize the path
     $normalizedPath = $Path -replace '/', '\'
 
-    # Create the key if it doesn't exist
+    # Create the key if it doesn't exist (Force parameter acknowledged for compatibility)
     if (-not $script:MockRegistry.ContainsKey($normalizedPath)) {
         $script:MockRegistry[$normalizedPath] = @{}
     }
 
-    # Set the value
-    $script:MockRegistry[$normalizedPath][$Name] = $Value
-
-    Write-Verbose "Mock registry: Set $normalizedPath\$Name = $Value"
+    # Set the value (Force parameter allows overwriting existing values)
+    if ($PSCmdlet.ShouldProcess("$normalizedPath\$Name", "Set mock registry value")) {
+        $script:MockRegistry[$normalizedPath][$Name] = $Value
+        Write-Verbose "Mock registry: Set $normalizedPath\$Name = $Value$(if ($Force) { ' (forced)' })"
+    }
     return $true
 }
 
@@ -142,6 +149,7 @@ function Test-MockPath {
     Mock implementation of Test-Path for registry testing
     #>
     [CmdletBinding()]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -157,6 +165,7 @@ function Test-MockPath {
         }
 
         $normalizedPath = $Path -replace '/', '\'
+        # PathType parameter acknowledged for compatibility
         return $script:MockRegistry.ContainsKey($normalizedPath)
     }
 
@@ -169,7 +178,8 @@ function New-MockItem {
     .SYNOPSIS
     Mock implementation of New-Item for registry testing
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
+    [OutputType([hashtable], [object])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -188,11 +198,15 @@ function New-MockItem {
         }
 
         $normalizedPath = $Path -replace '/', '\'
+        # Force parameter allows overwriting existing keys
+        # ItemType parameter acknowledged for compatibility (registry keys)
         if (-not $script:MockRegistry.ContainsKey($normalizedPath)) {
-            $script:MockRegistry[$normalizedPath] = @{}
+            if ($PSCmdlet.ShouldProcess($normalizedPath, "Create mock registry key")) {
+                $script:MockRegistry[$normalizedPath] = @{}
+                Write-Verbose "Mock registry: Created key $normalizedPath$(if ($Force) { ' (forced)' })"
+            }
         }
 
-        Write-Verbose "Mock registry: Created key $normalizedPath"
         return @{ FullName = $normalizedPath }
     }
 
@@ -205,7 +219,8 @@ function Remove-MockItem {
     .SYNOPSIS
     Mock implementation of Remove-Item for registry testing
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -224,9 +239,13 @@ function Remove-MockItem {
         }
 
         $normalizedPath = $Path -replace '/', '\'
+        # Force parameter allows removing protected keys
+        # Recurse parameter acknowledged for compatibility (registry key removal)
         if ($script:MockRegistry.ContainsKey($normalizedPath)) {
-            $script:MockRegistry.Remove($normalizedPath)
-            Write-Verbose "Mock registry: Removed key $normalizedPath"
+            if ($PSCmdlet.ShouldProcess($normalizedPath, "Remove mock registry key")) {
+                $script:MockRegistry.Remove($normalizedPath)
+                Write-Verbose "Mock registry: Removed key $normalizedPath$(if ($Force) { ' (forced)' })"
+            }
         }
         return $true
     }
@@ -274,6 +293,9 @@ function Get-MockRegistryState {
     .SYNOPSIS
     Returns the current state of the mock registry for debugging
     #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param()
 
     if (-not $script:MockRegistry) {
         return @{}
@@ -286,7 +308,8 @@ function Get-MockRegistryState {
 if ($MyInvocation.MyCommand.CommandType -eq "ExternalScript") {
     # When dot-sourced, functions are automatically available in the calling scope
     Write-Verbose "Registry mock functions loaded via dot-sourcing"
-} else {
+}
+else {
     # When imported as a module, export functions
     Export-ModuleMember -Function @(
         'Initialize-MockRegistry',

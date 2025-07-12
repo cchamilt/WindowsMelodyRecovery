@@ -1,4 +1,4 @@
-# tests/unit/EncryptionWorkflow.Tests.ps1
+﻿# tests/unit/EncryptionWorkflow.Tests.ps1
 # Phase 6.1: Encryption Workflow Testing - Unit Tests
 
 BeforeAll {
@@ -9,7 +9,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -114,14 +115,16 @@ Describe 'Encryption Workflow Tests' {
                 if ($weak -eq "") {
                     # Create a truly empty SecureString
                     $secureWeak = New-Object System.Security.SecureString
-                } else {
+                }
+                else {
                     $secureWeak = New-TestSecureString -PlainText $weak
                 }
 
                 if ($weak -eq "") {
                     { Get-WmrEncryptionKey -Passphrase $secureWeak } |
                         Should -Throw "*Encryption passphrase cannot be empty*"
-                } else {
+                }
+                else {
                     # Should still work but warn about weak passwords in real implementation
                     { Get-WmrEncryptionKey -Passphrase $secureWeak } | Should -Not -Throw
                 }
@@ -138,8 +141,8 @@ Describe 'Encryption Workflow Tests' {
             # Arrange
             $configData = @{
                 username = "testuser"
-                apikey = "secret-api-key-12345"
-                servers = @("server1.example.com", "server2.example.com")
+                apikey   = "secret-api-key-12345"
+                servers  = @("server1.example.com", "server2.example.com")
                 settings = @{
                     timeout = 30
                     retries = 3

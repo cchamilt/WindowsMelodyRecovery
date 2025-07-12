@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Test Utilities for Windows Melody Recovery Integration Tests
@@ -116,7 +116,7 @@ if ($MyInvocation.MyCommand.Path) {  # Check if we're in a script file
 
                 $completed = Wait-Job -Job $job -Timeout $TimeoutSeconds
 
-                if ($completed -eq $null) {
+                if ($null -eq $completed) {
                     Stop-Job -Job $job
                     Remove-Job -Job $job -Force
                     throw "Test '$TestName' exceeded timeout of $TimeoutSeconds seconds"

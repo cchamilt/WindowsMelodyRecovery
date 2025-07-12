@@ -1,4 +1,4 @@
-# Windows Melody Recovery - User Journey End-to-End Tests
+﻿# Windows Melody Recovery - User Journey End-to-End Tests
 # Tests realistic user scenarios and workflows
 
 BeforeAll {
@@ -210,7 +210,7 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             # Access backed up data for recovery
             $backupSource = Join-Path $script:BackupStorage "MyBackups"
             if (Test-Path $backupSource) {
-                $env:WMR_BACKUP_PATH = $script:BackupStorage "MyBackups"
+                $env:WMR_BACKUP_PATH = Join-Path $script:BackupStorage "MyBackups"
 
                 # Verify backup accessibility
                 $availableBackups = Get-ChildItem -Path $backupSource -Directory -ErrorAction SilentlyContinue

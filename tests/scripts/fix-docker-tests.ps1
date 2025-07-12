@@ -1,4 +1,4 @@
-# fix-docker-tests.ps1
+﻿# fix-docker-tests.ps1
 # Enhanced script to fix unit tests for Docker compatibility
 
 [CmdletBinding()]
@@ -24,14 +24,16 @@ function Add-DockerBootstrap {
     if ($content -match "BeforeAll\s*\{") {
         # Add bootstrap at the beginning of BeforeAll
         $newContent = $content -replace "(BeforeAll\s*\{)", "`$1`n    # Load Docker test bootstrap for cross-platform compatibility`n    . (Join-Path `$PSScriptRoot `"../utilities/Docker-Test-Bootstrap.ps1`")`n"
-    } else {
+    }
+    else {
         # Add BeforeAll block with bootstrap before first Describe
         $newContent = $content -replace "(Describe\s+)", "BeforeAll {`n    # Load Docker test bootstrap for cross-platform compatibility`n    . (Join-Path `$PSScriptRoot `"../utilities/Docker-Test-Bootstrap.ps1`")`n}`n`n`$1"
     }
 
     if ($WhatIf) {
         Write-Warning -Message "Would add Docker bootstrap to: $TestFile"
-    } else {
+    }
+    else {
         Set-Content -Path $TestFile -Value $newContent -Encoding UTF8
         Write-Information -MessageData "✓ Added Docker bootstrap to: $TestFile" -InformationAction Continue
     }
@@ -63,7 +65,8 @@ function Repair-PathUsage {
     if ($changed) {
         if ($WhatIf) {
             Write-Warning -Message "Would fix path usage in: $TestFile"
-        } else {
+        }
+        else {
             Set-Content -Path $TestFile -Value $content -Encoding UTF8
             Write-Information -MessageData "✓ Fixed path usage in: $TestFile" -InformationAction Continue
         }
@@ -84,7 +87,8 @@ function Repair-ExportModuleMember {
 
         if ($WhatIf) {
             Write-Warning -Message "Would fix Export-ModuleMember in: $FilePath"
-        } else {
+        }
+        else {
             Set-Content -Path $FilePath -Value $newContent -Encoding UTF8
             Write-Information -MessageData "✓ Fixed Export-ModuleMember in: $FilePath" -InformationAction Continue
         }

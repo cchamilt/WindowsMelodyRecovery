@@ -1,4 +1,4 @@
-# tests/unit/EncryptionUtilities.Tests.ps1
+﻿# tests/unit/EncryptionUtilities.Tests.ps1
 
 BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
@@ -8,7 +8,8 @@ BeforeAll {
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
-    } catch {
+    }
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -22,8 +23,8 @@ BeforeAll {
 
 Describe 'EncryptionUtilities' {
     BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+        # Load Docker test bootstrap for cross-platform compatibility
+        . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
         $script:TestPassword = "TestP@ssw0rd!"
         $script:TestSecureString = New-TestSecureString -PlainText $TestPassword
@@ -97,7 +98,7 @@ Describe 'EncryptionUtilities' {
         It 'Should throw on corrupted data' {
             # Arrange
             $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText "Test"
-            $corruptedData = $encryptedData[0..($encryptedData.Length-2)]  # Remove last byte
+            $corruptedData = $encryptedData[0..($encryptedData.Length - 2)]  # Remove last byte
             $encodedCorrupted = [Convert]::ToBase64String($corruptedData)
 
             # Act & Assert
@@ -124,7 +125,7 @@ Describe 'EncryptionUtilities' {
             $testData = @{
                 'String' = "Test string"
                 'Number' = 42
-                'Array' = @(1, 2, 3)
+                'Array'  = @(1, 2, 3)
                 'Nested' = @{
                     'Key' = 'Value'
                 }
