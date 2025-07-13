@@ -45,3 +45,4 @@ Add a curses based TUI for initialization and configuring.  Allow selection of w
 - In addition to cloud file services - support network drive backup and Azure Blob storage
 - server features - services, server features, iis configuration, files/directories
 - document and support administrative privelege management with Windows' new sudo inline option https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
+- Output system backup into packer build compatible HCL formatted files.

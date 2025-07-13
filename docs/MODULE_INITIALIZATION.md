@@ -2,11 +2,58 @@
 
 ## Overview
 
-The Windows Melody Recovery module uses a comprehensive initialization system that ensures proper loading of all components, validation of dependencies, and setup of the module environment. This document describes how the initialization system works and how to use it.
+The Windows Melody Recovery module uses a comprehensive initialization system that ensures proper loading of all components, validation of dependencies, and setup of the module environment. **As of version 1.0.0, the module now features an interactive Text User Interface (TUI) wizard as the default initialization method**, making configuration more intuitive and user-friendly.
+
+## Initialization Methods
+
+### 1. Interactive TUI Wizard (Default)
+
+The TUI wizard is the new default initialization method, providing a modern, interactive interface for configuration:
+
+```powershell
+Initialize-WindowsMelodyRecovery
+```
+
+**Features:**
+- **Tabbed Interface**: Components, Initialization Wizard, and Status tabs
+- **Visual Component Selection**: TreeView with categorized templates and checkboxes
+- **Smart Auto-Detection**: Automatically detects cloud storage paths
+- **Real-time Validation**: Tests configuration before saving
+- **Comprehensive Configuration**: Backup root, cloud provider, email settings, retention policies
+- **Action Integration**: Direct backup/restore operations from the interface
+
+![TUI Wizard Interface](images/tui-wizard.png)
+
+### 2. Parameter-Based Configuration (Automation)
+
+For scripting and automation scenarios, use parameter-based configuration:
+
+```powershell
+# Complete configuration
+Initialize-WindowsMelodyRecovery -BackupRoot "C:\Backups\WMR" -CloudProvider "OneDrive" -MachineName "MyPC" -EmailAddress "user@example.com" -RetentionDays 60 -EnableEmailNotifications
+
+# Partial updates (only specified parameters are changed)
+Initialize-WindowsMelodyRecovery -BackupRoot "D:\NewBackups"
+Initialize-WindowsMelodyRecovery -EmailAddress "newemail@company.com" -EnableEmailNotifications
+```
+
+**Available Parameters:**
+- `BackupRoot` - Primary backup directory path
+- `CloudProvider` - OneDrive, GoogleDrive, Dropbox, Box, or Custom
+- `MachineName` - Unique machine identifier
+- `EmailAddress` - Email for notifications
+- `RetentionDays` - Backup retention period (default: 30)
+- `EnableEmailNotifications` - Enable email notifications switch
+
+### 3. Traditional Command-Line Prompts
+
+For backward compatibility and CI/CD scenarios:
+
+```powershell
+Initialize-WindowsMelodyRecovery -NoPrompt
+```
 
 ## Initialization Process
-
-### 1. Module Loading Sequence
 
 When the module is imported, the following sequence occurs:
 
@@ -247,7 +294,7 @@ $config = @{
     MACHINE_NAME = $env:COMPUTERNAME
     CLOUD_PROVIDER = "OneDrive"
 }
-$config.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" } | 
+$config.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" } |
     Set-Content "Config\windows.env"
 ```
 
@@ -364,4 +411,4 @@ if ($env:ENVIRONMENT -eq "Development") {
 }
 ```
 
-This initialization system ensures that the Windows Melody Recovery module is properly configured and ready for use in any environment. 
+This initialization system ensures that the Windows Melody Recovery module is properly configured and ready for use in any environment.

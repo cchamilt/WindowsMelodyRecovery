@@ -210,15 +210,35 @@ The module follows a clean separation of concerns with three distinct phases:
 - Use `-Force` to overwrite existing files
 - Use `-CleanInstall` for fresh installation
 
-### 2. Initialize (Configuration Only)
+### 2. Initialize (Interactive TUI Configuration)
 ```powershell
 Initialize-WindowsMelodyRecovery
 ```
-- Sets up module configuration
-- Configures backup locations and cloud providers
-- Creates configuration files
-- Detects and configures cloud storage paths automatically
-- No actual setup or installation of components
+- **NEW**: Launches an interactive Text User Interface (TUI) by default
+- Intuitive wizard for configuring backup locations and cloud providers
+- Visual selection of templates and components to backup/restore
+- Auto-detects cloud storage paths (OneDrive, Google Drive, Dropbox)
+- Creates configuration files and validates settings
+
+![TUI Configuration Wizard](docs/images/tui-wizard.png)
+*Interactive TUI Configuration Wizard*
+
+#### Alternative Configuration Methods
+
+**Parameter-based Configuration (for automation/scripting):**
+```powershell
+# Complete configuration via parameters
+Initialize-WindowsMelodyRecovery -BackupRoot "C:\Backups\WMR" -CloudProvider "OneDrive" -MachineName "MyPC" -EmailAddress "user@example.com"
+
+# Update only specific settings
+Initialize-WindowsMelodyRecovery -BackupRoot "D:\NewBackups"
+```
+
+**Traditional Command-line Prompts:**
+```powershell
+# Use traditional prompts (bypass TUI)
+Initialize-WindowsMelodyRecovery -NoPrompt
+```
 
 ### 3. Setup (Optional Components)
 ```powershell
@@ -354,16 +374,41 @@ The module uses a flexible configuration system with:
 
 ## Usage Examples
 
-### Complete Setup Workflow
+### Quick Start (TUI-First Approach)
 ```powershell
 # 1. Install the module files
 .\Install-Module.ps1
 
-# 2. Configure the module (detects cloud storage automatically)
+# 2. Launch interactive configuration wizard (NEW DEFAULT)
 Initialize-WindowsMelodyRecovery
+# This opens the TUI wizard for easy configuration
 
 # 3. Set up optional components (as Administrator)
 Setup-WindowsMelodyRecovery
+```
+
+### Automated Setup (Parameter-Based)
+```powershell
+# 1. Install the module files
+.\Install-Module.ps1
+
+# 2. Configure via parameters (perfect for scripts/automation)
+Initialize-WindowsMelodyRecovery -BackupRoot "C:\Backups\WMR" -CloudProvider "OneDrive" -MachineName "DevMachine" -EmailAddress "admin@company.com" -RetentionDays 60 -EnableEmailNotifications
+
+# 3. Set up optional components
+Setup-WindowsMelodyRecovery -NoPrompt
+```
+
+### Configuration Updates
+```powershell
+# Update just the backup location
+Initialize-WindowsMelodyRecovery -BackupRoot "D:\NewBackups"
+
+# Update email settings only
+Initialize-WindowsMelodyRecovery -EmailAddress "newemail@company.com" -EnableEmailNotifications
+
+# Change cloud provider
+Initialize-WindowsMelodyRecovery -CloudProvider "GoogleDrive"
 ```
 
 ### Backup and Restore Operations

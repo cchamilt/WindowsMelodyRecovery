@@ -12,8 +12,54 @@ function Initialize-WindowsMelodyRecovery {
         [switch]$NoPrompt,
 
         [Parameter(Mandatory = $false)]
-        [switch]$Force
+        [switch]$Force,
+
+        [Parameter(Mandatory = $false)]
+        [string]$BackupRoot,
+
+        [Parameter(Mandatory = $false)]
+        [string]$CloudProvider,
+
+        [Parameter(Mandatory = $false)]
+        [string]$MachineName,
+
+        [Parameter(Mandatory = $false)]
+        [string]$EmailAddress,
+
+        [Parameter(Mandatory = $false)]
+        [int]$RetentionDays,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$EnableEmailNotifications
     )
+
+    # Check if any configuration parameters were provided
+    $parametersProvided   = $PSBoundParameters.ContainsKey('BackupRoot') -or
+                            $PSBoundParameters.ContainsKey('CloudProvider') -or
+                            $PSBoundParameters.ContainsKey('MachineName') -or
+                            $PSBoundParameters.ContainsKey('EmailAddress') -or
+                            $PSBoundParameters.ContainsKey('RetentionDays') -or
+                            $PSBoundParameters.ContainsKey('EnableEmailNotifications')
+
+    # Default to TUI unless parameters are provided or NoPrompt is specified
+    if (-not $parametersProvided -and -not $NoPrompt) {
+        Write-Information -MessageData "Launching TUI Configuration Wizard..." -InformationAction Continue
+        try {
+            Import-Module (Join-Path $PSScriptRoot '..\TUI\WindowsMelodyRecovery.TUI.psd1') -Force
+            Show-WmrTui
+            return $true
+        }
+        catch {
+            Write-Error "Failed to launch TUI: $($_.Exception.Message)"
+            Write-Information -MessageData "Falling back to command-line configuration..." -InformationAction Continue
+        }
+    }
+
+    # If parameters are provided, use parameter-based configuration
+    if ($parametersProvided) {
+        Write-Information -MessageData "Using provided parameters for configuration..." -InformationAction Continue
+        $NoPrompt = $true  # Force no prompts when parameters are provided
+    }
 
     # Note: This function only handles configuration and does not require admin privileges
 
@@ -121,10 +167,13 @@ function Initialize-WindowsMelodyRecovery {
     }
 
     # Get machine name
-    if (-not $NoPrompt) {
+    $machineName = if ($PSBoundParameters.ContainsKey('MachineName')) {
+        $MachineName
+    }
+    elseif (-not $NoPrompt) {
         Write-Information -MessageData "`nEnter machine name:" -InformationAction Continue
         $userInput = Read-Host "Machine name [default: $env:COMPUTERNAME]"
-        $machineName = if ([string]::IsNullOrWhiteSpace($userInput)) {
+        if ([string]::IsNullOrWhiteSpace($userInput)) {
             $env:COMPUTERNAME
         }
         else {
@@ -132,20 +181,21 @@ function Initialize-WindowsMelodyRecovery {
         }
     }
     else {
-        $machineName = $env:COMPUTERNAME
+        $env:COMPUTERNAME
     }
 
     # Get cloud provider
-    if (-not $NoPrompt) {
+    $selectedProvider = if ($PSBoundParameters.ContainsKey('CloudProvider')) {
+        $CloudProvider
+    }
+    elseif (-not $NoPrompt) {
         Write-Information -MessageData "`nSelect cloud storage provider:" -InformationAction Continue
         Write-Information -MessageData "[O] OneDrive" -InformationAction Continue
         Write-Information -MessageData "[G] Google Drive" -InformationAction Continue
         Write-Information -MessageData "[D] Dropbox" -InformationAction Continue
         Write-Information -MessageData "[B] Box" -InformationAction Continue
         Write-Information -MessageData "[C] Custom location" -InformationAction Continue
-    }
 
-    $selectedProvider = if ($NoPrompt) { "OneDrive" } else {
         do {
             $choice = Read-Host "Select provider (O/G/D/B/C)"
             switch ($choice.ToUpper()) {
@@ -162,106 +212,114 @@ function Initialize-WindowsMelodyRecovery {
         } while (-not $selectedProvider)
         $selectedProvider
     }
+    else {
+        "OneDrive"  # Default when NoPrompt
+    }
 
     # Get backup location
-    $backupRoot = $null
-
-    if ($selectedProvider -eq 'Custom') {
-        if ($NoPrompt) {
-            $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
-        }
-        else {
-            do {
-                $userInput = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMelodyRecovery)"
-                $path = if ([string]::IsNullOrWhiteSpace($userInput)) {
-                    Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
-                }
-                else {
-                    $userInput
-                }
-                $valid = Test-Path (Split-Path $path -Parent)
-                if (-not $valid) {
-                    Write-Error -Message "Parent directory does not exist. Please enter a valid path."
-                }
-            } while (-not $valid)
-            $backupRoot = $path
-        }
-    }
-    elseif ($selectedProvider -eq 'OneDrive') {
-        # Find OneDrive paths (including mock paths for testing)
-        $onedrivePaths = @(
-            "$env:USERPROFILE\OneDrive",
-            "$env:USERPROFILE\OneDrive - *",
-            "$env:USERPROFILE\OneDriveCommercial",
-            "$env:USERPROFILE\OneDrive - Enterprise",
-            "/mock-cloud/OneDrive",  # Mock cloud storage for testing
-            "/tmp/mock-cloud/OneDrive"  # Alternative mock path
-        )
-
-        $possiblePaths = @()
-        foreach ($path in $onedrivePaths) {
-            Write-Verbose -Message "Checking OneDrive path: $path"
-            $item = Get-Item -Path $path -ErrorAction SilentlyContinue
-            if ($item) {
-                Write-Information -MessageData "  Found: $($item.FullName)" -InformationAction Continue
-                $possiblePaths += $item
-            }
-            else {
-                Write-Error -Message "  Not found: $path"
-            }
-        }
-
-        $pathCount = $possiblePaths.Count
-        $pathList = $possiblePaths.FullName -join ', '
-        Write-Information -MessageData "Found $pathCount OneDrive paths: $pathList" -InformationAction Continue
-
-        if ($possiblePaths.Count -gt 0) {
-            if (-not $NoPrompt) {
-                Write-Information -MessageData "`nDetected OneDrive locations:" -InformationAction Continue
-                for ($i = 0; $i -lt $possiblePaths.Count; $i++) {
-                    Write-Information -MessageData "[$i] $($possiblePaths[$i].FullName)" -InformationAction Continue
-                }
-                Write-Information -MessageData "`[C`] Custom location" -InformationAction Continue
-
-                do {
-                    $selection = Read-Host "`nSelect OneDrive location [0-$($possiblePaths.Count-1)] or [C]"
-                    if ($selection -eq "C") {
-                        $backupRoot = Read-Host "Enter custom backup location"
-                    }
-                    elseif ($selection -match '^\d+$' -and [int]$selection -lt $possiblePaths.Count) {
-                        $selectedOneDrive = $possiblePaths[$selection].FullName
-                        $backupRoot = Join-Path $selectedOneDrive "WindowsMelodyRecovery"
-                    }
-                    else {
-                        Write-Error -Message "Invalid selection. Please choose a valid number or C."
-                    }
-                } while (-not $backupRoot)
-            }
-            else {
-                $backupRoot = Join-Path $possiblePaths[0].FullName "WindowsMelodyRecovery"
-            }
-        }
-        else {
-            Write-Warning "No OneDrive paths found. Using default backup location."
-            # Use a more robust default location that works in test environments
-            if ($NoPrompt) {
-                # In test environments, use a predictable location
-                $backupRoot = if (Test-Path "/tmp") {
-                    "/tmp/Backups/WindowsMelodyRecovery"
-                }
-                else {
-                    Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
-                }
-            }
-            else {
-                $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
-            }
-        }
+    $backupRoot = if ($PSBoundParameters.ContainsKey('BackupRoot')) {
+        $BackupRoot
     }
     else {
-        # For other cloud providers, use a default location with provider name
-        $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMelodyRecovery"
-        Write-Warning -Message "Using default location for $selectedProvider : $backupRoot"
+        # Existing backup location logic based on provider...
+        # (Keep the existing logic but wrap in else block)
+        if ($selectedProvider -eq 'Custom') {
+            if ($NoPrompt) {
+                $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
+            }
+            else {
+                do {
+                    $userInput = Read-Host "Enter custom backup location (default: $env:USERPROFILE\Backups\WindowsMelodyRecovery)"
+                    $path = if ([string]::IsNullOrWhiteSpace($userInput)) {
+                        Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
+                    }
+                    else {
+                        $userInput
+                    }
+                    $valid = Test-Path (Split-Path $path -Parent)
+                    if (-not $valid) {
+                        Write-Error -Message "Parent directory does not exist. Please enter a valid path."
+                    }
+                } while (-not $valid)
+                $backupRoot = $path
+            }
+        }
+        elseif ($selectedProvider -eq 'OneDrive') {
+            # Find OneDrive paths (including mock paths for testing)
+            $onedrivePaths = @(
+                "$env:USERPROFILE\OneDrive",
+                "$env:USERPROFILE\OneDrive - *",
+                "$env:USERPROFILE\OneDriveCommercial",
+                "$env:USERPROFILE\OneDrive - Enterprise",
+                "/mock-cloud/OneDrive",  # Mock cloud storage for testing
+                "/tmp/mock-cloud/OneDrive"  # Alternative mock path
+            )
+
+            $possiblePaths = @()
+            foreach ($path in $onedrivePaths) {
+                Write-Verbose -Message "Checking OneDrive path: $path"
+                $item = Get-Item -Path $path -ErrorAction SilentlyContinue
+                if ($item) {
+                    Write-Information -MessageData "  Found: $($item.FullName)" -InformationAction Continue
+                    $possiblePaths += $item
+                }
+                else {
+                    Write-Error -Message "  Not found: $path"
+                }
+            }
+
+            $pathCount = $possiblePaths.Count
+            $pathList = $possiblePaths.FullName -join ', '
+            Write-Information -MessageData "Found $pathCount OneDrive paths: $pathList" -InformationAction Continue
+
+            if ($possiblePaths.Count -gt 0) {
+                if (-not $NoPrompt) {
+                    Write-Information -MessageData "`nDetected OneDrive locations:" -InformationAction Continue
+                    for ($i = 0; $i -lt $possiblePaths.Count; $i++) {
+                        Write-Information -MessageData "[$i] $($possiblePaths[$i].FullName)" -InformationAction Continue
+                    }
+                    Write-Information -MessageData "`[C`] Custom location" -InformationAction Continue
+
+                    do {
+                        $selection = Read-Host "`nSelect OneDrive location [0-$($possiblePaths.Count-1)] or [C]"
+                        if ($selection -eq "C") {
+                            $backupRoot = Read-Host "Enter custom backup location"
+                        }
+                        elseif ($selection -match '^\d+$' -and [int]$selection -lt $possiblePaths.Count) {
+                            $selectedOneDrive = $possiblePaths[$selection].FullName
+                            $backupRoot = Join-Path $selectedOneDrive "WindowsMelodyRecovery"
+                        }
+                        else {
+                            Write-Error -Message "Invalid selection. Please choose a valid number or C."
+                        }
+                    } while (-not $backupRoot)
+                }
+                else {
+                    $backupRoot = Join-Path $possiblePaths[0].FullName "WindowsMelodyRecovery"
+                }
+            }
+            else {
+                Write-Warning "No OneDrive paths found. Using default backup location."
+                # Use a more robust default location that works in test environments
+                if ($NoPrompt) {
+                    # In test environments, use a predictable location
+                    $backupRoot = if (Test-Path "/tmp") {
+                        "/tmp/Backups/WindowsMelodyRecovery"
+                    }
+                    else {
+                        Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
+                    }
+                }
+                else {
+                    $backupRoot = Join-Path $env:USERPROFILE "Backups\WindowsMelodyRecovery"
+                }
+            }
+        }
+        else {
+            # For other cloud providers, use a default location with provider name
+            $backupRoot = Join-Path $env:USERPROFILE "Backups\$selectedProvider\WindowsMelodyRecovery"
+            Write-Warning -Message "Using default location for $selectedProvider : $backupRoot"
+        }
     }
 
     # Create configuration
@@ -270,6 +328,22 @@ function Initialize-WindowsMelodyRecovery {
         CLOUD_PROVIDER = $selectedProvider
         MACHINE_NAME = $machineName
         WINDOWS_MELODY_RECOVERY_PATH = $InstallPath
+    }
+
+    # Add optional configuration parameters only if they were provided
+    if ($PSBoundParameters.ContainsKey('EmailAddress')) {
+        $config.EMAIL_ADDRESS = $EmailAddress
+    }
+
+    if ($PSBoundParameters.ContainsKey('RetentionDays')) {
+        $config.RETENTION_DAYS = $RetentionDays
+    }
+    else {
+        $config.RETENTION_DAYS = 30  # Default value
+    }
+
+    if ($PSBoundParameters.ContainsKey('EnableEmailNotifications')) {
+        $config.ENABLE_EMAIL_NOTIFICATIONS = $EnableEmailNotifications.IsPresent
     }
 
     # Create config directory if it doesn't exist
@@ -327,7 +401,29 @@ function Initialize-WindowsMelodyRecovery {
     Set-Content -Path $configFile -Value $configContent -Force
 
     # Update module configuration state
-    Set-WindowsMelodyRecovery -BackupRoot $backupRoot -MachineName $machineName -CloudProvider $selectedProvider -WindowsMelodyRecoveryPath $InstallPath
+    $setParams = @{
+        BackupRoot = $backupRoot
+        MachineName = $machineName
+        CloudProvider = $selectedProvider
+        WindowsMelodyRecoveryPath = $InstallPath
+    }
+
+    if ($PSBoundParameters.ContainsKey('EmailAddress')) {
+        $setParams.EmailAddress = $EmailAddress
+    }
+
+    if ($PSBoundParameters.ContainsKey('RetentionDays')) {
+        $setParams.RetentionDays = $RetentionDays
+    }
+    else {
+        $setParams.RetentionDays = 30
+    }
+
+    if ($PSBoundParameters.ContainsKey('EnableEmailNotifications')) {
+        $setParams.EnableEmailNotifications = $EnableEmailNotifications.IsPresent
+    }
+
+    Set-WindowsMelodyRecovery @setParams
 
     # Mark module as initialized
     $script:Config.IsInitialized = $true

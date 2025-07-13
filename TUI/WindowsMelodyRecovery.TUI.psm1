@@ -220,20 +220,142 @@ function Show-WmrTui {
         $initTab = New-Object Terminal.Gui.Tab
         $initTab.Title = 'Initialization'
         $initFrame = New-Object Terminal.Gui.FrameView 'Setup Wizard'
-        # Add fields, e.g., TextField for Backup Root
-        $backupLabel = New-Object Terminal.Gui.Label -ArgumentList 0, 0, 'Backup Root:'
-        $backupField = New-Object Terminal.Gui.TextField -ArgumentList 15, 0, 50, $script:Config.BackupRoot
-        $initFrame.Add($backupLabel, $backupField)
-        # Add save button
-        $saveBtn = New-Object Terminal.Gui.Button 'Save'
-        $saveBtn.add_Clicked({
-            $script:Config.BackupRoot = $backupField.Text.ToString()
-            # Add more fields as needed, e.g., cloud provider dropdown
-            # Persist config, e.g., Export-Config or Set-WindowsMelodyRecovery
-            Set-WindowsMelodyRecovery -BackupRoot $script:Config.BackupRoot
-            [Terminal.Gui.MessageBox]::Query('Saved', 'Configuration updated.', 'OK')
+
+        # Step 1: Basic Configuration
+        $stepLabel = New-Object Terminal.Gui.Label -ArgumentList 1,1,'Step 1: Basic Configuration'
+        $initFrame.Add($stepLabel)
+
+        # Backup Root
+        $backupLabel = New-Object Terminal.Gui.Label -ArgumentList 1,3,'Backup Root:'
+        $backupField = New-Object Terminal.Gui.TextField -ArgumentList 15,3,40,($script:Config.BackupRoot ?? '')
+        $browseBtn = New-Object Terminal.Gui.Button -ArgumentList 57,3,'Browse...'
+        $browseBtn.add_Clicked({
+            # Simple file dialog simulation - in real implementation use OpenFileDialog
+            $dialog = [Terminal.Gui.MessageBox]::Query('Browse', 'Enter backup path:', 'OK', 'Cancel')
+            if ($dialog -eq 0) {
+                # In real implementation, show file browser
+                $backupField.Text = 'C:\Backups\WindowsMelodyRecovery'
+            }
         })
-        $initFrame.Add($saveBtn)
+        $initFrame.Add($backupLabel, $backupField, $browseBtn)
+
+        # Machine Name
+        $machineLabel = New-Object Terminal.Gui.Label -ArgumentList 1,5,'Machine Name:'
+        $machineField = New-Object Terminal.Gui.TextField -ArgumentList 15,5,40,($script:Config.MachineName ?? $env:COMPUTERNAME)
+        $initFrame.Add($machineLabel, $machineField)
+
+        # Cloud Provider
+        $cloudLabel = New-Object Terminal.Gui.Label -ArgumentList 1,7,'Cloud Provider:'
+        $cloudCombo = New-Object Terminal.Gui.ComboBox -ArgumentList 15,7,40,@('None', 'OneDrive', 'OneDrive for Business', 'Google Drive', 'Dropbox', 'Custom')
+        $cloudCombo.SelectedItem = $script:Config.CloudProvider ?? 'None'
+        $autoDetectBtn = New-Object Terminal.Gui.Button -ArgumentList 57,7,'Auto-Detect'
+        $autoDetectBtn.add_Clicked({
+            # Auto-detect cloud providers
+            $detected = @()
+            if (Test-Path "$env:USERPROFILE\OneDrive") { $detected += 'OneDrive' }
+            if (Test-Path "$env:USERPROFILE\OneDrive - *") { $detected += 'OneDrive for Business' }
+            if (Test-Path "$env:USERPROFILE\Google Drive") { $detected += 'Google Drive' }
+            if (Test-Path "$env:USERPROFILE\Dropbox") { $detected += 'Dropbox' }
+
+            if ($detected.Count -gt 0) {
+                $cloudCombo.SelectedItem = $detected[0]
+                [Terminal.Gui.MessageBox]::Query('Detected', "Found: $($detected -join ', ')", 'OK')
+            } else {
+                [Terminal.Gui.MessageBox]::Query('Not Found', 'No cloud providers detected', 'OK')
+            }
+        })
+        $initFrame.Add($cloudLabel, $cloudCombo, $autoDetectBtn)
+
+        # Step 2: Advanced Configuration (collapsible)
+        $advancedLabel = New-Object Terminal.Gui.Label -ArgumentList 1,9,'Step 2: Advanced Configuration (Optional)'
+        $initFrame.Add($advancedLabel)
+
+        # Email Settings
+        $emailLabel = New-Object Terminal.Gui.Label -ArgumentList 1,11,'Email Notifications:'
+        $emailField = New-Object Terminal.Gui.TextField -ArgumentList 20,11,35,($script:Config.EmailSettings.ToAddress ?? '')
+        $emailCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 57,11,'Enable'
+        $emailCheck.Checked = $script:Config.NotificationSettings.EnableEmail
+        $initFrame.Add($emailLabel, $emailField, $emailCheck)
+
+        # Retention Days
+        $retentionLabel = New-Object Terminal.Gui.Label -ArgumentList 1,13,'Retention (Days):'
+        $retentionField = New-Object Terminal.Gui.TextField -ArgumentList 20,13,10,($script:Config.BackupSettings.RetentionDays.ToString())
+        $initFrame.Add($retentionLabel, $retentionField)
+
+        # Wizard Navigation
+        $saveBtn = New-Object Terminal.Gui.Button -ArgumentList 1,16,'Save & Initialize'
+        $saveBtn.add_Clicked({
+            # Validate and save configuration
+            $errors = @()
+
+            if ([string]::IsNullOrWhiteSpace($backupField.Text)) {
+                $errors += 'Backup Root is required'
+            }
+
+            if ($errors.Count -gt 0) {
+                [Terminal.Gui.MessageBox]::ErrorQuery('Validation Error', ($errors -join "`n"), 'OK')
+                return
+            }
+
+            # Update configuration
+            $script:Config.BackupRoot = $backupField.Text.ToString()
+            $script:Config.MachineName = $machineField.Text.ToString()
+            $script:Config.CloudProvider = $cloudCombo.SelectedItem.ToString()
+            $script:Config.EmailSettings.ToAddress = $emailField.Text.ToString()
+            $script:Config.NotificationSettings.EnableEmail = $emailCheck.Checked
+            $script:Config.BackupSettings.RetentionDays = [int]$retentionField.Text.ToString()
+
+            # Persist configuration
+            try {
+                Set-WindowsMelodyRecovery -BackupRoot $script:Config.BackupRoot -CloudProvider $script:Config.CloudProvider -MachineName $script:Config.MachineName
+                $script:Config.IsInitialized = $true
+                [Terminal.Gui.MessageBox]::Query('Success', 'Configuration saved and module initialized!', 'OK')
+            } catch {
+                [Terminal.Gui.MessageBox]::ErrorQuery('Error', "Failed to save configuration: $($_.Exception.Message)", 'OK')
+            }
+        })
+
+        $testBtn = New-Object Terminal.Gui.Button -ArgumentList 20,16,'Test Configuration'
+        $testBtn.add_Clicked({
+            # Test backup path, cloud connectivity, etc.
+            $results = @()
+
+            if (Test-Path $backupField.Text) {
+                $results += "✓ Backup path accessible"
+            } else {
+                $results += "✗ Backup path not found"
+            }
+
+            if ($cloudCombo.SelectedItem -ne 'None') {
+                # Test cloud path based on selection
+                $cloudPath = switch ($cloudCombo.SelectedItem) {
+                    'OneDrive' { "$env:USERPROFILE\OneDrive" }
+                    'Google Drive' { "$env:USERPROFILE\Google Drive" }
+                    'Dropbox' { "$env:USERPROFILE\Dropbox" }
+                    default { $null }
+                }
+
+                if ($cloudPath -and (Test-Path $cloudPath)) {
+                    $results += "✓ Cloud provider accessible"
+                } else {
+                    $results += "✗ Cloud provider not accessible"
+                }
+            }
+
+            [Terminal.Gui.MessageBox]::Query('Test Results', ($results -join "`n"), 'OK')
+        })
+
+        $resetBtn = New-Object Terminal.Gui.Button -ArgumentList 40,16,'Reset to Defaults'
+        $resetBtn.add_Clicked({
+            $backupField.Text = "C:\Backups\WindowsMelodyRecovery"
+            $machineField.Text = $env:COMPUTERNAME
+            $cloudCombo.SelectedItem = 'None'
+            $emailField.Text = ''
+            $emailCheck.Checked = $false
+            $retentionField.Text = '30'
+        })
+
+        $initFrame.Add($saveBtn, $testBtn, $resetBtn)
         $initTab.View = $initFrame
         $tabView.AddTab($initTab, $false)
 
@@ -268,7 +390,8 @@ Cloud: $($script:Config.CloudProvider)"
             if ($latest.tag_name -gt $script:Config.ModuleVersion) {
                 [Terminal.Gui.MessageBox]::Query('Update Available', "New version $($latest.tag_name) available!", 'OK')
             }
-        } catch {
+        }
+        catch {
             Write-Verbose "Update check failed: $_.Exception.Message"
         }
 
