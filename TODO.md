@@ -2,17 +2,7 @@
 
 ## Testing
 
-We need a new testing plan and strategy to pass CI/CD.
-
-Should review the original plan and strategy in docs.  Make sure that our unit, fileop, integration, and e2e tests meet them.  Make sure that all destructive/write operations in windows are safe/blocked for local dev and optionally allowed in CI/CD.
-
-Test Environment Fragility: Fixing tests in one suite breaks others
-Cross-Suite Interference: Environment isolation problems, mock data conflicts, path resolution inconsistencies
-Infrastructure Brittleness: Dependency chain failures, environment variable conflicts, mock system overlap - need more separation of testing code paths from Windows and mocking in Docker.
-
-Squash more PSScriptAnalyzer warnings in CI pipeline.
-
-📋 **See [Comprehensive Testing Plan](docs/TESTING_PLAN.md) for structured approach to all testing issues**
+- Test test suites in their proper environments and pass in CI/CD
 
 ## User Interface
 
