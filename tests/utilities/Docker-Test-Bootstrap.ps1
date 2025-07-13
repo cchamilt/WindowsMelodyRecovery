@@ -65,8 +65,8 @@ if ($script:IsDockerEnvironment) {
                 'Win32_Processor' {
                     return @(
                         [PSCustomObject]@{
-                            Name = 'Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz'
-                            NumberOfCores = 6
+                            Name                      = 'Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz'
+                            NumberOfCores             = 6
                             NumberOfLogicalProcessors = 12
                         }
                     )
@@ -81,7 +81,7 @@ if ($script:IsDockerEnvironment) {
                 'Win32_VideoController' {
                     return @(
                         [PSCustomObject]@{
-                            Name = 'NVIDIA GeForce GTX 1080'
+                            Name       = 'NVIDIA GeForce GTX 1080'
                             AdapterRAM = 8589934592  # 8GB
                         }
                     )
@@ -104,8 +104,8 @@ if ($script:IsDockerEnvironment) {
 
             if ($FeatureName) {
                 return [PSCustomObject]@{
-                    FeatureName = $FeatureName
-                    State = 'Enabled'
+                    FeatureName     = $FeatureName
+                    State           = 'Enabled'
                     RestartRequired = $false
                 }
             }
@@ -130,9 +130,9 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                FeatureName = $FeatureName
+                FeatureName   = $FeatureName
                 RestartNeeded = $false
-                LogPath = '/tmp/mock-feature-log.txt'
+                LogPath       = '/tmp/mock-feature-log.txt'
             }
         }
     }
@@ -147,9 +147,9 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                FeatureName = $FeatureName
+                FeatureName   = $FeatureName
                 RestartNeeded = $false
-                LogPath = '/tmp/mock-feature-log.txt'
+                LogPath       = '/tmp/mock-feature-log.txt'
             }
         }
     }
@@ -165,8 +165,8 @@ if ($script:IsDockerEnvironment) {
 
             if ($Name) {
                 return [PSCustomObject]@{
-                    Name = $Name
-                    State = 'Installed'
+                    Name        = $Name
+                    State       = 'Installed'
                     DisplayName = "Mock Capability: $Name"
                 }
             }
@@ -190,9 +190,9 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                Name = $Name
+                Name          = $Name
                 RestartNeeded = $false
-                LogPath = '/tmp/mock-capability-log.txt'
+                LogPath       = '/tmp/mock-capability-log.txt'
             }
         }
     }
@@ -207,9 +207,9 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                Name = $Name
+                Name          = $Name
                 RestartNeeded = $false
-                LogPath = '/tmp/mock-capability-log.txt'
+                LogPath       = '/tmp/mock-capability-log.txt'
             }
         }
     }
@@ -230,13 +230,13 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                TaskName = $TaskName
-                State = 'Ready'
+                TaskName    = $TaskName
+                State       = 'Ready'
                 LastRunTime = Get-Date
                 NextRunTime = (Get-Date).AddDays(1)
-                Actions = @($Action)
-                Triggers = @($Trigger)
-                Principal = $Principal
+                Actions     = @($Action)
+                Triggers    = @($Trigger)
+                Principal   = $Principal
             }
         }
     }
@@ -262,8 +262,8 @@ if ($script:IsDockerEnvironment) {
 
             if ($TaskName) {
                 return [PSCustomObject]@{
-                    TaskName = $TaskName
-                    State = 'Ready'
+                    TaskName    = $TaskName
+                    State       = 'Ready'
                     LastRunTime = Get-Date
                     NextRunTime = (Get-Date).AddDays(1)
                 }
@@ -279,9 +279,9 @@ if ($script:IsDockerEnvironment) {
     }
 
     # Mock Service functions - use Mock- prefix to avoid overriding built-in cmdlets
-    if (-not (Get-Command Mock-SetService -ErrorAction SilentlyContinue)) {
-        function Mock-SetService {
-            [CmdletBinding()]
+    if (-not (Get-Command Set-MockService -ErrorAction SilentlyContinue)) {
+        function Set-MockService {
+            [CmdletBinding(SupportsShouldProcess)]
             param(
                 [Parameter(Mandatory)]
                 [string]$Name,
@@ -289,51 +289,57 @@ if ($script:IsDockerEnvironment) {
                 [string]$Status
             )
 
-            return $true
+            if ($PSCmdlet.ShouldProcess($Name, "Set service configuration")) {
+                return $true
+            }
         }
 
         # Create alias for backward compatibility
         if (-not (Get-Command Set-Service -ErrorAction SilentlyContinue)) {
-            Set-Alias -Name Set-Service -Value Mock-SetService
+            Set-Alias -Name Set-Service -Value Set-MockService
         }
     }
 
-    if (-not (Get-Command Mock-StartService -ErrorAction SilentlyContinue)) {
-        function Mock-StartService {
-            [CmdletBinding()]
+    if (-not (Get-Command Start-MockService -ErrorAction SilentlyContinue)) {
+        function Start-MockService {
+            [CmdletBinding(SupportsShouldProcess)]
             param(
                 [Parameter(Mandatory)]
                 [string]$Name
             )
 
-            return $true
+            if ($PSCmdlet.ShouldProcess($Name, "Start service")) {
+                return $true
+            }
         }
 
         # Create alias for backward compatibility
         if (-not (Get-Command Start-Service -ErrorAction SilentlyContinue)) {
-            Set-Alias -Name Start-Service -Value Mock-StartService
+            Set-Alias -Name Start-Service -Value Start-MockService
         }
     }
 
-    if (-not (Get-Command Mock-StopService -ErrorAction SilentlyContinue)) {
-        function Mock-StopService {
-            [CmdletBinding()]
+    if (-not (Get-Command Stop-MockService -ErrorAction SilentlyContinue)) {
+        function Stop-MockService {
+            [CmdletBinding(SupportsShouldProcess)]
             param(
                 [Parameter(Mandatory)]
                 [string]$Name
             )
 
-            return $true
+            if ($PSCmdlet.ShouldProcess($Name, "Stop service")) {
+                return $true
+            }
         }
 
         # Create alias for backward compatibility
         if (-not (Get-Command Stop-Service -ErrorAction SilentlyContinue)) {
-            Set-Alias -Name Stop-Service -Value Mock-StopService
+            Set-Alias -Name Stop-Service -Value Stop-MockService
         }
     }
 
-    if (-not (Get-Command Mock-GetService -ErrorAction SilentlyContinue)) {
-        function Mock-GetService {
+    if (-not (Get-Command Get-MockService -ErrorAction SilentlyContinue)) {
+        function Get-MockService {
             [CmdletBinding()]
             param(
                 [string]$Name
@@ -341,9 +347,9 @@ if ($script:IsDockerEnvironment) {
 
             if ($Name) {
                 return [PSCustomObject]@{
-                    Name = $Name
-                    Status = 'Running'
-                    StartType = 'Automatic'
+                    Name        = $Name
+                    Status      = 'Running'
+                    StartType   = 'Automatic'
                     DisplayName = "Mock Service: $Name"
                 }
             }
@@ -358,7 +364,7 @@ if ($script:IsDockerEnvironment) {
 
         # Create alias for backward compatibility
         if (-not (Get-Command Get-Service -ErrorAction SilentlyContinue)) {
-            Set-Alias -Name Get-Service -Value Mock-GetService
+            Set-Alias -Name Get-Service -Value Get-MockService
         }
     }
 
@@ -373,8 +379,8 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                UserId = $UserId ?? 'SYSTEM'
-                RunLevel = $RunLevel ?? 'Limited'
+                UserId    = $UserId ?? 'SYSTEM'
+                RunLevel  = $RunLevel ?? 'Limited'
                 LogonType = $LogonType ?? 'ServiceAccount'
             }
         }
@@ -391,8 +397,8 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                Execute = $Execute
-                Arguments = $Argument
+                Execute          = $Execute
+                Arguments        = $Argument
                 WorkingDirectory = $WorkingDirectory
             }
         }
@@ -410,9 +416,9 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                TriggerType = if ($Daily) { 'Daily' } elseif ($Weekly) { 'Weekly' } elseif ($AtStartup) { 'AtStartup' } elseif ($AtLogOn) { 'AtLogOn' } else { 'Unknown' }
+                TriggerType   = if ($Daily) { 'Daily' } elseif ($Weekly) { 'Weekly' } elseif ($AtStartup) { 'AtStartup' } elseif ($AtLogOn) { 'AtLogOn' } else { 'Unknown' }
                 StartBoundary = $At ?? (Get-Date)
-                Enabled = $true
+                Enabled       = $true
             }
         }
     }
@@ -438,10 +444,10 @@ if ($script:IsDockerEnvironment) {
             )
 
             return @{
-                Success = $true
+                Success           = $true
                 RequiresElevation = $false
-                BackupPath = $BackupPath ?? '/tmp/mock-features-backup.json'
-                Features = @(
+                BackupPath        = $BackupPath ?? '/tmp/mock-features-backup.json'
+                Features          = @(
                     @{ Name = 'MockFeature1'; State = 'Enabled' },
                     @{ Name = 'MockFeature2'; State = 'Disabled' }
                 )
@@ -456,9 +462,9 @@ if ($script:IsDockerEnvironment) {
             param()
 
             return @{
-                Success = $true
+                Success           = $true
                 RequiresElevation = $false
-                Features = @(
+                Features          = @(
                     @{ FeatureName = 'MockFeature1'; State = 'Enabled' },
                     @{ FeatureName = 'MockFeature2'; State = 'Disabled' }
                 )
@@ -472,9 +478,9 @@ if ($script:IsDockerEnvironment) {
             param()
 
             return @{
-                Success = $true
+                Success           = $true
                 RequiresElevation = $false
-                Capabilities = @(
+                Capabilities      = @(
                     @{ Name = 'MockCapability1'; State = 'Installed' },
                     @{ Name = 'MockCapability2'; State = 'NotPresent' }
                 )
@@ -493,10 +499,10 @@ if ($script:IsDockerEnvironment) {
             )
 
             return @{
-                Success = $true
+                Success           = $true
                 RequiresElevation = $false
-                ServiceName = $ServiceName
-                Action = $Action
+                ServiceName       = $ServiceName
+                Action            = $Action
             }
         }
     }
@@ -514,11 +520,11 @@ if ($script:IsDockerEnvironment) {
             )
 
             return @{
-                Success = $true
+                Success           = $true
                 RequiresElevation = $Path -like "HKLM:*"
-                Path = $Path
-                Name = $Name
-                Value = $Value
+                Path              = $Path
+                Name              = $Name
+                Value             = $Value
             }
         }
     }
@@ -535,10 +541,10 @@ if ($script:IsDockerEnvironment) {
             )
 
             return @{
-                Success = $true
+                Success           = $true
                 RequiresElevation = $RequireElevation
-                TaskName = $TaskName
-                Action = $Action
+                TaskName          = $TaskName
+                Action            = $Action
             }
         }
     }
@@ -639,11 +645,11 @@ if ($script:IsDockerEnvironment) {
                 if ($TemplatePath -like "*.yaml" -or $TemplatePath -like "*.yml") {
                     # Simple YAML parsing for test purposes
                     $yamlContent = @{
-                        metadata = @{}
+                        metadata      = @{}
                         prerequisites = @()
-                        files = @()
-                        registry = @()
-                        applications = @()
+                        files         = @()
+                        registry      = @()
+                        applications  = @()
                     }
 
                     # Parse basic YAML structure
