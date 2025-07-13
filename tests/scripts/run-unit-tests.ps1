@@ -37,18 +37,15 @@ param(
 # Set execution policy for current process to allow unsigned scripts
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-# Import the unified test environment (works for both Docker and Windows)
+# Import the unified test environment library
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Information -MessageData "🧪 Running Unit Tests for Windows Melody Recovery" -InformationAction Continue
 
-# Show environment information (auto-detected by Test-Environment.ps1)
-Write-Information -MessageData "" -InformationAction Continue
-
-# Initialize test environment using the unified system
-Write-Warning -Message "🧹 Initializing test environment..."
-$testEnvironment = Initialize-TestEnvironment -Force
-Write-Information -MessageData "✅ Test environment ready" -InformationAction Continue
+# Initialize a dedicated, isolated environment for this unit test run
+Write-Warning -Message "🧹 Initializing isolated unit test environment..."
+$testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 Write-Information -MessageData "" -InformationAction Continue
 
 # Get all available unit tests
@@ -180,7 +177,7 @@ foreach ($test in $testsToRun) {
 # Cleanup
 Write-Warning -Message "🧹 Cleaning up test environment..."
 Remove-TestEnvironment
-Write-Information -MessageData "✅ Cleanup complete" -InformationAction Continue
+Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
 
 # Summary
 Write-Information -MessageData "" -InformationAction Continue

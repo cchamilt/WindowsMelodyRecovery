@@ -320,6 +320,28 @@ function Get-WmrTestEnvironmentInfo {
     }
 }
 
+function Remove-TestEnvironment {
+    [CmdletBinding()]
+    param()
+
+    if ($global:TestEnvironment -and $global:TestEnvironment.TestRoot) {
+        $testRoot = $global:TestEnvironment.TestRoot
+        if (Test-Path $testRoot) {
+            Write-Verbose "🧹 Removing isolated test environment at: $testRoot"
+            try {
+                Remove-Item -Path $testRoot -Recurse -Force -ErrorAction Stop
+                Write-Verbose "✅ Test environment cleanup successful."
+            }
+            catch {
+                Write-Warning "⚠️ Failed to remove test environment directory: $testRoot. Error: $($_.Exception.Message)"
+            }
+        }
+    }
+    else {
+        Write-Verbose "No active test environment to clean up."
+    }
+}
+
 # Functions are available via dot-sourcing - no Export-ModuleMember needed
 
 

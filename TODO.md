@@ -18,6 +18,13 @@ Squash more PSScriptAnalyzer warnings in CI pipeline.
 
 Add a curses based TUI for initialization and configuring.  Allow selection of what templates/Windows components/features (and their options) are backed up regularly or recovered (and recovery exists).  Have its layout and association parallel Windows setup/features lists.  Allow it to update/search for recovery directories and pick from shared/specific system configuration.  Show status and timing of tasks like backup and regular package updating.  Have it also check for updates for itself at startup and reload its module on installation.  Make a systray badge optional to launch the TUI.
 
+- Add tabs or sub-menus for initialization (e.g., a wizard to set backup roots and cloud providers).
+- Integrate status views (e.g., last backup time from logs).
+- Add update checking (e.g., query GitHub for module updates).
+- Implement an optional systray icon (using System.Windows.Forms.NotifyIcon for Windows-specific launching).
+- Handle restore/setup categories similarly in the tree (currently focused on backup for simplicity).
+- Test and refine UX (e.g., better error handling if config loading fails).
+
 ## Features
 
 - Support for shared configurations and override logic for host vs default shared

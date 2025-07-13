@@ -27,7 +27,14 @@
     # Format files
     FormatsToProcess   = @()
 
-    # Functions to export
+    # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
+    NestedModules      = @(
+        'Private/Core/WindowsMelodyRecovery.Core.ps1',
+        'Private/Core/WindowsMelodyRecovery.Template.psm1',
+        'TUI/WindowsMelodyRecovery.TUI.psd1'
+    )
+
+    # Functions to export from this module
     FunctionsToExport  = @(
         # Core functions
         'Get-WindowsMelodyRecovery',
@@ -91,7 +98,8 @@
 
         # Template functions
         'Read-WmrTemplateConfig',
-        'Test-WmrTemplateSchema'
+        'Test-WmrTemplateSchema',
+        'Show-WmrTui'
     )
 
     # Cmdlets to export

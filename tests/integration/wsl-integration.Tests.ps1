@@ -1,15 +1,12 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    WSL Integration Tests
+    WSL Integration Tests (Docker Mock)
 
 .DESCRIPTION
-    Integration tests for WSL functionality including:
-    - Docker container communication
-    - Real WSL environment testing (if available)
-    - Package manager operations
-    - Chezmoi integration
-    - Network and external dependency testing
+    Integration tests for WSL functionality using a mocked Docker container.
+    These tests are cross-platform and do not require a real WSL installation.
+    They validate the module's logic for communicating with a WSL-like environment.
 #>
 
 BeforeAll {
@@ -40,18 +37,6 @@ BeforeAll {
     $env:WMR_TEST_MODE = "true"
     $env:WMR_BACKUP_ROOT = $script:TestBackupRoot
 
-    # Check if WSL is available
-    $script:WSLAvailable = $false
-    try {
-        $wslVersion = wsl --version
-        if ($wslVersion) {
-            $script:WSLAvailable = $true
-        }
-    }
-    catch {
-        Write-Warning "WSL not available for testing"
-    }
-
     # Test WSL container connectivity
     Write-Information -MessageData "Testing WSL container connectivity..." -InformationAction Continue
     $script:WSLConnectivity = Test-WSLDockerConnectivity -ContainerName $script:ContainerName
@@ -63,40 +48,7 @@ BeforeAll {
     }
 }
 
-Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
-
-    Context "WSL Environment Detection" {
-        It "Should detect WSL installation" {
-            if ($script:WSLAvailable) {
-                { wsl --version } | Should -Not -Throw
-                wsl --version | Should -Not -BeNullOrEmpty
-            }
-            else {
-                Set-ItResult -Skipped -Because "WSL not available"
-            }
-        }
-
-        It "Should list WSL distributions" {
-            if ($script:WSLAvailable) {
-                $distros = wsl --list --quiet
-                $distros | Should -Not -BeNullOrEmpty
-                $distros | Should -Contain $script:WSLDistro
-            }
-            else {
-                Set-ItResult -Skipped -Because "WSL not available"
-            }
-        }
-
-        It "Should connect to WSL distribution" {
-            if ($script:WSLAvailable) {
-                $result = wsl -d $script:WSLDistro -- echo "test"
-                $result | Should -Be "test"
-            }
-            else {
-                Set-ItResult -Skipped -Because "WSL not available"
-            }
-        }
-    }
+Describe "WSL Integration Tests (Docker Mock)" -Tag "Integration", "WSL" {
 
     Context "WSL Container Communication" {
         It "Should have working WSL Docker container communication" {
@@ -233,53 +185,52 @@ Describe "WSL Integration Tests" -Tag "Integration", "WSL" {
             }
         }
 
-        It "Should backup APT packages" -Skip:(-not $script:WSLAvailable) {
-            if ($script:WSLAvailable) {
-                # Test APT package backup
-                $result = wsl -d $script:WSLDistro -u testuser -- bash -c "dpkg --get-selections > /tmp/apt-packages.txt && cat /tmp/apt-packages.txt"
-
-                $result | Should -Not -BeNullOrEmpty
-                $result | Should -Match "install"
+        It "Should backup APT packages" {
+            if ($script:WSLConnectivity) {
+                # Test APT package backup via Docker mock
+                $result = Get-WSLDockerPackages -PackageManager "apt" -ContainerName $script:ContainerName
+                $result.Success | Should -Be $true
+                $result.Packages | Should -Not -BeNullOrEmpty
+                $result.Packages | Should -Contain "install"
             }
             else {
-                Set-ItResult -Skipped -Because "WSL not available"
+                Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
 
-        It "Should backup NPM packages" -Skip:(-not $script:WSLAvailable) {
-            if ($script:WSLAvailable) {
-                # Test NPM package backup
-                $result = wsl -d $script:WSLDistro -u testuser -- bash -c "npm list -g --depth=0 --json 2>/dev/null || echo '{}'"
-
-                $result | Should -Not -BeNullOrEmpty
-                { $result | ConvertFrom-Json } | Should -Not -Throw
+        It "Should backup NPM packages" {
+            if ($script:WSLConnectivity) {
+                # Test NPM package backup via Docker mock
+                $result = Get-WSLDockerPackages -PackageManager "npm" -ContainerName $script:ContainerName
+                $result.Success | Should -Be $true
+                $result.Packages | Should -Not -BeNullOrEmpty
             }
             else {
-                Set-ItResult -Skipped -Because "WSL not available"
+                Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
 
-        It "Should backup PIP packages" -Skip:(-not $script:WSLAvailable) {
-            if ($script:WSLAvailable) {
+        It "Should backup PIP packages" {
+            if ($script:WSLConnectivity) {
                 # Test PIP package backup
-                $result = wsl -d $script:WSLDistro -u testuser -- bash -c "pip3 list --format=freeze 2>/dev/null || echo '# No packages'"
+                $result = Invoke-WSLDockerCommand -Command "pip3 list --format=freeze 2>/dev/null || echo '# No packages'" -ContainerName $script:ContainerName
 
                 $result | Should -Not -BeNullOrEmpty
             }
             else {
-                Set-ItResult -Skipped -Because "WSL not available"
+                Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
 
-        It "Should handle package installation" -Skip:(-not $script:WSLAvailable) {
-            if ($script:WSLAvailable) {
+        It "Should handle package installation" {
+            if ($script:WSLConnectivity) {
                 # Test installing a simple package
-                $result = wsl -d $script:WSLDistro -u testuser -- bash -c "sudo apt update && sudo apt install -y tree && tree --version"
+                $result = Invoke-WSLDockerCommand -Command "sudo apt update && sudo apt install -y tree && tree --version" -ContainerName $script:ContainerName
 
                 $result | Should -Match "tree"
             }
             else {
-                Set-ItResult -Skipped -Because "WSL not available"
+                Set-ItResult -Skipped -Because "WSL Docker container not available"
             }
         }
 

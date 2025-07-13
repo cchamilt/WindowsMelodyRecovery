@@ -51,69 +51,45 @@ if ($IsWindows) {
     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 }
 
-# Import the unified test environment utilities
+# Import the unified test environment library
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 Write-Information -MessageData "📁 Running File Operation Tests for Windows Melody Recovery" -InformationAction Continue
 
-# Environment Detection and Safety Assessment
-$script:IsDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
-$script:IsCICDEnvironment = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
-$script:IsWindowsLocal = $IsWindows -and -not $script:IsCICDEnvironment -and -not $script:IsDockerEnvironment
+# Initialize a dedicated, isolated environment for this file operations test run
+Write-Warning -Message "🧹 Initializing isolated file operations test environment..."
+$testEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
+Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
+Write-Information -MessageData "" -InformationAction Continue
 
-# Show environment information
-Write-Warning -Message "🔍 Environment Detection:"
-Write-Verbose -Message "  • Platform: $($IsWindows ? 'Windows' : 'Non-Windows')"
-Write-Verbose -Message "  • Docker: $($script:IsDockerEnvironment ? 'Yes' : 'No')"
-Write-Verbose -Message "  • CI/CD: $($script:IsCICDEnvironment ? 'Yes' : 'No')"
-Write-Verbose -Message "  • Local Windows: $($script:IsWindowsLocal ? 'Yes' : 'No')"
-
-# Determine test execution mode
-if ($script:IsDockerEnvironment) {
+# Environment Detection and Safety Assessment for this specific suite
+$envType = Get-EnvironmentType
+$allowDestructiveTests = $false
+if ($envType.IsDocker) {
     Write-Information -MessageData "🐳 Mode: Docker Cross-Platform (safe operations with mocking)" -InformationAction Continue
-    $script:AllowDestructiveTests = $false
 }
- elseif ($script:IsCICDEnvironment -and $IsWindows) {
+elseif ($envType.IsCI -and $envType.IsWindows) {
     Write-Information -MessageData "🏭 Mode: CI/CD Windows (all operations including destructive)" -InformationAction Continue
-    $script:AllowDestructiveTests = $true
+    $allowDestructiveTests = $true
 }
- elseif ($script:IsWindowsLocal) {
+elseif ($envType.IsWindows) {
     if ($Force) {
         Write-Error -Message "⚠️  Mode: Local Windows FORCED (destructive tests enabled - USE WITH CAUTION!)"
-        Write-Error -Message "   This may modify your system registry and files!"
-        $script:AllowDestructiveTests = $true
+        $allowDestructiveTests = $true
     }
- else {
+    else {
         Write-Warning -Message "🏠 Mode: Local Windows Safe (destructive tests will be skipped)"
-        $script:AllowDestructiveTests = $false
     }
 }
- else {
+else {
     Write-Warning -Message "🌐 Mode: Non-Windows (Windows-only tests will be skipped)"
-    $script:AllowDestructiveTests = $false
 }
 
 # Set environment variables for tests to use
-$env:WMR_ALLOW_DESTRUCTIVE_TESTS = $script:AllowDestructiveTests.ToString()
-$env:WMR_IS_CICD = $script:IsCICDEnvironment.ToString()
-$env:WMR_IS_DOCKER = $script:IsDockerEnvironment.ToString()
+$env:WMR_ALLOW_DESTRUCTIVE_TESTS = $allowDestructiveTests.ToString()
+$env:WMR_IS_CICD = $envType.IsCI.ToString()
+$env:WMR_IS_DOCKER = $envType.IsDocker.ToString()
 
-Write-Information -MessageData "" -InformationAction Continue
-
-# Initialize test environment using the unified system
-Write-Warning -Message "🧹 Initializing test environment..."
-$testEnvironment = Initialize-TestEnvironment
-
-# Ensure TestState directory exists for registry and other state tests
-if (-not $testEnvironment.TestState) {
-    $testEnvironment.TestState = Join-Path $testEnvironment.Temp "TestState"
-}
-if (-not (Test-Path $testEnvironment.TestState)) {
-    New-Item -Path $testEnvironment.TestState -ItemType Directory -Force | Out-Null
-    Write-Information -MessageData "  ✓ Created TestState directory: $($testEnvironment.TestState)" -InformationAction Continue
-}
-
-Write-Information -MessageData "✅ Test environment ready" -InformationAction Continue
 Write-Information -MessageData "" -InformationAction Continue
 
 # Get all available file operation tests
@@ -145,7 +121,7 @@ $testsToRun = if ($TestName) {
 # Enhanced Safety check - ensure we're only operating in safe directories
 Write-Warning -Message "🔒 Enhanced Safety Check - Verifying test directories..."
 $safeDirs = @($testEnvironment.TestRestore, $testEnvironment.TestBackup, $testEnvironment.Temp, $testEnvironment.TestState)
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$moduleRoot = Find-ModuleRoot
 
 Write-Verbose -Message "Debug: Checking directories:"
 foreach ($dir in $safeDirs) {
@@ -154,16 +130,16 @@ foreach ($dir in $safeDirs) {
 
 foreach ($dir in $safeDirs) {
     # ENHANCED SAFETY CHECK: Identify safe path types first
-    $isProjectPath = $dir.StartsWith($projectRoot)
-    $isUserTempPath = $script:IsCICDEnvironment -and (
+    $isProjectPath = $dir.StartsWith($moduleRoot)
+    $isUserTempPath = $envType.IsCI -and (
         ($IsWindows -and $dir.Contains($env:TEMP) -and $dir.Contains("WindowsMelodyRecovery-Tests")) -or
         (-not $IsWindows -and $dir.StartsWith('/tmp/') -and $dir.Contains("WindowsMelodyRecovery-Tests"))
     )
     # Docker-specific safety check for workspace paths
-    $isDockerWorkspacePath = $script:IsDockerEnvironment -and $dir.StartsWith('/workspace/') -and $dir.Contains("Temp")
+    $isDockerWorkspacePath = $envType.IsDocker -and $dir.StartsWith('/workspace/') -and $dir.Contains("Temp")
 
     # ADDITIONAL CI/CD SAFETY: Allow runner temp directories (GitHub Actions)
-    $isRunnerTempPath = $script:IsCICDEnvironment -and $IsWindows -and (
+    $isRunnerTempPath = $envType.IsCI -and $IsWindows -and (
         $dir.StartsWith("C:\Users\RUNNER~1\AppData\Local\Temp\WindowsMelodyRecovery-Tests") -or
         $dir.StartsWith("C:\Users\runner\AppData\Local\Temp\WindowsMelodyRecovery-Tests")
     )
@@ -184,7 +160,7 @@ foreach ($dir in $safeDirs) {
         if ($isDangerousPath) {
             Write-Error "🚨 SAFETY VIOLATION: Directory '$dir' attempts to write to dangerous C:\ location!"
             Write-Error "🚨 This is NEVER allowed and indicates a serious path resolution bug!"
-            Write-Error "🚨 Project root: '$projectRoot'"
+            Write-Error "🚨 Project root: '$moduleRoot'"
             Write-Error "🚨 All test operations must be within project temp directories or user temp in CI/CD!"
             return
         }
@@ -193,11 +169,11 @@ foreach ($dir in $safeDirs) {
     # Final safety check: ensure path is identified as safe
     if (-not $isSafePath) {
         Write-Error "SAFETY VIOLATION: Directory '$dir' is not within safe test paths!"
-        Write-Error "  • Project root: '$projectRoot'"
-        Write-Error "  • User temp (CI/CD only): $($script:IsCICDEnvironment)"
-        Write-Error "  • Docker workspace: $($script:IsDockerEnvironment)"
+        Write-Error "  • Project root: '$moduleRoot'"
+        Write-Error "  • User temp (CI/CD only): $($envType.IsCI)"
+        Write-Error "  • Docker workspace: $($envType.IsDocker)"
         Write-Error "  • Runner temp path: $isRunnerTempPath"
-        Write-Error "  • Is CI/CD: $($script:IsCICDEnvironment)"
+        Write-Error "  • Is CI/CD: $($envType.IsCI)"
         Write-Error "  • TEMP env var: $($env:TEMP)"
         return
     }
@@ -210,7 +186,7 @@ foreach ($dir in $safeDirs) {
 }
 
 # Additional safety for local Windows without CI/CD
-if ($script:IsWindowsLocal -and -not $Force) {
+if ($envType.IsWindows -and -not $Force) {
     Write-Warning -Message "🛡️  Local Windows Safety: Destructive tests will be automatically skipped"
     Write-Warning -Message "   (Use -Force to override, but this may modify your system!)"
 }
@@ -238,7 +214,7 @@ foreach ($test in $testsToRun) {
         $startTime = Get-Date
 
         # Configure Pester for better output with optional reporting
-        $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $moduleRoot = Find-ModuleRoot
 
         $pesterConfig = @{
             Run = @{
@@ -252,7 +228,7 @@ foreach ($test in $testsToRun) {
 
         # Add test results and coverage only if GenerateReport is specified
         if ($GenerateReport) {
-            $testResultsDir = Join-Path $projectRoot "test-results"
+            $testResultsDir = Join-Path $moduleRoot "test-results"
             $coverageDir = Join-Path $testResultsDir "coverage"
 
             # Ensure test result directories exist
@@ -271,9 +247,9 @@ foreach ($test in $testsToRun) {
             $pesterConfig.CodeCoverage = @{
                 Enabled = $true
                 Path = @(
-                    (Join-Path $projectRoot "Public/*.ps1"),
-                    (Join-Path $projectRoot "Private/**/*.ps1"),
-                    (Join-Path $projectRoot "WindowsMelodyRecovery.psm1")
+                    (Join-Path $moduleRoot "Public/*.ps1"),
+                    (Join-Path $moduleRoot "Private/**/*.ps1"),
+                    (Join-Path $moduleRoot "WindowsMelodyRecovery.psm1")
                 )
                 OutputPath = Join-Path $coverageDir "file-operations-coverage.xml"
                 OutputFormat = 'JaCoCo'
@@ -318,18 +294,14 @@ foreach ($test in $testsToRun) {
     Write-Information -MessageData "" -InformationAction Continue
 }
 
-# Cleanup unless skipped
+# Cleanup
 if (-not $SkipCleanup) {
-    Write-Warning -Message "🧹 Cleaning up test directories..."
+    Write-Warning -Message "🧹 Cleaning up test environment..."
     Remove-TestEnvironment
-    Write-Information -MessageData "✅ Cleanup complete" -InformationAction Continue
+    Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
 }
- else {
-    Write-Warning -Message "⚠️  Skipping cleanup - test files remain in:"
-    Write-Verbose -Message "  • $($testEnvironment.TestRestore)"
-    Write-Verbose -Message "  • $($testEnvironment.TestBackup)"
-    Write-Verbose -Message "  • $($testEnvironment.Temp)"
-    Write-Verbose -Message "  • $($testEnvironment.TestState)"
+else {
+    Write-Warning -Message "⚠️ Cleanup skipped due to -SkipCleanup flag."
 }
 
 # Enhanced Summary
@@ -339,8 +311,8 @@ Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAc
 Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue
 Write-Warning -Message "  • Total Skipped: $totalSkipped"
 Write-Verbose -Message "  • Total Time: $([math]::Round($totalTime, 2))s"
-Write-Verbose -Message "  • Environment: $($script:IsDockerEnvironment ? 'Docker' : $script:IsCICDEnvironment ? 'CI/CD' : 'Local')"
-Write-Verbose -Message "  • Destructive Tests: $($script:AllowDestructiveTests ? 'Enabled' : 'Disabled')"
+Write-Verbose -Message "  • Environment: $($envType.IsDocker ? 'Docker' : $envType.IsCI ? 'CI/CD' : 'Local')"
+Write-Verbose -Message "  • Destructive Tests: $($allowDestructiveTests ? 'Enabled' : 'Disabled')"
 
 if ($totalFailed -eq 0) {
     Write-Information -MessageData "" -InformationAction Continue

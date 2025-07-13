@@ -36,7 +36,6 @@ param(
     [string]$TestName,
     [ValidateSet('None', 'Normal', 'Detailed', 'Diagnostic')]
     [string]$OutputFormat = 'Detailed',
-    [switch]$UseDocker,
     [switch]$SkipCleanup,
     [switch]$GenerateReport
 )
@@ -44,146 +43,103 @@ param(
 # Set execution policy for current process
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
-# Determine environment
-$isDockerAvailable = $UseDocker -or (Get-Command docker -ErrorAction SilentlyContinue)
-$runInDocker = $UseDocker -or ($isDockerAvailable -and -not $IsWindows)
+# Import the unified test environment library
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-if ($runInDocker) {
-    Write-Information -MessageData "🐳 Running integration tests in Docker environment..." -InformationAction Continue
-    Write-Warning -Message "   Windows-only tests will be skipped automatically"
+Write-Information -MessageData "⚙️ Running Integration Tests for Windows Melody Recovery" -InformationAction Continue
 
-    # Use Docker-based execution
-    $dockerUtilsPath = Join-Path $PSScriptRoot ".." "utilities" "Docker-Management.ps1"
-    if (Test-Path $dockerUtilsPath) {
-        . $dockerUtilsPath
+# Initialize a dedicated, isolated environment for this integration test run
+Write-Warning -Message "🧹 Initializing isolated integration test environment..."
+$testEnvironment = Initialize-TestEnvironment -SuiteName 'Integration'
+Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
+Write-Information -MessageData "" -InformationAction Continue
 
-        # Initialize Docker environment
-        $startResult = Initialize-DockerEnvironment
-        if (-not $startResult) {
-            Write-Error -Message "✗ Failed to initialize Docker environment"
-            exit 1
-        }
+# Get all available integration tests
+$integrationTestsPath = Join-Path $PSScriptRoot "..\integration"
+$availableTests = Get-ChildItem -Path $integrationTestsPath -Filter "*.Tests.ps1" | ForEach-Object {
+    $_.BaseName -replace '\.Tests$', ''
+}
 
-        # Build test command
-        $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && Import-Module ./WindowsMelodyRecovery.psd1 -Force && "
-        if ($TestName) {
-            $testCommand += "Invoke-Pester -Path './tests/integration/$TestName.Tests.ps1' -Passthru"
-        }
-        else {
-            $testCommand += "Invoke-Pester -Path './tests/integration/' -Passthru"
-        }
-        # Note: OutputFormat is deprecated in Pester v5, using -Passthru for result object
-
-        # Execute tests in Docker
-        Write-Information -MessageData "Executing integration tests..." -InformationAction Continue
-        $result = docker exec wmr-test-runner pwsh -Command $testCommand
-        $exitCode = $LASTEXITCODE
-
-        # Display the result properly
-        Write-Host $result
-
-        # Parse test results if available
-        if ($result -match "Tests Passed: (\d+), Failed: (\d+)") {
-            $passedCount = $matches[1]
-            $failedCount = $matches[2]
-            Write-Information -MessageData "`n=== Docker Integration Test Results ===" -InformationAction Continue
-            Write-Information -MessageData "Tests Passed: $passedCount" -InformationAction Continue
-            Write-Information -MessageData "Tests Failed: $failedCount" -InformationAction Continue
-            $exitCode = [int]$failedCount -gt 0 ? 1 : 0
-        }
-
-        if (-not $SkipCleanup) {
-            Stop-TestContainer
-        }
-
-        exit $exitCode
+# Determine which tests to run
+$testsToRun = if ($TestName) {
+    if ($TestName -in $availableTests) {
+        @($TestName)
     }
     else {
-        Write-Error -Message "✗ Docker management utilities not found"
-        exit 1
+        Write-Warning "Test '$TestName' not found. Available tests: $($availableTests -join ', ')"
+        return
     }
 }
 else {
-    Write-Information -MessageData "🪟 Running integration tests in native Windows environment..." -InformationAction Continue
-    Write-Warning -Message "   All tests including Windows-only will be executed"
+    $availableTests
+}
 
-    # Use native Windows execution
+# Run the tests
+$totalPassed = 0
+$totalFailed = 0
+$totalSkipped = 0
+
+foreach ($test in $testsToRun) {
+    $testFile = Join-Path $integrationTestsPath "$test.Tests.ps1"
+
+    if (-not (Test-Path $testFile)) {
+        Write-Warning "Test file not found: $testFile"
+        continue
+    }
+
+    Write-Information -MessageData "🔍 Running $test integration tests..." -InformationAction Continue
+
     try {
-        # Import test environment
-        $testEnvPath = Join-Path $PSScriptRoot ".." "utilities" "Test-Environment.ps1"
-        if (Test-Path $testEnvPath) {
-            . $testEnvPath
-        }
-        else {
-            Write-Error -Message "✗ Test environment not found at: $testEnvPath"
-            exit 1
-        }
-
-        # Initialize test environment
-        Initialize-TestEnvironment
-
-        # Import the module
-        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
-        Import-Module $modulePath -Force
-
-        # Run tests
-        Write-Information -MessageData "Executing integration tests..." -InformationAction Continue
-
         $pesterConfig = @{
-            Run    = @{
-                Path = if ($TestName) {
-                    Join-Path $PSScriptRoot ".." "integration" "$TestName.Tests.ps1"
-                }
-                else {
-                    Join-Path $PSScriptRoot ".." "integration"
-                }
-            }
-            Output = @{
-                Verbosity = $OutputFormat
-            }
+            Run    = @{ Path = $testFile }
+            Output = @{ Verbosity = $OutputFormat }
         }
 
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
                 Enabled    = $true
-                OutputPath = Join-Path $moduleRoot "test-results" "integration-test-results.xml"
+                OutputPath = Join-Path $testEnvironment.Logs "integration-test-results.xml"
             }
         }
 
-        $result = Invoke-Pester -Configuration $pesterConfig
+        $result = Invoke-Pester -Configuration $pesterConfig -PassThru
 
-        # Cleanup
-        if (-not $SkipCleanup) {
-            Remove-TestEnvironment
-        }
+        $totalPassed += $result.PassedCount
+        $totalFailed += $result.FailedCount
+        $totalSkipped += $result.SkippedCount
 
-        # Report results
-        Write-Information -MessageData ""  -InformationAction Continue
-        Write-Information -MessageData "=== Integration Test Results ===" -InformationAction Continue
-        Write-Information -MessageData "Tests Passed: $($result.PassedCount)" -InformationAction Continue
-        Write-Error -Message "Tests Failed: $($result.FailedCount)"
-        Write-Warning -Message "Tests Skipped: $($result.SkippedCount)"
-        Write-Information -MessageData "Total Tests: $($result.TotalCount)"  -InformationAction Continue
-
-        if ($result.FailedCount -gt 0) {
-            Write-Error -Message "✗ Some integration tests failed"
-            exit 1
+        if ($result.FailedCount -eq 0) {
+            Write-Information -MessageData "✅ $test tests passed." -InformationAction Continue
         }
         else {
-            Write-Information -MessageData "✓ All integration tests passed!" -InformationAction Continue
-            exit 0
+            Write-Error -Message "❌ $test tests failed."
         }
-
     }
     catch {
-        Write-Error -Message "✗ Error running integration tests: $($_.Exception.Message)"
-        exit 1
+        Write-Error -Message "💥 $test tests crashed: $_"
+        $totalFailed++
     }
 }
 
-# Model: claude-3-5-sonnet-20241022
-# Confidence: 85%
+# Cleanup
+if (-not $SkipCleanup) {
+    Write-Warning -Message "🧹 Cleaning up test environment..."
+    Remove-TestEnvironment
+    Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
+}
+
+# Summary
+Write-Information -MessageData "📊 Integration Test Summary:" -InformationAction Continue
+Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAction Continue
+Write-Information -MessageData "  • Total Failed: $totalFailed" -InformationAction Continue
+Write-Warning -Message "  • Total Skipped: $totalSkipped"
+
+if ($totalFailed -gt 0) {
+    exit 1
+}
+else {
+    exit 0
+}
 
 
 

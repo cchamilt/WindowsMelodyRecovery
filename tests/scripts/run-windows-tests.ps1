@@ -84,23 +84,18 @@ if (-not $isCICD -and -not $Force) {
 # Determine if admin is needed for this category
 $needsAdmin = $RequireAdmin -or $Category -in @('integration', 'end-to-end')
 
+# Import test environment library
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+
 Write-Information -MessageData "🪟 Windows-Only Test Runner" -InformationAction Continue
-Write-Information -MessageData "Category: $Category"  -InformationAction Continue
+Write-Information -MessageData "Category: $Category" -InformationAction Continue
 Write-Verbose -Message "Environment: $(if ($isCICD) { 'CI/CD' } else { 'Development' })"
 
 try {
-    # Import test environment
-    $testEnvPath = Join-Path $PSScriptRoot ".." "utilities" "Test-Environment.ps1"
-    if (Test-Path $testEnvPath) {
-        . $testEnvPath
-    }
-    else {
-        Write-Error -Message "✗ Test environment not found at: $testEnvPath"
-        exit 1
-    }
-
-    # Initialize test environment
-    Initialize-TestEnvironment
+    # Initialize a dedicated, isolated environment for this Windows test run
+    Write-Warning -Message "🧹 Initializing isolated Windows test environment..."
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Windows'
+    Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 
     # Import the module
     $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -181,14 +176,9 @@ try {
     }
 
     if ($GenerateReport) {
-        $resultsDir = Join-Path $moduleRoot "test-results"
-        if (-not (Test-Path $resultsDir)) {
-            New-Item -Path $resultsDir -ItemType Directory -Force | Out-Null
-        }
-
         $pesterConfig.TestResult = @{
-            Enabled = $true
-            OutputPath = Join-Path $resultsDir "windows-only-test-results.xml"
+            Enabled    = $true
+            OutputPath = Join-Path $testEnvironment.Logs "windows-only-test-results.xml"
         }
     }
 
@@ -196,11 +186,13 @@ try {
 
     # Cleanup
     if (-not $SkipCleanup) {
+        Write-Warning -Message "🧹 Cleaning up test environment..."
         Remove-TestEnvironment
+        Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
     }
 
     # Report results
-    Write-Information -MessageData ""  -InformationAction Continue
+    Write-Information -MessageData "" -InformationAction Continue
     Write-Information -MessageData "=== Windows-Only Test Results ===" -InformationAction Continue
     Write-Information -MessageData "Tests Passed: $($result.PassedCount)" -InformationAction Continue
     Write-Error -Message "Tests Failed: $($result.FailedCount)"

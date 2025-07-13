@@ -1,117 +1,97 @@
 name: Docker Cross-Platform Tests
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main]
 
 jobs:
-  docker-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-category: [unit, file-operations, integration, end-to-end]
+    unit-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+            - name: Run Unit Tests
+              run: |
+                  docker compose -f docker-compose.test.yml build && docker compose -f docker-compose.test.yml up -d
+                  docker exec wmr-test-runner pwsh -Command "./tests/scripts/run-unit-tests.ps1 -GenerateReport"
+            - name: Publish Test Results
+              uses: dorny/test-reporter@v1
+              if: always()
+              with:
+                  name: Unit Tests (Docker)
+                  path: "test-results/unit-test-results.xml"
+                  reporter: java-junit
 
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+    file-operation-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+            - name: Run File Operation Tests
+              run: |
+                  docker compose -f docker-compose.test.yml build && docker compose -f docker-compose.test.yml up -d
+                  docker exec wmr-test-runner pwsh -Command "./tests/scripts/run-file-operation-tests.ps1 -GenerateReport"
+            - name: Publish Test Results
+              uses: dorny/test-reporter@v1
+              if: always()
+              with:
+                  name: File Operation Tests (Docker)
+                  path: "test-results/file-operations-test-results.xml"
+                  reporter: java-junit
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+    integration-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+            - name: Run Integration Tests
+              run: |
+                  docker compose -f docker-compose.test.yml build && docker compose -f docker-compose.test.yml up -d
+                  docker exec wmr-test-runner pwsh -Command "./tests/scripts/run-integration-tests.ps1 -GenerateReport"
+            - name: Publish Test Results
+              uses: dorny/test-reporter@v1
+              if: always()
+              with:
+                  name: Integration Tests (Docker)
+                  path: "test-results/integration-test-results.xml"
+                  reporter: java-junit
 
-    - name: Build Test Environment
-      run: docker compose -f docker-compose.test.yml build
+    end-to-end-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+            - name: Run End-to-End Tests
+              run: |
+                  docker compose -f docker-compose.test.yml build && docker compose -f docker-compose.test.yml up -d
+                  docker exec wmr-test-runner pwsh -Command "./tests/scripts/run-end-to-end-tests.ps1 -GenerateReport"
+            - name: Publish Test Results
+              uses: dorny/test-reporter@v1
+              if: always()
+              with:
+                  name: End-to-End Tests (Docker)
+                  path: "test-results/e2e-test-results.xml"
+                  reporter: java-junit
 
-    - name: Start Test Environment
-      run: docker compose -f docker-compose.test.yml up -d
-
-    - name: Wait for Container Ready
-      run: |
-        echo "Waiting for test container to be ready..."
-        timeout 60 bash -c 'until docker exec wmr-test-runner pwsh -Command "Write-Host \"Container ready\""; do sleep 2; done'
-
-    - name: Run ${{ matrix.test-category }} Tests
-      run: |
-        echo "Running ${{ matrix.test-category }} tests in Docker environment..."
-        docker exec wmr-test-runner pwsh -Command "
-          cd /workspace
-          Write-Host \"Environment: Docker (non-Windows)\"
-          Write-Host \"Test Category: ${{ matrix.test-category }}\"
-          Write-Host \"Windows-only tests will be automatically skipped\"
-          Write-Host \"\"
-          ./tests/scripts/run-${{ matrix.test-category }}-tests.ps1 -OutputFormat Normal -GenerateReport
-        "
-
-    - name: Copy Test Results
-      if: always()
-      run: |
-        echo "Copying test results from container..."
-        docker cp wmr-test-runner:/workspace/test-results ./test-results || echo "No test results to copy"
-
-    - name: Publish Test Results
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Docker ${{ matrix.test-category }} Tests
-        path: 'test-results/*-test-results.xml'
-        reporter: java-junit
-        fail-on-error: true
-
-    - name: Upload Test Artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: docker-${{ matrix.test-category }}-test-results
-        path: |
-          test-results/
-          !test-results/*.tmp
-
-    - name: Upload Coverage Reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: docker-${{ matrix.test-category }}-coverage
-        path: |
-          test-results/coverage/
-        retention-days: 30
-
-    - name: Cleanup Docker Environment
-      if: always()
-      run: |
-        docker compose -f docker-compose.test.yml down -v
-        docker system prune -f
-
-  docker-summary:
-    runs-on: ubuntu-latest
-    needs: docker-tests
-    if: always()
-
-    steps:
-    - name: Download All Artifacts
-      uses: actions/download-artifact@v4
-
-    - name: Generate Test Summary
-      run: |
-        echo "# Docker Cross-Platform Test Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Test Category | Status | Details |" >> $GITHUB_STEP_SUMMARY
-        echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
-
-        for category in unit file-operations integration end-to-end; do
-          if [ -d "docker-$category-test-results" ]; then
-            echo "| $category | ✅ Completed | Results available |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| $category | ❌ Failed | No results |" >> $GITHUB_STEP_SUMMARY
-          fi
-        done
-
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment**: Docker (Ubuntu)" >> $GITHUB_STEP_SUMMARY
-        echo "**Windows-only tests**: Automatically skipped" >> $GITHUB_STEP_SUMMARY
-        echo "**Cross-platform compatibility**: Verified" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
-        echo "Coverage reports are available in the artifacts for each test category:" >> $GITHUB_STEP_SUMMARY
-        echo "- All test categories generate JaCoCo XML coverage reports" >> $GITHUB_STEP_SUMMARY
-        echo "- Coverage target: 80%" >> $GITHUB_STEP_SUMMARY
+    docker-summary:
+        runs-on: ubuntu-latest
+        needs:
+            [
+                unit-tests,
+                file-operation-tests,
+                integration-tests,
+                end-to-end-tests,
+            ]
+        if: always()
+        steps:
+            - name: Generate Test Summary
+              run: |
+                  echo "# Docker Cross-Platform Test Summary" >> $GITHUB_STEP_SUMMARY
+                  echo "| Test Category | Status |" >> $GITHUB_STEP_SUMMARY
+                  echo "|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+                  echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| File Operation Tests | ${{ needs.file-operation-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| End-to-End Tests | ${{ needs.end-to-end-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
