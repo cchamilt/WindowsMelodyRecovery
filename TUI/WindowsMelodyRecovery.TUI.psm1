@@ -282,14 +282,67 @@ function Show-WmrTui {
         $retentionField = New-Object Terminal.Gui.TextField -ArgumentList 20,13,10,($script:Config.BackupSettings.RetentionDays.ToString())
         $initFrame.Add($retentionLabel, $retentionField)
 
+        # Logging Level
+        $logLabel = New-Object Terminal.Gui.Label -ArgumentList 35,13,'Logging Level:'
+        $logCombo = New-Object Terminal.Gui.ComboBox -ArgumentList 50,13,15,@('Error', 'Warning', 'Information', 'Verbose', 'Debug')
+        $logCombo.SelectedItem = $script:Config.LoggingSettings.Level ?? 'Information'
+        $initFrame.Add($logLabel, $logCombo)
+
+        # Backup Schedule
+        $scheduleLabel = New-Object Terminal.Gui.Label -ArgumentList 1,15,'Backup Schedule:'
+        $scheduleCombo = New-Object Terminal.Gui.ComboBox -ArgumentList 20,15,20,@('Manual', 'Daily', 'Weekly', 'Monthly')
+        $scheduleCombo.SelectedItem = $script:Config.BackupSettings.Schedule ?? 'Weekly'
+        $scheduleCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 42,15,'Enable Auto-Backup'
+        $scheduleCheck.Checked = $script:Config.BackupSettings.EnableScheduled
+        $initFrame.Add($scheduleLabel, $scheduleCombo, $scheduleCheck)
+
+        # Shared Configuration
+        $sharedLabel = New-Object Terminal.Gui.Label -ArgumentList 1,17,'Shared Config Path:'
+        $sharedField = New-Object Terminal.Gui.TextField -ArgumentList 20,17,35,($script:Config.SharedConfigPath ?? '')
+        $sharedCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 57,17,'Use Shared'
+        $sharedCheck.Checked = $script:Config.UseSharedConfig
+        $initFrame.Add($sharedLabel, $sharedField, $sharedCheck)
+
+        # Version Pinning
+        $versionLabel = New-Object Terminal.Gui.Label -ArgumentList 1,19,'Version Pinning:'
+        $versionCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 20,19,'Pin Package Versions'
+        $versionCheck.Checked = $script:Config.PackageSettings.EnableVersionPinning
+        $updateCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 42,19,'Auto-Update Packages'
+        $updateCheck.Checked = $script:Config.PackageSettings.EnableAutoUpdates
+        $initFrame.Add($versionLabel, $versionCheck, $updateCheck)
+
         # Wizard Navigation
-        $saveBtn = New-Object Terminal.Gui.Button -ArgumentList 1,16,'Save & Initialize'
+        $saveBtn = New-Object Terminal.Gui.Button -ArgumentList 1,22,'Save & Initialize'
         $saveBtn.add_Clicked({
             # Validate and save configuration
             $errors = @()
 
             if ([string]::IsNullOrWhiteSpace($backupField.Text)) {
                 $errors += 'Backup Root is required'
+            }
+
+            # Validate email format if enabled
+            if ($emailCheck.Checked -and -not [string]::IsNullOrWhiteSpace($emailField.Text)) {
+                if ($emailField.Text -notmatch '^[^@]+@[^@]+\.[^@]+$') {
+                    $errors += 'Email address format is invalid'
+                }
+            }
+
+            # Validate retention days
+            try {
+                $retentionDays = [int]$retentionField.Text
+                if ($retentionDays -le 0 -or $retentionDays -gt 365) {
+                    $errors += 'Retention days must be between 1-365'
+                }
+            } catch {
+                $errors += 'Retention days must be a valid number'
+            }
+
+            # Validate shared config path if enabled
+            if ($sharedCheck.Checked -and -not [string]::IsNullOrWhiteSpace($sharedField.Text)) {
+                if (-not (Test-Path $sharedField.Text)) {
+                    $errors += 'Shared configuration path does not exist'
+                }
             }
 
             if ($errors.Count -gt 0) {
@@ -304,6 +357,13 @@ function Show-WmrTui {
             $script:Config.EmailSettings.ToAddress = $emailField.Text.ToString()
             $script:Config.NotificationSettings.EnableEmail = $emailCheck.Checked
             $script:Config.BackupSettings.RetentionDays = [int]$retentionField.Text.ToString()
+            $script:Config.LoggingSettings.Level = $logCombo.SelectedItem.ToString()
+            $script:Config.BackupSettings.Schedule = $scheduleCombo.SelectedItem.ToString()
+            $script:Config.BackupSettings.EnableScheduled = $scheduleCheck.Checked
+            $script:Config.SharedConfigPath = $sharedField.Text.ToString()
+            $script:Config.UseSharedConfig = $sharedCheck.Checked
+            $script:Config.PackageSettings.EnableVersionPinning = $versionCheck.Checked
+            $script:Config.PackageSettings.EnableAutoUpdates = $updateCheck.Checked
 
             # Persist configuration
             try {
@@ -315,7 +375,7 @@ function Show-WmrTui {
             }
         })
 
-        $testBtn = New-Object Terminal.Gui.Button -ArgumentList 20,16,'Test Configuration'
+        $testBtn = New-Object Terminal.Gui.Button -ArgumentList 20,22,'Test Configuration'
         $testBtn.add_Clicked({
             # Test backup path, cloud connectivity, etc.
             $results = @()
@@ -342,10 +402,50 @@ function Show-WmrTui {
                 }
             }
 
+            # Test email configuration
+            if ($emailCheck.Checked -and -not [string]::IsNullOrWhiteSpace($emailField.Text)) {
+                if ($emailField.Text -match '^[^@]+@[^@]+\.[^@]+$') {
+                    $results += "✓ Email address format valid"
+                } else {
+                    $results += "✗ Email address format invalid"
+                }
+            }
+
+            # Test shared configuration path
+            if ($sharedCheck.Checked -and -not [string]::IsNullOrWhiteSpace($sharedField.Text)) {
+                if (Test-Path $sharedField.Text) {
+                    $results += "✓ Shared configuration path accessible"
+                } else {
+                    $results += "✗ Shared configuration path not found"
+                }
+            }
+
+            # Test retention days
+            try {
+                $retentionDays = [int]$retentionField.Text
+                if ($retentionDays -gt 0 -and $retentionDays -le 365) {
+                    $results += "✓ Retention days valid ($retentionDays days)"
+                } else {
+                    $results += "✗ Retention days should be between 1-365"
+                }
+            } catch {
+                $results += "✗ Retention days must be a number"
+            }
+
+            # Test logging level
+            $results += "✓ Logging level: $($logCombo.SelectedItem)"
+
+            # Test schedule settings
+            if ($scheduleCheck.Checked) {
+                $results += "✓ Auto-backup enabled: $($scheduleCombo.SelectedItem)"
+            } else {
+                $results += "○ Auto-backup disabled"
+            }
+
             [Terminal.Gui.MessageBox]::Query('Test Results', ($results -join "`n"), 'OK')
         })
 
-        $resetBtn = New-Object Terminal.Gui.Button -ArgumentList 40,16,'Reset to Defaults'
+        $resetBtn = New-Object Terminal.Gui.Button -ArgumentList 40,22,'Reset to Defaults'
         $resetBtn.add_Clicked({
             $backupField.Text = "C:\Backups\WindowsMelodyRecovery"
             $machineField.Text = $env:COMPUTERNAME
@@ -353,6 +453,13 @@ function Show-WmrTui {
             $emailField.Text = ''
             $emailCheck.Checked = $false
             $retentionField.Text = '30'
+            $logCombo.SelectedItem = 'Information'
+            $scheduleCombo.SelectedItem = 'Weekly'
+            $scheduleCheck.Checked = $false
+            $sharedField.Text = ''
+            $sharedCheck.Checked = $false
+            $versionCheck.Checked = $false
+            $updateCheck.Checked = $false
         })
 
         $initFrame.Add($saveBtn, $testBtn, $resetBtn)
@@ -364,11 +471,51 @@ function Show-WmrTui {
         $statusTab.Title = 'Status'
         $statusFrame = New-Object Terminal.Gui.FrameView 'System Status'
         $statusText = New-Object Terminal.Gui.TextView
+        $statusText.ReadOnly = $true
         $statusText.Text = "Module Initialized: $($script:Config.IsInitialized)
 Last Backup: $(try { Get-Content (Join-Path $script:Config.LoggingSettings.Path 'last_backup.log') } catch { 'N/A' })
 Machine: $($script:Config.MachineName)
-Cloud: $($script:Config.CloudProvider)"
-        $statusFrame.Add($statusText)
+Cloud Provider: $($script:Config.CloudProvider)
+Backup Root: $($script:Config.BackupRoot)
+
+Advanced Settings:
+- Email Notifications: $(if($script:Config.NotificationSettings.EnableEmail){'Enabled'}else{'Disabled'})
+- Email Address: $($script:Config.EmailSettings.ToAddress)
+- Logging Level: $($script:Config.LoggingSettings.Level)
+- Retention Days: $($script:Config.BackupSettings.RetentionDays)
+- Auto-Backup: $(if($script:Config.BackupSettings.EnableScheduled){'Enabled'}else{'Disabled'}) ($($script:Config.BackupSettings.Schedule))
+- Shared Config: $(if($script:Config.UseSharedConfig){'Enabled'}else{'Disabled'})
+- Version Pinning: $(if($script:Config.PackageSettings.EnableVersionPinning){'Enabled'}else{'Disabled'})
+- Auto-Updates: $(if($script:Config.PackageSettings.EnableAutoUpdates){'Enabled'}else{'Disabled'})
+
+Module Version: $($script:Config.ModuleVersion ?? 'Unknown')
+PowerShell Version: $($PSVersionTable.PSVersion)
+Operating System: $($PSVersionTable.OS)"
+        # Add refresh button to status tab
+        $refreshBtn = New-Object Terminal.Gui.Button -ArgumentList 1,1,'Refresh Status'
+        $refreshBtn.add_Clicked({
+            $statusText.Text = "Module Initialized: $($script:Config.IsInitialized)
+Last Backup: $(try { Get-Content (Join-Path $script:Config.LoggingSettings.Path 'last_backup.log') } catch { 'N/A' })
+Machine: $($script:Config.MachineName)
+Cloud Provider: $($script:Config.CloudProvider)
+Backup Root: $($script:Config.BackupRoot)
+
+Advanced Settings:
+- Email Notifications: $(if($script:Config.NotificationSettings.EnableEmail){'Enabled'}else{'Disabled'})
+- Email Address: $($script:Config.EmailSettings.ToAddress)
+- Logging Level: $($script:Config.LoggingSettings.Level)
+- Retention Days: $($script:Config.BackupSettings.RetentionDays)
+- Auto-Backup: $(if($script:Config.BackupSettings.EnableScheduled){'Enabled'}else{'Disabled'}) ($($script:Config.BackupSettings.Schedule))
+- Shared Config: $(if($script:Config.UseSharedConfig){'Enabled'}else{'Disabled'})
+- Version Pinning: $(if($script:Config.PackageSettings.EnableVersionPinning){'Enabled'}else{'Disabled'})
+- Auto-Updates: $(if($script:Config.PackageSettings.EnableAutoUpdates){'Enabled'}else{'Disabled'})
+
+Module Version: $($script:Config.ModuleVersion ?? 'Unknown')
+PowerShell Version: $($PSVersionTable.PSVersion)
+Operating System: $($PSVersionTable.OS)"
+        })
+
+        $statusFrame.Add($statusText, $refreshBtn)
         $statusTab.View = $statusFrame
         $tabView.AddTab($statusTab, $false)
         $window.Add($tabView)
