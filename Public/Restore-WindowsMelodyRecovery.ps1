@@ -15,6 +15,12 @@
         return
     }
 
+    # Define log path
+    $logPath = $env:WMR_LOG_PATH ?? (Join-Path $env:TEMP "WMR-Logs")
+    if (-not (Test-Path $logPath)) {
+        New-Item -Path $logPath -ItemType Directory -Force | Out-Null
+    }
+
     # Start transcript for logging
     Start-Transcript -Path (Join-Path $logPath "Restore-WindowsMelodyRecovery-$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Append -Force
 
