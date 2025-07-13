@@ -39,10 +39,18 @@
 
     # Set backup paths
     $BACKUP_ROOT = if ($BackupRoot) { $BackupRoot } else { $config.BackupRoot }
-    $MACHINE_BACKUP = Join-Path $BACKUP_ROOT $config.MachineName
+    $MACHINE_BACKUP_ROOT = Join-Path $BACKUP_ROOT $config.MachineName
     $SHARED_BACKUP = Join-Path $BACKUP_ROOT "shared"
 
+    # Create timestamped backup directory
+    $timestamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
+    $backupId = "$timestamp-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+    $MACHINE_BACKUP = Join-Path $MACHINE_BACKUP_ROOT $backupId
+
     # Create backup directories
+    if (-not (Test-Path $MACHINE_BACKUP_ROOT)) {
+        New-Item -ItemType Directory -Path $MACHINE_BACKUP_ROOT -Force | Out-Null
+    }
     if (-not (Test-Path $MACHINE_BACKUP)) {
         New-Item -ItemType Directory -Path $MACHINE_BACKUP -Force | Out-Null
     }
@@ -57,6 +65,55 @@
     Write-Information -MessageData "Starting Windows Melody Recovery backup..." -InformationAction Continue
     Write-Information -MessageData "Machine: $($config.MachineName)" -InformationAction Continue
     Write-Information -MessageData "Backup Path: $MACHINE_BACKUP" -InformationAction Continue
+    Write-Information -MessageData "Backup ID: $backupId" -InformationAction Continue
+
+    # Helper function to create manifest
+    function New-BackupManifest {
+        param(
+            [string]$MachineName,
+            [string]$BackupPath,
+            [string]$BackupType,
+            [string]$BackupId,
+            [int]$ComponentCount,
+            [string[]]$Components,
+            [hashtable]$ComponentMetadata = @{}
+        )
+
+        $manifest = @{
+            MachineName = $MachineName
+            BackupType = $BackupType
+            BackupId = $BackupId
+            Timestamp = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ss.fffffffK')
+            CreatedDate = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ss.fffffffK')
+            BackupPath = $BackupPath
+            ComponentCount = $ComponentCount
+            Components = @()
+            Templates = $Components
+            ModuleVersion = "1.0.0"
+            Version = "1.0"
+        }
+
+        # Add component metadata
+        foreach ($component in $Components) {
+            $componentDir = Join-Path $BackupPath $component
+            $fileCount = 0
+            if (Test-Path $componentDir) {
+                $fileCount = (Get-ChildItem -Path $componentDir -Recurse -File -ErrorAction SilentlyContinue).Count
+            }
+
+            $manifest.Components += @{
+                Name = $component
+                Template = "$component.yaml"
+                Files = $fileCount
+                BackupPath = $componentDir
+                Status = if ($fileCount -gt 0) { "Success" } else { "NoData" }
+            }
+        }
+
+        $manifestPath = Join-Path $BackupPath "manifest.json"
+        $manifest | ConvertTo-Json -Depth 3 | Set-Content -Path $manifestPath -Encoding UTF8
+        return $manifestPath
+    }
 
     try {
         # Use template-based backup
@@ -72,6 +129,7 @@
 
                 $totalTemplates = $templateFiles.Count
                 $successfulTemplates = 0
+                $processedComponents = @()
 
                 Write-Information -MessageData "Processing $totalTemplates templates..." -InformationAction Continue
 
@@ -89,6 +147,7 @@
 
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
+                        $processedComponents += $componentName
                         Write-Information -MessageData "Template completed: $($templateFile.Name)" -InformationAction Continue
                     }
                     catch {
@@ -97,12 +156,19 @@
                 }
 
                 Write-Information -MessageData "Template backup completed: $successfulTemplates/$totalTemplates successful" -InformationAction Continue
+
+                # Create backup manifest
+                $manifestPath = New-BackupManifest -MachineName $config.MachineName -BackupPath $MACHINE_BACKUP -BackupType "Complete" -BackupId $backupId -ComponentCount $successfulTemplates -Components $processedComponents
+                Write-Information -MessageData "Backup manifest created: $manifestPath" -InformationAction Continue
+
                 return @{
                     Success = $successfulTemplates -gt 0
                     BackupCount = $successfulTemplates
                     BackupPath = $MACHINE_BACKUP
                     TotalTemplates = $totalTemplates
                     Method = "Templates"
+                    ManifestPath = $manifestPath
+                    BackupId = $backupId
                 }
             }
             else {
@@ -129,12 +195,18 @@
                 Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Backup" -StateFilesDirectory $componentBackupDir
                 Write-Information -MessageData "Template backup completed successfully" -InformationAction Continue
 
+                # Create backup manifest
+                $manifestPath = New-BackupManifest -MachineName $config.MachineName -BackupPath $MACHINE_BACKUP -BackupType "Single" -BackupId $backupId -ComponentCount 1 -Components @($templateName)
+                Write-Information -MessageData "Backup manifest created: $manifestPath" -InformationAction Continue
+
                 return @{
                     Success = $true
                     BackupCount = 1
                     BackupPath = $componentBackupDir
                     Template = $templateName
                     Method = "Template"
+                    ManifestPath = $manifestPath
+                    BackupId = $backupId
                 }
             }
         }
@@ -146,6 +218,7 @@
             if ($templateFiles) {
                 $totalTemplates = $templateFiles.Count
                 $successfulTemplates = 0
+                $processedComponents = @()
 
                 Write-Information -MessageData "Processing $totalTemplates templates..." -InformationAction Continue
 
@@ -162,6 +235,7 @@
 
                         Invoke-WmrTemplate -TemplatePath $templateFile.FullName -Operation "Backup" -StateFilesDirectory $componentBackupDir
                         $successfulTemplates++
+                        $processedComponents += $componentName
                         Write-Information -MessageData "Completed: $($templateFile.Name)" -InformationAction Continue
                     }
                     catch {
@@ -171,11 +245,18 @@
                 }
 
                 Write-Information -MessageData "Backup completed: $successfulTemplates templates processed" -InformationAction Continue
+
+                # Create backup manifest
+                $manifestPath = New-BackupManifest -MachineName $config.MachineName -BackupPath $MACHINE_BACKUP -BackupType "Complete" -BackupId $backupId -ComponentCount $successfulTemplates -Components $processedComponents
+                Write-Information -MessageData "Backup manifest created: $manifestPath" -InformationAction Continue
+
                 return @{
                     Success = $successfulTemplates -gt 0
                     BackupCount = $successfulTemplates
                     BackupPath = $MACHINE_BACKUP
                     Method = "Templates"
+                    ManifestPath = $manifestPath
+                    BackupId = $backupId
                 }
             }
             else {
@@ -192,6 +273,7 @@
                 }
 
                 $availableBackups = 0
+                $scriptComponents = @()
                 foreach ($backup in $backupFunctions) {
                     if (Get-Command $backup.function -ErrorAction SilentlyContinue) {
                         try {
@@ -202,6 +284,7 @@
                             }
                             & $backup.function @params
                             $availableBackups++
+                            $scriptComponents += $backup.name
                             Write-Information -MessageData "Executed: $($backup.function)" -InformationAction Continue
                         }
                         catch {
@@ -211,11 +294,18 @@
                 }
 
                 Write-Information -MessageData "Script backup completed: $availableBackups functions executed" -InformationAction Continue
+
+                # Create backup manifest
+                $manifestPath = New-BackupManifest -MachineName $config.MachineName -BackupPath $MACHINE_BACKUP -BackupType "Script" -BackupId $backupId -ComponentCount $availableBackups -Components $scriptComponents
+                Write-Information -MessageData "Backup manifest created: $manifestPath" -InformationAction Continue
+
                 return @{
                     Success = $availableBackups -gt 0
                     BackupCount = $availableBackups
                     BackupPath = $MACHINE_BACKUP
                     Method = "Scripts"
+                    ManifestPath = $manifestPath
+                    BackupId = $backupId
                 }
             }
         }

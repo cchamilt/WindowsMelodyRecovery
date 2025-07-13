@@ -1,320 +1,170 @@
 metadata:
-  name: browsers
-  displayName: Browser Settings
-  description: Template for backing up web browser configurations, bookmarks, and extensions.
-  version: "1.0"
-  author: Windows Melody Recovery
+    name: browsers
+    displayName: Browser Settings
+    description: Template for backing up web browser configurations, bookmarks, and extensions.
+    version: "1.0"
+    author: Windows Melody Recovery
 
 prerequisites:
-  - type: script
-    name: "Browser System Available"
-    inline_script: |
-      try {
-          Get-Command Get-ItemProperty -ErrorAction Stop | Out-Null
-          Write-Output "Browser system available"
-      } catch {
-          Write-Output "Browser system not available"
-      }
-    expected_output: "Browser system available"
-    on_missing: warn
+    - type: script
+      name: "Browser System Available"
+      inline_script: |
+          try {
+              Get-Command Get-ItemProperty -ErrorAction Stop | Out-Null
+              Write-Output "Browser system available"
+          } catch {
+              Write-Output "Browser system not available"
+          }
+      expected_output: "Browser system available"
+      on_missing: warn
 
 registry:
-  # Chrome registry settings
-  - name: Chrome User Settings
-    path: 'HKCU:\Software\Google\Chrome'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/chrome_user.json"
-  
-  - name: Chrome System Policies
-    path: 'HKLM:\SOFTWARE\Google\Chrome'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/chrome_system.json"
-  
-  - name: Chrome 32-bit Policies
-    path: 'HKLM:\SOFTWARE\WOW6432Node\Google\Chrome'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/chrome_32bit.json"
-  
-  # Edge registry settings
-  - name: Edge User Settings
-    path: 'HKCU:\Software\Microsoft\Edge'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/edge_user.json"
-  
-  - name: Edge System Policies
-    path: 'HKLM:\SOFTWARE\Microsoft\Edge'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/edge_system.json"
-  
-  - name: Edge 32-bit Policies
-    path: 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Edge'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/edge_32bit.json"
-  
-  # Firefox registry settings
-  - name: Firefox User Settings
-    path: 'HKCU:\Software\Mozilla\Firefox'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/firefox_user.json"
-  
-  - name: Firefox System Settings
-    path: 'HKLM:\SOFTWARE\Mozilla\Firefox'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/firefox_system.json"
-  
-  # Internet Explorer / Legacy settings
-  - name: Internet Explorer User Settings
-    path: 'HKCU:\Software\Microsoft\Internet Explorer'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/ie_user.json"
-  
-  - name: Internet Explorer System Settings
-    path: 'HKLM:\SOFTWARE\Microsoft\Internet Explorer'
-    type: key
-    action: sync
-    dynamic_state_path: "registry/ie_system.json"
+    # Chrome registry settings
+    - name: Chrome User Settings
+      path: 'HKCU:\Software\Google\Chrome'
+      type: key
+      action: sync
+      dynamic_state_path: "registry/chrome_user.json"
+
+    - name: Chrome System Policies
+      path: 'HKLM:\SOFTWARE\Google\Chrome'
+      type: key
+      action: sync
+      dynamic_state_path: "registry/chrome_system.json"
+
+    # Edge registry settings
+    - name: Edge User Settings
+      path: 'HKCU:\Software\Microsoft\Edge'
+      type: key
+      action: sync
+      dynamic_state_path: "registry/edge_user.json"
+
+    - name: Edge System Policies
+      path: 'HKLM:\SOFTWARE\Microsoft\Edge'
+      type: key
+      action: sync
+      dynamic_state_path: "registry/edge_system.json"
+
+    # Firefox registry settings
+    - name: Firefox User Settings
+      path: 'HKCU:\Software\Mozilla\Firefox'
+      type: key
+      action: sync
+      dynamic_state_path: "registry/firefox_user.json"
 
 files:
-  # Chrome profile data
-  - name: Chrome User Data
-    path: '%LOCALAPPDATA%\Google\Chrome\User Data'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/chrome_userdata"
-    encrypt: false
+    # Chrome profile data
+    - name: Chrome User Data
+      path: '%LOCALAPPDATA%\Google\Chrome\User Data'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/chrome_userdata"
+      encrypt: false
 
-  # Edge profile data
-  - name: Edge User Data
-    path: '%LOCALAPPDATA%\Microsoft\Edge\User Data'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/edge_userdata"
-    encrypt: false
+    # Edge profile data
+    - name: Edge User Data
+      path: '%LOCALAPPDATA%\Microsoft\Edge\User Data'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/edge_userdata"
+      encrypt: false
 
-  # Vivaldi profile data
-  - name: Vivaldi User Data
-    path: '%LOCALAPPDATA%\Vivaldi\User Data'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/vivaldi_userdata"
-    encrypt: false
+    # Firefox profiles
+    - name: Firefox Profiles
+      path: '%APPDATA%\Mozilla\Firefox'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/firefox_profiles"
+      encrypt: false
 
-  # Firefox profiles
-  - name: Firefox Profiles
-    path: '%APPDATA%\Mozilla\Firefox'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/firefox_profiles"
-    encrypt: false
+    # Brave browser
+    - name: Brave User Data
+      path: '%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/brave_userdata"
+      encrypt: false
 
-  # Brave browser
-  - name: Brave User Data
-    path: '%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/brave_userdata"
-    encrypt: false
-
-  # Opera browser
-  - name: Opera Stable
-    path: '%APPDATA%\Opera Software\Opera Stable'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/opera_stable"
-    encrypt: false
+    # Opera browser
+    - name: Opera Stable
+      path: '%APPDATA%\Opera Software\Opera Stable'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/opera_stable"
+      encrypt: false
 
 applications:
-  # Discover installed browsers
-  - name: Installed Browsers
-    type: custom
-    dynamic_state_path: "installed_browsers.json"
-    discovery_command: "Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' | Where-Object { $_.DisplayName -match '(Chrome|Firefox|Edge|Brave|Vivaldi|Opera)' } | Select-Object DisplayName, DisplayVersion, InstallLocation"
-    parse_script: |
-      param($BrowserOutput)
-      $applications = @()
-      
-      # Handle empty or null discovery output
-      if ($BrowserOutput -ne $null) {
-          # Ensure it's an array
-          if ($BrowserOutput -isnot [array]) {
-              $BrowserOutput = @($BrowserOutput)
-          }
-          
-          if ($BrowserOutput.Count -gt 0) {
-              foreach ($browser in $BrowserOutput) {
-                  if ($browser -and $browser.DisplayName) {
-                      $applications += @{
-                          Name = "Browser-$($browser.DisplayName -replace '[^a-zA-Z0-9]', '')"
-                          Version = if ($browser.DisplayVersion) { $browser.DisplayVersion } else { "Unknown" }
-                          DisplayName = $browser.DisplayName
-                          InstallLocation = if ($browser.InstallLocation) { $browser.InstallLocation } else { "Unknown" }
-                      }
-                  }
+    # Simple browser detection
+    - name: Installed Browsers
+      type: custom
+      dynamic_state_path: "installed_browsers.json"
+      discovery_command: |
+          $browsers = @()
+          $paths = @(
+            "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles}\Mozilla Firefox\firefox.exe",
+            "${env:ProgramFiles(x86)}\Mozilla Firefox\firefox.exe",
+            "${env:ProgramFiles}\Microsoft\Edge\Application\msedge.exe",
+            "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path -ErrorAction SilentlyContinue) {
+              $name = [System.IO.Path]::GetFileNameWithoutExtension($path)
+              $browsers += @{
+                DisplayName = $name
+                DisplayVersion = "Unknown"
+                InstallLocation = [System.IO.Path]::GetDirectoryName($path)
               }
+            }
           }
-      }
-      
-      return $applications
-    install_script: |
-      param($BrowsersJson)
-      try {
-          Write-Host "Browser applications cannot be automatically reinstalled" -ForegroundColor Yellow
-          Write-Host "User will need to reinstall browsers manually" -ForegroundColor Yellow
-          
-          $browsers = $BrowsersJson | ConvertFrom-Json
-          if ($browsers.Count -gt 0) {
+          $browsers | ConvertTo-Json -Compress
+      parse_script: |
+          param($BrowserOutput)
+          try {
+            if ([string]::IsNullOrWhiteSpace($BrowserOutput)) {
+              return @()
+            }
+            $browsers = $BrowserOutput | ConvertFrom-Json
+            $applications = @()
+            foreach ($browser in $browsers) {
+              $applications += @{
+                Name = "Browser-$($browser.DisplayName -replace '[^a-zA-Z0-9]', '')"
+                Version = $browser.DisplayVersion
+                DisplayName = $browser.DisplayName
+                InstallLocation = $browser.InstallLocation
+              }
+            }
+            return $applications
+          } catch {
+            Write-Warning "Failed to parse browser information: $_"
+            return @()
+          }
+      install_script: |
+          param($BrowsersJson)
+          try {
+            Write-Host "Browser applications cannot be automatically reinstalled" -ForegroundColor Yellow
+            Write-Host "User will need to reinstall browsers manually" -ForegroundColor Yellow
+
+            $browsers = $BrowsersJson | ConvertFrom-Json
+            if ($browsers.Count -gt 0) {
               Write-Host "Browsers that were installed:" -ForegroundColor Cyan
               foreach ($browser in $browsers) {
-                  Write-Host "  - $($browser.DisplayName)" -ForegroundColor Gray
-                  if ($browser.DisplayVersion) { Write-Host "    Version: $($browser.DisplayVersion)" -ForegroundColor DarkGray }
-                  if ($browser.InstallLocation) { Write-Host "    Location: $($browser.InstallLocation)" -ForegroundColor DarkGray }
+                Write-Host "  - $($browser.DisplayName)" -ForegroundColor Gray
               }
-          } else {
+            } else {
               Write-Host "No browsers found in backup" -ForegroundColor Yellow
+            }
+          } catch {
+            Write-Warning "Failed to display browser information: $_"
           }
-      } catch {
-          Write-Warning "Failed to display browser information: $_"
-      }
-
-  # Chrome extensions discovery
-  - name: Chrome Extensions
-    type: custom
-    dynamic_state_path: "chrome_extensions.json"
-    discovery_command: "if (Test-Path '$env:LOCALAPPDATA\\Google\\Chrome\\User Data\\Default\\Extensions') { Get-ChildItem '$env:LOCALAPPDATA\\Google\\Chrome\\User Data\\Default\\Extensions' | Select-Object Name, LastWriteTime, FullName } else { Write-Output 'No Chrome extensions found' }"
-    parse_script: |
-      param($ExtensionsOutput)
-      try {
-          if ($ExtensionsOutput -match "No Chrome extensions found") {
-              Write-Host "Found 0 Chrome extensions"
-              return "[]"
-          }
-          
-          $extensions = @()
-          $lines = $ExtensionsOutput -split "`n"
-          $headerPassed = $false
-          
-          foreach ($line in $lines) {
-              if ([string]::IsNullOrWhiteSpace($line)) { continue }
-              
-              # Skip header
-              if ($line -match "^Name\s+LastWriteTime\s+FullName" -or $line -match "^-+\s*$") {
-                  $headerPassed = $true
-                  continue
-              }
-              
-              # Parse extension lines
-              if ($headerPassed -and $line -match "\S") {
-                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
-                  if ($parts.Count -ge 2) {
-                      $extensions += @{
-                          Name = $parts[0].Trim()
-                          LastWriteTime = $parts[1].Trim()
-                          FullName = if ($parts.Count -ge 3) { $parts[2].Trim() } else { "" }
-                      }
-                  }
-              }
-          }
-          
-          Write-Host "Found $($extensions.Count) Chrome extensions"
-          return $extensions | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse Chrome extensions: $_"
-          return "[]"
-      }
-    install_script: |
-      param($ExtensionsJson)
-      try {
-          Write-Host "Chrome extensions cannot be automatically reinstalled" -ForegroundColor Yellow
-          Write-Host "Extensions will be restored with profile data" -ForegroundColor Cyan
-          
-          $extensions = $ExtensionsJson | ConvertFrom-Json
-          if ($extensions.Count -gt 0) {
-              Write-Host "Chrome extensions found in backup:" -ForegroundColor Cyan
-              foreach ($ext in $extensions) {
-                  Write-Host "  - $($ext.Name)" -ForegroundColor Gray
-              }
-          }
-      } catch {
-          Write-Warning "Failed to display Chrome extensions: $_"
-      }
-
-  # Edge extensions discovery
-  - name: Edge Extensions
-    type: custom
-    dynamic_state_path: "edge_extensions.json"
-    discovery_command: "if (Test-Path '$env:LOCALAPPDATA\\Microsoft\\Edge\\User Data\\Default\\Extensions') { Get-ChildItem '$env:LOCALAPPDATA\\Microsoft\\Edge\\User Data\\Default\\Extensions' | Select-Object Name, LastWriteTime, FullName } else { Write-Output 'No Edge extensions found' }"
-    parse_script: |
-      param($ExtensionsOutput)
-      try {
-          if ($ExtensionsOutput -match "No Edge extensions found") {
-              Write-Host "Found 0 Edge extensions"
-              return "[]"
-          }
-          
-          $extensions = @()
-          $lines = $ExtensionsOutput -split "`n"
-          $headerPassed = $false
-          
-          foreach ($line in $lines) {
-              if ([string]::IsNullOrWhiteSpace($line)) { continue }
-              
-              # Skip header
-              if ($line -match "^Name\s+LastWriteTime\s+FullName" -or $line -match "^-+\s*$") {
-                  $headerPassed = $true
-                  continue
-              }
-              
-              # Parse extension lines
-              if ($headerPassed -and $line -match "\S") {
-                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
-                  if ($parts.Count -ge 2) {
-                      $extensions += @{
-                          Name = $parts[0].Trim()
-                          LastWriteTime = $parts[1].Trim()
-                          FullName = if ($parts.Count -ge 3) { $parts[2].Trim() } else { "" }
-                      }
-                  }
-              }
-          }
-          
-          Write-Host "Found $($extensions.Count) Edge extensions"
-          return $extensions | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse Edge extensions: $_"
-          return "[]"
-      }
-    install_script: |
-      param($ExtensionsJson)
-      try {
-          Write-Host "Edge extensions cannot be automatically reinstalled" -ForegroundColor Yellow
-          Write-Host "Extensions will be restored with profile data" -ForegroundColor Cyan
-          
-          $extensions = $ExtensionsJson | ConvertFrom-Json
-          if ($extensions.Count -gt 0) {
-              Write-Host "Edge extensions found in backup:" -ForegroundColor Cyan
-              foreach ($ext in $extensions) {
-                  Write-Host "  - $($ext.Name)" -ForegroundColor Gray
-              }
-          }
-      } catch {
-          Write-Warning "Failed to display Edge extensions: $_"
-      }
 
 stages:
-  post_update:
-    - name: Browser Restoration Complete
-      type: script
-      inline_script: |
-        Write-Host "Browser backup/restore completed." -ForegroundColor Green
-        Write-Host "Browser profiles, bookmarks, and settings have been backed up." -ForegroundColor Yellow
-        Write-Host "Note: Extensions may need to be re-enabled after browser profile restore." -ForegroundColor Yellow
-      parameters: {} 
+    post_update:
+        - name: Browser Restoration Complete
+          type: script
+          inline_script: |
+              Write-Host "Browser backup/restore completed." -ForegroundColor Green
+              Write-Host "Browser profiles, bookmarks, and settings have been backed up." -ForegroundColor Yellow
+              Write-Host "Note: Extensions may need to be re-enabled after browser profile restore." -ForegroundColor Yellow
+          parameters: {}

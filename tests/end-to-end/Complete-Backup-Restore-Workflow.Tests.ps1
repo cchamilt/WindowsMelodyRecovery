@@ -8,38 +8,36 @@ BeforeDiscovery {
 }
 
 BeforeAll {
-    # Import the module using standardized pattern
-    $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+    # Import the module with comprehensive error handling
     try {
+        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
     }
     catch {
-        throw "Failed to import module from $ModulePath : $($_.Exception.Message)"
+        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
-    # Set up comprehensive test environment with better error handling
-    # Use a more robust temporary directory approach for Docker environments
-    $script:TestRoot = if ($env:WMR_DOCKER_TEST -eq 'true') {
-        # In Docker environment, use /tmp directly
-        $tempDir = "/tmp/WMR-EndToEnd-$(Get-Random)"
-        New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
-        $tempDir
+    # Import enhanced mock infrastructure
+    . "$PSScriptRoot/../utilities/Enhanced-Mock-Infrastructure.ps1"
+
+    # Test configuration
+    $testIdSuffix = Get-Random -Minimum 10000000 -Maximum 99999999
+    $script:TestRoot = if ($env:TEMP) {
+        Join-Path $env:TEMP "WMR-EndToEnd-$testIdSuffix"
     } else {
-        # In Windows environment, use TestDrive
-        Join-Path $TestDrive "WMR-EndToEnd"
+        "/tmp/WMR-EndToEnd-$testIdSuffix"
     }
 
     $script:InstallPath = Join-Path $script:TestRoot "Installation"
     $script:BackupRoot = Join-Path $script:TestRoot "Backups"
-    $script:RestoreRoot = Join-Path $script:TestRoot "Restore"
+    $script:RestoreRoot = Join-Path $script:TestRoot "Restored"
     $script:SourceSystem = Join-Path $script:TestRoot "SourceSystem"
     $script:TargetSystem = Join-Path $script:TestRoot "TargetSystem"
 
-    # Debug path information
     Write-Information -MessageData "Setting up test environment:" -InformationAction Continue
     Write-Information -MessageData "  TestRoot: $script:TestRoot" -InformationAction Continue
     Write-Information -MessageData "  InstallPath: $script:InstallPath" -InformationAction Continue
-    Write-Information -MessageData "  Docker test: $($env:WMR_DOCKER_TEST)" -InformationAction Continue
+    Write-Information -MessageData "  Docker test: $($env:WMR_DOCKER_TEST -eq 'true')" -InformationAction Continue
 
     # Create test directory structure with better error handling
     @($script:TestRoot, $script:InstallPath, $script:BackupRoot, $script:RestoreRoot,
@@ -59,10 +57,16 @@ BeforeAll {
     $env:WMR_CONFIG_PATH = $script:InstallPath
     $env:WMR_BACKUP_PATH = $script:BackupRoot
     $env:WMR_LOG_PATH = Join-Path $script:TestRoot "Logs"
+    $env:WMR_TEST_MODE = "true"
+    $env:WMR_DOCKER_TEST = "true"
+    $env:WMR_STATE_PATH = $script:SourceSystem
     $env:COMPUTERNAME = "TEST-MACHINE-E2E"
     $env:USERPROFILE = $script:SourceSystem
 
-            # Create logs directory
+    # Force the module to use the correct backup root by explicitly setting it
+    Set-WindowsMelodyRecovery -BackupRoot $script:BackupRoot
+
+    # Create logs directory
     New-Item -Path $env:WMR_LOG_PATH -ItemType Directory -Force | Out-Null
 
     # Set test start time
@@ -70,7 +74,8 @@ BeforeAll {
 
     # Define helper functions within BeforeAll for proper scoping
     function Initialize-MockSourceSystem {
-        # Create realistic system configuration to backup
+        # Use enhanced mock infrastructure to create realistic test data
+        Write-Information -MessageData "Initializing comprehensive mock data for end-to-end testing..." -InformationAction Continue
 
         # Debug the source system path
         Write-Information -MessageData "Debug: SourceSystem path = '$script:SourceSystem'" -InformationAction Continue
@@ -79,188 +84,235 @@ BeforeAll {
         # Ensure the source system directory exists
         if (-not (Test-Path $script:SourceSystem)) {
             Write-Information -MessageData "Debug: Creating SourceSystem directory" -InformationAction Continue
+            try {
+                New-Item -Path $script:SourceSystem -ItemType Directory -Force | Out-Null
+                Write-Information -MessageData "Creating parent directory: $script:SourceSystem" -InformationAction Continue
+            }
+            catch {
+                throw "Parent directory does not exist: $script:SourceSystem"
+            }
+        }
+
+        # Create SystemSettings directory
+        $systemSettingsPath = Join-Path $script:SourceSystem "SystemSettings"
+        New-Item -ItemType Directory -Path $systemSettingsPath -Force | Out-Null
+        Write-Information -MessageData "Creating SystemSettings directory: $systemSettingsPath" -InformationAction Continue
+
+        try {
+            # Initialize enhanced mock infrastructure for comprehensive end-to-end testing
+            Initialize-EnhancedMockInfrastructure -TestType "EndToEnd" -Scope "Comprehensive" -Force
+
+            # Create mock registry data that templates can backup
+            Write-Information -MessageData "Creating mock registry data..." -InformationAction Continue
+            Initialize-MockRegistryData
+
+            # Create mock application data
+            Write-Information -MessageData "Creating mock application data..." -InformationAction Continue
+            Initialize-MockApplicationData
+
+            # Create mock system settings
+            Write-Information -MessageData "Creating mock system settings..." -InformationAction Continue
+            Initialize-MockSystemSettingsData
+
+            # Create mock gaming data
+            Write-Information -MessageData "Creating mock gaming data..." -InformationAction Continue
+            Initialize-MockGamingData
+
+            # Create mock WSL data
+            Write-Information -MessageData "Creating mock WSL data..." -InformationAction Continue
+            Initialize-MockWSLData
+
+            # Create mock cloud data
+            Write-Information -MessageData "Creating mock cloud data..." -InformationAction Continue
+            Initialize-MockCloudData
+
+            Write-Information -MessageData "✅ Enhanced mock source system created successfully" -InformationAction Continue
+        }
+        catch {
+            Write-Warning -Message "Failed to create enhanced mock data: $($_.Exception.Message)"
+            # Fallback to basic mock data
+            Initialize-BasicMockData
+        }
+    }
+
+    function Initialize-MockRegistryData {
+        # Create mock registry structure that templates can read
+        $registryMockPath = Join-Path $script:SourceSystem "Registry"
+        New-Item -ItemType Directory -Path $registryMockPath -Force | Out-Null
+
+        # Create mock registry files that the registry templates can backup
+        $mockRegistryData = @{
+            "system_control.json" = @{
+                "BootExecute" = @("autocheck autochk *")
+                "SystemStartOptions" = ""
+                "CrashDumpEnabled" = 1
+            } | ConvertTo-Json -Depth 3
+
+            "windows_setup.json" = @{
+                "ProductName" = "Windows 11 Pro"
+                "EditionID" = "Professional"
+                "ReleaseId" = "22H2"
+                "CurrentBuild" = "22621"
+            } | ConvertTo-Json -Depth 3
+
+            "visual_effects.json" = @{
+                "VisualFXSetting" = 1
+                "UserPreferencesMask" = @(158, 30, 7, 128, 18, 0, 0, 0)
+                "MinAnimate" = 0
+            } | ConvertTo-Json -Depth 3
+
+            "international.json" = @{
+                "LocaleName" = "en-US"
+                "s1159" = "AM"
+                "s2359" = "PM"
+                "sCountry" = "United States"
+            } | ConvertTo-Json -Depth 3
+        }
+
+        foreach ($file in $mockRegistryData.Keys) {
+            $filePath = Join-Path $registryMockPath $file
+            $mockRegistryData[$file] | Out-File -FilePath $filePath -Encoding UTF8
+        }
+    }
+
+    function Initialize-MockApplicationData {
+        # Create mock application installation data
+        $appsPath = Join-Path $script:SourceSystem "Applications"
+        New-Item -ItemType Directory -Path $appsPath -Force | Out-Null
+
+        $mockAppData = @{
+            "installed.json" = @{
+                "winget_packages" = @(
+                    @{ "Id" = "Microsoft.VisualStudioCode"; "Version" = "1.85.2"; "Source" = "winget" }
+                    @{ "Id" = "Git.Git"; "Version" = "2.43.0"; "Source" = "winget" }
+                    @{ "Id" = "Microsoft.PowerShell"; "Version" = "7.4.0"; "Source" = "winget" }
+                )
+                "chocolatey_packages" = @(
+                    @{ "name" = "googlechrome"; "version" = "120.0.6099.129" }
+                    @{ "name" = "firefox"; "version" = "121.0" }
+                )
+                "total_count" = 5
+                "last_updated" = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            } | ConvertTo-Json -Depth 4
+        }
+
+        foreach ($file in $mockAppData.Keys) {
+            $filePath = Join-Path $appsPath $file
+            $mockAppData[$file] | Out-File -FilePath $filePath -Encoding UTF8
+        }
+    }
+
+    function Initialize-MockSystemSettingsData {
+        $settingsPath = Join-Path $script:SourceSystem "SystemSettings"
+
+        $mockSystemConfig = @{
+            "Display" = @{
+                "Resolution" = "1920x1080"
+                "RefreshRate" = 60
+                "ColorDepth" = 32
+                "Orientation" = "Landscape"
+            }
+            "Power" = @{
+                "SleepTimeout" = 30
+                "HibernateEnabled" = $true
+                "PowerPlan" = "Balanced"
+            }
+            "Network" = @{
+                "WiFiProfiles" = @("Home-Network", "Work-WiFi")
+                "EthernetEnabled" = $true
+            }
+            "Audio" = @{
+                "DefaultDevice" = "Speakers (Realtek Audio)"
+                "Volume" = 75
+                "Muted" = $false
+            }
+        }
+
+        $configPath = Join-Path $settingsPath "config.json"
+        $mockSystemConfig | ConvertTo-Json -Depth 4 | Out-File -FilePath $configPath -Encoding UTF8
+    }
+
+    function Initialize-MockGamingData {
+        $gamingPath = Join-Path $script:SourceSystem "Gaming"
+        New-Item -ItemType Directory -Path $gamingPath -Force | Out-Null
+
+        $mockGamingConfig = @{
+            "SteamGames" = @(
+                @{ "name" = "Counter-Strike 2"; "appid" = 730; "installed" = $true }
+                @{ "name" = "Dota 2"; "appid" = 570; "installed" = $true }
+            )
+            "EpicGames" = @(
+                @{ "name" = "Fortnite"; "installed" = $true }
+                @{ "name" = "Rocket League"; "installed" = $false }
+            )
+            "GamePasses" = @("Xbox Game Pass Ultimate")
+        }
+
+        $configPath = Join-Path $gamingPath "config.json"
+        $mockGamingConfig | ConvertTo-Json -Depth 3 | Out-File -FilePath $configPath -Encoding UTF8
+    }
+
+    function Initialize-MockWSLData {
+        $wslPath = Join-Path $script:SourceSystem "WSL"
+        New-Item -ItemType Directory -Path $wslPath -Force | Out-Null
+
+        $mockWSLConfig = @{
+            "Distributions" = @(
+                @{ "name" = "Ubuntu-22.04"; "version" = 2; "running" = $true }
+                @{ "name" = "Debian"; "version" = 2; "running" = $false }
+            )
+            "DefaultDistribution" = "Ubuntu-22.04"
+            "WSLVersion" = 2
+        }
+
+        $configPath = Join-Path $wslPath "config.json"
+        $mockWSLConfig | ConvertTo-Json -Depth 3 | Out-File -FilePath $configPath -Encoding UTF8
+    }
+
+    function Initialize-MockCloudData {
+        $cloudPath = Join-Path $script:SourceSystem "Cloud"
+        New-Item -ItemType Directory -Path $cloudPath -Force | Out-Null
+
+        $mockCloudConfig = @{
+            "OneDrive" = @{
+                "SyncEnabled" = $true
+                "LocalPath" = "$env:USERPROFILE\\OneDrive"
+                "LastSync" = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            }
+            "GoogleDrive" = @{
+                "SyncEnabled" = $false
+                "LocalPath" = ""
+            }
+        }
+
+        $configPath = Join-Path $cloudPath "config.json"
+        $mockCloudConfig | ConvertTo-Json -Depth 3 | Out-File -FilePath $configPath -Encoding UTF8
+    }
+
+    function Initialize-BasicMockData {
+        # Fallback basic mock data if enhanced infrastructure fails
+        Write-Information -MessageData "Using basic mock data as fallback..." -InformationAction Continue
+
+        # Ensure source system directory exists
+        if (-not (Test-Path $script:SourceSystem)) {
             New-Item -Path $script:SourceSystem -ItemType Directory -Force | Out-Null
         }
 
-        # 1. System Settings
-        $systemSettings = @{
-            Display = @{
-                Resolution = "1920x1080"
-                RefreshRate = 60
-                Scaling = 125
-                Orientation = "Landscape"
-            }
-            Power = @{
-                Plan = "High Performance"
-                SleepTimeout = 30
-                HibernateTimeout = 60
-                USBSelectiveSuspend = $false
-            }
-            Sound = @{
-                DefaultDevice = "Speakers"
-                Volume = 75
-                Communications = "DoNothing"
-            }
-            Network = @{
-                WiFiProfiles = @("HomeWiFi", "OfficeWiFi")
-                VPNConnections = @("CompanyVPN")
-                ProxySettings = @{
-                    Enabled = $false
-                    Server = ""
-                    Port = 8080
-                }
-            }
+        $basicDirs = @(
+            Join-Path $script:SourceSystem "Registry"
+            Join-Path $script:SourceSystem "Applications"
+            Join-Path $script:SourceSystem "SystemSettings"
+            Join-Path $script:SourceSystem "Gaming"
+            Join-Path $script:SourceSystem "WSL"
+            Join-Path $script:SourceSystem "Cloud"
+        )
+
+        foreach ($dir in $basicDirs) {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            # Create a basic placeholder file so components have something to backup
+            $placeholderFile = Join-Path $dir "placeholder.txt"
+            "Basic mock data for testing" | Out-File -FilePath $placeholderFile -Encoding UTF8
         }
-
-                        $systemSettingsPath = Join-Path $script:SourceSystem "SystemSettings"
-
-        # Ensure parent directory exists first
-        if (-not (Test-Path $script:SourceSystem)) {
-            Write-Information -MessageData "Creating parent directory: $script:SourceSystem" -InformationAction Continue
-            try {
-                New-Item -Path $script:SourceSystem -ItemType Directory -Force -ErrorAction Stop | Out-Null
-            }
-            catch {
-                throw "Failed to create parent directory '$script:SourceSystem': $($_.Exception.Message)"
-            }
-        }
-
-        # Create the SystemSettings directory
-        Write-Information -MessageData "Creating SystemSettings directory: $systemSettingsPath" -InformationAction Continue
-        try {
-            New-Item -Path $systemSettingsPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
-        }
-        catch {
-            throw "Failed to create SystemSettings directory '$systemSettingsPath': $($_.Exception.Message)"
-        }
-
-        # Final verification
-        if (-not (Test-Path $systemSettingsPath)) {
-            throw "Directory creation appeared to succeed but SystemSettings directory does not exist: $systemSettingsPath"
-        }
-
-        $configPath = Join-Path $systemSettingsPath "config.json"
-        try {
-            $systemSettings | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8 -ErrorAction Stop
-        }
-        catch {
-            throw "Failed to write config file '$configPath': $($_.Exception.Message)"
-        }
-
-        # 2. Applications
-        $applications = @{
-            Winget = @(
-                @{ Id = "Microsoft.VisualStudioCode"; Name = "Visual Studio Code"; Version = "1.75.0" },
-                @{ Id = "Google.Chrome"; Name = "Google Chrome"; Version = "109.0.5414.120" },
-                @{ Id = "7zip.7zip"; Name = "7-Zip"; Version = "22.01" },
-                @{ Id = "Git.Git"; Name = "Git"; Version = "2.39.1" },
-                @{ Id = "Microsoft.PowerShell"; Name = "PowerShell"; Version = "7.3.2" }
-            )
-            Chocolatey = @(
-                @{ Name = "nodejs"; Version = "18.14.0" },
-                @{ Name = "docker-desktop"; Version = "4.16.2" },
-                @{ Name = "postman"; Version = "10.9.4" }
-            )
-            Steam = @{
-                Games = @(
-                    @{ Name = "Counter-Strike 2"; AppId = 730; InstallDir = "Counter-Strike Global Offensive" },
-                    @{ Name = "Cyberpunk 2077"; AppId = 1091500; InstallDir = "Cyberpunk 2077" }
-                )
-                LibraryFolders = @("C:\Program Files (x86)\Steam", "D:\SteamLibrary")
-            }
-        }
-
-        $applicationsPath = Join-Path $script:SourceSystem "Applications"
-        New-Item -Path $applicationsPath -ItemType Directory -Force | Out-Null
-        $appsConfigPath = Join-Path $applicationsPath "installed.json"
-        $applications | ConvertTo-Json -Depth 10 | Set-Content -Path $appsConfigPath -Encoding UTF8
-
-        # 3. Gaming Configurations
-        $gamingConfig = @{
-            Steam = @{
-                LoginUsers = @{
-                    "76561198123456789" = @{
-                        AccountName = "testuser"
-                        PersonaName = "TestGamer"
-                        MostRecent = 1
-                    }
-                }
-                Config = @{
-                    AutoLaunchSteamVR = 0
-                    BigPictureInForeground = 0
-                    StartupMode = 0
-                }
-            }
-            Epic = @{
-                InstallLocation = "C:\Program Files (x86)\Epic Games"
-                Games = @(
-                    @{ DisplayName = "Fortnite"; InstallLocation = "C:\Program Files\Epic Games\Fortnite" },
-                    @{ DisplayName = "Rocket League"; InstallLocation = "C:\Program Files\Epic Games\rocketleague" }
-                )
-            }
-            GOG = @{
-                Games = @(
-                    @{ Name = "The Witcher 3"; Path = "C:\GOG Games\The Witcher 3" },
-                    @{ Name = "Cyberpunk 2077"; Path = "C:\GOG Games\Cyberpunk 2077" }
-                )
-            }
-        }
-
-        $gamingPath = Join-Path $script:SourceSystem "Gaming"
-        New-Item -Path $gamingPath -ItemType Directory -Force | Out-Null
-        $gamingConfigPath = Join-Path $gamingPath "config.json"
-        $gamingConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $gamingConfigPath -Encoding UTF8
-
-        # 4. WSL Configuration
-        $wslConfig = @{
-            Distributions = @(
-                @{ Name = "Ubuntu-22.04"; Status = "Running"; Version = 2; Default = $true },
-                @{ Name = "Debian"; Status = "Stopped"; Version = 2; Default = $false }
-            )
-            GlobalConfig = @{
-                memory = "8GB"
-                processors = 4
-                swap = "2GB"
-                localhostForwarding = $true
-            }
-            Packages = @{
-                "Ubuntu-22.04" = @{
-                    apt = @("git", "curl", "wget", "vim", "python3", "nodejs", "npm")
-                    pip = @("requests", "numpy", "pandas", "flask")
-                    npm = @("@angular/cli", "typescript", "eslint")
-                }
-            }
-        }
-
-        $wslPath = Join-Path $script:SourceSystem "WSL"
-        New-Item -Path $wslPath -ItemType Directory -Force | Out-Null
-        $wslConfigPath = Join-Path $wslPath "config.json"
-        $wslConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $wslConfigPath -Encoding UTF8
-
-        # 5. Cloud Storage Configuration
-        $cloudConfig = @{
-            OneDrive = @{
-                Enabled = $true
-                SyncPath = "C:\Users\TestUser\OneDrive"
-                BusinessAccount = $true
-                PersonalAccount = $false
-            }
-            GoogleDrive = @{
-                Enabled = $false
-                SyncPath = ""
-            }
-            Dropbox = @{
-                Enabled = $true
-                SyncPath = "C:\Users\TestUser\Dropbox"
-            }
-        }
-
-        $cloudPath = Join-Path $script:SourceSystem "Cloud"
-        New-Item -Path $cloudPath -ItemType Directory -Force | Out-Null
-        $cloudConfigPath = Join-Path $cloudPath "config.json"
-        $cloudConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $cloudConfigPath -Encoding UTF8
-
-        Write-Information -MessageData "✅ Initialized mock source system with realistic configuration data" -InformationAction Continue
     }
 
     function Test-BackupCompleteness {
@@ -417,6 +469,18 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $configFile = Join-Path $script:InstallPath "Config\windows.env"
             Test-Path $configFile | Should -Be $true
 
+            # Update the configuration to use the test backup root
+            $configContent = Get-Content $configFile -Raw
+            $configContent = $configContent -replace "BACKUP_ROOT=.*", "BACKUP_ROOT=$($script:BackupRoot)"
+            Set-Content -Path $configFile -Value $configContent
+
+            # Force the configuration to reload by calling Set-WindowsMelodyRecovery with the correct backup root
+            Set-WindowsMelodyRecovery -BackupRoot $script:BackupRoot
+
+            # Verify the configuration is correct
+            $config = Get-WindowsMelodyRecovery
+            $config.BackupRoot | Should -Be $script:BackupRoot
+
             Write-Information -MessageData "✅ Installation and initialization completed successfully" -InformationAction Continue
         }
 
@@ -468,8 +532,10 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
             $machineBackupPath = Join-Path $script:BackupRoot $env:COMPUTERNAME
             Test-Path $machineBackupPath | Should -Be $true
 
-            # Verify backup manifest
-            $manifestPath = Join-Path $machineBackupPath "manifest.json"
+            # Verify backup manifest in latest backup directory
+            $latestBackup = Get-ChildItem -Path $machineBackupPath -Directory | Sort-Object CreationTime -Descending | Select-Object -First 1
+            $latestBackup | Should -Not -BeNullOrEmpty
+            $manifestPath = Join-Path $latestBackup.FullName "manifest.json"
             Test-Path $manifestPath | Should -Be $true
 
             $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json

@@ -1031,8 +1031,9 @@ function New-RegistryMockData {
 
     New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
 
-    # Common registry keys and values
+    # Common registry keys and values - comprehensive mock data for all template needs
     $registryData = @{
+        # Explorer and Desktop settings
         'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer' = @{
             'ShowHidden' = 1
             'HideFileExt' = 0
@@ -1052,6 +1053,104 @@ function New-RegistryMockData {
             'CurrentTheme' = 'C:\WINDOWS\resources\Themes\aero.theme'
             'ThemeChangesMousePointers' = 0
         }
+
+        # System settings
+        'HKLM\SYSTEM\CurrentControlSet\Control' = @{
+            'SystemStartOptions' = 'NOEXECUTE=OPTIN'
+            'TimeZoneInformation' = @{
+                'StandardName' = 'Pacific Standard Time'
+                'Bias' = 480
+            }
+        }
+        'HKCU\Control Panel\International' = @{
+            'LocaleName' = 'en-US'
+            'sCountry' = 'United States'
+            'sLanguage' = 'ENU'
+        }
+
+        # Power settings
+        'HKCU\Control Panel\PowerCfg' = @{
+            'CurrentPowerPolicy' = 1
+        }
+        'HKLM\SYSTEM\CurrentControlSet\Control\Power' = @{
+            'HibernateEnabled' = 1
+            'HibernateEnabledDefault' = 1
+        }
+
+        # Network settings
+        'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' = @{
+            'Hostname' = 'TEST-MACHINE'
+            'Domain' = 'test.local'
+        }
+
+        # Windows Update settings
+        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate' = @{
+            'SusClientId' = '{12345678-1234-1234-1234-123456789012}'
+        }
+        'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' = @{
+            'DoNotConnectToWindowsUpdateInternetLocations' = 0
+        }
+
+        # Office settings
+        'HKCU\Software\Microsoft\Office\16.0\Word\Options' = @{
+            'DoNotPromptForConvert' = 1
+            'PictureFormat' = 0
+        }
+        'HKCU\Software\Microsoft\Office\16.0\Excel\Options' = @{
+            'DoNotPromptForConvert' = 1
+            'DefaultFormat' = 51
+        }
+
+        # Terminal and console settings
+        'HKCU\Console' = @{
+            'ScreenBufferSize' = 0x012c0050
+            'WindowSize' = 0x00320050
+            'FontSize' = 0x00100008
+        }
+        'HKCU\Software\Microsoft\Command Processor' = @{
+            'CompletionChar' = 9
+            'DefaultColor' = 0
+        }
+
+        # WSL settings
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss' = @{
+            'DefaultDistribution' = '{12345678-1234-1234-1234-123456789012}'
+        }
+
+        # VPN settings
+        'HKLM\SYSTEM\CurrentControlSet\Services\RasMan\Parameters' = @{
+            'ServiceDll' = '%SystemRoot%\System32\rasmans.dll'
+        }
+
+        # Gaming settings
+        'HKCU\Software\Valve\Steam' = @{
+            'SteamPath' = 'C:\Program Files (x86)\Steam'
+            'SteamExe' = 'C:\Program Files (x86)\Steam\steam.exe'
+        }
+        'HKCU\Software\Epic Games\Unreal Engine\Identifiers' = @{
+            'AccountId' = 'test-account-id'
+        }
+
+        # Display settings
+        'HKCU\Control Panel\Desktop\WindowMetrics' = @{
+            'AppliedDPI' = 96
+            'Shell Icon Size' = 32
+        }
+
+        # Mouse and touchpad settings
+        'HKCU\Control Panel\Mouse' = @{
+            'MouseSensitivity' = 10
+            'MouseSpeed' = 1
+            'MouseThreshold1' = 6
+            'MouseThreshold2' = 10
+        }
+
+        # Default fallback for any unmatched paths
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' = @{
+            'Hidden' = 1
+            'HideFileExt' = 0
+            'ShowSuperHidden' = 1
+        }
     }
 
     foreach ($keyPath in $registryData.Keys) {
@@ -1062,6 +1161,122 @@ function New-RegistryMockData {
     }
 
     Write-Verbose -Message "    ✓ Registry mock data: Explorer, Desktop, Themes, System"
+}
+
+function New-UserProfileMockData {
+    <#
+    .SYNOPSIS
+        Generates realistic user profile mock data for testing.
+    #>
+    param([string]$OutputPath, [string]$Scope)
+
+    New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+
+    # Create user profile directories
+    $userDirs = @("Documents", "Downloads", "Desktop", "Pictures", "Videos", "Music", "AppData\Local", "AppData\Roaming")
+    foreach ($dir in $userDirs) {
+        New-Item -Path (Join-Path $OutputPath $dir) -ItemType Directory -Force | Out-Null
+    }
+
+    # Create user profile files
+    $userFiles = @{
+        "Documents\test-document.txt" = "Test document content"
+        "Desktop\test-shortcut.lnk" = "Test shortcut"
+        "AppData\Local\test-app.json" = '{"version": "1.0", "settings": {}}'
+        "AppData\Roaming\test-config.ini" = "[Settings]`nVersion=1.0"
+    }
+
+    foreach ($file in $userFiles.Keys) {
+        $filePath = Join-Path $OutputPath $file
+        $directory = Split-Path $filePath -Parent
+        New-Item -Path $directory -ItemType Directory -Force | Out-Null
+        $userFiles[$file] | Set-Content -Path $filePath -Encoding UTF8
+    }
+
+    Write-Verbose -Message "    ✓ User profile mock data: Documents, AppData, Desktop"
+}
+
+function New-SystemStateMockData {
+    <#
+    .SYNOPSIS
+        Generates realistic system state mock data for testing.
+    #>
+    param([string]$OutputPath, [string]$Scope)
+
+    New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+
+    # Create system state data
+    $systemData = @{
+        "services.json" = @{
+            "services" = @(
+                @{ "Name" = "Themes"; "Status" = "Running"; "StartType" = "Automatic" }
+                @{ "Name" = "Windows Update"; "Status" = "Running"; "StartType" = "Manual" }
+                @{ "Name" = "BITS"; "Status" = "Stopped"; "StartType" = "Manual" }
+            )
+        }
+        "processes.json" = @{
+            "processes" = @(
+                @{ "Name" = "explorer"; "Id" = 1234; "CPU" = 2.5 }
+                @{ "Name" = "winlogon"; "Id" = 5678; "CPU" = 0.1 }
+            )
+        }
+        "environment.json" = @{
+            "variables" = @{
+                "PATH" = "C:\Windows\System32;C:\Windows"
+                "TEMP" = "C:\Users\TestUser\AppData\Local\Temp"
+                "USERNAME" = "TestUser"
+            }
+        }
+    }
+
+    foreach ($file in $systemData.Keys) {
+        $filePath = Join-Path $OutputPath $file
+        $systemData[$file] | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
+    }
+
+    Write-Verbose -Message "    ✓ System state mock data: Services, Processes, Environment"
+}
+
+function New-HardwareMockData {
+    <#
+    .SYNOPSIS
+        Generates realistic hardware mock data for testing.
+    #>
+    param([string]$OutputPath, [string]$Scope)
+
+    New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+
+    # Create hardware data
+    $hardwareData = @{
+        "display.json" = @{
+            "monitors" = @(
+                @{ "Name" = "Generic PnP Monitor"; "Resolution" = "1920x1080"; "RefreshRate" = 60 }
+            )
+            "settings" = @{
+                "primaryDisplay" = 0
+                "orientation" = "Landscape"
+            }
+        }
+        "audio.json" = @{
+            "devices" = @(
+                @{ "Name" = "Speakers"; "Type" = "Playback"; "Default" = $true }
+                @{ "Name" = "Microphone"; "Type" = "Recording"; "Default" = $true }
+            )
+        }
+        "network.json" = @{
+            "adapters" = @(
+                @{ "Name" = "Ethernet"; "Status" = "Connected"; "IP" = "192.168.1.100" }
+                @{ "Name" = "Wi-Fi"; "Status" = "Disconnected"; "IP" = $null }
+            )
+        }
+    }
+
+    foreach ($file in $hardwareData.Keys) {
+        $filePath = Join-Path $OutputPath $file
+        $hardwareData[$file] | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
+    }
+
+    Write-Verbose -Message "    ✓ Hardware mock data: Display, Audio, Network"
 }
 
 function New-AppDataStructure {
