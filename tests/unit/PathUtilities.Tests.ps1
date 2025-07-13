@@ -9,7 +9,7 @@ BeforeAll {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
     }
- catch {
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 }
@@ -22,7 +22,7 @@ Describe "Convert-WmrPath" {
         $result = Convert-WmrPath -Path $windowsPath
         $result.PathType | Should -Be "File"
         $result.Path | Should -Be $windowsPath
-        Remove-Item Env:TEST_VAR
+        $env:TEST_VAR = $null
     }
 
     It "should correctly handle file:// URIs" {

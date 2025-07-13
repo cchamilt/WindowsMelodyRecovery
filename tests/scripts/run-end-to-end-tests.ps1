@@ -45,8 +45,10 @@ param(
     [switch]$GenerateReport
 )
 
-# Set execution policy for current process
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+# Set execution policy for current process (Windows only)
+if ($IsWindows) {
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+}
 
 # Determine environment
 $isDockerAvailable = $UseDocker -or (Get-Command docker -ErrorAction SilentlyContinue)

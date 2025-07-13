@@ -424,12 +424,12 @@ if ($script:LoadedCoreFunctions) {
 # After collecting all functions to export, add Template, EncryptionUtilities, and Core functions explicitly
 $AllFunctionsToExport = @()
 $AllFunctionsToExport += $AllFunctions
-$AllFunctionsToExport += 'Read-WmrTemplateConfig', 'Test-WmrTemplateSchema', 'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache', 'Test-WmrEncryption'
+$AllFunctionsToExport += 'Read-WmrTemplateConfig', 'Test-WmrTemplateSchema', 'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache'
 $AllFunctionsToExport += 'Get-WmrFileState', 'Set-WmrFileState', 'Get-WmrRegistryState', 'Set-WmrRegistryState', 'Invoke-WmrTemplate'
 
 # Only export functions that actually exist
 $ExistingFunctions = @()
-$AllFunctionsToExport | ForEach-Object {
+$AllFunctionsToExport | Where-Object { $_ -and $_.Trim() -and $_ -notmatch '^(for|if|else|while|do)$' } | ForEach-Object {
     if (Get-Command $_ -ErrorAction SilentlyContinue) {
         $ExistingFunctions += $_
     }
@@ -444,7 +444,7 @@ $ExistingFunctions = $ExistingFunctions | Sort-Object -Unique
 # Always add Template and EncryptionUtilities functions to export list
 $TemplateAndEncryptionFunctions = @(
     'Read-WmrTemplateConfig', 'Test-WmrTemplateSchema',
-    'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache', 'Test-WmrEncryption'
+    'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache'
 )
 foreach ($fn in $TemplateAndEncryptionFunctions) {
     if ($ExistingFunctions -notcontains $fn -and (Get-Command $fn -ErrorAction SilentlyContinue)) {

@@ -1,4 +1,4 @@
-﻿function Sync-WindowsMelodyRecoveryScript {
+﻿function Sync-WindowsMelodyRecoveryScripts {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $false)]

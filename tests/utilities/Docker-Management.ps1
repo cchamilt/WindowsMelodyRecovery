@@ -451,7 +451,7 @@ function Show-ContainerStatus {
             default { "Gray" }
         }
 
-        Write-Information -MessageData "  $container : $status"  -InformationAction Continue-ForegroundColor $color
+        Write-Host "  $container : $status" -ForegroundColor $color
     }
 
     Write-Information -MessageData "" -InformationAction Continue
@@ -549,17 +549,25 @@ function Reset-DockerEnvironment {
     return Initialize-DockerEnvironment -Clean
 }
 
+# Add plural function aliases for compatibility
+Set-Alias -Name "Start-TestContainers" -Value "Start-TestContainer"
+Set-Alias -Name "Stop-TestContainers" -Value "Stop-TestContainer"
+Set-Alias -Name "Remove-TestContainers" -Value "Remove-TestContainer"
+
 # Export functions (only when loaded as a module)
 if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
     # Functions are automatically available when dot-sourced
 }
- else {
+else {
     Export-ModuleMember -Function @(
         'Test-DockerAvailable',
         'Get-ContainerStatus',
         'Test-ContainersRunning',
+        'Start-TestContainer',
         'Start-TestContainers',
+        'Stop-TestContainer',
         'Stop-TestContainers',
+        'Remove-TestContainer',
         'Remove-TestContainers',
         'Test-ContainerConnectivity',
         'Test-CloudMockHealth',

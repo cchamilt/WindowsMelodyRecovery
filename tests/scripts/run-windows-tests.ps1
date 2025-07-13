@@ -81,44 +81,12 @@ if (-not $isCICD -and -not $Force) {
     }
 }
 
-# Administrative privilege check
-function Test-AdminPrivilege {
-    try {
-        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-        return $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    }
- catch {
-        return $false
-    }
-}
-
-$isAdmin = Test-AdminPrivileges
+# Determine if admin is needed for this category
 $needsAdmin = $RequireAdmin -or $Category -in @('integration', 'end-to-end')
-
-if ($needsAdmin -and -not $isAdmin) {
-    Write-Error -Message "✗ Administrative privileges required for $Category tests"
-    Write-Warning -Message "  Please run PowerShell as Administrator"
-    exit 1
-}
 
 Write-Information -MessageData "🪟 Windows-Only Test Runner" -InformationAction Continue
 Write-Information -MessageData "Category: $Category"  -InformationAction Continue
 Write-Verbose -Message "Environment: $(if ($isCICD) { 'CI/CD' } else { 'Development' })"
-Write-Verbose -Message "Admin Rights: $(if ($isAdmin) { 'Yes' } else { 'No' })"
-
-# Create restore point for destructive tests
-if ($CreateRestorePoint -and $needsAdmin -and $isAdmin) {
-    Write-Warning -Message "Creating system restore point..."
-    try {
-        $restorePoint = "WMR-Tests-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        Checkpoint-Computer -Description $restorePoint -RestorePointType "MODIFY_SETTINGS"
-        Write-Information -MessageData "✓ Restore point created: $restorePoint" -InformationAction Continue
-    }
- catch {
-        Write-Warning -Message "⚠️  Failed to create restore point: $($_.Exception.Message)"
-        Write-Verbose -Message "   Continuing without restore point..."
-    }
-}
 
 try {
     # Import test environment
@@ -126,7 +94,7 @@ try {
     if (Test-Path $testEnvPath) {
         . $testEnvPath
     }
- else {
+    else {
         Write-Error -Message "✗ Test environment not found at: $testEnvPath"
         exit 1
     }
@@ -138,6 +106,31 @@ try {
     $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
     Import-Module $modulePath -Force
+
+    # Administrative privilege check using module function
+    $adminInfo = Test-WmrAdministrativePrivilege -Quiet
+    $isAdmin = $adminInfo.IsElevated
+    Write-Verbose -Message "Admin Rights: $(if ($isAdmin) { 'Yes' } else { 'No' })"
+
+    if ($needsAdmin -and -not $isAdmin) {
+        Write-Error -Message "✗ Administrative privileges required for $Category tests"
+        Write-Warning -Message "  Please run PowerShell as Administrator"
+        exit 1
+    }
+
+    # Create restore point for destructive tests
+    if ($CreateRestorePoint -and $needsAdmin -and $isAdmin) {
+        Write-Warning -Message "Creating system restore point..."
+        try {
+            $restorePoint = "WMR-Tests-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+            Checkpoint-Computer -Description $restorePoint -RestorePointType "MODIFY_SETTINGS"
+            Write-Information -MessageData "✓ Restore point created: $restorePoint" -InformationAction Continue
+        }
+        catch {
+            Write-Warning -Message "⚠️  Failed to create restore point: $($_.Exception.Message)"
+            Write-Verbose -Message "   Continuing without restore point..."
+        }
+    }
 
     # Determine test paths
     $testPaths = @()

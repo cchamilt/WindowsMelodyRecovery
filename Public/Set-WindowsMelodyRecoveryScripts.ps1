@@ -1,4 +1,4 @@
-﻿function Set-WindowsMelodyRecoveryScript {
+﻿function Set-WindowsMelodyRecoveryScripts {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]

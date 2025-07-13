@@ -1,5 +1,5 @@
 ﻿# Requires admin privileges
-function Remove-WindowsMelodyRecoveryTask {
+function Remove-WindowsMelodyRecoveryTasks {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]

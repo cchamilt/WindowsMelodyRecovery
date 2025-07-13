@@ -1,35 +1,32 @@
 @{
-    RootModule             = 'WindowsMelodyRecovery.psm1'
-    ModuleVersion          = '1.0.0'
-    GUID                   = '8a7f6674-c759-45f3-b26d-9a8e54d2eb14'
-    Author                 = 'Chris Hamilton'
-    CompanyName            = 'Fyber Labs'
-    Copyright              = '(c) 2024 Chris Hamilton. All rights reserved.'
-    Description            = 'Comprehensive Windows system recovery, backup, and configuration management tool with WSL integration and cloud storage support.'
-    PowerShellVersion      = '5.1'
-    DotNetFrameworkVersion = '4.7.2'
-    CLRVersion             = '4.0.30319'
-    ProcessorArchitecture  = 'Amd64'
+    RootModule         = 'WindowsMelodyRecovery.psm1'
+    ModuleVersion      = '1.0.0'
+    GUID               = 'a60338bd-2b57-4c2d-8c3a-025019cf317b'
+    Author             = 'Chris Hamilton'
+    CompanyName        = 'Fyber Labs'
+    Copyright          = '(c) 2025 Chris Hamilton. All rights reserved.'
+    Description        = 'Comprehensive Windows system recovery, backup, and configuration management tool with WSL integration and cloud storage support.'
+    PowerShellVersion  = '7.5.1'
 
     # Module dependencies
-    RequiredModules        = @()
+    RequiredModules    = @()
 
     # Required assemblies
-    RequiredAssemblies     = @()
+    RequiredAssemblies = @()
 
     # Script files to process as modules
-    ScriptsToProcess       = @(
+    ScriptsToProcess   = @(
         'Private\Core\WindowsMelodyRecovery.Core.ps1'
     )
 
     # Types to process
-    TypesToProcess         = @()
+    TypesToProcess     = @()
 
     # Format files
-    FormatsToProcess       = @()
+    FormatsToProcess   = @()
 
     # Functions to export
-    FunctionsToExport      = @(
+    FunctionsToExport  = @(
         # Core functions
         'Get-WindowsMelodyRecovery',
         'Set-WindowsMelodyRecovery',
@@ -77,6 +74,7 @@
         # Utility functions
         'Import-PrivateScript',
         'Convert-WmrPath',
+        'Test-WmrAdministrativePrivilege',
 
         # Encryption functions
         'Protect-WmrData',
@@ -95,15 +93,15 @@
     )
 
     # Cmdlets to export
-    CmdletsToExport        = @()
+    CmdletsToExport    = @()
 
     # Variables to export
-    VariablesToExport      = @(
+    VariablesToExport  = @(
         'WindowsMelodyRecoveryConfig'
     )
 
     # Aliases to export
-    AliasesToExport        = @(
+    AliasesToExport    = @(
         'wmr-init',
         'wmr-backup',
         'wmr-restore',
@@ -113,7 +111,7 @@
     )
 
     # Module-specific data
-    PrivateData            = @{
+    PrivateData        = @{
         PSData = @{
             Tags                       = @(
                 'Windows',
@@ -158,5 +156,5 @@
     }
 
     # Help info URI
-    HelpInfoUri            = 'https://github.com/fyberlabs/WindowsMelodyRecovery/wiki'
+    HelpInfoUri        = 'https://github.com/fyberlabs/WindowsMelodyRecovery/wiki'
 }

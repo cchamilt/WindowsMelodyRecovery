@@ -1,4 +1,4 @@
-﻿function Install-WindowsMelodyRecoveryTask {
+﻿function Install-WindowsMelodyRecoveryTasks {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
@@ -35,21 +35,21 @@
     # Define scheduled tasks
     $tasks = @(
         @{
-            Name = "WindowsMelodyRecovery-Backup"
+            Name        = "WindowsMelodyRecovery-Backup"
             Description = "Daily backup of Windows configuration"
-            Action = "powershell.exe"
-            Arguments = "-NoProfile -Command `"Backup-WindowsMelodyRecovery`""
-            Trigger = "Daily"
-            StartTime = "02:00"
+            Action      = "powershell.exe"
+            Arguments   = "-NoProfile -Command `"Backup-WindowsMelodyRecovery`""
+            Trigger     = "Daily"
+            StartTime   = "02:00"
         },
         @{
-            Name = "WindowsMelodyRecovery-Update"
+            Name        = "WindowsMelodyRecovery-Update"
             Description = "Weekly update of Windows configuration"
-            Action = "powershell.exe"
-            Arguments = "-NoProfile -Command `"Update-WindowsMelodyRecovery`""
-            Trigger = "Weekly"
-            DaysOfWeek = "Sunday"
-            StartTime = "03:00"
+            Action      = "powershell.exe"
+            Arguments   = "-NoProfile -Command `"Update-WindowsMelodyRecovery`""
+            Trigger     = "Weekly"
+            DaysOfWeek  = "Sunday"
+            StartTime   = "03:00"
         }
     )
 
