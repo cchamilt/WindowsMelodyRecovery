@@ -88,7 +88,7 @@ function Show-DirectoryContent {
             if ($_.PSIsContainer) {
                 Write-Information -MessageData "📁 $relativePath" -InformationAction Continue
             }
- else {
+            else {
                 $size = if ($_.Length -lt 1KB) { "$($_.Length) B" } elseif ($_.Length -lt 1MB) { "{0:N1} KB" -f ($_.Length / 1KB) } else { "{0:N1} MB" -f ($_.Length / 1MB) }
                 Write-Verbose -Message "📄 $relativePath ($size)"
             }
@@ -145,7 +145,7 @@ try {
     $templateFullPath = if (Test-Path $TemplatePath) {
         $TemplatePath
     }
- else {
+    else {
         Join-Path $scriptRoot "Templates\System\$TemplatePath"
     }
 
@@ -168,7 +168,7 @@ try {
     if ($Force) {
         Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir
     }
- else {
+    else {
         Invoke-WmrTemplate -TemplatePath $templateFullPath -Operation "Restore" -StateFilesDirectory $restoreStateDir -WhatIf
     }
     Write-Information -MessageData "✓ Template restore completed successfully" -InformationAction Continue
@@ -178,7 +178,7 @@ try {
     if ($Force) {
         Write-Error -Message "Note: Actual restore operations were performed on the live system."
     }
- else {
+    else {
         Write-Information -MessageData "Note: This was a safe simulation. No actual system changes were made." -InformationAction Continue
     }
     Write-Information -MessageData "Restore data processed from: $restoreStateDir" -InformationAction Continue
@@ -186,12 +186,12 @@ try {
     Write-Information -MessageData "`nTest restore completed! Check the console output above for details." -InformationAction Continue
 
 }
- catch {
+catch {
     Write-Error -Message "Test restore failed: $($_.Exception.Message)"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor DarkRed
     exit 1
 }
- finally {
+finally {
     # Restore original config
     if ($originalConfig) {
         $global:WindowsMelodyRecovery = $originalConfig

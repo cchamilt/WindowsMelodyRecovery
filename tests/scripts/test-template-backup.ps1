@@ -70,7 +70,7 @@ function Show-DirectoryContent {
             if ($_.PSIsContainer) {
                 Write-Information -MessageData "📁 $relativePath" -InformationAction Continue
             }
- else {
+            else {
                 $size = if ($_.Length -lt 1KB) { "$($_.Length) B" } elseif ($_.Length -lt 1MB) { "{0:N1} KB" -f ($_.Length / 1KB) } else { "{0:N1} MB" -f ($_.Length / 1MB) }
                 Write-Verbose -Message "📄 $relativePath ($size)"
             }
@@ -114,7 +114,7 @@ try {
                 Write-Information -MessageData "✓ $($templateFile.Name) backup completed successfully" -InformationAction Continue
                 $successCount++
             }
- catch {
+            catch {
                 Write-Error -Message "✗ $($templateFile.Name) backup failed: $($_.Exception.Message)"
                 $failCount++
             }
@@ -126,12 +126,12 @@ try {
         Write-Warning -Message "Total: $($successCount + $failCount)"
 
     }
- else {
+    else {
         # Test single template
         $templateFullPath = if (Test-Path $TemplatePath) {
             $TemplatePath
         }
- else {
+        else {
             Join-Path $scriptRoot "Templates\System\$TemplatePath"
         }
 
@@ -156,12 +156,12 @@ try {
     Write-Information -MessageData "`nTest backup completed! Use test-template-restore.ps1 to test restore operations." -InformationAction Continue
 
 }
- catch {
+catch {
     Write-Error -Message "Test backup failed: $($_.Exception.Message)"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor DarkRed
     exit 1
 }
- finally {
+finally {
     # Restore original config
     if ($originalConfig) {
         $global:WindowsMelodyRecovery = $originalConfig

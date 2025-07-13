@@ -56,7 +56,7 @@ function Test-DockerAvailable {
         return $true
 
     }
- catch {
+    catch {
         Write-Warning "Failed to check Docker availability: $($_.Exception.Message)"
         return $false
     }
@@ -84,11 +84,11 @@ function Get-ContainerStatus {
                 if ($LASTEXITCODE -eq 0) {
                     $containerStatus[$container] = $status
                 }
- else {
+                else {
                     $containerStatus[$container] = "not_found"
                 }
             }
- catch {
+            catch {
                 $containerStatus[$container] = "error"
             }
         }
@@ -96,7 +96,7 @@ function Get-ContainerStatus {
         return $containerStatus
 
     }
- catch {
+    catch {
         Write-Warning "Failed to get container status: $($_.Exception.Message)"
         return @{}
     }
@@ -205,7 +205,7 @@ function Start-TestContainer {
                         $failedBuilds += $service
                         Write-Warning "Failed to build $service"
                     }
- else {
+                    else {
                         Write-Information -MessageData "✓ $service built successfully" -InformationAction Continue
                     }
                 }
@@ -215,7 +215,7 @@ function Start-TestContainer {
                     return $false
                 }
             }
- else {
+            else {
                 Write-Information -MessageData "✓ All Docker images built successfully" -InformationAction Continue
             }
         }
@@ -258,7 +258,7 @@ function Start-TestContainer {
         if (Test-ContainerConnectivity) {
             Write-Information -MessageData "✓ Container connectivity verified" -InformationAction Continue
         }
- else {
+        else {
             Write-Warning "Container connectivity test failed"
             return $false
         }
@@ -267,7 +267,7 @@ function Start-TestContainer {
         if (Test-CloudMockHealth) {
             Write-Information -MessageData "✓ Cloud mock server is healthy" -InformationAction Continue
         }
- else {
+        else {
             Write-Warning -Message "⚠ Cloud mock server health check failed (continuing anyway)"
         }
 
@@ -275,7 +275,7 @@ function Start-TestContainer {
         return $true
 
     }
- catch {
+    catch {
         Write-Error "Failed to start test containers: $($_.Exception.Message)"
         return $false
     }
@@ -304,7 +304,7 @@ function Stop-TestContainer {
         if ($Force) {
             docker compose -f $script:DockerComposeFile kill 2>&1 | Out-Null
         }
- else {
+        else {
             docker compose -f $script:DockerComposeFile stop 2>&1 | Out-Null
         }
 
@@ -312,13 +312,13 @@ function Stop-TestContainer {
             Write-Information -MessageData "✓ Containers stopped successfully" -InformationAction Continue
             return $true
         }
- else {
+        else {
             Write-Warning "Failed to stop some containers"
             return $false
         }
 
     }
- catch {
+    catch {
         Write-Error "Failed to stop containers: $($_.Exception.Message)"
         return $false
     }
@@ -355,13 +355,13 @@ function Remove-TestContainer {
             Write-Information -MessageData "✓ Containers and volumes removed successfully" -InformationAction Continue
             return $true
         }
- else {
+        else {
             Write-Warning "Failed to remove some containers or volumes"
             return $false
         }
 
     }
- catch {
+    catch {
         Write-Error "Failed to remove containers: $($_.Exception.Message)"
         return $false
     }
@@ -385,13 +385,13 @@ function Test-ContainerConnectivity {
         if ($LASTEXITCODE -eq 0) {
             return $true
         }
- else {
+        else {
             Write-Warning "Container connectivity test failed: $testResult"
             return $false
         }
 
     }
- catch {
+    catch {
         Write-Warning "Container connectivity test failed: $($_.Exception.Message)"
         return $false
     }
@@ -415,13 +415,13 @@ function Test-CloudMockHealth {
         if ($healthResponse.status -eq "healthy") {
             return $true
         }
- else {
+        else {
             Write-Warning "Cloud mock server returned unhealthy status: $($healthResponse.status)"
             return $false
         }
 
     }
- catch {
+    catch {
         Write-Warning "Cloud mock server health check failed: $($_.Exception.Message)"
         return $false
     }

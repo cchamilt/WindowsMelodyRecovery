@@ -110,7 +110,7 @@ function Resolve-WmrTemplateInheritance {
         # Step 2: Apply machine-specific overrides
         if ($TemplateConfig.machine_specific) {
             Write-Verbose "Processing machine-specific configuration overrides"
-            $applicableMachineConfigs = Get-WmrApplicableMachineConfigurations -MachineSpecificConfigs $TemplateConfig.machine_specific -MachineContext $MachineContext
+            $applicableMachineConfigs = Get-WmrApplicableMachineConfiguration -MachineSpecificConfigs $TemplateConfig.machine_specific -MachineContext $MachineContext
 
             foreach ($machineConfig in $applicableMachineConfigs) {
                 $resolvedConfig = Merge-WmrMachineSpecificConfiguration -ResolvedConfig $resolvedConfig -MachineConfig $machineConfig -InheritanceConfig $inheritanceConfig
@@ -155,10 +155,10 @@ function Get-WmrInheritanceConfiguration {
     )
 
     $defaultConfig = @{
-        inheritance_mode = "merge"
+        inheritance_mode   = "merge"
         machine_precedence = $true
-        validation_level = "moderate"
-        fallback_strategy = "use_shared"
+        validation_level   = "moderate"
+        fallback_strategy  = "use_shared"
     }
 
     $config = $defaultConfig.Clone()

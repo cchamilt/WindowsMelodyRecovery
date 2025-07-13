@@ -1,5 +1,4 @@
 ﻿# Private/Core/RegistryState.ps1
-
 # Requires Convert-WmrPath from PathUtilities.ps1
 # Requires EncryptionUtilities.ps1 for encryption/decryption (will be created in Task 2.5)
 
@@ -24,14 +23,15 @@ function Get-WmrRegistryMockData {
     Write-Verbose "Mock registry activated for path: $RegistryPath"
     Write-Information -MessageData "    Mock registry debug: mockDataRoot=$mockDataRoot, registryMockPath would be: $(if ($mockDataRoot) { Join-Path $mockDataRoot "Registry" } else { "null" })" -InformationAction Continue
 
-            # Get the source system path where we placed our mock data
+    # Get the source system path where we placed our mock data
     $mockDataRoot = $env:WMR_STATE_PATH
     Write-Information -MessageData "    WMR_STATE_PATH environment variable: '$env:WMR_STATE_PATH'" -InformationAction Continue
 
     # If WMR_STATE_PATH is set and valid, use it directly
     if ($mockDataRoot -and (Test-Path $mockDataRoot)) {
         Write-Information -MessageData "    Using WMR_STATE_PATH: $mockDataRoot" -InformationAction Continue
-    } else {
+    }
+    else {
         # Try to find the actual directory in both Windows and Linux paths
         $actualMockDirs = @()
 
@@ -49,7 +49,8 @@ function Get-WmrRegistryMockData {
             # Use the most recent test directory
             $mockDataRoot = Join-Path $actualMockDirs[0].FullName "SourceSystem"
             Write-Information -MessageData "    Found mock data root: $mockDataRoot" -InformationAction Continue
-        } else {
+        }
+        else {
             Write-Information -MessageData "    No mock data directories found in /tmp or $env:TEMP" -InformationAction Continue
             $mockDataRoot = $null
         }
@@ -206,7 +207,7 @@ function Get-WmrRegistryState {
 
     # Check if we're in a test environment and should use mock data
     $mockData = Get-WmrRegistryMockData -RegistryPath $resolvedPath
-    Write-Information -MessageData "    Mock data result: $($mockData -ne $null)" -InformationAction Continue
+    Write-Information -MessageData "    Mock data result: $($null -ne $mockData)" -InformationAction Continue
     if ($mockData) {
         Write-Information -MessageData "    Using mock registry data for testing" -InformationAction Continue
 
@@ -220,9 +221,11 @@ function Get-WmrRegistryState {
                 $mockValue = $null
                 if ($mockData.MockData.$($RegistryConfig.key_name)) {
                     $mockValue = $mockData.MockData.$($RegistryConfig.key_name)
-                } elseif ($mockData.MockData.MockValue) {
+                }
+                elseif ($mockData.MockData.MockValue) {
                     $mockValue = $mockData.MockData.MockValue
-                } else {
+                }
+                else {
                     $mockValue = "Mock value for $($RegistryConfig.key_name)"
                 }
 

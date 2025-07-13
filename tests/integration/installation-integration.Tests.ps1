@@ -22,7 +22,7 @@ BeforeAll {
         $TestManifestPath = Join-Path $moduleInfo.ModuleBase "WindowsMelodyRecovery.psd1"
         $modulePath = $moduleInfo.ModuleBase
     }
- else {
+    else {
         # Fallback to relative paths for local testing
         $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
         $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psd1"

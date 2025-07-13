@@ -106,7 +106,7 @@ function ConvertFrom-TestResult {
             Failed = 0
         }
     }
- else {
+    else {
         # If failed, return failure
         return @{
             Passed = 0
@@ -141,7 +141,7 @@ function Invoke-UnitTest {
             Output = $output
         }
     }
- catch {
+    catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ Unit tests crashed: $_"
         Write-TestResult "Unit Tests" $false 0 1 $duration.TotalSeconds
@@ -163,12 +163,12 @@ function Invoke-FileOperationTest {
     $startTime = Get-Date
     try {
         $scriptPath = Join-Path $PSScriptRoot "run-file-operation-tests.ps1"
-        $args = @()
+        $argsScript = @()
         if ($SkipCleanup) {
-            $args += "-SkipCleanup"
+            $argsScript += "-SkipCleanup"
         }
 
-        $output = & $scriptPath @args
+        $output = & $scriptPath @argsScript
         $success = $LASTEXITCODE -eq 0
 
         # Parse results from output
@@ -187,7 +187,7 @@ function Invoke-FileOperationTest {
             Output = $output
         }
     }
- catch {
+    catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ File operation tests crashed: $_"
         Write-TestResult "File Operation Tests" $false 0 1 $duration.TotalSeconds
@@ -224,7 +224,7 @@ function Invoke-IntegrationTest {
         if ($SkipCleanup) {
             $output = & $scriptPath -TestSuite "All" -NoCleanup
         }
- else {
+        else {
             $output = & $scriptPath -TestSuite "All"
         }
         $success = $LASTEXITCODE -eq 0
@@ -254,7 +254,7 @@ function Invoke-IntegrationTest {
         if ($totalTestsLines) {
             $totalTestsLines | ForEach-Object { Write-Verbose -Message "    $_" }
         }
- else {
+        else {
             Write-Verbose -Message "    (none found)"
         }
         Write-Verbose -Message "  Lines containing 'Total':"
@@ -262,7 +262,7 @@ function Invoke-IntegrationTest {
         if ($totalLines) {
             $totalLines | ForEach-Object { Write-Verbose -Message "    $_" }
         }
- else {
+        else {
             Write-Verbose -Message "    (none found)"
         }
         Write-Verbose -Message "  Passed match: $($null -ne $passedMatch)"
@@ -283,7 +283,7 @@ function Invoke-IntegrationTest {
             Output = $outputLines
         }
     }
- catch {
+    catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ Integration tests crashed: $_"
         Write-TestResult "Integration Tests" $false 0 1 $duration.TotalSeconds
@@ -338,7 +338,7 @@ function Invoke-WindowsTest {
             Output = $output
         }
     }
- catch {
+    catch {
         $duration = (Get-Date) - $startTime
         Write-Error -Message "❌ Windows tests crashed: $_"
         Write-TestResult "Windows Tests" $false 0 1 $duration.TotalSeconds
@@ -392,7 +392,7 @@ function Write-FinalSummary {
     $successRate = if (($totalPassed + $totalFailed) -gt 0) {
         [math]::Round(($totalPassed / ($totalPassed + $totalFailed)) * 100, 1)
     }
- else { 0 }
+    else { 0 }
 
     Write-Information -MessageData "  Success Rate: $successRate%"  -InformationAction Continue-ForegroundColor $(if ($successRate -eq 100) { "Green" } else { "Yellow" })
 
@@ -400,7 +400,7 @@ function Write-FinalSummary {
     if ($allSuccess) {
         Write-Information -MessageData "🎉 ALL TEST LEVELS PASSED!" -InformationAction Continue
     }
- else {
+    else {
         Write-Error -Message "❌ Some test levels failed"
     }
 
@@ -510,12 +510,12 @@ try {
     if ($overallSuccess) {
         exit 0
     }
- else {
+    else {
         exit 1
     }
 
 }
- catch {
+catch {
     Write-Error -Message "💥 Master test runner failed: $($_.Exception.Message)"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1

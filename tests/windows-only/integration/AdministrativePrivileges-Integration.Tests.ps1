@@ -218,7 +218,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             }
         }
 
-        It "Should test Install-WindowsMelodyRecoveryTasks with admin privileges" {
+        It "Should test Install-WindowsMelodyRecoveryTask with admin privileges" {
             # Mock configuration for testing
             Mock -CommandName "Get-WindowsMelodyRecovery" -MockWith {
                 return @{
@@ -241,7 +241,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             }
 
             # Test the function
-            $result = Install-WindowsMelodyRecoveryTasks -NoPrompt
+            $result = Install-WindowsMelodyRecoveryTask -NoPrompt
             $result | Should -Be $true
 
             Assert-MockCalled -CommandName "Get-WindowsMelodyRecovery" -Times 1

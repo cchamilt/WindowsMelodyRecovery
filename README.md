@@ -263,12 +263,12 @@ Setup-WindowsMelodyRecovery
 - `Update-WindowsMelodyRecovery` - Update system packages and configurations
 
 ### Task Management
-- `Install-WindowsMelodyRecoveryTasks` - Install scheduled tasks for automated operations
-- `Remove-WindowsMelodyRecoveryTasks` - Remove scheduled tasks
+- `Install-WindowsMelodyRecoveryTask` - Install scheduled tasks for automated operations
+- `Remove-WindowsMelodyRecoveryTask` - Remove scheduled tasks
 
 ### Script Configuration
-- `Set-WindowsMelodyRecoveryScripts` - Configure which backup/restore/setup scripts are enabled
-- `Sync-WindowsMelodyRecoveryScripts` - Synchronize script configurations
+- `Set-WindowsMelodyRecoveryScript` - Configure which backup/restore/setup scripts are enabled
+- `Sync-WindowsMelodyRecoveryScript` - Synchronize script configurations
 
 ### Utilities
 - `Convert-ToWinget` - Convert package installations to Winget format
@@ -456,16 +456,16 @@ Set-WindowsMelodyRecovery -BackupRoot "D:\Backups"
 Set-WindowsMelodyRecovery -CloudProvider "GoogleDrive" -CloudPath "G:\My Drive\Backups"
 
 # Configure script enablement
-Set-WindowsMelodyRecoveryScripts
+Set-WindowsMelodyRecoveryScript
 ```
 
 ### Task Automation
 ```powershell
 # Install scheduled tasks for automation
-Install-WindowsMelodyRecoveryTasks
+Install-WindowsMelodyRecoveryTask
 
 # Remove scheduled tasks
-Remove-WindowsMelodyRecoveryTasks
+Remove-WindowsMelodyRecoveryTask
 ```
 
 ## Module Architecture

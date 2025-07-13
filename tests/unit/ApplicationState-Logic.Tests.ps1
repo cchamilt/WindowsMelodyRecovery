@@ -14,7 +14,7 @@ BeforeAll {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
     }
- catch {
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -102,7 +102,7 @@ Windows Terminal    Microsoft.WindowsTerminal 1.0.0
 Package A           App.PackageA          1.2.3
 "@
                 }
- else { throw "Unexpected Command: $Command" }
+                else { throw "Unexpected Command: $Command" }
             }
 
             # Mock Get-Content to return the expected parsed JSON

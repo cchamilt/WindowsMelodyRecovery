@@ -24,7 +24,8 @@ BeforeAll {
     $testIdSuffix = Get-Random -Minimum 10000000 -Maximum 99999999
     $script:TestRoot = if ($env:TEMP) {
         Join-Path $env:TEMP "WMR-EndToEnd-$testIdSuffix"
-    } else {
+    }
+ else {
         "/tmp/WMR-EndToEnd-$testIdSuffix"
     }
 
@@ -472,7 +473,7 @@ BeforeAll {
 Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd", "Workflow" {
 
     Context "Phase 1: Installation and Initialization" {
-                It "Should install and initialize Windows Melody Recovery successfully" {
+        It "Should install and initialize Windows Melody Recovery successfully" {
             # Initialize mock source system data first
             Initialize-MockSourceSystem
 
@@ -728,7 +729,8 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
                 Write-Information -MessageData "✅ Restore process created $($restoredFiles.Count) files" -InformationAction Continue
                 # For now, consider any restored files as a success
                 $restoredFiles.Count | Should -BeGreaterThan 0
-            } else {
+            }
+ else {
                 Write-Warning -Message "⚠️ Restore function may need implementation to create restored files"
                 # For now, just verify the restore directory exists (restore function ran without error)
                 Test-Path $targetRestorePath | Should -Be $true
@@ -795,7 +797,8 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
 
             if ($restoredFiles -and $restoredFiles.Count -gt 0) {
                 Write-Information -MessageData "✅ Found $($restoredFiles.Count) restored files" -InformationAction Continue
-            } else {
+            }
+ else {
                 Write-Warning -Message "⚠️ No restored files found - restore functionality may need implementation"
                 # For now, just pass since backup is working correctly
             }
@@ -815,7 +818,8 @@ Describe "Windows Melody Recovery - Complete End-to-End Workflow" -Tag "EndToEnd
 
             if ($restoredFiles -and $restoredFiles.Count -gt 0) {
                 Write-Information -MessageData "✅ Configuration data files found in restore directory ($($restoredFiles.Count) files)" -InformationAction Continue
-            } else {
+            }
+ else {
                 Write-Warning -Message "⚠️ No restored files found - restore functionality may need implementation"
                 # For now, just pass the test since the main backup functionality is working
             }

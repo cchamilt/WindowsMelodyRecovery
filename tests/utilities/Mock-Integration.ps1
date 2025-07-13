@@ -188,7 +188,7 @@ function Update-ApplicationMockData {
             if ($configFile.EndsWith('.json')) {
                 $configContent | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
             }
- else {
+            else {
                 $configContent -join "`n" | Set-Content -Path $configPath -Encoding UTF8
             }
         }
@@ -680,7 +680,7 @@ function Test-MockDataIntegrity {
             $componentIssues += "Component directory missing: $component"
             $validation.Issues += "Missing component: $component"
         }
- else {
+        else {
             # Check for required files based on component type
             $requiredFiles = switch ($component) {
                 'applications' { @('winget', 'chocolatey', 'scoop') }
@@ -696,7 +696,7 @@ function Test-MockDataIntegrity {
                 $filePath = if ($requiredFile.EndsWith('.json')) {
                     Join-Path $componentPath $requiredFile
                 }
- else {
+                else {
                     Join-Path $componentPath "$requiredFile.json"
                 }
 
@@ -716,7 +716,7 @@ function Test-MockDataIntegrity {
         if ($componentValid) {
             $validation.Summary.ValidComponents++
         }
- else {
+        else {
             $validation.Summary.IssuesFound += $componentIssues.Count
         }
     }
@@ -728,7 +728,7 @@ function Test-MockDataIntegrity {
         Write-Information -MessageData "✅ Mock data validation passed" -InformationAction Continue
         Write-Verbose -Message "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)"
     }
- else {
+    else {
         Write-Error -Message "❌ Mock data validation failed"
         Write-Verbose -Message "   Components: $($validation.Summary.ValidComponents)/$($validation.Summary.TotalComponents)"
         Write-Error -Message "   Issues: $($validation.Summary.IssuesFound)"

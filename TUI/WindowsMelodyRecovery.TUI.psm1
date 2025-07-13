@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Displays the main Text User Interface (TUI) for Windows Melody Recovery.
 .DESCRIPTION
@@ -30,6 +30,51 @@ function Show-WmrTui {
         $window = [Terminal.Gui.Window]::new()
         $window.Title = "Windows Melody Recovery"
 
+        # Load configuration
+        $moduleRoot = (Get-Module WindowsMelodyRecovery.TUI).ModuleBase
+        $configPath = Join-Path $moduleRoot '..\Config\scripts-config.json'
+        if (-not (Test-Path $configPath)) {
+            $configPath = Join-Path $moduleRoot '..\Templates\scripts-config.json'
+        }
+
+        try {
+            $scriptsConfig = Get-Content $configPath -Raw | ConvertFrom-Json
+        }
+        catch {
+            [Terminal.Gui.MessageBox]::ErrorQuery('Error', 'Failed to load config: ' + $_.Exception.Message, 'OK')
+            return
+        }
+
+        # Initialize configuration object
+        $script:Config = @{
+            BackupRoot = 'C:\Backups\WindowsMelodyRecovery'
+            MachineName = $env:COMPUTERNAME
+            CloudProvider = 'None'
+            IsInitialized = $false
+            EmailSettings = @{
+                ToAddress = ''
+            }
+            NotificationSettings = @{
+                EnableEmail = $false
+            }
+            BackupSettings = @{
+                RetentionDays = 30
+                Schedule = 'Weekly'
+                EnableScheduled = $false
+            }
+            LoggingSettings = @{
+                Level = 'Information'
+                Path = 'logs'
+            }
+            SharedConfigPath = ''
+            UseSharedConfig = $false
+            PackageSettings = @{
+                EnableVersionPinning = $false
+                EnableAutoUpdates = $false
+            }
+            ModuleVersion = '1.0.0'
+        }
+
         # Create Menu Bar
         $menu = [Terminal.Gui.MenuBar]::new(@(
                 [Terminal.Gui.MenuBarItem]::new("_File", @(
@@ -40,7 +85,9 @@ function Show-WmrTui {
                                 $selected = @()
                                 foreach ($cat in $categoryNodes.Values) {
                                     foreach ($child in $cat.Children) {
-                                        if ($child.Text -match '\[X\]') { $selected += $child.Tag.name }
+                                        if ($child.Text -match '\[X\]') {
+                                            $selected += $child.Tag.name
+                                        }
                                     }
                                 }
                                 if ($selected.Count -gt 0) {
@@ -52,7 +99,9 @@ function Show-WmrTui {
                                 $selected = @()
                                 foreach ($cat in $categoryNodes.Values) {
                                     foreach ($child in $cat.Children) {
-                                        if ($child.Text -match '\[X\]') { $selected += $child.Tag.name }
+                                        if ($child.Text -match '\[X\]') {
+                                            $selected += $child.Tag.name
+                                        }
                                     }
                                 }
                                 if ($selected.Count -gt 0) {
@@ -67,81 +116,38 @@ function Show-WmrTui {
             ))
         $top.Add($menu)
 
-        # Create Main Content Frame
+        # Create main content area
         $mainFrame = [Terminal.Gui.FrameView]::new("Components")
         $mainFrame.X = 0
-        $mainFrame.Y = 1 # Position below the menu bar
+        $mainFrame.Y = 1
         $mainFrame.Width = [Terminal.Gui.Dim]::Fill()
-        $mainFrame.Height = [Terminal.Gui.Dim]::Fill() - 1 # Leave space for status bar
-        $window.Add($mainFrame)
+        $mainFrame.Height = [Terminal.Gui.Dim]::Fill(1)
 
-        # Get component names from the template files
-        $templatePath = Join-Path $PSScriptRoot '..\\Templates\\System'
-        $componentFiles = Get-ChildItem -Path $templatePath -Filter *.yaml
-        $componentNames = $componentFiles | ForEach-Object { $_.BaseName }
-
-        # Create a container for the component list and the content view
-        $listPane = [Terminal.Gui.FrameView]::new("Components")
-        $listPane.Width = [Terminal.Gui.Dim]::Percent(30)
+        # Create left pane for component list
+        $listPane = [Terminal.Gui.FrameView]::new("Available Components")
+        $listPane.X = 0
+        $listPane.Y = 0
+        $listPane.Width = [Terminal.Gui.Dim]::Percent(50)
         $listPane.Height = [Terminal.Gui.Dim]::Fill()
 
-        $contentPane = [Terminal.Gui.FrameView]::new("Content")
-        $contentPane.X = [Terminal.Gui.Pos]::Right($listPane)
-        $contentPane.Width = [Terminal.Gui.Dim]::Fill()
+        # Create right pane for content display
+        $contentPane = [Terminal.Gui.FrameView]::new("Configuration")
+        $contentPane.X = [Terminal.Gui.Pos]::Percent(50)
+        $contentPane.Y = 0
+        $contentPane.Width = [Terminal.Gui.Dim]::Percent(50)
         $contentPane.Height = [Terminal.Gui.Dim]::Fill()
 
-        # Create a ListView for the components
-        $componentList = [Terminal.Gui.ListView]::new($componentNames)
-        $componentList.Width = [Terminal.Gui.Dim]::Fill()
-        $componentList.Height = [Terminal.Gui.Dim]::Fill()
-        $componentList.AllowsMarking = $true # Allows checking items
-
-        # Create a TextView for the file content
+        # Create content view
         $contentView = [Terminal.Gui.TextView]::new()
+        $contentView.ReadOnly = $true
         $contentView.Width = [Terminal.Gui.Dim]::Fill()
         $contentView.Height = [Terminal.Gui.Dim]::Fill()
-        $contentView.ReadOnly = $true
-
-        $componentList.add_SelectedItemChanged(
-            {
-                param($listArgs)
-                if ($null -ne $listArgs.Value) {
-                    $selectedComponent = $listArgs.Value.ToString()
-                    $filePath = Join-Path $templatePath "$selectedComponent.yaml"
-                    if (Test-Path $filePath) {
-                        $contentView.Text = [System.IO.File]::ReadAllText($filePath)
-                    }
-                }
-            }
-        )
-
-        $listPane.Add($componentList)
         $contentPane.Add($contentView)
-        $mainFrame.Add($listPane, $contentPane)
-
-        # Create Status Bar
-        $statusBar = [Terminal.Gui.StatusBar]::new(@(
-                [Terminal.Gui.StatusItem]::new([Terminal.Gui.Key]::CtrlMask -bor [Terminal.Gui.Key]::Q, "~^Q~ Quit", { [Terminal.Gui.Application]::RequestStop() })
-            ))
-        $top.Add($statusBar)
-
-        # Load configuration
-        $moduleRoot = (Get-Module WindowsMelodyRecovery.TUI).ModuleBase
-        $configPath = Join-Path $moduleRoot '..\\Config\\scripts-config.json'
-        if (-not (Test-Path $configPath)) {
-            $configPath = Join-Path $moduleRoot '..\\Templates\\scripts-config.json'
-        }
-        $scriptsConfig = Get-Content $configPath -Raw | ConvertFrom-Json
 
         # Build tree structure
-        $tree = New-Object Terminal.Gui.TreeView
+        $tree = [Terminal.Gui.TreeView]::new()
         $tree.Width = [Terminal.Gui.Dim]::Fill()
         $tree.Height = [Terminal.Gui.Dim]::Fill()
-        $tree.TreeBuilder = {
-            param($node)
-            $children = @()
-            return $children
-        } # Custom builder if needed, but perhaps build manually
 
         # Categories
         $categoryNodes = @{}
@@ -151,17 +157,33 @@ function Show-WmrTui {
             $tree.AddObject($categoryNode)
         }
 
-        # Add items to categories (using backup as example, or combine)
+        # Add items to categories
         foreach ($item in $scriptsConfig.backup.enabled) {
             $cat = $item.category
             if ($categoryNodes.ContainsKey($cat)) {
-                $itemNode = [PSCustomObject]@{ Text = "$($item.name) $(if($item.enabled){'[X]'}else{'[ ]'})"; Tag = $item; Children = @() }
+                $itemNode = [PSCustomObject]@{
+                    Text = "$($item.name) $(if($item.enabled){'[X]'}else{'[ ]'})"
+                    Tag = $item
+                    Children = @()
+                }
                 $categoryNodes[$cat].Children += $itemNode
             }
         }
-        # Similarly for restore and setup if needed
 
-        # Toggle enabled on select or key
+        # Add restore/setup items
+        foreach ($item in $scriptsConfig.restore.enabled + $scriptsConfig.setup.enabled) {
+            $cat = $item.category
+            if ($categoryNodes.ContainsKey($cat)) {
+                $itemNode = [PSCustomObject]@{
+                    Text = "$($item.name) ($(if($item.function.StartsWith('Restore')){'Restore'}else{'Setup'})) $(if($item.enabled){'[X]'}else{'[ ]'})"
+                    Tag = $item
+                    Children = @()
+                }
+                $categoryNodes[$cat].Children += $itemNode
+            }
+        }
+
+        # Toggle enabled on spacebar
         $tree.add_KeyDown({
                 if ($_.KeyEvent.Key -eq [Terminal.Gui.Key]::Space) {
                     $selected = $tree.SelectedObject
@@ -174,6 +196,7 @@ function Show-WmrTui {
                 }
             })
 
+        # Update content view on selection
         $tree.add_SelectedObjectChanged({
                 param($treeArgs)
                 if ($treeArgs.NewValue -and $treeArgs.NewValue.Tag) {
@@ -184,293 +207,287 @@ function Show-WmrTui {
                 }
             })
 
-        # Replace componentList with tree
         $listPane.Add($tree)
+        $mainFrame.Add($listPane, $contentPane)
+
+        # Create Status Bar
+        $statusBar = [Terminal.Gui.StatusBar]::new(@(
+                [Terminal.Gui.StatusItem]::new([Terminal.Gui.Key]::CtrlMask -bor [Terminal.Gui.Key]::Q, "~^Q~ Quit", { [Terminal.Gui.Application]::RequestStop() })
+            ))
+        $top.Add($statusBar)
 
         # Add Save menu
         $menu.MenuItems[0].Children.Add(
             [Terminal.Gui.MenuItem]::new("_Save Config", "", {
                     $json = $scriptsConfig | ConvertTo-Json -Depth 10
-                    Set-Content -Path (Join-Path $moduleRoot '..\\Config\\scripts-config.json') -Value $json
+                    Set-Content -Path (Join-Path $moduleRoot '..\Config\scripts-config.json') -Value $json
                     [Terminal.Gui.MessageBox]::Query('Save', 'Configuration saved.', 'OK')
                 })
         )
 
-        # Update actions to use actual calls
-        # For backup:
-        # Collect enabled from config, but since TUI edits in memory, perhaps save first or pass list
-        # For now, mock with message, but add call to Backup-WindowsMelodyRecovery -Components $selectedItems
-
         # Replace mainFrame content with TabView
-        $tabView = New-Object Terminal.Gui.TabView
+        $tabView = [Terminal.Gui.TabView]::new()
         $tabView.Width = [Terminal.Gui.Dim]::Fill()
         $tabView.Height = [Terminal.Gui.Dim]::Fill()
 
-        # Tab 1: Components (existing)
-        $componentsTab = New-Object Terminal.Gui.Tab
+        # Tab 1: Components
+        $componentsTab = [Terminal.Gui.Tab]::new()
         $componentsTab.Title = 'Components'
-        $componentsTab.View = $mainFrame  # Reuse existing, but mainFrame is FrameView, adjust
-        # Actually, move listPane and contentPane into a new FrameView for tab
-        $componentsFrame = New-Object Terminal.Gui.FrameView 'Components'
+        $componentsFrame = [Terminal.Gui.FrameView]::new('Components')
         $componentsFrame.Add($listPane, $contentPane)
         $componentsTab.View = $componentsFrame
         $tabView.AddTab($componentsTab, $true)
 
         # Tab 2: Initialization Wizard
-        $initTab = New-Object Terminal.Gui.Tab
+        $initTab = [Terminal.Gui.Tab]::new()
         $initTab.Title = 'Initialization'
-        $initFrame = New-Object Terminal.Gui.FrameView 'Setup Wizard'
+        $initFrame = [Terminal.Gui.FrameView]::new('Setup Wizard')
 
         # Step 1: Basic Configuration
-        $stepLabel = New-Object Terminal.Gui.Label -ArgumentList 1,1,'Step 1: Basic Configuration'
+        $stepLabel = [Terminal.Gui.Label]::new(1, 1, 'Step 1: Basic Configuration')
         $initFrame.Add($stepLabel)
 
         # Backup Root
-        $backupLabel = New-Object Terminal.Gui.Label -ArgumentList 1,3,'Backup Root:'
-        $backupField = New-Object Terminal.Gui.TextField -ArgumentList 15,3,40,($script:Config.BackupRoot ?? '')
-        $browseBtn = New-Object Terminal.Gui.Button -ArgumentList 57,3,'Browse...'
+        $backupLabel = [Terminal.Gui.Label]::new(1, 3, 'Backup Root:')
+        $backupField = [Terminal.Gui.TextField]::new(15, 3, 40, ($script:Config.BackupRoot ?? ''))
+        $browseBtn = [Terminal.Gui.Button]::new(57, 3, 'Browse...')
         $browseBtn.add_Clicked({
-            # Simple file dialog simulation - in real implementation use OpenFileDialog
-            $dialog = [Terminal.Gui.MessageBox]::Query('Browse', 'Enter backup path:', 'OK', 'Cancel')
-            if ($dialog -eq 0) {
-                # In real implementation, show file browser
-                $backupField.Text = 'C:\Backups\WindowsMelodyRecovery'
-            }
-        })
+                $dialog = [Terminal.Gui.MessageBox]::Query('Browse', 'Enter backup path:', 'OK', 'Cancel')
+                if ($dialog -eq 0) {
+                    $backupField.Text = 'C:\Backups\WindowsMelodyRecovery'
+                }
+            })
         $initFrame.Add($backupLabel, $backupField, $browseBtn)
 
         # Machine Name
-        $machineLabel = New-Object Terminal.Gui.Label -ArgumentList 1,5,'Machine Name:'
-        $machineField = New-Object Terminal.Gui.TextField -ArgumentList 15,5,40,($script:Config.MachineName ?? $env:COMPUTERNAME)
+        $machineLabel = [Terminal.Gui.Label]::new(1, 5, 'Machine Name:')
+        $machineField = [Terminal.Gui.TextField]::new(15, 5, 40, ($script:Config.MachineName ?? $env:COMPUTERNAME))
         $initFrame.Add($machineLabel, $machineField)
 
         # Cloud Provider
-        $cloudLabel = New-Object Terminal.Gui.Label -ArgumentList 1,7,'Cloud Provider:'
-        $cloudCombo = New-Object Terminal.Gui.ComboBox -ArgumentList 15,7,40,@('None', 'OneDrive', 'OneDrive for Business', 'Google Drive', 'Dropbox', 'Custom')
+        $cloudLabel = [Terminal.Gui.Label]::new(1, 7, 'Cloud Provider:')
+        $cloudCombo = [Terminal.Gui.ComboBox]::new(15, 7, 40, @('None', 'OneDrive', 'OneDrive for Business', 'Google Drive', 'Dropbox', 'Custom'))
         $cloudCombo.SelectedItem = $script:Config.CloudProvider ?? 'None'
-        $autoDetectBtn = New-Object Terminal.Gui.Button -ArgumentList 57,7,'Auto-Detect'
+        $autoDetectBtn = [Terminal.Gui.Button]::new(57, 7, 'Auto-Detect')
         $autoDetectBtn.add_Clicked({
-            # Auto-detect cloud providers
-            $detected = @()
-            if (Test-Path "$env:USERPROFILE\OneDrive") { $detected += 'OneDrive' }
-            if (Test-Path "$env:USERPROFILE\OneDrive - *") { $detected += 'OneDrive for Business' }
-            if (Test-Path "$env:USERPROFILE\Google Drive") { $detected += 'Google Drive' }
-            if (Test-Path "$env:USERPROFILE\Dropbox") { $detected += 'Dropbox' }
+                $detected = @()
+                if (Test-Path "$env:USERPROFILE\OneDrive") { $detected += 'OneDrive' }
+                if (Test-Path "$env:USERPROFILE\OneDrive - *") { $detected += 'OneDrive for Business' }
+                if (Test-Path "$env:USERPROFILE\Google Drive") { $detected += 'Google Drive' }
+                if (Test-Path "$env:USERPROFILE\Dropbox") { $detected += 'Dropbox' }
 
-            if ($detected.Count -gt 0) {
-                $cloudCombo.SelectedItem = $detected[0]
-                [Terminal.Gui.MessageBox]::Query('Detected', "Found: $($detected -join ', ')", 'OK')
-            } else {
-                [Terminal.Gui.MessageBox]::Query('Not Found', 'No cloud providers detected', 'OK')
-            }
-        })
+                if ($detected.Count -gt 0) {
+                    $cloudCombo.SelectedItem = $detected[0]
+                    [Terminal.Gui.MessageBox]::Query('Detected', "Found: $($detected -join ', ')", 'OK')
+                }
+                else {
+                    [Terminal.Gui.MessageBox]::Query('Not Found', 'No cloud providers detected', 'OK')
+                }
+            })
         $initFrame.Add($cloudLabel, $cloudCombo, $autoDetectBtn)
 
-        # Step 2: Advanced Configuration (collapsible)
-        $advancedLabel = New-Object Terminal.Gui.Label -ArgumentList 1,9,'Step 2: Advanced Configuration (Optional)'
+        # Advanced Configuration
+        $advancedLabel = [Terminal.Gui.Label]::new(1, 9, 'Step 2: Advanced Configuration (Optional)')
         $initFrame.Add($advancedLabel)
 
         # Email Settings
-        $emailLabel = New-Object Terminal.Gui.Label -ArgumentList 1,11,'Email Notifications:'
-        $emailField = New-Object Terminal.Gui.TextField -ArgumentList 20,11,35,($script:Config.EmailSettings.ToAddress ?? '')
-        $emailCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 57,11,'Enable'
+        $emailLabel = [Terminal.Gui.Label]::new(1, 11, 'Email Notifications:')
+        $emailField = [Terminal.Gui.TextField]::new(20, 11, 35, ($script:Config.EmailSettings.ToAddress ?? ''))
+        $emailCheck = [Terminal.Gui.CheckBox]::new(57, 11, 'Enable')
         $emailCheck.Checked = $script:Config.NotificationSettings.EnableEmail
         $initFrame.Add($emailLabel, $emailField, $emailCheck)
 
         # Retention Days
-        $retentionLabel = New-Object Terminal.Gui.Label -ArgumentList 1,13,'Retention (Days):'
-        $retentionField = New-Object Terminal.Gui.TextField -ArgumentList 20,13,10,($script:Config.BackupSettings.RetentionDays.ToString())
+        $retentionLabel = [Terminal.Gui.Label]::new(1, 13, 'Retention (Days):')
+        $retentionField = [Terminal.Gui.TextField]::new(20, 13, 10, ($script:Config.BackupSettings.RetentionDays.ToString()))
         $initFrame.Add($retentionLabel, $retentionField)
 
         # Logging Level
-        $logLabel = New-Object Terminal.Gui.Label -ArgumentList 35,13,'Logging Level:'
-        $logCombo = New-Object Terminal.Gui.ComboBox -ArgumentList 50,13,15,@('Error', 'Warning', 'Information', 'Verbose', 'Debug')
+        $logLabel = [Terminal.Gui.Label]::new(35, 13, 'Logging Level:')
+        $logCombo = [Terminal.Gui.ComboBox]::new(50, 13, 15, @('Error', 'Warning', 'Information', 'Verbose', 'Debug'))
         $logCombo.SelectedItem = $script:Config.LoggingSettings.Level ?? 'Information'
         $initFrame.Add($logLabel, $logCombo)
 
         # Backup Schedule
-        $scheduleLabel = New-Object Terminal.Gui.Label -ArgumentList 1,15,'Backup Schedule:'
-        $scheduleCombo = New-Object Terminal.Gui.ComboBox -ArgumentList 20,15,20,@('Manual', 'Daily', 'Weekly', 'Monthly')
+        $scheduleLabel = [Terminal.Gui.Label]::new(1, 15, 'Backup Schedule:')
+        $scheduleCombo = [Terminal.Gui.ComboBox]::new(20, 15, 20, @('Manual', 'Daily', 'Weekly', 'Monthly'))
         $scheduleCombo.SelectedItem = $script:Config.BackupSettings.Schedule ?? 'Weekly'
-        $scheduleCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 42,15,'Enable Auto-Backup'
+        $scheduleCheck = [Terminal.Gui.CheckBox]::new(42, 15, 'Enable Auto-Backup')
         $scheduleCheck.Checked = $script:Config.BackupSettings.EnableScheduled
         $initFrame.Add($scheduleLabel, $scheduleCombo, $scheduleCheck)
 
         # Shared Configuration
-        $sharedLabel = New-Object Terminal.Gui.Label -ArgumentList 1,17,'Shared Config Path:'
-        $sharedField = New-Object Terminal.Gui.TextField -ArgumentList 20,17,35,($script:Config.SharedConfigPath ?? '')
-        $sharedCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 57,17,'Use Shared'
+        $sharedLabel = [Terminal.Gui.Label]::new(1, 17, 'Shared Config Path:')
+        $sharedField = [Terminal.Gui.TextField]::new(20, 17, 35, ($script:Config.SharedConfigPath ?? ''))
+        $sharedCheck = [Terminal.Gui.CheckBox]::new(57, 17, 'Use Shared')
         $sharedCheck.Checked = $script:Config.UseSharedConfig
         $initFrame.Add($sharedLabel, $sharedField, $sharedCheck)
 
         # Version Pinning
-        $versionLabel = New-Object Terminal.Gui.Label -ArgumentList 1,19,'Version Pinning:'
-        $versionCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 20,19,'Pin Package Versions'
+        $versionLabel = [Terminal.Gui.Label]::new(1, 19, 'Version Pinning:')
+        $versionCheck = [Terminal.Gui.CheckBox]::new(20, 19, 'Pin Package Versions')
         $versionCheck.Checked = $script:Config.PackageSettings.EnableVersionPinning
-        $updateCheck = New-Object Terminal.Gui.CheckBox -ArgumentList 42,19,'Auto-Update Packages'
+        $updateCheck = [Terminal.Gui.CheckBox]::new(42, 19, 'Auto-Update Packages')
         $updateCheck.Checked = $script:Config.PackageSettings.EnableAutoUpdates
         $initFrame.Add($versionLabel, $versionCheck, $updateCheck)
 
         # Wizard Navigation
-        $saveBtn = New-Object Terminal.Gui.Button -ArgumentList 1,22,'Save & Initialize'
+        $saveBtn = [Terminal.Gui.Button]::new(1, 22, 'Save & Initialize')
         $saveBtn.add_Clicked({
-            # Validate and save configuration
-            $errors = @()
+                $errors = @()
 
-            if ([string]::IsNullOrWhiteSpace($backupField.Text)) {
-                $errors += 'Backup Root is required'
-            }
-
-            # Validate email format if enabled
-            if ($emailCheck.Checked -and -not [string]::IsNullOrWhiteSpace($emailField.Text)) {
-                if ($emailField.Text -notmatch '^[^@]+@[^@]+\.[^@]+$') {
-                    $errors += 'Email address format is invalid'
+                if ([string]::IsNullOrWhiteSpace($backupField.Text)) {
+                    $errors += 'Backup Root is required'
                 }
-            }
 
-            # Validate retention days
-            try {
-                $retentionDays = [int]$retentionField.Text
-                if ($retentionDays -le 0 -or $retentionDays -gt 365) {
-                    $errors += 'Retention days must be between 1-365'
+                if ($emailCheck.Checked -and -not [string]::IsNullOrWhiteSpace($emailField.Text)) {
+                    if ($emailField.Text -notmatch '^[^@]+@[^@]+\.[^@]+$') {
+                        $errors += 'Email address format is invalid'
+                    }
                 }
-            } catch {
-                $errors += 'Retention days must be a valid number'
-            }
 
-            # Validate shared config path if enabled
-            if ($sharedCheck.Checked -and -not [string]::IsNullOrWhiteSpace($sharedField.Text)) {
-                if (-not (Test-Path $sharedField.Text)) {
-                    $errors += 'Shared configuration path does not exist'
+                try {
+                    $retentionDays = [int]$retentionField.Text
+                    if ($retentionDays -le 0 -or $retentionDays -gt 365) {
+                        $errors += 'Retention days must be between 1-365'
+                    }
                 }
-            }
+                catch {
+                    $errors += 'Retention days must be a valid number'
+                }
 
-            if ($errors.Count -gt 0) {
-                [Terminal.Gui.MessageBox]::ErrorQuery('Validation Error', ($errors -join "`n"), 'OK')
-                return
-            }
+                if ($sharedCheck.Checked -and -not [string]::IsNullOrWhiteSpace($sharedField.Text)) {
+                    if (-not (Test-Path $sharedField.Text)) {
+                        $errors += 'Shared configuration path does not exist'
+                    }
+                }
 
-            # Update configuration
-            $script:Config.BackupRoot = $backupField.Text.ToString()
-            $script:Config.MachineName = $machineField.Text.ToString()
-            $script:Config.CloudProvider = $cloudCombo.SelectedItem.ToString()
-            $script:Config.EmailSettings.ToAddress = $emailField.Text.ToString()
-            $script:Config.NotificationSettings.EnableEmail = $emailCheck.Checked
-            $script:Config.BackupSettings.RetentionDays = [int]$retentionField.Text.ToString()
-            $script:Config.LoggingSettings.Level = $logCombo.SelectedItem.ToString()
-            $script:Config.BackupSettings.Schedule = $scheduleCombo.SelectedItem.ToString()
-            $script:Config.BackupSettings.EnableScheduled = $scheduleCheck.Checked
-            $script:Config.SharedConfigPath = $sharedField.Text.ToString()
-            $script:Config.UseSharedConfig = $sharedCheck.Checked
-            $script:Config.PackageSettings.EnableVersionPinning = $versionCheck.Checked
-            $script:Config.PackageSettings.EnableAutoUpdates = $updateCheck.Checked
+                if ($errors.Count -gt 0) {
+                    [Terminal.Gui.MessageBox]::ErrorQuery('Validation Error', ($errors -join "`n"), 'OK')
+                    return
+                }
 
-            # Persist configuration
-            try {
-                Set-WindowsMelodyRecovery -BackupRoot $script:Config.BackupRoot -CloudProvider $script:Config.CloudProvider -MachineName $script:Config.MachineName
-                $script:Config.IsInitialized = $true
-                [Terminal.Gui.MessageBox]::Query('Success', 'Configuration saved and module initialized!', 'OK')
-            } catch {
-                [Terminal.Gui.MessageBox]::ErrorQuery('Error', "Failed to save configuration: $($_.Exception.Message)", 'OK')
-            }
-        })
+                # Update configuration
+                $script:Config.BackupRoot = $backupField.Text.ToString()
+                $script:Config.MachineName = $machineField.Text.ToString()
+                $script:Config.CloudProvider = $cloudCombo.SelectedItem.ToString()
+                $script:Config.EmailSettings.ToAddress = $emailField.Text.ToString()
+                $script:Config.NotificationSettings.EnableEmail = $emailCheck.Checked
+                $script:Config.BackupSettings.RetentionDays = [int]$retentionField.Text.ToString()
+                $script:Config.LoggingSettings.Level = $logCombo.SelectedItem.ToString()
+                $script:Config.BackupSettings.Schedule = $scheduleCombo.SelectedItem.ToString()
+                $script:Config.BackupSettings.EnableScheduled = $scheduleCheck.Checked
+                $script:Config.SharedConfigPath = $sharedField.Text.ToString()
+                $script:Config.UseSharedConfig = $sharedCheck.Checked
+                $script:Config.PackageSettings.EnableVersionPinning = $versionCheck.Checked
+                $script:Config.PackageSettings.EnableAutoUpdates = $updateCheck.Checked
 
-        $testBtn = New-Object Terminal.Gui.Button -ArgumentList 20,22,'Test Configuration'
+                try {
+                    Set-WindowsMelodyRecovery -BackupRoot $script:Config.BackupRoot -CloudProvider $script:Config.CloudProvider -MachineName $script:Config.MachineName
+                    $script:Config.IsInitialized = $true
+                    [Terminal.Gui.MessageBox]::Query('Success', 'Configuration saved and module initialized!', 'OK')
+                }
+                catch {
+                    [Terminal.Gui.MessageBox]::ErrorQuery('Error', "Failed to save configuration: $($_.Exception.Message)", 'OK')
+                }
+            })
+
+        $testBtn = [Terminal.Gui.Button]::new(20, 22, 'Test Configuration')
         $testBtn.add_Clicked({
-            # Test backup path, cloud connectivity, etc.
-            $results = @()
+                $results = @()
 
-            if (Test-Path $backupField.Text) {
-                $results += "✓ Backup path accessible"
-            } else {
-                $results += "✗ Backup path not found"
-            }
-
-            if ($cloudCombo.SelectedItem -ne 'None') {
-                # Test cloud path based on selection
-                $cloudPath = switch ($cloudCombo.SelectedItem) {
-                    'OneDrive' { "$env:USERPROFILE\OneDrive" }
-                    'Google Drive' { "$env:USERPROFILE\Google Drive" }
-                    'Dropbox' { "$env:USERPROFILE\Dropbox" }
-                    default { $null }
+                if (Test-Path $backupField.Text) {
+                    $results += "✓ Backup path accessible"
+                }
+                else {
+                    $results += "✗ Backup path not found"
                 }
 
-                if ($cloudPath -and (Test-Path $cloudPath)) {
-                    $results += "✓ Cloud provider accessible"
-                } else {
-                    $results += "✗ Cloud provider not accessible"
+                if ($cloudCombo.SelectedItem -ne 'None') {
+                    $cloudPath = switch ($cloudCombo.SelectedItem) {
+                        'OneDrive' { "$env:USERPROFILE\OneDrive" }
+                        'Google Drive' { "$env:USERPROFILE\Google Drive" }
+                        'Dropbox' { "$env:USERPROFILE\Dropbox" }
+                        default { $null }
+                    }
+
+                    if ($cloudPath -and (Test-Path $cloudPath)) {
+                        $results += "✓ Cloud provider accessible"
+                    }
+                    else {
+                        $results += "✗ Cloud provider not accessible"
+                    }
                 }
-            }
 
-            # Test email configuration
-            if ($emailCheck.Checked -and -not [string]::IsNullOrWhiteSpace($emailField.Text)) {
-                if ($emailField.Text -match '^[^@]+@[^@]+\.[^@]+$') {
-                    $results += "✓ Email address format valid"
-                } else {
-                    $results += "✗ Email address format invalid"
+                if ($emailCheck.Checked -and -not [string]::IsNullOrWhiteSpace($emailField.Text)) {
+                    if ($emailField.Text -match '^[^@]+@[^@]+\.[^@]+$') {
+                        $results += "✓ Email address format valid"
+                    }
+                    else {
+                        $results += "✗ Email address format invalid"
+                    }
                 }
-            }
 
-            # Test shared configuration path
-            if ($sharedCheck.Checked -and -not [string]::IsNullOrWhiteSpace($sharedField.Text)) {
-                if (Test-Path $sharedField.Text) {
-                    $results += "✓ Shared configuration path accessible"
-                } else {
-                    $results += "✗ Shared configuration path not found"
+                if ($sharedCheck.Checked -and -not [string]::IsNullOrWhiteSpace($sharedField.Text)) {
+                    if (Test-Path $sharedField.Text) {
+                        $results += "✓ Shared configuration path accessible"
+                    }
+                    else {
+                        $results += "✗ Shared configuration path not found"
+                    }
                 }
-            }
 
-            # Test retention days
-            try {
-                $retentionDays = [int]$retentionField.Text
-                if ($retentionDays -gt 0 -and $retentionDays -le 365) {
-                    $results += "✓ Retention days valid ($retentionDays days)"
-                } else {
-                    $results += "✗ Retention days should be between 1-365"
+                try {
+                    $retentionDays = [int]$retentionField.Text
+                    if ($retentionDays -gt 0 -and $retentionDays -le 365) {
+                        $results += "✓ Retention days valid ($retentionDays days)"
+                    }
+                    else {
+                        $results += "✗ Retention days should be between 1-365"
+                    }
                 }
-            } catch {
-                $results += "✗ Retention days must be a number"
-            }
+                catch {
+                    $results += "✗ Retention days must be a number"
+                }
 
-            # Test logging level
-            $results += "✓ Logging level: $($logCombo.SelectedItem)"
+                $results += "✓ Logging level: $($logCombo.SelectedItem)"
 
-            # Test schedule settings
-            if ($scheduleCheck.Checked) {
-                $results += "✓ Auto-backup enabled: $($scheduleCombo.SelectedItem)"
-            } else {
-                $results += "○ Auto-backup disabled"
-            }
+                if ($scheduleCheck.Checked) {
+                    $results += "✓ Auto-backup enabled: $($scheduleCombo.SelectedItem)"
+                }
+                else {
+                    $results += "○ Auto-backup disabled"
+                }
 
-            [Terminal.Gui.MessageBox]::Query('Test Results', ($results -join "`n"), 'OK')
-        })
+                [Terminal.Gui.MessageBox]::Query('Test Results', ($results -join "`n"), 'OK')
+            })
 
-        $resetBtn = New-Object Terminal.Gui.Button -ArgumentList 40,22,'Reset to Defaults'
+        $resetBtn = [Terminal.Gui.Button]::new(40, 22, 'Reset to Defaults')
         $resetBtn.add_Clicked({
-            $backupField.Text = "C:\Backups\WindowsMelodyRecovery"
-            $machineField.Text = $env:COMPUTERNAME
-            $cloudCombo.SelectedItem = 'None'
-            $emailField.Text = ''
-            $emailCheck.Checked = $false
-            $retentionField.Text = '30'
-            $logCombo.SelectedItem = 'Information'
-            $scheduleCombo.SelectedItem = 'Weekly'
-            $scheduleCheck.Checked = $false
-            $sharedField.Text = ''
-            $sharedCheck.Checked = $false
-            $versionCheck.Checked = $false
-            $updateCheck.Checked = $false
-        })
+                $backupField.Text = "C:\Backups\WindowsMelodyRecovery"
+                $machineField.Text = $env:COMPUTERNAME
+                $cloudCombo.SelectedItem = 'None'
+                $emailField.Text = ''
+                $emailCheck.Checked = $false
+                $retentionField.Text = '30'
+                $logCombo.SelectedItem = 'Information'
+                $scheduleCombo.SelectedItem = 'Weekly'
+                $scheduleCheck.Checked = $false
+                $sharedField.Text = ''
+                $sharedCheck.Checked = $false
+                $versionCheck.Checked = $false
+                $updateCheck.Checked = $false
+            })
 
         $initFrame.Add($saveBtn, $testBtn, $resetBtn)
         $initTab.View = $initFrame
         $tabView.AddTab($initTab, $false)
 
         # Tab 3: Status
-        $statusTab = New-Object Terminal.Gui.Tab
+        $statusTab = [Terminal.Gui.Tab]::new()
         $statusTab.Title = 'Status'
-        $statusFrame = New-Object Terminal.Gui.FrameView 'System Status'
-        $statusText = New-Object Terminal.Gui.TextView
+        $statusFrame = [Terminal.Gui.FrameView]::new('System Status')
+        $statusText = [Terminal.Gui.TextView]::new()
         $statusText.ReadOnly = $true
         $statusText.Text = "Module Initialized: $($script:Config.IsInitialized)
 Last Backup: $(try { Get-Content (Join-Path $script:Config.LoggingSettings.Path 'last_backup.log') } catch { 'N/A' })
@@ -491,10 +508,10 @@ Advanced Settings:
 Module Version: $($script:Config.ModuleVersion ?? 'Unknown')
 PowerShell Version: $($PSVersionTable.PSVersion)
 Operating System: $($PSVersionTable.OS)"
-        # Add refresh button to status tab
-        $refreshBtn = New-Object Terminal.Gui.Button -ArgumentList 1,1,'Refresh Status'
+
+        $refreshBtn = [Terminal.Gui.Button]::new(1, 1, 'Refresh Status')
         $refreshBtn.add_Clicked({
-            $statusText.Text = "Module Initialized: $($script:Config.IsInitialized)
+                $statusText.Text = "Module Initialized: $($script:Config.IsInitialized)
 Last Backup: $(try { Get-Content (Join-Path $script:Config.LoggingSettings.Path 'last_backup.log') } catch { 'N/A' })
 Machine: $($script:Config.MachineName)
 Cloud Provider: $($script:Config.CloudProvider)
@@ -513,25 +530,18 @@ Advanced Settings:
 Module Version: $($script:Config.ModuleVersion ?? 'Unknown')
 PowerShell Version: $($PSVersionTable.PSVersion)
 Operating System: $($PSVersionTable.OS)"
-        })
+            })
 
         $statusFrame.Add($statusText, $refreshBtn)
         $statusTab.View = $statusFrame
         $tabView.AddTab($statusTab, $false)
         $window.Add($tabView)
 
-        # Update tree to include restore/setup
-        foreach ($item in $scriptsConfig.restore.enabled + $scriptsConfig.setup.enabled) {
-            $cat = $item.category
-            if ($categoryNodes.ContainsKey($cat)) {
-                $itemNode = [PSCustomObject]@{ Text = "$($item.name) ($(if($item.function.StartsWith('Restore')){'Restore'}else{'Setup'})) $(if($item.enabled){'[X]'}else{'[ ]'})"; Tag = $item; Children = @() }
-                $categoryNodes[$cat].Children += $itemNode
-            }
-        }
+        # Refresh tree to show all items
         $tree.RefreshObject($true)
 
-        # Add update check
-        $repo = 'yourusername/WindowsMelodyRecovery'  # Update with actual
+        # Check for updates
+        $repo = 'yourusername/WindowsMelodyRecovery'
         try {
             $latest = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest"
             if ($latest.tag_name -gt $script:Config.ModuleVersion) {
@@ -539,33 +549,40 @@ Operating System: $($PSVersionTable.OS)"
             }
         }
         catch {
-            Write-Verbose "Update check failed: $_.Exception.Message"
+            Write-Verbose "Update check failed: $($_.Exception.Message)"
         }
 
-        # Systray (Windows only)
+        # System tray (Windows only)
         if ($PSVersionTable.OS -like '*Windows*') {
-            Add-Type -AssemblyName System.Windows.Forms
-            $tray = New-Object System.Windows.Forms.NotifyIcon
-            $tray.Icon = [System.Drawing.SystemIcons]::Information
-            $tray.Text = 'WMR TUI'
-            $tray.Visible = $true
-            $tray.add_Click({ Show-WmrTui })
-            # Note: This keeps the process running; perhaps in a separate function
+            try {
+                Add-Type -AssemblyName System.Windows.Forms
+                $tray = [System.Windows.Forms.NotifyIcon]::new()
+                $tray.Icon = [System.Drawing.SystemIcons]::Information
+                $tray.Text = 'WMR TUI'
+                $tray.Visible = $true
+                $tray.add_Click({ Show-WmrTui })
+            }
+            catch {
+                Write-Verbose "System tray initialization failed: $($_.Exception.Message)"
+            }
         }
-
-        # Enhance error handling, e.g., around config load
-        try { $scriptsConfig = ... } catch { [Terminal.Gui.MessageBox]::ErrorQuery('Error', 'Failed to load config: ' + $_.Exception.Message, 'OK') }
 
         # Add the window to the application's top-level view and run it
         $top.Add($window)
         [Terminal.Gui.Application]::Run()
     }
     catch {
-        Write-Error "Failed to start the TUI. Error: $_"
+        Write-Error "TUI initialization failed: $($_.Exception.Message)"
+        throw
     }
     finally {
-        # Ensure the application is properly shut down
-        [Terminal.Gui.Application]::Shutdown()
+        # Cleanup
+        try {
+            [Terminal.Gui.Application]::Shutdown()
+        }
+        catch {
+            Write-Verbose "TUI shutdown cleanup failed: $($_.Exception.Message)"
+        }
     }
 }
 

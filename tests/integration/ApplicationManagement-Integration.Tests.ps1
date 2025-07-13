@@ -1,4 +1,4 @@
-# tests/integration/ApplicationManagement-Integration.Tests.ps1
+﻿# tests/integration/ApplicationManagement-Integration.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -35,8 +35,8 @@ BeforeAll {
     # Mock WindowsMelodyRecovery configuration needed for discovery
     $script:MockConfig = @{
         IsInitialized = $true
-        BackupRoot    = $script:TestEnvironment.TestBackup
-        MachineName   = "TestMachine"
+        BackupRoot = $script:TestEnvironment.TestBackup
+        MachineName = "TestMachine"
     }
     Mock Get-WindowsMelodyRecovery { return $script:MockConfig }
 }

@@ -82,7 +82,7 @@ else {
 Write-Information -MessageData "Executing end-to-end tests... (Timeout: $Timeout minutes)" -InformationAction Continue
 
 $pesterConfig = @{
-    Run    = @{
+    Run = @{
         Path = $testsToRun | ForEach-Object { Join-Path $e2eTestsPath "$_.Tests.ps1" }
     }
     Output = @{
@@ -92,14 +92,14 @@ $pesterConfig = @{
 
 if ($GenerateReport) {
     $pesterConfig.TestResult = @{
-        Enabled    = $true
+        Enabled = $true
         OutputPath = Join-Path $testEnvironment.Logs "e2e-test-results.xml"
     }
 }
 
 $job = Start-Job -ScriptBlock {
-    param($Config)
-    Invoke-Pester -Configuration $Config
+    param($using:Config)
+    Invoke-Pester -Configuration $using:Config
 } -ArgumentList $pesterConfig
 
 $timeoutSeconds = $Timeout * 60

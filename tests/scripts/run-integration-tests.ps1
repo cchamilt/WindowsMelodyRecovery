@@ -91,13 +91,13 @@ foreach ($test in $testsToRun) {
 
     try {
         $pesterConfig = @{
-            Run    = @{ Path = $testFile }
+            Run = @{ Path = $testFile }
             Output = @{ Verbosity = $OutputFormat }
         }
 
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
-                Enabled    = $true
+                Enabled = $true
                 OutputPath = Join-Path $testEnvironment.Logs "integration-test-results.xml"
             }
         }

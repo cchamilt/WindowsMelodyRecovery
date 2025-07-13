@@ -22,7 +22,7 @@ BeforeAll {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
     }
- catch {
+    catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
@@ -92,12 +92,12 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                         # Regex pattern
                         $case.output | Should -Match $case.expected.Replace('\d', '\d')
                     }
- else {
+                    else {
                         # Exact match
                         $case.output | Should -Be $case.expected
                     }
                 }
- else {
+                else {
                     $case.output | Should -Not -Be $case.expected
                 }
             }
@@ -301,7 +301,7 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                         if ($test.expected) {
                             $test.input | Should -Be $test.pattern
                         }
- else {
+                        else {
                             $test.input | Should -Not -Be $test.pattern
                         }
                     }
@@ -309,7 +309,7 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                         if ($test.expected) {
                             $test.input | Should -Match $test.pattern
                         }
- else {
+                        else {
                             $test.input | Should -Not -Match $test.pattern
                         }
                     }
@@ -317,7 +317,7 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
                         if ($test.expected) {
                             $test.input | Should -Match $test.pattern
                         }
- else {
+                        else {
                             $test.input | Should -Not -Match $test.pattern
                         }
                     }

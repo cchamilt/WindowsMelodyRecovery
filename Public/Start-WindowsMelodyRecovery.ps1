@@ -97,7 +97,7 @@
 
                 if ($response -eq 'Y') {
                     Write-Warning -Message "Installing scheduled tasks..."
-                    if (!(Install-WindowsMelodyRecoveryTasks -NoPrompt:$NoPrompt)) {
+                    if (!(Install-WindowsMelodyRecoveryTask -NoPrompt:$NoPrompt)) {
                         Write-Warning "Failed to install scheduled tasks"
                     }
                 }

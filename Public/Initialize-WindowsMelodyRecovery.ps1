@@ -34,12 +34,12 @@ function Initialize-WindowsMelodyRecovery {
     )
 
     # Check if any configuration parameters were provided
-    $parametersProvided   = $PSBoundParameters.ContainsKey('BackupRoot') -or
-                            $PSBoundParameters.ContainsKey('CloudProvider') -or
-                            $PSBoundParameters.ContainsKey('MachineName') -or
-                            $PSBoundParameters.ContainsKey('EmailAddress') -or
-                            $PSBoundParameters.ContainsKey('RetentionDays') -or
-                            $PSBoundParameters.ContainsKey('EnableEmailNotifications')
+    $parametersProvided = $PSBoundParameters.ContainsKey('BackupRoot') -or
+    $PSBoundParameters.ContainsKey('CloudProvider') -or
+    $PSBoundParameters.ContainsKey('MachineName') -or
+    $PSBoundParameters.ContainsKey('EmailAddress') -or
+    $PSBoundParameters.ContainsKey('RetentionDays') -or
+    $PSBoundParameters.ContainsKey('EnableEmailNotifications')
 
     # Default to TUI unless parameters are provided or NoPrompt is specified
     if (-not $parametersProvided -and -not $NoPrompt) {

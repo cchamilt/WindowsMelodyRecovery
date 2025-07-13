@@ -72,8 +72,8 @@ Describe "Administrative Privilege Logic Tests" {
             # Mock Test-WmrAdminPrivilege to return false
             Mock -CommandName "Test-WmrAdminPrivilege" -MockWith { return $false }
 
-            # Test Install-WindowsMelodyRecoveryTasks
-            Mock -CommandName "Install-WindowsMelodyRecoveryTasks" -MockWith {
+            # Test Install-WindowsMelodyRecoveryTask
+            Mock -CommandName "Install-WindowsMelodyRecoveryTask" -MockWith {
                 if (-not (Test-WmrAdminPrivilege)) {
                     Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
                     return $false
@@ -81,7 +81,7 @@ Describe "Administrative Privilege Logic Tests" {
                 return $true
             }
 
-            $result = Install-WindowsMelodyRecoveryTasks
+            $result = Install-WindowsMelodyRecoveryTask
             $result | Should -Be $false
 
             Assert-MockCalled -CommandName "Test-WmrAdminPrivilege" -Times 1
@@ -163,7 +163,7 @@ Describe "Administrative Privilege Logic Tests" {
                     }
                     return $true
                 }
- catch {
+                catch {
                     Write-Warning "Could not verify administrator privileges: $_"
                     return $false
                 }
@@ -278,7 +278,7 @@ Describe "Administrative Privilege Logic Tests" {
                     $features = Get-WindowsOptionalFeature -Online
                     return @{ Success = $true; Features = $features }
                 }
- catch {
+                catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -307,7 +307,7 @@ Describe "Administrative Privilege Logic Tests" {
                     $capabilities = Get-WindowsCapability -Online
                     return @{ Success = $true; Capabilities = $capabilities }
                 }
- catch {
+                catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -352,7 +352,7 @@ Describe "Administrative Privilege Logic Tests" {
                     }
                     return @{ Success = $true }
                 }
- catch {
+                catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -395,13 +395,13 @@ Describe "Administrative Privilege Logic Tests" {
                     if ($Path -like "HKLM:*") {
                         Set-ItemProperty -Path $Path -Name $Name -Value $Value
                     }
- else {
+                    else {
                         # HKCU operations should work
                         return @{ Success = $true; RequiresElevation = $false }
                     }
                     return @{ Success = $true; RequiresElevation = $false }
                 }
- catch {
+                catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true
@@ -449,7 +449,7 @@ Describe "Administrative Privilege Logic Tests" {
                             $principal = if ($RequireElevation) {
                                 @{ RunLevel = "Highest" }
                             }
- else {
+                            else {
                                 @{ RunLevel = "Limited" }
                             }
                             Register-ScheduledTask -TaskName $TaskName -Action @{} -Trigger @{} -Principal $principal
@@ -460,7 +460,7 @@ Describe "Administrative Privilege Logic Tests" {
                     }
                     return @{ Success = $true; RequiresElevation = $false }
                 }
- catch {
+                catch {
                     return @{
                         Success = $false
                         RequiresElevation = $true

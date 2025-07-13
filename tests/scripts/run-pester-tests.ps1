@@ -28,7 +28,7 @@ if ($isDockerEnvironment) {
     $testResultsPath = "/workspace/test-results"
     $tempPath = "/workspace/Temp"
 }
- else {
+else {
     # Use project root for local Windows environments
     $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $basePath = $moduleRoot
@@ -156,7 +156,7 @@ switch ($TestSuite) {
             $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
             Write-Warning -Message "🎯 Running All Tests (including Windows-only tests)"
         }
- else {
+        else {
             # On non-Windows, exclude Windows-only tests by excluding the specific file
             $config.Run.Path = @((Join-Path $basePath "tests/unit"), (Join-Path $basePath "tests/integration"), (Join-Path $basePath "tests/file-operations"))
             $config.Run.ExcludePath = @((Join-Path $basePath "tests/unit/Windows-Only.Tests.ps1"))
@@ -218,7 +218,7 @@ try {
         $simplifiedResults | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
         Write-Information -MessageData "💾 JSON results saved to: $jsonPath" -InformationAction Continue
     }
- catch {
+    catch {
         Write-Warning -Message "⚠️ Warning: Could not save JSON results: $($_.Exception.Message)"
     }
 
@@ -227,7 +227,7 @@ try {
         $xmlSize = (Get-Item (Join-Path $testResultsPath "junit/test-results.xml")).Length
         Write-Information -MessageData "💾 JUnit XML created: $xmlSize bytes" -InformationAction Continue
     }
- else {
+    else {
         Write-Error -Message "❌ JUnit XML not created"
     }
 
@@ -242,13 +242,13 @@ try {
         Write-Error -Message "❌ Some tests failed!"
         exit 1
     }
- else {
+    else {
         Write-Information -MessageData "✅ All tests passed!" -InformationAction Continue
         exit 0
     }
 
 }
- catch {
+catch {
     Write-Error -Message "❌ Test execution failed: $($_.Exception.Message)"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
     exit 1

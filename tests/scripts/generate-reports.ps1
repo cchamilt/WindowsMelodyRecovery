@@ -881,7 +881,7 @@ function New-HtmlDashboard {
         # Add individual test details if available
         if ($testSuite.Tests -and $testSuite.Tests.Count -gt 0) {
             foreach ($test in ($testSuite.Tests | Select-Object -First 20)) {
- # Limit to first 20 for performance
+                # Limit to first 20 for performance
                 $testClass = switch ($test.Result) {
                     "Passed" { "test-passed" }
                     "Failed" { "test-failed" }

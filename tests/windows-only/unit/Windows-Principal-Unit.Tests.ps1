@@ -141,7 +141,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
                 $mainCalled | Should -Be $false
                 $fallbackCalled | Should -Be $true
             }
- else {
+            else {
                 Set-ItResult -Skipped -Because "Current user has admin privileges"
             }
         }
@@ -153,7 +153,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
 
                 { Invoke-WmrSafeAdminOperation -MainOperation $mainOperation -OperationType "Admin" } | Should -Throw "*Administrative privileges required*"
             }
- else {
+            else {
                 Set-ItResult -Skipped -Because "Current user has admin privileges"
             }
         }
@@ -170,7 +170,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
                 $result | Should -Be "elevated-result"
                 $executed | Should -Be $true
             }
- else {
+            else {
                 Set-ItResult -Skipped -Because "Current user does not have admin privileges"
             }
         }
@@ -191,7 +191,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
 
                 { Invoke-WmrWithElevation -ScriptBlock $scriptBlock -NoPrompt } | Should -Throw "*Elevation required*"
             }
- else {
+            else {
                 Set-ItResult -Skipped -Because "Current user already has admin privileges"
             }
         }

@@ -56,9 +56,9 @@ BeforeAll {
     Mock Copy-Item { }
     Mock Import-PowerShellDataFile {
         return @{
-            ModuleVersion = "1.0.0"
-            Author = "Test Author"
-            Description = "Test Description"
+            ModuleVersion     = "1.0.0"
+            Author            = "Test Author"
+            Description       = "Test Description"
             PowerShellVersion = "5.1"
         }
     }
@@ -68,13 +68,13 @@ BeforeAll {
     Mock Initialize-WindowsMelodyRecovery { }
     Mock Get-WindowsMelodyRecoveryStatus {
         return @{
-            Configuration = @{ ModuleVersion = "1.0.0" }
+            Configuration  = @{ ModuleVersion = "1.0.0" }
             Initialization = @{ Initialized = $true }
         }
     }
     Mock Get-WindowsMelodyRecovery {
         return @{
-            BackupRoot = Join-Path $TestTempDir "backups"
+            BackupRoot  = Join-Path $TestTempDir "backups"
             MachineName = "TEST-MACHINE"
         }
     }
@@ -82,12 +82,12 @@ BeforeAll {
     Mock Restore-WindowsMelodyRecovery { }
     Mock Start-WindowsMelodyRecovery { }
     Mock Convert-ToWinget { }
-    Mock Set-WindowsMelodyRecoveryScripts { }
-    Mock Sync-WindowsMelodyRecoveryScripts { }
+    Mock Set-WindowsMelodyRecoveryScript { }
+    Mock Sync-WindowsMelodyRecoveryScript { }
     Mock Test-WindowsMelodyRecovery { }
     Mock Update-WindowsMelodyRecovery { }
-    Mock Install-WindowsMelodyRecoveryTasks { }
-    Mock Remove-WindowsMelodyRecoveryTasks { }
+    Mock Install-WindowsMelodyRecoveryTask { }
+    Mock Remove-WindowsMelodyRecoveryTask { }
     Mock Get-Command {
         return @{ Name = $Name; CommandType = "Function" }
     } -ParameterFilter { $Name -like "*WindowsMelodyRecovery*" }
@@ -268,9 +268,9 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
             # Test manifest structure validation
             $testManifest = @{
                 ModuleVersion = "1.0.0"
-                CreatedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                BackupType = "Full"
-                Components = @("SystemSettings", "Applications")
+                CreatedDate   = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                BackupType    = "Full"
+                Components    = @("SystemSettings", "Applications")
             }
 
             # Test manifest validation logic
@@ -285,12 +285,12 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
             # Test all utility functions exist
             $utilityFunctions = @(
                 'Convert-ToWinget',
-                'Set-WindowsMelodyRecoveryScripts',
-                'Sync-WindowsMelodyRecoveryScripts',
+                'Set-WindowsMelodyRecoveryScript',
+                'Sync-WindowsMelodyRecoveryScript',
                 'Test-WindowsMelodyRecovery',
                 'Update-WindowsMelodyRecovery',
-                'Install-WindowsMelodyRecoveryTasks',
-                'Remove-WindowsMelodyRecoveryTasks'
+                'Install-WindowsMelodyRecoveryTask',
+                'Remove-WindowsMelodyRecoveryTask'
             )
 
             foreach ($function in $utilityFunctions) {
@@ -311,20 +311,20 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should test configuration synchronization logic" {
             # Test script synchronization logic
-            { Sync-WindowsMelodyRecoveryScripts -ErrorAction Stop -NoPrompt } | Should -Not -Throw
-            { Set-WindowsMelodyRecoveryScripts -ErrorAction Stop } | Should -Not -Throw
+            { Sync-WindowsMelodyRecoveryScript -ErrorAction Stop -NoPrompt } | Should -Not -Throw
+            { Set-WindowsMelodyRecoveryScript -ErrorAction Stop } | Should -Not -Throw
 
-            Should -Invoke Sync-WindowsMelodyRecoveryScripts -Times 1
-            Should -Invoke Set-WindowsMelodyRecoveryScripts -Times 1
+            Should -Invoke Sync-WindowsMelodyRecoveryScript -Times 1
+            Should -Invoke Set-WindowsMelodyRecoveryScript -Times 1
         }
 
         It "Should test task management logic" {
             # Test task installation/removal logic
-            { Install-WindowsMelodyRecoveryTasks -ErrorAction Stop } | Should -Not -Throw
-            { Remove-WindowsMelodyRecoveryTasks -ErrorAction Stop } | Should -Not -Throw
+            { Install-WindowsMelodyRecoveryTask -ErrorAction Stop } | Should -Not -Throw
+            { Remove-WindowsMelodyRecoveryTask -ErrorAction Stop } | Should -Not -Throw
 
-            Should -Invoke Install-WindowsMelodyRecoveryTasks -Times 1
-            Should -Invoke Remove-WindowsMelodyRecoveryTasks -Times 1
+            Should -Invoke Install-WindowsMelodyRecoveryTask -Times 1
+            Should -Invoke Remove-WindowsMelodyRecoveryTask -Times 1
         }
     }
 

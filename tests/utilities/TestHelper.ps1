@@ -25,7 +25,7 @@ function Test-ContainerHealth {
                 break
             }
         }
- catch {
+        catch {
             # Container not found or other error
         }
         Start-Sleep -Seconds 2
@@ -44,7 +44,7 @@ function Test-ServiceEndpoint {
         $response = Invoke-RestMethod -Uri $Url -TimeoutSec $TimeoutSeconds
         return $true
     }
- catch {
+    catch {
         return $false
     }
 }

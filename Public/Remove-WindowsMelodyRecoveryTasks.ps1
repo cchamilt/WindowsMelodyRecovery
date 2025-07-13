@@ -1,5 +1,5 @@
 ﻿# Requires admin privileges
-function Remove-WindowsMelodyRecoveryTasks {
+function Remove-WindowsMelodyRecoveryTask {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
@@ -70,7 +70,7 @@ function Remove-WindowsMelodyRecoveryTasks {
 
 # Allow script to be run directly or sourced
 if ($MyInvocation.InvocationName -ne '.') {
-    Remove-WindowsMelodyRecoveryTasks @PSBoundParameters
+    Remove-WindowsMelodyRecoveryTask @PSBoundParameters
 }
 
 

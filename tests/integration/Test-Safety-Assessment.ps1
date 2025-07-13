@@ -295,7 +295,7 @@ Write-Information -MessageData "" -InformationAction Continue
 if ($ciOnlyTests.Count -eq 0) {
     Write-Information -MessageData "🎉 All integration tests are safe for development execution!" -InformationAction Continue
 }
- else {
+else {
     Write-Warning -Message "⚠️  $($ciOnlyTests.Count) test(s) require CI-only execution for safety."
 }
 

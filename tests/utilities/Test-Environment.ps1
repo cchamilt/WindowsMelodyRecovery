@@ -17,6 +17,19 @@
 
 # --- Core Environment Detection Functions ---
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Get-EnvironmentType {
     [OutputType('PSCustomObject')]
     [CmdletBinding()]
@@ -34,6 +47,19 @@ function Get-EnvironmentType {
     return $envType
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Find-ModuleRoot {
     [OutputType('string')]
     [CmdletBinding()]
@@ -124,14 +150,33 @@ function Find-ModuleRoot {
 
 # --- Test Suite Specific Initializers ---
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER SuiteName
+Parameter description
+
+.PARAMETER SessionId
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Initialize-TestEnvironment {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [ValidateSet('Unit', 'FileOps', 'Integration', 'E2E', 'Windows')]
         [string]$SuiteName,
 
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$SessionId = (New-Guid).Guid.Substring(0, 8)
     )
 
@@ -141,7 +186,8 @@ function Initialize-TestEnvironment {
     # Create a unique, isolated root path for this test run
     $baseTempPath = if ($envType.IsCI) {
         if ($envType.IsWindows) { $env:TEMP } else { '/tmp' }
-    } else {
+    }
+ else {
         Join-Path $moduleRoot "Temp"
     }
     $testRoot = Join-Path $baseTempPath "WMR-Tests-$SuiteName-$SessionId"
@@ -150,12 +196,12 @@ function Initialize-TestEnvironment {
 
     # Define standard paths within the isolated root
     $testPaths = @{
-        TestRoot    = $testRoot
+        TestRoot = $testRoot
         TestRestore = Join-Path $testRoot "test-restore"
-        TestBackup  = Join-Path $testRoot "test-backup"
-        Temp        = Join-Path $testRoot "temp"
-        TestState   = Join-Path $testRoot "test-state"
-        Logs        = Join-Path $testRoot "logs"
+        TestBackup = Join-Path $testRoot "test-backup"
+        Temp = Join-Path $testRoot "temp"
+        TestState = Join-Path $testRoot "test-state"
+        Logs = Join-Path $testRoot "logs"
     }
 
     # Create all standard directories

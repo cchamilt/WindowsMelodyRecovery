@@ -1,4 +1,4 @@
-﻿function Set-WindowsMelodyRecoveryScripts {
+﻿function Set-WindowsMelodyRecoveryScript {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
@@ -118,10 +118,10 @@
 
     # Show usage if no valid parameters provided
     Write-Warning -Message "Usage Examples:"
-    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -ListAll" -InformationAction Continue
-    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Interactive" -InformationAction Continue
-    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -InformationAction Continue
-    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScripts -Category restore -ScriptName 'Applications' -Enabled `$false" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScript -ListAll" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScript -Interactive" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScript -Category backup -ScriptName 'Terminal Settings' -Enabled `$true" -InformationAction Continue
+    Write-Information -MessageData "  Set-WindowsMelodyRecoveryScript -Category restore -ScriptName 'Applications' -Enabled `$false" -InformationAction Continue
 }
 
 

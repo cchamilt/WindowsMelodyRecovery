@@ -35,16 +35,16 @@ function Get-WmrMachineContext {
 
     try {
         $context = @{
-            MachineName = $env:COMPUTERNAME
-            UserName = $env:USERNAME
-            UserProfile = $env:USERPROFILE
-            OSVersion = [System.Environment]::OSVersion.Version.ToString()
-            Architecture = $env:PROCESSOR_ARCHITECTURE
-            Domain = $env:USERDOMAIN
+            MachineName          = $env:COMPUTERNAME
+            UserName             = $env:USERNAME
+            UserProfile          = $env:USERPROFILE
+            OSVersion            = [System.Environment]::OSVersion.Version.ToString()
+            Architecture         = $env:PROCESSOR_ARCHITECTURE
+            Domain               = $env:USERDOMAIN
             EnvironmentVariables = @{}
-            HardwareInfo = @{}
-            SoftwareInfo = @{}
-            Timestamp = Get-Date
+            HardwareInfo         = @{}
+            SoftwareInfo         = @{}
+            Timestamp            = Get-Date
         }
 
         # Collect relevant environment variables
@@ -259,7 +259,7 @@ function Test-WmrStringComparison {
     }
 }
 
-function Get-WmrApplicableMachineConfigurations {
+function Get-WmrApplicableMachineConfiguration {
     <#
     .SYNOPSIS
         Gets machine-specific configurations that apply to the current machine.
@@ -275,7 +275,7 @@ function Get-WmrApplicableMachineConfigurations {
         Machine context information to test selectors against.
 
     .EXAMPLE
-        $configs = Get-WmrApplicableMachineConfigurations -MachineSpecificConfigs $machineConfigs -MachineContext $context
+        $configs = Get-WmrApplicableMachineConfiguration -MachineSpecificConfigs $machineConfigs -MachineContext $context
     #>
     [CmdletBinding()]
     [OutputType([System.Array])]

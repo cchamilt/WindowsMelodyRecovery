@@ -35,7 +35,7 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
 
             # Machine context functions
             'Get-WmrMachineContext',
-            'Get-WmrApplicableMachineConfigurations',
+            'Get-WmrApplicableMachineConfiguration',
             'Test-WmrMachineSelector',
             'Test-WmrStringComparison',
 

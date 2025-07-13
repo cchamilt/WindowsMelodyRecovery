@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule         = 'WindowsMelodyRecovery.psm1'
     ModuleVersion      = '1.0.0'
     GUID               = 'a60338bd-2b57-4c2d-8c3a-025019cf317b'
@@ -73,12 +73,12 @@
         # Management functions
         'Update-WindowsMelodyRecovery',
         'Convert-ToWinget',
-        'Set-WindowsMelodyRecoveryScripts',
-        'Sync-WindowsMelodyRecoveryScripts',
+        'Set-WindowsMelodyRecoveryScript',
+        'Sync-WindowsMelodyRecoveryScript',
 
         # Task management
-        'Install-WindowsMelodyRecoveryTasks',
-        'Remove-WindowsMelodyRecoveryTasks',
+        'Install-WindowsMelodyRecoveryTask',
+        'Remove-WindowsMelodyRecoveryTask',
 
         # Utility functions
         'Import-PrivateScript',

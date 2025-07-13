@@ -54,7 +54,7 @@ function Test-DockerComposeCommand {
             return $true
         }
     }
- catch {
+    catch {
         # Continue to test legacy command
     }
 
@@ -67,7 +67,7 @@ function Test-DockerComposeCommand {
             return $true
         }
     }
- catch {
+    catch {
         # Neither command is available
     }
 
@@ -83,7 +83,7 @@ function Test-DockerEnvironment {
         docker --version | Out-Null
         Write-TestLog "Docker is available" -Level Success
     }
- catch {
+    catch {
         Write-TestLog "Docker is not available. Please install Docker." -Level Error
         throw "Docker not found"
     }
@@ -139,7 +139,7 @@ function Start-DockerTestEnvironment {
                     return $true
                 }
             }
- catch {
+            catch {
                 # Continue trying
             }
 
@@ -152,7 +152,7 @@ function Start-DockerTestEnvironment {
         } while ($true)
 
     }
- catch {
+    catch {
         Write-TestLog "Failed to start Docker environment: $($_.Exception.Message)" -Level Error
         throw
     }
@@ -244,13 +244,13 @@ if (`$totalTests -gt 0) {
             Write-TestLog "$TestCategory tests completed successfully" -Level Success
             return $true
         }
- else {
+        else {
             Write-TestLog "$TestCategory tests failed with exit code: $dockerExitCode" -Level Error
             return $false
         }
 
     }
- catch {
+    catch {
         Write-TestLog "Error running Docker tests: $($_.Exception.Message)" -Level Error
         return $false
     }
@@ -276,11 +276,11 @@ function Stop-DockerTestEnvironment {
 
             Write-TestLog "Docker cleanup completed" -Level Success
         }
- catch {
+        catch {
             Write-TestLog "Warning: Docker cleanup failed: $($_.Exception.Message)" -Level Warning
         }
     }
- else {
+    else {
         Write-TestLog "Skipping Docker cleanup (CleanupAfter = false)" -Level Info
     }
 }
@@ -349,19 +349,19 @@ try {
         Write-TestLog "Docker tests completed successfully" -Level Success
         exit 0
     }
- else {
+    else {
         Write-TestLog "Docker tests failed" -Level Error
         exit 1
     }
 
 }
- catch {
+catch {
     Write-TestLog "Docker test execution failed: $($_.Exception.Message)" -Level Error
     Write-TestSummary -Success $false -TestCategory $TestCategory -OutputFile "$OutputPath/docker-test-results.xml"
     exit 1
 
 }
- finally {
+finally {
     # Always cleanup
     Stop-DockerTestEnvironment
 }

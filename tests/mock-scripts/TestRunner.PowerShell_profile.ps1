@@ -11,11 +11,11 @@ try {
         Import-Module Pester -Force -ErrorAction SilentlyContinue
         Write-Verbose "✓ Pester module imported successfully"
     }
- else {
+    else {
         Write-Verbose "⚠ Pester module not found - will attempt installation on demand"
     }
 }
- catch {
+catch {
     Write-Verbose "Failed to import Pester module: $_"
 }
 
@@ -23,7 +23,7 @@ try {
     Import-Module PSScriptAnalyzer -Force -ErrorAction SilentlyContinue
     Write-Verbose "✓ PSScriptAnalyzer module imported successfully"
 }
- catch {
+catch {
     Write-Verbose "PSScriptAnalyzer module not available"
 }
 
@@ -105,7 +105,7 @@ function Install-TestModule {
         Write-Information -MessageData "✅ Module installed successfully for testing" -InformationAction Continue
         return $true
     }
- else {
+    else {
         Write-Error -Message "❌ Module installation failed"
         return $false
     }
@@ -119,7 +119,7 @@ function Test-Environment {
     if (Test-Path "/.dockerenv") {
         Write-Information -MessageData "✓ Running in Docker container" -InformationAction Continue
     }
- else {
+    else {
         Write-Warning -Message "⚠ Not running in Docker container"
     }
 
@@ -129,7 +129,7 @@ function Test-Environment {
         if (Test-Path $dir) {
             Write-Information -MessageData "✓ $dir exists" -InformationAction Continue
         }
- else {
+        else {
             Write-Error -Message "✗ $dir missing"
         }
     }
@@ -141,7 +141,7 @@ function Test-Environment {
             $version = (Get-Module -ListAvailable -Name $module | Select-Object -First 1).Version
             Write-Information -MessageData "✓ $module $version available" -InformationAction Continue
         }
- else {
+        else {
             Write-Error -Message "✗ $module not available"
         }
     }
@@ -150,7 +150,7 @@ function Test-Environment {
     if (Get-Module -ListAvailable -Name "WindowsMelodyRecovery") {
         Write-Information -MessageData "✓ WindowsMelodyRecovery module installed" -InformationAction Continue
     }
- else {
+    else {
         Write-Warning -Message "⚠ WindowsMelodyRecovery module not installed (run Install-TestModule)"
     }
 }
@@ -174,7 +174,7 @@ function Start-TestRun {
         Import-Module Pester -Force -ErrorAction SilentlyContinue
         Write-Verbose "✓ Pester module loaded for test run"
     }
- catch {
+    catch {
         Write-Error -Message "❌ Failed to load Pester module: $_"
         Write-Warning -Message "Tests may not run properly without Pester"
     }
@@ -222,7 +222,7 @@ function Start-TestRun {
         if ($failed -eq 0) {
             Write-Information -MessageData "✅ All tests passed!" -InformationAction Continue
         }
- else {
+        else {
             Write-Warning -Message "⚠️ Some tests failed"
         }
     }

@@ -550,7 +550,7 @@ AfterAll {
             Write-Warning -Message "Cleaned up template test directory: $script:TestRoot"
         }
     }
- catch {
+    catch {
         Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"
     }
 }

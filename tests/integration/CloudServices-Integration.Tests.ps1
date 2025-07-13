@@ -1,4 +1,4 @@
-# tests/integration/CloudServices-Integration.Tests.ps1
+﻿# tests/integration/CloudServices-Integration.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -72,7 +72,7 @@ BeforeAll {
     # Create common test data for backup/restore tests
     $script:TestData = @{
         "system_settings.json" = @{ display = @{ resolution = "1920x1080" } } | ConvertTo-Json;
-        "applications.json"    = @{ installed = @( @{ name = "VSCode" } ) } | ConvertTo-Json;
+        "applications.json" = @{ installed = @( @{ name = "VSCode" } ) } | ConvertTo-Json;
     }
     foreach ($file in $script:TestData.Keys) {
         $filePath = Join-Path $script:TestBackupRoot $file

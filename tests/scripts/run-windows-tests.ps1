@@ -135,7 +135,7 @@ try {
         $testPaths += Join-Path $PSScriptRoot ".." "windows-only" "integration"
         # Add other categories as they exist
     }
- else {
+    else {
         $categoryPath = Join-Path $PSScriptRoot ".." "windows-only" $Category
         if (Test-Path $categoryPath) {
             if ($TestName) {
@@ -143,16 +143,16 @@ try {
                 if (Test-Path $specificTest) {
                     $testPaths += $specificTest
                 }
- else {
+                else {
                     Write-Error -Message "✗ Test file not found: $specificTest"
                     exit 1
                 }
             }
- else {
+            else {
                 $testPaths += $categoryPath
             }
         }
- else {
+        else {
             Write-Error -Message "✗ Test category not found: $categoryPath"
             Write-Warning -Message "Available categories:"
             Get-ChildItem -Path (Join-Path $PSScriptRoot ".." "windows-only") -Directory | ForEach-Object {
@@ -177,7 +177,7 @@ try {
 
     if ($GenerateReport) {
         $pesterConfig.TestResult = @{
-            Enabled    = $true
+            Enabled = $true
             OutputPath = Join-Path $testEnvironment.Logs "windows-only-test-results.xml"
         }
     }
@@ -203,13 +203,13 @@ try {
         Write-Error -Message "✗ Some Windows-only tests failed"
         exit 1
     }
- else {
+    else {
         Write-Information -MessageData "✓ All Windows-only tests passed!" -InformationAction Continue
         exit 0
     }
 
 }
- catch {
+catch {
     Write-Error -Message "✗ Error running Windows-only tests: $($_.Exception.Message)"
     Write-Error -Message "Stack trace:"
     Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue

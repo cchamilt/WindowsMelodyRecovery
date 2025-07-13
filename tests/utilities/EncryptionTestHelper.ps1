@@ -2,6 +2,30 @@
 using namespace System.Security.Cryptography
 using namespace System.Text
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+param()#
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER KeySize
+Parameter description
+
+.PARAMETER Password
+Parameter description
+
+.PARAMETER Salt
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function New-TestEncryptionKey {
     [CmdletBinding()]
     param(
@@ -9,7 +33,7 @@ function New-TestEncryptionKey {
         [int]$KeySize = 256,
 
         [Parameter(Mandatory = $false)]
-        [string]$Password = "TestP@ssw0rd!",
+        [SecureString]$Password = (ConvertTo-SecureString "TestP@ssw0rd!" -AsPlainText -Force),
 
         [Parameter(Mandatory = $false)]
         [byte[]]$Salt
@@ -37,6 +61,19 @@ function New-TestEncryptionKey {
     }
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function New-TestInitializationVector {
     [CmdletBinding()]
     param()
@@ -55,6 +92,22 @@ function New-TestInitializationVector {
     }
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER PlainText
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function New-TestSecureString {
     [CmdletBinding()]
     param(
@@ -74,6 +127,28 @@ function New-TestSecureString {
     }
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER Key
+Parameter description
+
+.PARAMETER InitializationVector
+Parameter description
+
+.PARAMETER PlainText
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function New-TestEncryptedData {
     [CmdletBinding()]
     param(
@@ -132,7 +207,26 @@ function New-TestEncryptedData {
     }
 }
 
-function Test-DecryptedDataEquals {
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER DecryptedData
+Parameter description
+
+.PARAMETER ExpectedPlainText
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
+function Test-DecryptedDataEqual {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -146,6 +240,22 @@ function Test-DecryptedDataEquals {
     return $decryptedText -eq $ExpectedPlainText
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER Prefix
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function New-TestTempDirectory {
     [CmdletBinding()]
     param(
@@ -158,6 +268,22 @@ function New-TestTempDirectory {
     return $tempPath
 }
 
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER Path
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Remove-TestTempDirectory {
     [CmdletBinding()]
     param(
@@ -178,7 +304,7 @@ $scriptModule = New-Module -Name EncryptionTestHelper -ScriptBlock {
         'New-TestInitializationVector',
         'New-TestSecureString',
         'New-TestEncryptedData',
-        'Test-DecryptedDataEquals',
+        'Test-DecryptedDataEqual',
         'New-TestTempDirectory',
         'Remove-TestTempDirectory'
     )
