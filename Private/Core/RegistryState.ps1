@@ -17,28 +17,41 @@ function Get-WmrRegistryMockData {
     )
 
     # Only use mock data in test environments
-    if (-not ($env:WMR_TEST_MODE -eq 'true' -or $env:WMR_DOCKER_TEST -eq 'true' -or $env:PESTER_OUTPUT_PATH -or $env:DOCKER_ENVIRONMENT -eq 'true')) {
+    if (-not ($env:WMR_TEST_MODE -eq 'true' -or $env:DOCKER_TEST -eq 'true' -or $env:PESTER_OUTPUT_PATH -or $env:DOCKER_ENVIRONMENT -eq 'true')) {
         return $null
     }
 
-    # Get the source system path where we placed our mock data
+    Write-Verbose "Mock registry activated for path: $RegistryPath"
+    Write-Information -MessageData "    Mock registry debug: mockDataRoot=$mockDataRoot, registryMockPath would be: $(if ($mockDataRoot) { Join-Path $mockDataRoot "Registry" } else { "null" })" -InformationAction Continue
+
+            # Get the source system path where we placed our mock data
     $mockDataRoot = $env:WMR_STATE_PATH
-    if (-not $mockDataRoot) {
+    Write-Information -MessageData "    WMR_STATE_PATH environment variable: '$env:WMR_STATE_PATH'" -InformationAction Continue
+
+    # If WMR_STATE_PATH is set and valid, use it directly
+    if ($mockDataRoot -and (Test-Path $mockDataRoot)) {
+        Write-Information -MessageData "    Using WMR_STATE_PATH: $mockDataRoot" -InformationAction Continue
+    } else {
         # Try to find the actual directory in both Windows and Linux paths
         $actualMockDirs = @()
 
         # Check Linux/Docker paths
         if (Test-Path "/tmp") {
-            $actualMockDirs += Get-ChildItem -Path "/tmp" -Directory -Filter "WMR-EndToEnd-*" -ErrorAction SilentlyContinue
+            $actualMockDirs += Get-ChildItem -Path "/tmp" -Directory -Filter "WMR-EndToEnd-*" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
         }
 
         # Check Windows paths
         if ($env:TEMP -and (Test-Path $env:TEMP)) {
-            $actualMockDirs += Get-ChildItem -Path $env:TEMP -Directory -Filter "WMR-EndToEnd-*" -ErrorAction SilentlyContinue
+            $actualMockDirs += Get-ChildItem -Path $env:TEMP -Directory -Filter "WMR-EndToEnd-*" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
         }
 
         if ($actualMockDirs) {
+            # Use the most recent test directory
             $mockDataRoot = Join-Path $actualMockDirs[0].FullName "SourceSystem"
+            Write-Information -MessageData "    Found mock data root: $mockDataRoot" -InformationAction Continue
+        } else {
+            Write-Information -MessageData "    No mock data directories found in /tmp or $env:TEMP" -InformationAction Continue
+            $mockDataRoot = $null
         }
     }
 
@@ -49,8 +62,10 @@ function Get-WmrRegistryMockData {
 
     # Map registry paths to mock data files
     $registryMockPath = Join-Path $mockDataRoot "Registry"
+    Write-Information -MessageData "    Checking registry mock path: $registryMockPath" -InformationAction Continue
     if (-not (Test-Path $registryMockPath)) {
-        Write-Verbose "Registry mock path not found: $registryMockPath"
+        Write-Information -MessageData "    Registry mock path not found: $registryMockPath" -InformationAction Continue
+        Write-Information -MessageData "    Available directories in mockDataRoot: $(if (Test-Path $mockDataRoot) { (Get-ChildItem $mockDataRoot -Directory).Name -join ', ' } else { 'mockDataRoot does not exist' })" -InformationAction Continue
         return $null
     }
 
@@ -61,7 +76,12 @@ function Get-WmrRegistryMockData {
         'HKCU:\Control Panel\Desktop\WindowMetrics' = 'visual_effects.json'
         'HKCU:\Control Panel\International' = 'international.json'
         'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' = 'memory_management.json'
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' = 'explorer_base.json'
         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' = 'explorer_advanced.json'
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts' = 'file_exts.json'
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StreamMRU' = 'stream_mru.json'
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths' = 'typed_paths.json'
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\UserAssist' = 'user_assist.json'
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies' = 'system_policies.json'
         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies' = 'user_policies.json'
         'HKLM:\SYSTEM\CurrentControlSet\Services' = 'services.json'
@@ -186,6 +206,7 @@ function Get-WmrRegistryState {
 
     # Check if we're in a test environment and should use mock data
     $mockData = Get-WmrRegistryMockData -RegistryPath $resolvedPath
+    Write-Information -MessageData "    Mock data result: $($mockData -ne $null)" -InformationAction Continue
     if ($mockData) {
         Write-Information -MessageData "    Using mock registry data for testing" -InformationAction Continue
 

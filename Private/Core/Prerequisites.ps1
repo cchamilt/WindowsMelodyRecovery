@@ -2,6 +2,7 @@
 
 # Requires Convert-WmrPath from PathUtilities.ps1
 # Requires WindowsMelodyRecovery.Template.psm1 for template schema, although not directly called here.
+# Requires Get-WmrRegistryMockData from RegistryState.ps1
 
 function Test-WmrPrerequisite {
     param(
@@ -42,19 +43,36 @@ function Test-WmrPrerequisite {
                 "registry" {
                     try {
                         $regPath = (Convert-WmrPath -Path $prereq.path).Path # Convert winreg URI to PowerShell path
-                        if ($prereq.key_name) {
-                            # Check a specific registry value
-                            $regValue = (Get-ItemProperty -Path $regPath -Name $prereq.key_name -ErrorAction Stop).($prereq.key_name)
-                            $checkResult = "Current Value: $regValue`n"
-                            if ($regValue -eq $prereq.expected_value) {
+
+                        # Check if we're in a test environment and should use mock registry
+                        if ($env:WMR_TEST_MODE -eq 'true' -or $env:DOCKER_TEST -eq 'true' -or $env:PESTER_OUTPUT_PATH -or $env:DOCKER_ENVIRONMENT -eq 'true') {
+                            # Use mock registry system
+                            $mockResult = Get-WmrRegistryMockData -RegistryPath $regPath
+                            if ($mockResult) {
+                                $checkResult = "Mock registry data found for path: $regPath`n"
                                 $prereqMet = $true
+                            }
+                            else {
+                                $checkResult = "Mock registry data not found for path: $regPath`n"
+                                $prereqMet = $false
                             }
                         }
                         else {
-                            # Check if the registry key exists
-                            if (Test-Path $regPath -ErrorAction Stop) {
-                                $checkResult = "Key exists.`n"
-                                $prereqMet = $true
+                            # Use actual registry system
+                            if ($prereq.key_name) {
+                                # Check a specific registry value
+                                $regValue = (Get-ItemProperty -Path $regPath -Name $prereq.key_name -ErrorAction Stop).($prereq.key_name)
+                                $checkResult = "Current Value: $regValue`n"
+                                if ($regValue -eq $prereq.expected_value) {
+                                    $prereqMet = $true
+                                }
+                            }
+                            else {
+                                # Check if the registry key exists
+                                if (Test-Path $regPath -ErrorAction Stop) {
+                                    $checkResult = "Key exists.`n"
+                                    $prereqMet = $true
+                                }
                             }
                         }
                     }

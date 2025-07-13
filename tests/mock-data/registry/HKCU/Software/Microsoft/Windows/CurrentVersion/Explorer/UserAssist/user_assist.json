@@ -1,0 +1,20 @@
+{
+  "{CEBFF5CD-ACE2-4F4F-9178-9926F41749EA}": {
+    "Type": "REG_KEY",
+    "Count": {
+      "HRZR_PGYFRFFVBA": {
+        "Type": "REG_BINARY",
+        "Value": "mock_userassist_data"
+      }
+    }
+  },
+  "{F4E57C4B-2036-45F0-A9AB-443BCFE33D9F}": {
+    "Type": "REG_KEY",
+    "Count": {
+      "HRZR_CHGYFRFFVBA": {
+        "Type": "REG_BINARY",
+        "Value": "mock_userassist_data2"
+      }
+    }
+  }
+}

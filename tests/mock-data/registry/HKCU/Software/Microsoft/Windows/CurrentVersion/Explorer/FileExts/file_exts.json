@@ -1,0 +1,23 @@
+{
+  ".txt": {
+    "Type": "REG_KEY",
+    "UserChoice": {
+      "ProgId": "txtfile",
+      "Hash": "mock_hash_value"
+    }
+  },
+  ".pdf": {
+    "Type": "REG_KEY",
+    "UserChoice": {
+      "ProgId": "AcroExch.Document.DC",
+      "Hash": "mock_hash_value"
+    }
+  },
+  ".jpg": {
+    "Type": "REG_KEY",
+    "UserChoice": {
+      "ProgId": "jpegfile",
+      "Hash": "mock_hash_value"
+    }
+  }
+}

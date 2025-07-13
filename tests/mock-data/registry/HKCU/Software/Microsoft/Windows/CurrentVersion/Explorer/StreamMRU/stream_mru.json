@@ -1,0 +1,18 @@
+{
+  "MRUList": {
+    "Type": "REG_SZ",
+    "Value": "abc"
+  },
+  "a": {
+    "Type": "REG_BINARY",
+    "Value": "mock_stream_data_a"
+  },
+  "b": {
+    "Type": "REG_BINARY",
+    "Value": "mock_stream_data_b"
+  },
+  "c": {
+    "Type": "REG_BINARY",
+    "Value": "mock_stream_data_c"
+  }
+}

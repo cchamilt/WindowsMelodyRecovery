@@ -22,8 +22,7 @@ docker-compose.*.yml.bak
 *.ps1.bak
 *.psm1.bak
 *.psd1.bak
-Microsoft/
-ModuleAnalysisCache/
+/Microsoft/
 
 # Test artifacts
 PesterTestResults.xml

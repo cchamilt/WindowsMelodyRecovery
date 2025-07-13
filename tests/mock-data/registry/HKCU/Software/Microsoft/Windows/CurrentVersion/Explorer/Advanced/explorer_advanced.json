@@ -1,0 +1,26 @@
+{
+  "EnableAutoTray": {
+    "Type": "REG_DWORD",
+    "Value": 1
+  },
+  "ShowInfoTip": {
+    "Type": "REG_DWORD",
+    "Value": 1
+  },
+  "ShowStatusBar": {
+    "Type": "REG_DWORD",
+    "Value": 1
+  },
+  "ShowPreviewPane": {
+    "Type": "REG_DWORD",
+    "Value": 1
+  },
+  "ShowDetailsPane": {
+    "Type": "REG_DWORD",
+    "Value": 1
+  },
+  "Link": {
+    "Type": "REG_BINARY",
+    "Value": "00000000"
+  }
+}

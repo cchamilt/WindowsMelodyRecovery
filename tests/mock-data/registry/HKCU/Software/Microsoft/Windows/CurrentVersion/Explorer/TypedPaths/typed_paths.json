@@ -1,0 +1,14 @@
+{
+  "url1": {
+    "Type": "REG_SZ",
+    "Value": "C:\\Users\\TestUser\\Documents"
+  },
+  "url2": {
+    "Type": "REG_SZ",
+    "Value": "C:\\Users\\TestUser\\Desktop"
+  },
+  "url3": {
+    "Type": "REG_SZ",
+    "Value": "C:\\Program Files"
+  }
+}

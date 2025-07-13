@@ -167,6 +167,33 @@ BeforeAll {
                 "s2359" = "PM"
                 "sCountry" = "United States"
             } | ConvertTo-Json -Depth 3
+
+            "explorer_base.json" = @{
+                "EnableAutoTray" = @{
+                    "Type" = "REG_DWORD"
+                    "Value" = 1
+                }
+                "ShowInfoTip" = @{
+                    "Type" = "REG_DWORD"
+                    "Value" = 1
+                }
+                "ShowStatusBar" = @{
+                    "Type" = "REG_DWORD"
+                    "Value" = 1
+                }
+                "ShowPreviewPane" = @{
+                    "Type" = "REG_DWORD"
+                    "Value" = 1
+                }
+                "ShowDetailsPane" = @{
+                    "Type" = "REG_DWORD"
+                    "Value" = 1
+                }
+                "Link" = @{
+                    "Type" = "REG_BINARY"
+                    "Value" = "00000000"
+                }
+            } | ConvertTo-Json -Depth 3
         }
 
         foreach ($file in $mockRegistryData.Keys) {
