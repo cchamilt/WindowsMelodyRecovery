@@ -1,6 +1,22 @@
 # TODO
 
+## Testing
+
+We need a new testing plan and strategy to pass CI/CD.
+
+Should review the original plan and strategy in docs.  Make sure that our unit, fileop, integration, and e2e tests meet them.  Make sure that all destructive/write operations in windows are safe/blocked for local dev and optionally allowed in CI/CD.
+
+Test Environment Fragility: Fixing tests in one suite breaks others
+Cross-Suite Interference: Environment isolation problems, mock data conflicts, path resolution inconsistencies
+Infrastructure Brittleness: Dependency chain failures, environment variable conflicts, mock system overlap - need more separation of testing code paths from Windows and mocking in Docker.
+
+Squash more PSScriptAnalyzer warnings in CI pipeline.
+
 📋 **See [Comprehensive Testing Plan](docs/TESTING_PLAN.md) for structured approach to all testing issues**
+
+## User Interface
+
+Add a curses based TUI for initialization and configuring.  Allow selection of what templates/Windows components/features (and their options) are backed up regularly or recovered (and recovery exists).  Have its layout and association parallel Windows setup/features lists.  Allow it to update/search for recovery directories and pick from shared/specific system configuration.  Show status and timing of tasks like backup and regular package updating.  Have it also check for updates for itself at startup and reload its module on installation.  Make a systray badge optional to launch the TUI.
 
 ## Features
 
@@ -19,7 +35,6 @@
 - Update documentation and workflow - install, initialize, capture state, remove bloat, optimize/recommendations, capture new state, install maintenance/backup tasks
 - Procedural recovery - ie. make sure backup is recovered, remove bloatware, install critical apps, recover configuration, setup wsl, setup dev/env/languages, install remaining apps, games, etc.
 - Certificate storage options like keyvault and local file encryption
-- Network drive backup
-- Azure Blob storage
-- server features - services, iis configuration, files/directories
+- In addition to cloud file services - support network drive backup and Azure Blob storage
+- server features - services, server features, iis configuration, files/directories
 - document and support administrative privelege management with Windows' new sudo inline option https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
