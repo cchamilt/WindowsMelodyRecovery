@@ -167,6 +167,60 @@ if ($script:IsCICDEnvironment) {
     }
 }
 
+# Function to ensure required modules are installed
+function Ensure-TestModules {
+    <#
+    .SYNOPSIS
+        Ensures required PowerShell modules are installed for testing
+    .DESCRIPTION
+        Checks for and installs missing required modules in test environments
+    #>
+    [CmdletBinding()]
+    param()
+
+    $requiredModules = @(
+        @{ Name = 'Pester'; MinimumVersion = '5.0.0' },
+        @{ Name = 'Yayaml'; MinimumVersion = $null },
+        @{ Name = 'PSScriptAnalyzer'; MinimumVersion = $null }
+    )
+
+    foreach ($moduleInfo in $requiredModules) {
+        $moduleName = $moduleInfo.Name
+        $minVersion = $moduleInfo.MinimumVersion
+
+        # Check if module is available
+        $installedModule = Get-Module -ListAvailable -Name $moduleName |
+            Where-Object { $null -eq $minVersion -or $_.Version -ge [version]$minVersion } |
+            Select-Object -First 1
+
+        if (-not $installedModule) {
+            Write-Warning "⚠️ Installing missing module: $moduleName"
+            try {
+                $installParams = @{
+                    Name = $moduleName
+                    Force = $true
+                    Scope = 'CurrentUser'
+                    AcceptLicense = $true
+                    SkipPublisherCheck = $true
+                }
+
+                if ($minVersion) {
+                    $installParams.MinimumVersion = $minVersion
+                }
+
+                Install-Module @installParams
+                Write-Verbose "✅ Successfully installed: $moduleName"
+            }
+            catch {
+                Write-Warning "❌ Failed to install $moduleName`: $($_.Exception.Message)"
+            }
+        }
+        else {
+            Write-Verbose "✅ Module $moduleName is available (version: $($installedModule.Version))"
+        }
+    }
+}
+
 # Load general test utilities for all environments
 $testUtilitiesPath = Join-Path $PSScriptRoot "Test-Utilities.ps1"
 if (Test-Path $testUtilitiesPath) {
@@ -176,6 +230,10 @@ if (Test-Path $testUtilitiesPath) {
  else {
     Write-Warning "Test utilities not found at: $testUtilitiesPath"
 }
+
+# Ensure required modules are installed in all environments
+Write-Verbose "🔧 Ensuring required PowerShell modules are available..."
+Ensure-TestModules
 
 # Load environment-specific mocks and utilities
 if ($script:IsDockerEnvironment) {

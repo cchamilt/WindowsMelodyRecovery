@@ -22,7 +22,7 @@ function Test-WmrPrerequisite {
             $prereqMet = $false
             $checkResult = ""
 
-            Write-Information -MessageData "  Checking prerequisite: $($prereq.name) (Type: $($prereq.type))..." -InformationAction Continue -NoNewline
+            Write-Host "  Checking prerequisite: $($prereq.name) (Type: $($prereq.type))..." -NoNewline
 
             switch ($prereq.type) {
                 "application" {
@@ -89,7 +89,7 @@ function Test-WmrPrerequisite {
             }
 
             if (-not $prereqMet) {
-                Write-Information -MessageData " FAILED." -InformationAction Continue
+                Write-Host " FAILED." -ForegroundColor Red
                 Write-Warning "    Prerequisite `'$($prereq.name)`' is missing or failed: $($prereq.check_command) $($prereq.path) $checkResult"
 
                 switch ($prereq.on_missing) {
@@ -116,7 +116,7 @@ function Test-WmrPrerequisite {
                 }
             }
             else {
-                Write-Information -MessageData " PASSED." -InformationAction Continue
+                Write-Host " PASSED." -ForegroundColor Green
             }
         }
     }

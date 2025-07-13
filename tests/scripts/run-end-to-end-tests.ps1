@@ -40,7 +40,7 @@ param(
     [ValidateSet('None', 'Normal', 'Detailed', 'Diagnostic')]
     [string]$OutputFormat = 'Detailed',
     [switch]$UseDocker,
-    [switch]$SkipCleanup,
+    [switch]$StopContainers,
     [int]$Timeout = 15,
     [switch]$GenerateReport
 )
@@ -72,14 +72,14 @@ if ($runInDocker) {
         }
 
         # Build test command with timeout
-        $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && "
+        $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && Import-Module ./WindowsMelodyRecovery.psd1 -Force && "
         if ($TestName) {
-            $testCommand += "Invoke-Pester -Path './tests/end-to-end/$TestName.Tests.ps1'"
+            $testCommand += "Invoke-Pester -Path './tests/end-to-end/$TestName.Tests.ps1' -Passthru"
         }
  else {
-            $testCommand += "Invoke-Pester -Path './tests/end-to-end/'"
+            $testCommand += "Invoke-Pester -Path './tests/end-to-end/' -Passthru"
         }
-        $testCommand += " -OutputFormat $OutputFormat"
+        # Note: OutputFormat is deprecated in Pester v5, using -Passthru for result object
 
         # Execute tests in Docker with timeout
         Write-Information -MessageData "Executing end-to-end tests..." -InformationAction Continue
@@ -87,8 +87,8 @@ if ($runInDocker) {
 
         # Use PowerShell job for timeout control
         $job = Start-Job -ScriptBlock {
-            param($using:using:Command)
-            docker exec wmr-test-runner pwsh -Command $using:Command
+            param($Command)
+            docker exec wmr-test-runner pwsh -Command $Command
         } -ArgumentList $testCommand
 
         $completed = Wait-Job -Job $job -Timeout $timeoutSeconds
@@ -96,7 +96,19 @@ if ($runInDocker) {
         if ($completed) {
             $result = Receive-Job -Job $job
             $exitCode = $job.State -eq 'Completed' ? 0 : 1
-            Write-Information -MessageData $result -InformationAction Continue
+
+            # Display the result properly instead of raw object
+            Write-Host $result
+
+            # Check if we can parse test results from the output
+            if ($result -match "Tests Passed: (\d+), Failed: (\d+)") {
+                $passedCount = $matches[1]
+                $failedCount = $matches[2]
+                Write-Information -MessageData "`n=== Docker End-to-End Test Results ===" -InformationAction Continue
+                Write-Information -MessageData "Tests Passed: $passedCount" -InformationAction Continue
+                Write-Information -MessageData "Tests Failed: $failedCount" -InformationAction Continue
+                $exitCode = [int]$failedCount -gt 0 ? 1 : 0
+            }
         }
  else {
             Write-Error -Message "✗ End-to-end tests timed out after $Timeout minutes"
@@ -106,8 +118,11 @@ if ($runInDocker) {
 
         Remove-Job -Job $job -Force
 
-        if (-not $SkipCleanup) {
-            Stop-DockerEnvironment
+        if ($StopContainers) {
+            Write-Information -MessageData "🛑 Stopping containers as requested..." -InformationAction Continue
+            Stop-TestContainer
+        } else {
+            Write-Information -MessageData "🚀 Keeping containers running for debugging (use -StopContainers to stop)" -InformationAction Continue
         }
 
         exit $exitCode
@@ -168,8 +183,8 @@ if ($runInDocker) {
 
         # Execute with timeout using PowerShell job
         $job = Start-Job -ScriptBlock {
-            param($using:using:Config)
-            Invoke-Pester -Configuration $using:Config
+            param($Config)
+            Invoke-Pester -Configuration $Config
         } -ArgumentList $pesterConfig
 
         $timeoutSeconds = $Timeout * 60
@@ -203,8 +218,10 @@ if ($runInDocker) {
         Remove-Job -Job $job -Force
 
         # Cleanup
-        if (-not $SkipCleanup) {
+        if ($StopContainers) {
             Remove-TestEnvironment
+        } else {
+            Write-Information -MessageData "🚀 Keeping test environment for debugging (use -StopContainers to cleanup)" -InformationAction Continue
         }
 
         exit $exitCode

@@ -1,328 +1,373 @@
 metadata:
-  name: Applications
-  description: Template for backing up installed applications and package managers.
-  version: "1.0"
-  author: Windows Melody Recovery
+    name: Applications
+    description: Template for backing up installed applications and package managers.
+    version: "1.0"
+    author: Windows Melody Recovery
 
 prerequisites:
-  - type: script
-    name: "Package Managers Available"
-    inline_script: |
-      $managers = @()
-      if (Get-Command winget -ErrorAction SilentlyContinue) { $managers += "winget" }
-      if (Get-Command choco -ErrorAction SilentlyContinue) { $managers += "chocolatey" }
-      if (Get-Command scoop -ErrorAction SilentlyContinue) { $managers += "scoop" }
-      Write-Output "Package managers available: $($managers -join ', ')"
-    expected_output: "Package managers available:"
-    on_missing: warn
+    - type: script
+      name: "Package Managers Available"
+      inline_script: |
+          $managers = @()
+          if (Get-Command winget -ErrorAction SilentlyContinue) { $managers += "winget" }
+          if (Get-Command choco -ErrorAction SilentlyContinue) { $managers += "chocolatey" }
+          if (Get-Command scoop -ErrorAction SilentlyContinue) { $managers += "scoop" }
+          Write-Output "Package managers available: $($managers -join ', ')"
+      expected_output: "Package managers available:"
+      on_missing: warn
 
 applications:
-  # Winget applications
-  - name: Winget Installed Applications
-    type: custom
-    dynamic_state_path: "winget_apps.json"
-    discovery_command: "winget list --accept-source-agreements"
-    parse_script: |
-      param($WingetOutput)
-      try {
-          $apps = @()
-          $lines = $WingetOutput -split "`n"
-          $inDataSection = $false
-          
-          foreach ($line in $lines) {
-              # Skip empty lines and progress indicators
-              if ([string]::IsNullOrWhiteSpace($line) -or $line -match "^\s*[-\\|/]\s*$") {
-                  continue
+    # Winget applications
+    - name: Winget Installed Applications
+      type: custom
+      dynamic_state_path: "winget_apps.json"
+      discovery_command: >-
+          try {
+            if (Get-Command winget -ErrorAction SilentlyContinue) {
+              winget list --accept-source-agreements 2>$null | Out-String
+            } else {
+              Write-Output 'winget not available'
+            }
+          } catch {
+            Write-Output 'winget command failed'
+          }
+      parse_script: |
+          param($WingetOutput)
+          try {
+              # Handle error cases
+              if ($WingetOutput -match "winget not available|winget command failed") {
+                  Write-Host "Winget not available on this system"
+                  return "[]"
               }
-              
-              # Look for the header line to start parsing
-              if ($line -match "^Name\s+Id\s+Version") {
-                  $inDataSection = $true
-                  continue
-              }
-              
-              # Skip separator lines
-              if ($line -match "^-+\s*$") {
-                  continue
-              }
-              
-              # Parse data lines after we've found the header
-              if ($inDataSection -and $line -match "\S") {
-                  # Split by multiple spaces to handle the column format
-                  $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
-                  if ($parts.Count -ge 3) {
-                      $apps += @{
-                          Name = $parts[0].Trim()
-                          Id = $parts[1].Trim()
-                          Version = $parts[2].Trim()
+
+              $apps = @()
+              $lines = $WingetOutput -split "`n"
+              $inDataSection = $false
+
+              foreach ($line in $lines) {
+                  # Skip empty lines and progress indicators
+                  if ([string]::IsNullOrWhiteSpace($line) -or $line -match "^\s*[-\\|/]\s*$") {
+                      continue
+                  }
+
+                  # Look for the header line to start parsing
+                  if ($line -match "^Name\s+Id\s+Version") {
+                      $inDataSection = $true
+                      continue
+                  }
+
+                  # Skip separator lines
+                  if ($line -match "^-+\s*$") {
+                      continue
+                  }
+
+                  # Parse data lines after we've found the header
+                  if ($inDataSection -and $line -match "\S") {
+                      # Split by multiple spaces to handle the column format
+                      $parts = $line -split '\s{2,}' | Where-Object { $_ -ne "" }
+                      if ($parts.Count -ge 3) {
+                          $apps += @{
+                              Name = $parts[0].Trim()
+                              Id = $parts[1].Trim()
+                              Version = $parts[2].Trim()
+                          }
                       }
                   }
               }
-          }
-          
-          Write-Host "Found $($apps.Count) winget applications"
-          return $apps | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse winget output: $_"
-          return "[]"
-      }
-    install_script: |
-      param($AppsJson)
-      try {
-          $apps = $AppsJson | ConvertFrom-Json
-          Write-Host "Restoring $($apps.Count) winget applications..."
-          foreach ($app in $apps) {
-              Write-Host "Installing: $($app.Name) ($($app.Id))"
-              winget install --id $app.Id --accept-source-agreements --accept-package-agreements --silent
-          }
-      } catch {
-          Write-Warning "Failed to install winget applications: $_"
-      }
 
-  # Chocolatey applications
-  - name: Chocolatey Installed Applications
-    type: custom
-    dynamic_state_path: "chocolatey_apps.json"
-    discovery_command: "choco list"
-    parse_script: |
-      param($ChocoOutput)
-      try {
-          $apps = @()
-          $lines = $ChocoOutput -split "`n"
-          
-          foreach ($line in $lines) {
-              # Skip empty lines, header, and summary lines
-              if ([string]::IsNullOrWhiteSpace($line) -or 
-                  $line -match "^Chocolatey v" -or 
-                  $line -match "packages installed" -or
-                  $line -match "^\s*$") {
-                  continue
-              }
-              
-              # Parse package lines (format: "packagename version")
-              if ($line -match "^(.+?)\s+(.+?)$") {
-                  $name = $matches[1].Trim()
-                  $version = $matches[2].Trim()
-                  
-                  # Skip chocolatey itself in the list
-                  if ($name -ne "chocolatey") {
-                      $apps += @{
-                          Name = $name
-                          Version = $version
-                      }
-                  }
-              }
-          }
-          
-          Write-Host "Found $($apps.Count) chocolatey applications"
-          return $apps | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse chocolatey output: $_"
-          return "[]"
-      }
-    install_script: |
-      param($AppsJson)
-      try {
-          $apps = $AppsJson | ConvertFrom-Json
-          Write-Host "Restoring $($apps.Count) chocolatey applications..."
-          foreach ($app in $apps) {
-              Write-Host "Installing: $($app.Name)"
-              choco install $app.Name -y --force
-          }
-      } catch {
-          Write-Warning "Failed to install chocolatey applications: $_"
-      }
-
-  # Scoop applications
-  - name: Scoop Installed Applications
-    type: custom
-    dynamic_state_path: "scoop_apps.json"
-    discovery_command: "scoop list"
-    parse_script: |
-      param($ScoopOutput)
-      try {
-          $apps = @()
-          $lines = $ScoopOutput -split "`n"
-          $headerPassed = $false
-          
-          foreach ($line in $lines) {
-              # Skip empty lines
-              if ([string]::IsNullOrWhiteSpace($line)) {
-                  continue
-              }
-              
-              # Skip header
-              if ($line -match "^Name\s+Version") {
-                  $headerPassed = $true
-                  continue
-              }
-              
-              # Skip separator lines
-              if ($line -match "^-+\s*$") {
-                  continue
-              }
-              
-              # Parse data lines after header
-              if ($headerPassed -and $line -match "^\s*(.+?)\s+(.+?)\s*$") {
-                  $apps += @{
-                      Name = $matches[1].Trim()
-                      Version = $matches[2].Trim()
-                  }
-              }
-          }
-          
-          Write-Host "Found $($apps.Count) scoop applications"
-          return $apps | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse scoop output: $_"
-          return "[]"
-      }
-    install_script: |
-      param($AppsJson)
-      try {
-          $apps = $AppsJson | ConvertFrom-Json
-          Write-Host "Restoring $($apps.Count) scoop applications..."
-          foreach ($app in $apps) {
-              Write-Host "Installing: $($app.Name)"
-              scoop install $app.Name
-          }
-      } catch {
-          Write-Warning "Failed to install scoop applications: $_"
-      }
-
-  # Windows Store Apps (AppX packages)
-  - name: Windows Store Applications
-    type: custom
-    dynamic_state_path: "store_apps.json"
-    discovery_command: "Get-AppxPackage | Where-Object { $_.PackageFullName -notmatch '^Microsoft.Windows' -and $_.SignatureKind -eq 'Store' } | Select-Object Name, PackageFullName, Version, Publisher | ConvertTo-Json -Compress"
-    parse_script: |
-      param($StoreOutput)
-      try {
-          # The discovery command already outputs JSON, so just validate and return it
-          if ([string]::IsNullOrWhiteSpace($StoreOutput) -or $StoreOutput -eq "null") {
-              Write-Host "Found 0 Store applications"
+              Write-Host "Found $($apps.Count) winget applications"
+              return $apps | ConvertTo-Json -Compress
+          } catch {
+              Write-Warning "Failed to parse winget output: $_"
               return "[]"
           }
-          
-          # Test if it's valid JSON
-          $apps = $StoreOutput | ConvertFrom-Json
-          if (-not $apps) {
-              $apps = @()
-          }
-          
-          # Ensure it's an array
-          if ($apps -isnot [array]) {
-              $apps = @($apps)
-          }
-          
-          Write-Host "Found $($apps.Count) Store applications"
-          return $apps | ConvertTo-Json -Compress
-      } catch {
-          Write-Warning "Failed to parse Store apps output: $_"
-          return "[]"
-      }
-    install_script: |
-      param($AppsJson)
-      try {
-          Write-Host "Store applications cannot be automatically reinstalled" -ForegroundColor Yellow
-          Write-Host "User will need to reinstall from Microsoft Store manually" -ForegroundColor Yellow
-          
-          $apps = $AppsJson | ConvertFrom-Json
-          if ($apps.Count -gt 0) {
-              Write-Host "Applications that were installed from Store:" -ForegroundColor Cyan
+      install_script: |
+          param($AppsJson)
+          try {
+              $apps = $AppsJson | ConvertFrom-Json
+              Write-Host "Restoring $($apps.Count) winget applications..."
               foreach ($app in $apps) {
-                  Write-Host "  - $($app.Name) ($($app.Version))" -ForegroundColor Gray
+                  Write-Host "Installing: $($app.Name) ($($app.Id))"
+                  winget install --id $app.Id --accept-source-agreements --accept-package-agreements --silent
               }
-          } else {
-              Write-Host "No Store applications found in backup" -ForegroundColor Yellow
+          } catch {
+              Write-Warning "Failed to install winget applications: $_"
           }
-      } catch {
-          Write-Warning "Failed to display Store applications: $_"
-      }
 
-  # MSI Installed Applications (from Add/Remove Programs)
-  - name: MSI Installed Applications
-    type: custom
-    dynamic_state_path: "msi_apps.json"
-    discovery_command: "Get-CimInstance -ClassName Win32_Product | Select-Object Name, Version, Vendor, InstallDate | Sort-Object Name"
-    parse_script: |
-      param($MSIOutput)
-      $applications = @()
-      
-      # Handle empty or null discovery output
-      if ($MSIOutput -ne $null) {
-          # Ensure it's an array
-          if ($MSIOutput -isnot [array]) {
-              $MSIOutput = @($MSIOutput)
+      # Chocolatey applications
+    - name: Chocolatey Installed Applications
+      type: custom
+      dynamic_state_path: "chocolatey_apps.json"
+      discovery_command: >-
+          try {
+            if (Get-Command choco -ErrorAction SilentlyContinue) {
+              choco list 2>$null | Out-String
+            } else {
+              Write-Output 'choco not available'
+            }
+          } catch {
+            Write-Output 'choco command failed'
           }
-          
-          if ($MSIOutput.Count -gt 0) {
-              foreach ($app in $MSIOutput) {
-                  if ($app -and $app.Name) {
-                      $safeName = if ($app.Name) { $app.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
-                      $applications += @{
-                          Name = "MSIApp-$safeName"
-                          Version = if ($app.Version) { $app.Version } else { "Unknown" }
-                          DisplayName = $app.Name
-                          Vendor = if ($app.Vendor) { $app.Vendor } else { "Unknown" }
-                          InstallDate = if ($app.InstallDate) { $app.InstallDate } else { "Unknown" }
+      parse_script: |
+          param($ChocoOutput)
+              try {
+                  # Handle error cases
+                  if ($ChocoOutput -match "choco not available|choco command failed") {
+                      Write-Host "Chocolatey not available on this system"
+                      return "[]"
+                  }
+
+                  $apps = @()
+                  $lines = $ChocoOutput -split "`n"
+
+                  foreach ($line in $lines) {
+                      # Skip empty lines, header, and summary lines
+                      if ([string]::IsNullOrWhiteSpace($line) -or
+                          $line -match "^Chocolatey v" -or
+                          $line -match "packages installed" -or
+                          $line -match "^\s*$") {
+                          continue
+                      }
+
+                      # Parse package lines (format: "packagename version")
+                      if ($line -match "^(.+?)\s+(.+?)$") {
+                          $name = $matches[1].Trim()
+                          $version = $matches[2].Trim()
+
+                          # Skip chocolatey itself in the list
+                          if ($name -ne "chocolatey") {
+                              $apps += @{
+                                  Name = $name
+                                  Version = $version
+                              }
+                          }
+                      }
+                  }
+
+                  Write-Host "Found $($apps.Count) chocolatey applications"
+                  return $apps | ConvertTo-Json -Compress
+              } catch {
+                  Write-Warning "Failed to parse chocolatey output: $_"
+                  return "[]"
+              }
+      install_script: |
+          param($AppsJson)
+          try {
+              $apps = $AppsJson | ConvertFrom-Json
+              Write-Host "Restoring $($apps.Count) chocolatey applications..."
+              foreach ($app in $apps) {
+                  Write-Host "Installing: $($app.Name)"
+                  choco install $app.Name -y --force
+              }
+          } catch {
+              Write-Warning "Failed to install chocolatey applications: $_"
+          }
+
+      # Scoop applications
+    - name: Scoop Installed Applications
+      type: custom
+      dynamic_state_path: "scoop_apps.json"
+      discovery_command: >-
+          try {
+            if (Get-Command scoop -ErrorAction SilentlyContinue) {
+              scoop list 2>$null | Out-String
+            } else {
+              Write-Output 'scoop not available'
+            }
+          } catch {
+            Write-Output 'scoop command failed'
+          }
+      parse_script: |
+          param($ScoopOutput)
+          try {
+              # Handle error cases
+              if ($ScoopOutput -match "scoop not available|scoop command failed") {
+                  Write-Host "Scoop not available on this system"
+                  return "[]"
+              }
+
+              $apps = @()
+              $lines = $ScoopOutput -split "`n"
+              $headerPassed = $false
+
+              foreach ($line in $lines) {
+                  # Skip empty lines
+                  if ([string]::IsNullOrWhiteSpace($line)) {
+                      continue
+                  }
+
+                  # Skip header
+                  if ($line -match "^Name\s+Version") {
+                      $headerPassed = $true
+                      continue
+                  }
+
+                  # Skip separator lines
+                  if ($line -match "^-+\s*$") {
+                      continue
+                  }
+
+                  # Parse data lines after header
+                  if ($headerPassed -and $line -match "^\s*(.+?)\s+(.+?)\s*$") {
+                      $apps += @{
+                          Name = $matches[1].Trim()
+                          Version = $matches[2].Trim()
+                      }
+                  }
+              }
+
+              Write-Host "Found $($apps.Count) scoop applications"
+              return $apps | ConvertTo-Json -Compress
+          } catch {
+              Write-Warning "Failed to parse scoop output: $_"
+              return "[]"
+          }
+      install_script: |
+          param($AppsJson)
+          try {
+              $apps = $AppsJson | ConvertFrom-Json
+              Write-Host "Restoring $($apps.Count) scoop applications..."
+              foreach ($app in $apps) {
+                  Write-Host "Installing: $($app.Name)"
+                  scoop install $app.Name
+              }
+          } catch {
+              Write-Warning "Failed to install scoop applications: $_"
+          }
+
+    # Windows Store Apps (AppX packages)
+    - name: Windows Store Applications
+      type: custom
+      dynamic_state_path: "store_apps.json"
+      discovery_command: "Get-AppxPackage | Where-Object { $_.PackageFullName -notmatch '^Microsoft.Windows' -and $_.SignatureKind -eq 'Store' } | Select-Object Name, PackageFullName, Version, Publisher | ConvertTo-Json -Compress"
+      parse_script: |
+          param($StoreOutput)
+          try {
+              # The discovery command already outputs JSON, so just validate and return it
+              if ([string]::IsNullOrWhiteSpace($StoreOutput) -or $StoreOutput -eq "null") {
+                  Write-Host "Found 0 Store applications"
+                  return "[]"
+              }
+
+              # Test if it's valid JSON
+              $apps = $StoreOutput | ConvertFrom-Json
+              if (-not $apps) {
+                  $apps = @()
+              }
+
+              # Ensure it's an array
+              if ($apps -isnot [array]) {
+                  $apps = @($apps)
+              }
+
+              Write-Host "Found $($apps.Count) Store applications"
+              return $apps | ConvertTo-Json -Compress
+          } catch {
+              Write-Warning "Failed to parse Store apps output: $_"
+              return "[]"
+          }
+      install_script: |
+          param($AppsJson)
+          try {
+              Write-Host "Store applications cannot be automatically reinstalled" -ForegroundColor Yellow
+              Write-Host "User will need to reinstall from Microsoft Store manually" -ForegroundColor Yellow
+
+              $apps = $AppsJson | ConvertFrom-Json
+              if ($apps.Count -gt 0) {
+                  Write-Host "Applications that were installed from Store:" -ForegroundColor Cyan
+                  foreach ($app in $apps) {
+                      Write-Host "  - $($app.Name) ($($app.Version))" -ForegroundColor Gray
+                  }
+              } else {
+                  Write-Host "No Store applications found in backup" -ForegroundColor Yellow
+              }
+          } catch {
+              Write-Warning "Failed to display Store applications: $_"
+          }
+
+    # MSI Installed Applications (from Add/Remove Programs)
+    - name: MSI Installed Applications
+      type: custom
+      dynamic_state_path: "msi_apps.json"
+      discovery_command: "Get-CimInstance -ClassName Win32_Product | Select-Object Name, Version, Vendor, InstallDate | Sort-Object Name"
+      parse_script: |
+          param($MSIOutput)
+          $applications = @()
+
+          # Handle empty or null discovery output
+          if ($MSIOutput -ne $null) {
+              # Ensure it's an array
+              if ($MSIOutput -isnot [array]) {
+                  $MSIOutput = @($MSIOutput)
+              }
+
+              if ($MSIOutput.Count -gt 0) {
+                  foreach ($app in $MSIOutput) {
+                      if ($app -and $app.Name) {
+                          $safeName = if ($app.Name) { $app.Name -replace '[^a-zA-Z0-9]', '' } else { "Unknown" }
+                          $applications += @{
+                              Name = "MSIApp-$safeName"
+                              Version = if ($app.Version) { $app.Version } else { "Unknown" }
+                              DisplayName = $app.Name
+                              Vendor = if ($app.Vendor) { $app.Vendor } else { "Unknown" }
+                              InstallDate = if ($app.InstallDate) { $app.InstallDate } else { "Unknown" }
+                          }
                       }
                   }
               }
           }
-      }
-      
-      return $applications
-    install_script: |
-      param($AppsJson)
-      try {
-          Write-Host "MSI applications cannot be automatically reinstalled" -ForegroundColor Yellow
-          Write-Host "User will need to reinstall these applications manually" -ForegroundColor Yellow
-          
-          $apps = $AppsJson | ConvertFrom-Json
-          if ($apps.Count -gt 0) {
-              Write-Host "Applications that were installed via MSI:" -ForegroundColor Cyan
-              foreach ($app in $apps) {
-                  Write-Host "  - $($app.Name)" -ForegroundColor Gray
-                  if ($app.Version) { Write-Host "    Version: $($app.Version)" -ForegroundColor DarkGray }
-                  if ($app.Vendor) { Write-Host "    Vendor: $($app.Vendor)" -ForegroundColor DarkGray }
+
+          return $applications
+      install_script: |
+          param($AppsJson)
+          try {
+              Write-Host "MSI applications cannot be automatically reinstalled" -ForegroundColor Yellow
+              Write-Host "User will need to reinstall these applications manually" -ForegroundColor Yellow
+
+              $apps = $AppsJson | ConvertFrom-Json
+              if ($apps.Count -gt 0) {
+                  Write-Host "Applications that were installed via MSI:" -ForegroundColor Cyan
+                  foreach ($app in $apps) {
+                      Write-Host "  - $($app.Name)" -ForegroundColor Gray
+                      if ($app.Version) { Write-Host "    Version: $($app.Version)" -ForegroundColor DarkGray }
+                      if ($app.Vendor) { Write-Host "    Vendor: $($app.Vendor)" -ForegroundColor DarkGray }
+                  }
+              } else {
+                  Write-Host "No MSI applications found in backup" -ForegroundColor Yellow
               }
-          } else {
-              Write-Host "No MSI applications found in backup" -ForegroundColor Yellow
+          } catch {
+              Write-Warning "Failed to display MSI applications: $_"
           }
-      } catch {
-          Write-Warning "Failed to display MSI applications: $_"
-      }
 
 files:
-  # Package manager configuration
-  - name: Winget Settings
-    path: '%LOCALAPPDATA%\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/winget_settings"
-    encrypt: false
+    # Package manager configuration
+    - name: Winget Settings
+      path: '%LOCALAPPDATA%\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/winget_settings"
+      encrypt: false
 
-  - name: Chocolatey Configuration
-    path: '%ChocolateyInstall%\config'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/chocolatey_config"
-    encrypt: false
+    - name: Chocolatey Configuration
+      path: '%ChocolateyInstall%\config'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/chocolatey_config"
+      encrypt: false
 
-  - name: Scoop Configuration
-    path: '%USERPROFILE%\scoop'
-    type: directory
-    action: sync
-    dynamic_state_path: "files/scoop_config"
-    encrypt: false
+    - name: Scoop Configuration
+      path: '%USERPROFILE%\scoop'
+      type: directory
+      action: sync
+      dynamic_state_path: "files/scoop_config"
+      encrypt: false
 
 stages:
-  post_update:
-    - name: Applications Restoration Complete
-      type: script
-      inline_script: |
-        Write-Host "Application backup/restore completed." -ForegroundColor Green
-        Write-Host "Package manager configurations have been restored." -ForegroundColor Yellow
-        Write-Host "Run package manager updates to ensure all applications are current." -ForegroundColor Yellow
-      parameters: {} 
+    post_update:
+        - name: Applications Restoration Complete
+          type: script
+          inline_script: |
+              Write-Host "Application backup/restore completed." -ForegroundColor Green
+              Write-Host "Package manager configurations have been restored." -ForegroundColor Yellow
+              Write-Host "Run package manager updates to ensure all applications are current." -ForegroundColor Yellow
+          parameters: {}

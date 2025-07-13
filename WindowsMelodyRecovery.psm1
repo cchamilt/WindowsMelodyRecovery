@@ -84,6 +84,60 @@ function Get-WindowsMelodyRecovery {
     [CmdletBinding()]
     param()
 
+    # Check if configuration is initialized, if not, try to initialize from environment variables
+    if (-not $script:Config -or -not $script:Config.IsInitialized) {
+        Write-Verbose "Configuration not initialized, checking environment variables..."
+
+        # Check for test/Docker environment variables
+        if ($env:WMR_BACKUP_PATH -or $env:WMR_CONFIG_PATH) {
+            Write-Verbose "Found test environment variables, using them for configuration"
+            $script:Config = @{
+                BackupRoot = $env:WMR_BACKUP_PATH
+                MachineName = $env:COMPUTERNAME
+                WindowsMelodyRecoveryPath = $env:WMR_CONFIG_PATH
+                CloudProvider = "Test"
+                IsInitialized = $true
+                ModuleVersion = "1.0.0"
+                LastConfigured = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+            }
+        }
+        else {
+            # Try to initialize from config file
+            try {
+                $initialized = Initialize-ModuleFromConfig
+                if (-not $initialized) {
+                    Write-Verbose "Could not initialize from config file, using default configuration"
+                    $script:Config = @{
+                        BackupRoot = $null
+                        MachineName = $env:COMPUTERNAME
+                        WindowsMelodyRecoveryPath = $null
+                        CloudProvider = $null
+                        IsInitialized = $false
+                        ModuleVersion = "1.0.0"
+                        LastConfigured = $null
+                    }
+                }
+            }
+            catch {
+                Write-Verbose "Error initializing configuration: $_"
+                $script:Config = @{
+                    BackupRoot = $null
+                    MachineName = $env:COMPUTERNAME
+                    WindowsMelodyRecoveryPath = $null
+                    CloudProvider = $null
+                    IsInitialized = $false
+                    ModuleVersion = "1.0.0"
+                    LastConfigured = $null
+                }
+            }
+        }
+    }
+
+    # Always use current environment variable for machine name (important for tests)
+    if ($script:Config) {
+        $script:Config.MachineName = $env:COMPUTERNAME
+    }
+
     return $script:Config
 }
 

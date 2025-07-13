@@ -165,7 +165,8 @@
                         Write-Information -MessageData "Completed: $($templateFile.Name)" -InformationAction Continue
                     }
                     catch {
-                        Write-Error -Message "Failed: $($templateFile.Name)"
+                        Write-Error -Message "Failed: $($templateFile.Name) - Error: $($_.Exception.Message)"
+                        Write-Verbose -Message "Stack trace: $($_.ScriptStackTrace)"
                     }
                 }
 

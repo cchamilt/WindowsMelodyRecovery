@@ -87,7 +87,7 @@ function Invoke-WmrTemplate {
 
     # 4. Check prerequisites
     try {
-        if (-not (Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation $Operation)) {
+        if (-not (Test-WmrPrerequisite -TemplateConfig $templateConfig -Operation $Operation)) {
             throw "Prerequisites not met for $Operation operation. Aborting."
         }
     }

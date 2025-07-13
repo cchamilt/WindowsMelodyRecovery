@@ -30,17 +30,23 @@ RUN pwsh -Command " \
     Install-Module -Name Pester -Force -Scope AllUsers -MinimumVersion 5.0.0 -AcceptLicense -SkipPublisherCheck; \
     Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     Install-Module -Name ImportExcel -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
+    Install-Module -Name Yayaml -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     "
 
 # Verify PowerShell modules installation
 RUN pwsh -Command " \
     Write-Host 'Verifying PowerShell modules installation...'; \
-    \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel; \
+    \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel, Yayaml; \
     \$modules | Select-Object Name, Version | Format-Table; \
     if (-not (Get-Module -ListAvailable -Name Pester)) { \
-        throw 'Pester module not found after installation'; \
+    throw 'Pester module not found after installation'; \
     } else { \
-        Write-Host 'Pester installation verified successfully'; \
+    Write-Host 'Pester installation verified successfully'; \
+    } \
+    if (-not (Get-Module -ListAvailable -Name Yayaml)) { \
+    throw 'Yayaml module not found after installation'; \
+    } else { \
+    Write-Host 'Yayaml installation verified successfully'; \
     } \
     "
 
@@ -85,4 +91,4 @@ ENV CONTAINER=true
 ENV PESTER_OUTPUT_PATH=/test-results
 
 # Default command - keep container running for test execution
-CMD ["tail", "-f", "/dev/null"] 
+CMD ["tail", "-f", "/dev/null"]

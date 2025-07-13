@@ -6,10 +6,12 @@
     CompanyName        = 'Fyber Labs'
     Copyright          = '(c) 2025 Chris Hamilton. All rights reserved.'
     Description        = 'Comprehensive Windows system recovery, backup, and configuration management tool with WSL integration and cloud storage support.'
-    PowerShellVersion  = '7.5.1'
+    PowerShellVersion  = '7.4.2'
 
     # Module dependencies
-    RequiredModules    = @()
+    RequiredModules    = @(
+        'Yayaml'
+    )
 
     # Required assemblies
     RequiredAssemblies = @()

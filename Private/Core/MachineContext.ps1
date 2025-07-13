@@ -259,6 +259,65 @@ function Test-WmrStringComparison {
     }
 }
 
+function Get-WmrApplicableMachineConfigurations {
+    <#
+    .SYNOPSIS
+        Gets machine-specific configurations that apply to the current machine.
+
+    .DESCRIPTION
+        Filters machine-specific configurations based on machine selectors and returns
+        them sorted by priority (highest priority first).
+
+    .PARAMETER MachineSpecificConfigs
+        Array of machine-specific configurations to filter.
+
+    .PARAMETER MachineContext
+        Machine context information to test selectors against.
+
+    .EXAMPLE
+        $configs = Get-WmrApplicableMachineConfigurations -MachineSpecificConfigs $machineConfigs -MachineContext $context
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Array])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Array]$MachineSpecificConfigs,
+
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Hashtable]$MachineContext
+    )
+
+    Write-Verbose "Filtering machine-specific configurations for current machine"
+
+    $applicableConfigs = @()
+
+    foreach ($config in $MachineSpecificConfigs) {
+        if (-not $config.machine_selectors) {
+            Write-Verbose "Configuration '$($config.name)' has no machine selectors, skipping"
+            continue
+        }
+
+        $isApplicable = Test-WmrMachineSelector -MachineSelectors $config.machine_selectors -MachineContext $MachineContext
+
+        if ($isApplicable) {
+            Write-Verbose "Configuration '$($config.name)' applies to current machine"
+            $applicableConfigs += $config
+        }
+        else {
+            Write-Verbose "Configuration '$($config.name)' does not apply to current machine"
+        }
+    }
+
+    # Sort by priority (highest first), then by name for consistent ordering
+    $sortedConfigs = $applicableConfigs | Sort-Object -Property @(
+        @{ Expression = { if ($_.priority) { $_.priority } else { 0 } }; Descending = $true },
+        @{ Expression = { $_.name }; Descending = $false }
+    )
+
+    Write-Verbose "Found $($sortedConfigs.Count) applicable machine configurations"
+    return $sortedConfigs
+}
+
 # Functions are available when dot-sourced, no need to export when not in module context
 
 

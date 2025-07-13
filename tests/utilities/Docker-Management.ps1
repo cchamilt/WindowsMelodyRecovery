@@ -381,7 +381,7 @@ function Test-ContainerConnectivity {
     param()
 
     try {
-        $testResult = docker exec wmr-test-runner pwsh -Command "Write-Information -MessageData 'Container connectivity test passed'; exit 0" 2>&1 -InformationAction Continue
+        $testResult = docker exec wmr-test-runner pwsh -Command "Write-Host 'Container connectivity test passed'; exit 0" 2>&1
         if ($LASTEXITCODE -eq 0) {
             return $true
         }

@@ -65,22 +65,35 @@ if ($runInDocker) {
         }
 
         # Build test command
-        $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && "
+        $testCommand = "cd /workspace && . tests/utilities/Test-Environment.ps1 && Import-Module ./WindowsMelodyRecovery.psd1 -Force && "
         if ($TestName) {
-            $testCommand += "Invoke-Pester -Path './tests/integration/$TestName.Tests.ps1'"
+            $testCommand += "Invoke-Pester -Path './tests/integration/$TestName.Tests.ps1' -Passthru"
         }
         else {
-            $testCommand += "Invoke-Pester -Path './tests/integration/'"
+            $testCommand += "Invoke-Pester -Path './tests/integration/' -Passthru"
         }
-        $testCommand += " -OutputFormat $OutputFormat"
+        # Note: OutputFormat is deprecated in Pester v5, using -Passthru for result object
 
         # Execute tests in Docker
         Write-Information -MessageData "Executing integration tests..." -InformationAction Continue
-        docker exec wmr-test-runner pwsh -Command $testCommand
+        $result = docker exec wmr-test-runner pwsh -Command $testCommand
         $exitCode = $LASTEXITCODE
 
+        # Display the result properly
+        Write-Host $result
+
+        # Parse test results if available
+        if ($result -match "Tests Passed: (\d+), Failed: (\d+)") {
+            $passedCount = $matches[1]
+            $failedCount = $matches[2]
+            Write-Information -MessageData "`n=== Docker Integration Test Results ===" -InformationAction Continue
+            Write-Information -MessageData "Tests Passed: $passedCount" -InformationAction Continue
+            Write-Information -MessageData "Tests Failed: $failedCount" -InformationAction Continue
+            $exitCode = [int]$failedCount -gt 0 ? 1 : 0
+        }
+
         if (-not $SkipCleanup) {
-            Stop-DockerEnvironment
+            Stop-TestContainer
         }
 
         exit $exitCode
@@ -118,7 +131,7 @@ else {
         Write-Information -MessageData "Executing integration tests..." -InformationAction Continue
 
         $pesterConfig = @{
-            Run = @{
+            Run    = @{
                 Path = if ($TestName) {
                     Join-Path $PSScriptRoot ".." "integration" "$TestName.Tests.ps1"
                 }
@@ -133,7 +146,7 @@ else {
 
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
-                Enabled = $true
+                Enabled    = $true
                 OutputPath = Join-Path $moduleRoot "test-results" "integration-test-results.xml"
             }
         }

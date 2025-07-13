@@ -32,11 +32,18 @@ function Initialize-WindowsMelodyRecovery {
 
     # Validate InstallPath immediately after it's set
     try {
-        # Check if the parent directory exists and is accessible
+        # Check if the parent directory exists and is accessible, create if needed
         $parentPath = Split-Path $InstallPath -Parent
         if ($parentPath -and -not [string]::IsNullOrWhiteSpace($parentPath) -and $parentPath -ne $InstallPath) {
             if (-not (Test-Path $parentPath)) {
-                throw "The parent directory '$parentPath' does not exist or is not accessible."
+                # Try to create the parent directory structure (needed for Docker/test environments)
+                try {
+                    New-Item -Path $parentPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                    Write-Verbose "Created parent directory: $parentPath"
+                }
+                catch {
+                    throw "The parent directory '$parentPath' does not exist and cannot be created: $($_.Exception.Message)"
+                }
             }
         }
 

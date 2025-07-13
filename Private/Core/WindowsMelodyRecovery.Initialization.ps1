@@ -347,7 +347,7 @@ function Get-DefaultConfiguration {
     param()
 
     return @{
-        BackupRoot = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Backups" } else { "/tmp/WindowsMelodyRecovery/Backups" }
+        BackupRoot = if ($env:WMR_BACKUP_PATH) { $env:WMR_BACKUP_PATH } elseif ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Backups" } else { "/tmp/WindowsMelodyRecovery/Backups" }
         MachineName = $env:COMPUTERNAME
         WindowsMelodyRecoveryPath = Split-Path $PSScriptRoot -Parent
         CloudProvider = "OneDrive"
@@ -381,7 +381,7 @@ function Get-DefaultConfiguration {
             ForceOverwrite = $false
         }
         LoggingSettings = @{
-            Path = if ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Logs" } else { "/tmp/WindowsMelodyRecovery/Logs" }
+            Path = if ($env:WMR_LOG_PATH) { $env:WMR_LOG_PATH } elseif ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Logs" } else { "/tmp/WindowsMelodyRecovery/Logs" }
             Level = "Information"
         }
         UpdateSettings = @{
