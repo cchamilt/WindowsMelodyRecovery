@@ -169,7 +169,7 @@ try {
     Write-Verbose -Message "Test paths: $($testPaths -join ', ')"
 
     $pesterConfig = @{
-        Run = @{
+        Run    = @{
             Path = $testPaths
         }
         Output = @{
@@ -181,15 +181,18 @@ try {
         # Write to standard test-results directory for CI/CD compatibility
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $testResultsDir = Join-Path $moduleRoot "test-results"
+        $logsDir = Join-Path $testResultsDir "logs"
 
-        # Ensure test-results directory exists
-        if (-not (Test-Path $testResultsDir)) {
-            New-Item -Path $testResultsDir -ItemType Directory -Force | Out-Null
+        # Ensure test-results directory exists (including logs for CI/CD compatibility)
+        @($testResultsDir, $logsDir) | ForEach-Object {
+            if (-not (Test-Path $_)) {
+                New-Item -Path $_ -ItemType Directory -Force | Out-Null
+            }
         }
 
         $pesterConfig.TestResult = @{
-            Enabled = $true
-            OutputPath = Join-Path $testResultsDir "windows-only-test-results.xml"
+            Enabled      = $true
+            OutputPath   = Join-Path $testResultsDir "windows-only-test-results.xml"
             OutputFormat = 'JUnitXml'
         }
     }

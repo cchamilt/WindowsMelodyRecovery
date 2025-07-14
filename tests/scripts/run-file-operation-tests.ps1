@@ -219,8 +219,8 @@ foreach ($test in $testsToRun) {
         $moduleRoot = Find-ModuleRoot
 
         $pesterConfig = @{
-            Run = @{
-                Path = $testFile
+            Run    = @{
+                Path     = $testFile
                 PassThru = $true
             }
             Output = @{
@@ -232,28 +232,29 @@ foreach ($test in $testsToRun) {
         if ($GenerateReport) {
             $testResultsDir = Join-Path $moduleRoot "test-results"
             $coverageDir = Join-Path $testResultsDir "coverage"
+            $logsDir = Join-Path $testResultsDir "logs"
 
-            # Ensure test result directories exist
-            @($testResultsDir, $coverageDir) | ForEach-Object {
+            # Ensure test result directories exist (including logs for CI/CD compatibility)
+            @($testResultsDir, $coverageDir, $logsDir) | ForEach-Object {
                 if (-not (Test-Path $_)) {
                     New-Item -Path $_ -ItemType Directory -Force | Out-Null
                 }
             }
 
             $pesterConfig.TestResult = @{
-                Enabled = $true
-                OutputPath = Join-Path $testResultsDir "file-operations-test-results.xml"
+                Enabled      = $true
+                OutputPath   = Join-Path $testResultsDir "file-operations-test-results.xml"
                 OutputFormat = 'JUnitXml'
             }
 
             $pesterConfig.CodeCoverage = @{
-                Enabled = $true
-                Path = @(
+                Enabled               = $true
+                Path                  = @(
                     (Join-Path $moduleRoot "Public/*.ps1"),
                     (Join-Path $moduleRoot "Private/Core/*.ps1"),
                     (Join-Path $moduleRoot "WindowsMelodyRecovery.psm1")
                 )
-                ExcludePath = @(
+                ExcludePath           = @(
                     (Join-Path $moduleRoot "tests/**/*"),
                     (Join-Path $moduleRoot "Templates/**/*"),
                     (Join-Path $moduleRoot "Private/scripts/**/*"),
@@ -268,8 +269,8 @@ foreach ($test in $testsToRun) {
                     (Join-Path $moduleRoot "Temp/**/*"),
                     (Join-Path $moduleRoot "logs/**/*")
                 )
-                OutputPath = Join-Path $coverageDir "file-operations-coverage.xml"
-                OutputFormat = 'JaCoCo'
+                OutputPath            = Join-Path $coverageDir "file-operations-coverage.xml"
+                OutputFormat          = 'JaCoCo'
                 CoveragePercentTarget = 75
             }
         }

@@ -8,6 +8,11 @@ on:
     schedule:
         - cron: "0 2 * * 0" # Weekly on Sunday at 2 AM UTC
 
+permissions:
+    contents: read
+    checks: write
+    pull-requests: write
+
 jobs:
     windows-tests:
         runs-on: windows-latest
@@ -73,7 +78,7 @@ jobs:
                   }
 
             - name: Publish Windows Test Results
-              uses: dorny/test-reporter@v1
+              uses: dorny/test-reporter@v1.9.1
               if: always()
               with:
                   name: Windows ${{ matrix.test-category }} Tests
