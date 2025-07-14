@@ -271,7 +271,7 @@ function Initialize-WindowsMelodyRecovery {
                     $possiblePaths += $item
                 }
                 else {
-                    Write-Error -Message "  Not found: $path"
+                    Write-Verbose -Message "  Not found: $path"
                 }
             }
 
