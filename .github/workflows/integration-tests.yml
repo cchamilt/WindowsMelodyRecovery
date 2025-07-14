@@ -20,8 +20,6 @@ on:
                     - Backup
                     - Restore
                     - WSL
-                    - Gaming
-                    - Cloud
                     - Setup
             debug_mode:
                 description: "Enable debug mode"
@@ -42,7 +40,7 @@ jobs:
     # Unit Tests - Fast feedback
     unit-tests:
         name: Unit Tests
-        runs-on: windows-latest
+        runs-on: windows-2025
         timeout-minutes: 30
 
         steps:
@@ -86,7 +84,7 @@ jobs:
     # Integration Tests - Real Windows Environment
     integration-tests:
         name: Integration Tests - Windows
-        runs-on: windows-latest
+        runs-on: windows-2025
         timeout-minutes: 90
         needs: unit-tests
 
@@ -96,8 +94,6 @@ jobs:
                     - Backup
                     - Restore
                     - WSL
-                    - Gaming
-                    - Cloud
                     - Setup
             fail-fast: false
 
@@ -115,6 +111,7 @@ jobs:
 
             - name: Setup WSL with Ubuntu
               uses: Vampire/setup-wsl@v6
+              if: matrix.test_suite == 'WSL'
               with:
                   distribution: Ubuntu-22.04
                   use-cache: true
@@ -124,6 +121,7 @@ jobs:
 
             - name: Install chezmoi in WSL
               shell: pwsh
+              if: matrix.test_suite == 'WSL'
               continue-on-error: true
               run: |
                   Write-Host "Installing chezmoi in WSL..." -ForegroundColor Green
@@ -139,22 +137,52 @@ jobs:
 
             - name: Setup package managers
               shell: pwsh
+              continue-on-error: true
               run: |
-                  # Install Chocolatey
-                  Set-ExecutionPolicy Bypass -Scope Process -Force
-                  [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-                  iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+                  Write-Host "Setting up package managers..." -ForegroundColor Green
 
-                  # Install Scoop
-                  if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-                    iwr -useb get.scoop.sh | iex
+                  try {
+                      # Install Chocolatey
+                      Set-ExecutionPolicy Bypass -Scope Process -Force
+                      [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+                      iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+                      Write-Host "Chocolatey installed successfully" -ForegroundColor Green
+                  } catch {
+                      Write-Host "Chocolatey installation failed: $($_.Exception.Message)" -ForegroundColor Yellow
                   }
 
-                  # Winget should be pre-installed on GitHub Actions runners
-                  winget --version
+                  try {
+                      # Install Scoop
+                      if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+                        iwr -useb get.scoop.sh | iex
+                      }
+                      Write-Host "Scoop installed successfully" -ForegroundColor Green
+                  } catch {
+                      Write-Host "Scoop installation failed: $($_.Exception.Message)" -ForegroundColor Yellow
+                  }
+
+                  try {
+                      # Winget should be pre-installed on Windows 2025 runners
+                      $wingetVersion = winget --version
+                      Write-Host "Winget is available: $wingetVersion" -ForegroundColor Green
+                  } catch {
+                      Write-Host "Winget is not available: $($_.Exception.Message)" -ForegroundColor Yellow
+                      # Try alternative locations
+                      $wingetPaths = @(
+                          "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe",
+                          "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*\winget.exe"
+                      )
+                      foreach ($path in $wingetPaths) {
+                          if (Test-Path $path) {
+                              Write-Host "Found winget at: $path" -ForegroundColor Green
+                              break
+                          }
+                      }
+                  }
 
             - name: Install gaming platform simulators
               shell: pwsh
+              if: matrix.test_suite == 'Gaming'
               run: |
                   # Create mock gaming directories and files for testing
                   $steamPath = "$env:ProgramFiles(x86)\Steam"
@@ -186,6 +214,7 @@ jobs:
 
             - name: Setup cloud storage simulation
               shell: pwsh
+              if: matrix.test_suite == 'Cloud'
               run: |
                   # Create mock cloud storage directories
                   $oneDrivePath = "$env:USERPROFILE\OneDrive"
@@ -291,8 +320,15 @@ jobs:
             - name: Collect system information
               shell: pwsh
               if: always()
+              continue-on-error: true
               run: |
                   try {
+                      # Ensure test-results directory exists
+                      $testResultsDirs = @("test-results", "test-results\logs", "test-results\integration")
+                      foreach ($dir in $testResultsDirs) {
+                          New-Item -Path $dir -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+                      }
+
                       $sysInfo = @{
                         OS = try { (Get-CimInstance Win32_OperatingSystem).Caption } catch { "Windows (CIM not available)" }
                         PowerShell = $PSVersionTable.PSVersion.ToString()
@@ -303,16 +339,17 @@ jobs:
                         Winget = try { winget --version 2>$null } catch { "Not installed" }
                         DotNet = try { dotnet --version 2>$null } catch { "Not installed" }
                         Git = try { git --version 2>$null } catch { "Not installed" }
+                        TestSuite = "${{ matrix.test_suite }}"
                         Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                       }
 
-                      New-Item -Path "test-results" -ItemType Directory -Force -ErrorAction SilentlyContinue
                       $sysInfo | ConvertTo-Json | Out-File "test-results\system-info.json" -Encoding UTF8
                       Write-Host "System information collected successfully" -ForegroundColor Green
                   } catch {
                       Write-Host "System information collection failed: $($_.Exception.Message)" -ForegroundColor Red
-                      # Create minimal info file to prevent upload step failure
-                      @{ Error = $_.Exception.Message; Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss" } | ConvertTo-Json | Out-File "test-results\system-info.json" -Encoding UTF8
+                      # Ensure directory exists and create minimal info file
+                      New-Item -Path "test-results" -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
+                      @{ Error = $_.Exception.Message; TestSuite = "${{ matrix.test_suite }}"; Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss" } | ConvertTo-Json | Out-File "test-results\system-info.json" -Encoding UTF8
                   }
 
             - name: Upload integration test results
@@ -325,7 +362,7 @@ jobs:
     # Full End-to-End Test
     e2e-tests:
         name: End-to-End Tests
-        runs-on: windows-latest
+        runs-on: windows-2025
         timeout-minutes: 120
         needs: integration-tests
         if: github.event_name == 'schedule' || github.event.inputs.test_suite == 'All' || github.ref == 'refs/heads/main'
