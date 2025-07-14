@@ -17,28 +17,32 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import only the specific scripts needed to avoid TUI dependencies
+    # Load test environment
+    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+
+    # Import core functions through module system for code coverage
     try {
-        # Import shared configuration scripts
+        Import-WmrCoreForTesting -Functions @(
+            'Get-WmrFileState',
+            'Set-WmrFileState',
+            'Convert-WmrPath',
+            'ConvertTo-TestEnvironmentPath'
+        )
+
+        # Import shared configuration scripts directly (these are not exported module functions)
         $SharedConfigScripts = @(
             "Private/Core/ConfigurationMerging.ps1",
-            "Private/Core/ConfigurationValidation.ps1",
-            "Private/Core/PathUtilities.ps1",
-            "Private/Core/FileState.ps1"
+            "Private/Core/ConfigurationValidation.ps1"
         )
 
         foreach ($script in $SharedConfigScripts) {
             $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
             . $scriptPath
         }
-
-        # Initialize test environment
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
     }
     catch {
-        throw "Cannot find or import shared configuration scripts: $($_.Exception.Message)"
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
     }
 
     # Get standardized test paths

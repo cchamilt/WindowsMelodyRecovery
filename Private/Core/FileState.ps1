@@ -154,13 +154,22 @@ function Get-WmrFileState {
             if ($resolvedPath.StartsWith("TestDrive:")) {
                 $basePath = $resolvedPath
                 $relativePath = $_.FullName.Substring($basePath.Length).TrimStart('\')
-                $relativePath = $relativePath -replace '^.*?\\source\\test_dir\\', ''
+                # Remove the brittle regex replacement - use simple path calculation instead
+                Write-Debug "TestDrive original relative path: $relativePath"
             }
             else {
                 # For regular paths, ensure consistent path separators and trim trailing separator
                 $fullPath = $_.FullName.Replace('/', '\').TrimEnd('\')
                 $basePath = $resolvedPath.Replace('/', '\').TrimEnd('\')
-                $relativePath = $fullPath.Substring($basePath.Length).TrimStart('\')
+
+                # Improved relative path calculation with better error handling
+                if ($fullPath.StartsWith($basePath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $relativePath = $fullPath.Substring($basePath.Length).TrimStart('\')
+                } else {
+                    # Fallback: use just the filename if path calculation fails
+                    $relativePath = $_.Name
+                    Write-Warning "Path calculation failed for $($_.FullName), using filename: $relativePath"
+                }
             }
 
             Write-Debug "Full path: $($_.FullName)"
@@ -298,15 +307,36 @@ function Set-WmrFileState {
                 continue
             }
 
-            # Construct the new path using the relative path
-            $targetPath = Join-Path -Path $destinationPath -ChildPath $item.RelativePath
+            # Sanitize the relative path to prevent path traversal attacks
+            $sanitizedRelativePath = $item.RelativePath.Replace('..', '').Replace(':', '').TrimStart('\', '/')
+            if ([string]::IsNullOrWhiteSpace($sanitizedRelativePath)) {
+                Write-Warning "Invalid relative path for item $($item.FullName). Skipping."
+                continue
+            }
+
+            # Construct the new path using the sanitized relative path
+            $targetPath = Join-Path -Path $destinationPath -ChildPath $sanitizedRelativePath
             Write-Debug "Target path: $targetPath"
+
+            # Additional safety check: ensure target path is within destination directory
+            $resolvedTargetPath = [System.IO.Path]::GetFullPath($targetPath)
+            $resolvedDestinationPath = [System.IO.Path]::GetFullPath($destinationPath)
+            if (-not $resolvedTargetPath.StartsWith($resolvedDestinationPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                Write-Warning "Target path $targetPath is outside destination directory $destinationPath. Skipping for security."
+                continue
+            }
 
             # Create directory or file based on PSIsContainer
             if ($item.PSIsContainer) {
                 if (-not (Test-Path $targetPath)) {
                     Write-Debug "Creating directory: $targetPath"
-                    New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+                    try {
+                        New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+                    }
+                    catch {
+                        Write-Warning "Failed to create directory $targetPath : $($_.Exception.Message)"
+                        continue
+                    }
                 }
             }
             else {
@@ -314,19 +344,37 @@ function Set-WmrFileState {
                 $parentDir = Split-Path -Path $targetPath -Parent
                 if (-not (Test-Path $parentDir)) {
                     Write-Debug "Creating parent directory: $parentDir"
-                    New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+                    try {
+                        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+                    }
+                    catch {
+                        Write-Warning "Failed to create parent directory $parentDir : $($_.Exception.Message)"
+                        continue
+                    }
                 }
 
                 # Create file with original content if available
                 if ($null -ne $item.Content) {
                     Write-Debug "Creating file with content: $targetPath"
-                    Set-Content -Path $targetPath -Value $item.Content -Encoding UTF8 -NoNewline
+                    try {
+                        Set-Content -Path $targetPath -Value $item.Content -Encoding UTF8 -NoNewline
+                    }
+                    catch {
+                        Write-Warning "Failed to create file $targetPath : $($_.Exception.Message)"
+                        continue
+                    }
                 }
                 else {
                     # Create empty file to maintain structure
                     if (-not (Test-Path $targetPath)) {
                         Write-Debug "Creating empty file: $targetPath"
-                        New-Item -ItemType File -Path $targetPath -Force | Out-Null
+                        try {
+                            New-Item -ItemType File -Path $targetPath -Force | Out-Null
+                        }
+                        catch {
+                            Write-Warning "Failed to create empty file $targetPath : $($_.Exception.Message)"
+                            continue
+                        }
                     }
                 }
             }

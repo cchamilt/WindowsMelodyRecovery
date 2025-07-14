@@ -17,28 +17,34 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import only the specific scripts needed to avoid TUI dependencies
+    # Load test environment
+    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+
+    # Import core functions through module system for code coverage
     try {
-        # Import template-related scripts (excluding .psm1 files which can't be dot-sourced)
+        Import-WmrCoreForTesting -Functions @(
+            'Get-WmrFileState',
+            'Set-WmrFileState',
+            'Convert-WmrPath',
+            'ConvertTo-TestEnvironmentPath',
+            'Read-WmrTemplateConfig',
+            'Test-WmrTemplateSchema'
+        )
+
+        # Import template-related scripts directly (these are not exported module functions)
         $TemplateScripts = @(
             "Private/Core/TemplateInheritance.ps1",
-            "Private/Core/TemplateResolution.ps1",
-            "Private/Core/PathUtilities.ps1",
-            "Private/Core/FileState.ps1"
+            "Private/Core/TemplateResolution.ps1"
         )
 
         foreach ($script in $TemplateScripts) {
             $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
             . $scriptPath
         }
-
-        # Initialize test environment (includes template function mocks)
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
     }
     catch {
-        throw "Cannot find or import template scripts: $($_.Exception.Message)"
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
     }
 
     # Set up environment-aware test paths

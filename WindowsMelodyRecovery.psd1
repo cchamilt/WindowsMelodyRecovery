@@ -93,7 +93,12 @@
 
         # Core state management functions
         'Get-WmrRegistryState',
+        'Set-WmrRegistryState',
         'Get-WmrFileState',
+        'Set-WmrFileState',
+        'Get-WmrApplicationState',
+        'Set-WmrApplicationState',
+        'Uninstall-WmrApplicationState',
         'Invoke-WmrTemplate',
 
         # Template functions

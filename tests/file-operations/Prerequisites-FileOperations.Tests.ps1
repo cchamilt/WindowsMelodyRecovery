@@ -17,18 +17,20 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import only the specific script needed to avoid TUI dependencies
-    try {
-        $PrerequisitesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/Prerequisites.ps1"
-        . $PrerequisitesScript
+    # Load test environment
+    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
 
-        # Initialize test environment
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-        $script:TestEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
+    # Import core functions through module system for code coverage
+    try {
+        Import-WmrCoreForTesting -Functions @(
+            'Test-WmrPrerequisite',
+            'Convert-WmrPath',
+            'ConvertTo-TestEnvironmentPath'
+        )
     }
     catch {
-        throw "Cannot find or import Prerequisites script: $($_.Exception.Message)"
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
     }
 
     # Get standardized test paths

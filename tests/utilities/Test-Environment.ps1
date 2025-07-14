@@ -276,7 +276,104 @@ if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
     # Functions are automatically available when dot-sourced
 }
 else {
-    Export-ModuleMember -Function Initialize-TestEnvironment, Get-EnvironmentType, Find-ModuleRoot
+    Export-ModuleMember -Function Initialize-TestEnvironment, Get-EnvironmentType, Find-ModuleRoot, Import-WmrCoreForTesting
+}
+
+<#
+.SYNOPSIS
+Imports core WindowsMelodyRecovery functions for testing with code coverage support.
+
+.DESCRIPTION
+This function loads core WindowsMelodyRecovery functions through the module system
+to enable proper code coverage tracking while avoiding TUI dependencies.
+
+.PARAMETER Functions
+Array of function names to import. If not specified, imports all core functions.
+
+.PARAMETER SkipTUI
+Skip TUI module loading to avoid dependencies. Default is $true.
+
+.EXAMPLE
+Import-WmrCoreForTesting -Functions @('Get-WmrFileState', 'Set-WmrFileState')
+#>
+function Import-WmrCoreForTesting {
+    [CmdletBinding()]
+    param(
+        [string[]]$Functions = @(),
+        [bool]$SkipTUI = $true
+    )
+
+    # Find the module root
+    $moduleRoot = $PSScriptRoot
+    while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
+        $moduleRoot = Split-Path -Parent $moduleRoot
+        if ([string]::IsNullOrEmpty($moduleRoot)) {
+            throw "Could not find WindowsMelodyRecovery module root"
+        }
+    }
+
+    # Try to import the module, but handle TUI dependency errors gracefully
+    try {
+        # First, try to install the TUI dependency if it's missing
+        if (-not (Get-Module -Name Microsoft.PowerShell.ConsoleGuiTools -ListAvailable)) {
+            Write-Warning "Microsoft.PowerShell.ConsoleGuiTools not found. Installing for code coverage testing..."
+            try {
+                Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
+                Write-Verbose "Successfully installed Microsoft.PowerShell.ConsoleGuiTools"
+            }
+            catch {
+                Write-Warning "Failed to install Microsoft.PowerShell.ConsoleGuiTools: $($_.Exception.Message)"
+                Write-Warning "Falling back to direct function loading..."
+
+                # Fallback: Load core functions directly
+                $coreScripts = @(
+                    'Private/Core/FileState.ps1',
+                    'Private/Core/RegistryState.ps1',
+                    'Private/Core/ApplicationState.ps1',
+                    'Private/Core/EncryptionUtilities.ps1',
+                    'Private/Core/PathUtilities.ps1',
+                    'Private/Core/AdministrativePrivileges.ps1'
+                )
+
+                foreach ($script in $coreScripts) {
+                    $scriptPath = Join-Path $moduleRoot $script
+                    if (Test-Path $scriptPath) {
+                        . $scriptPath
+                        Write-Verbose "Loaded $script directly"
+                    }
+                }
+                return
+            }
+        }
+
+        # Import the full module
+        $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
+        Import-Module $modulePath -Force -Global
+        Write-Verbose "Successfully imported WindowsMelodyRecovery module for code coverage"
+
+    }
+    catch {
+        Write-Warning "Failed to import module: $($_.Exception.Message)"
+        Write-Warning "Falling back to direct function loading..."
+
+        # Fallback: Load core functions directly
+        $coreScripts = @(
+            'Private/Core/FileState.ps1',
+            'Private/Core/RegistryState.ps1',
+            'Private/Core/ApplicationState.ps1',
+            'Private/Core/EncryptionUtilities.ps1',
+            'Private/Core/PathUtilities.ps1',
+            'Private/Core/AdministrativePrivileges.ps1'
+        )
+
+        foreach ($script in $coreScripts) {
+            $scriptPath = Join-Path $moduleRoot $script
+            if (Test-Path $scriptPath) {
+                . $scriptPath
+                Write-Verbose "Loaded $script directly"
+            }
+        }
+    }
 }
 
 

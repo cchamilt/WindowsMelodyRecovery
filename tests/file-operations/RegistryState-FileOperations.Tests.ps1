@@ -27,24 +27,23 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
         }
 
-        # Import only the specific scripts needed to avoid TUI dependencies
+        # Load test environment
+        . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+        $script:TestEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
+
+        # Import core functions through module system for code coverage
         try {
-            $RegistryStateScript = Resolve-Path "$PSScriptRoot/../../Private/Core/RegistryState.ps1"
-            . $RegistryStateScript
-
-            $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
-            . $PathUtilitiesScript
-
-            $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
-            . $EncryptionUtilitiesScript
-
-            # Initialize test environment
-            $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-            . $TestEnvironmentScript
-            $script:TestEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
+            Import-WmrCoreForTesting -Functions @(
+                'Get-WmrRegistryState',
+                'Set-WmrRegistryState',
+                'Convert-WmrPath',
+                'ConvertTo-TestEnvironmentPath',
+                'Protect-WmrData',
+                'Unprotect-WmrData'
+            )
         }
         catch {
-            throw "Cannot find or import registry scripts: $($_.Exception.Message)"
+            throw "Cannot find or import required functions: $($_.Exception.Message)"
         }
 
         # Get standardized test paths

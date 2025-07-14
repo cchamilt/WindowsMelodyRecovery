@@ -141,6 +141,7 @@
 - **[PENDING]** Output system backup into packer build compatible HCL files
   - Create Packer template generation from system state
   - Add HCL formatting for infrastructure as code
+  - Wrap module installation, initialization, restoration in HCL
   - Implement automated build pipeline integration
   - Status: System state capture exists, Packer output needed
 

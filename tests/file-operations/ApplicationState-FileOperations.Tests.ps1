@@ -9,25 +9,23 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import only the specific scripts needed to avoid TUI dependencies
+    # Load test environment
+    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+
+    # Import core functions through module system for code coverage
     try {
-        # Import dependencies first
-        $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
-        . $PathUtilitiesScript
-
-        $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
-        . $EncryptionUtilitiesScript
-
-        $ApplicationStateScript = Resolve-Path "$PSScriptRoot/../../Private/Core/ApplicationState.ps1"
-        . $ApplicationStateScript
-
-        # Initialize test environment
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+        Import-WmrCoreForTesting -Functions @(
+            'Get-WmrApplicationState',
+            'Set-WmrApplicationState',
+            'Convert-WmrPath',
+            'ConvertTo-TestEnvironmentPath',
+            'Protect-WmrData',
+            'Unprotect-WmrData'
+        )
     }
     catch {
-        throw "Cannot find or import ApplicationState script: $($_.Exception.Message)"
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
     }
 
     # Get standardized test paths from the initialized environment

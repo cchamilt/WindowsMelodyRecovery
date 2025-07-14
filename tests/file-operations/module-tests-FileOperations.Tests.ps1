@@ -6,79 +6,29 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import only the specific scripts needed to avoid TUI dependencies
+    # Load test environment
+    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+
+    # Import core functions through module system for code coverage
     try {
-        # Import core module scripts without TUI dependencies
-        $CoreScripts = @(
-            "Private/Core/WindowsMelodyRecovery.Core.ps1",
-            "Private/Core/WindowsMelodyRecovery.Initialization.ps1",
-            "Private/Core/PathUtilities.ps1",
-            "Private/Core/FileState.ps1",
-            "Private/Core/ApplicationState.ps1",
-            "Private/Core/ConfigurationValidation.ps1",
-            "Private/Core/EncryptionUtilities.ps1",
-            "Private/Core/Prerequisites.ps1",
-            "Public/Initialize-WindowsMelodyRecovery.ps1",
-            "Public/Set-WindowsMelodyRecovery.ps1"
+        Import-WmrCoreForTesting -Functions @(
+            'Initialize-WindowsMelodyRecovery',
+            'Set-WindowsMelodyRecovery',
+            'Get-WindowsMelodyRecovery',
+            'Get-WmrFileState',
+            'Set-WmrFileState',
+            'Get-WmrApplicationState',
+            'Set-WmrApplicationState',
+            'Test-WmrPrerequisite',
+            'Convert-WmrPath',
+            'ConvertTo-TestEnvironmentPath',
+            'Protect-WmrData',
+            'Unprotect-WmrData'
         )
-
-        foreach ($script in $CoreScripts) {
-            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
-            . $scriptPath
-        }
-
-        # Initialize script:Config variable that's needed by Set-WindowsMelodyRecovery
-        $script:Config = @{
-            BackupRoot = $null
-            MachineName = $env:COMPUTERNAME
-            WindowsMelodyRecoveryPath = $null
-            CloudProvider = $null
-            ModuleVersion = "1.0.0"
-            LastConfigured = $null
-            IsInitialized = $false
-            EmailSettings = @{
-                FromAddress = $null
-                ToAddress = $null
-                Password = $null
-                SmtpServer = $null
-                SmtpPort = 587
-                EnableSsl = $true
-            }
-            BackupSettings = @{
-                RetentionDays = 30
-                ExcludePaths = @()
-                IncludePaths = @()
-            }
-            ScheduleSettings = @{
-                BackupSchedule = $null
-                UpdateSchedule = $null
-            }
-            NotificationSettings = @{
-                EnableEmail = $false
-                NotifyOnSuccess = $false
-                NotifyOnFailure = $true
-            }
-            RecoverySettings = @{
-                Mode = "Selective"
-                ForceOverwrite = $false
-            }
-            LoggingSettings = @{
-                Path = $null
-                Level = "Information"
-            }
-            UpdateSettings = @{
-                AutoUpdate = $true
-                ExcludePackages = @()
-            }
-        }
-
-        # Initialize test environment
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
     }
     catch {
-        throw "Cannot find or import required scripts: $($_.Exception.Message)"
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
     }
 
     # Set up test environment with real paths in safe test directories
