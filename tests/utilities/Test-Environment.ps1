@@ -328,11 +328,11 @@ function Import-WmrCoreForTesting {
 
         # Explicitly load Core functions that may not be exported by the module
         $coreFiles = @(
+            "Private\Core\PathUtilities.ps1",         # Load first - contains ConvertTo-TestEnvironmentPath
+            "Private\Core\EncryptionUtilities.ps1",
             "Private\Core\ApplicationState.ps1",
             "Private\Core\FileState.ps1",
             "Private\Core\RegistryState.ps1",
-            "Private\Core\EncryptionUtilities.ps1",
-            "Private\Core\PathUtilities.ps1",
             "Private\Core\Prerequisites.ps1",
             "Private\Core\AdministrativePrivileges.ps1",
             "Private\Core\Test-WmrAdminPrivilege.ps1"

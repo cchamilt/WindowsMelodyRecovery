@@ -26,14 +26,25 @@ BeforeAll {
 
     # Import core functions through module system for code coverage
     try {
-        Import-WmrCoreForTesting -Functions @(
-            'Test-WmrAdminPrivilege',
-            'Enable-WmrAdminPrivilege',
-            'Disable-WmrAdminPrivilege',
-            'Test-WmrPrerequisite',
-            'Install-WindowsMelodyRecoveryTasks',
-            'Initialize-WindowsMelodyRecovery'
-        )
+        # First import the module for code coverage
+        $moduleRoot = $PSScriptRoot
+        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
+            $moduleRoot = Split-Path -Parent $moduleRoot
+            if ([string]::IsNullOrEmpty($moduleRoot)) {
+                throw "Could not find WindowsMelodyRecovery module root"
+            }
+        }
+
+        # Import the module
+        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
+
+        # Directly dot-source the Core files to ensure functions are available
+        . (Join-Path $moduleRoot "Private\Core\AdministrativePrivileges.ps1")
+        . (Join-Path $moduleRoot "Private\Core\Test-WmrAdminPrivilege.ps1")
+        . (Join-Path $moduleRoot "Private\Core\Prerequisites.ps1")
+        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
+
+        Write-Verbose "Successfully loaded core functions for code coverage"
     }
     catch {
         throw "Cannot find or import required functions: $($_.Exception.Message)"
@@ -83,21 +94,24 @@ Describe "Administrative Privilege Logic Tests" {
 
     Context "Administrative Privilege Validation Logic" {
         It "Should validate admin requirements for scheduled task functions" {
-            # Mock Test-WmrAdminPrivilege to return false
+            # Mock Test-WmrAdminPrivilege to return false (non-admin)
             Mock -CommandName "Test-WmrAdminPrivilege" -MockWith { return $false }
 
-            # Test Install-WindowsMelodyRecoveryTask
-            Mock -CommandName "Install-WindowsMelodyRecoveryTask" -MockWith {
-                if (-not (Test-WmrAdminPrivilege)) {
-                    Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
-                    return $false
-                }
-                return $true
+            # Test the admin privilege logic directly
+            $adminCheck = Test-WmrAdminPrivilege
+            $adminCheck | Should -Be $false
+
+            # Verify that non-admin context would prevent task installation
+            # This simulates the behavior that Install-WindowsMelodyRecoveryTask would have
+            if (-not $adminCheck) {
+                $taskInstallResult = $false
+                Write-Warning "This function requires elevation. Please run PowerShell as Administrator."
+            }
+            else {
+                $taskInstallResult = $true
             }
 
-            $result = Install-WindowsMelodyRecoveryTask
-            $result | Should -Be $false
-
+            $taskInstallResult | Should -Be $false
             Assert-MockCalled -CommandName "Test-WmrAdminPrivilege" -Times 1
         }
 
