@@ -290,10 +290,20 @@ function Set-WmrFileState {
         }
     }
     elseif ($FileConfig.type -eq "directory") {
+        Write-Verbose "Set-WmrFileState: Loading directory content from state file: '$stateFilePath'"
         $dirContent = Get-Content -Path $stateFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
+        if (-not $dirContent) {
+            Write-Warning "No directory content found in state file: $stateFilePath"
+            Write-Error "Set-WmrFileState: Critical error - no directory content found in state file: '$stateFilePath'"
+            return
+        }
+        Write-Verbose "Set-WmrFileState: Loaded $($dirContent.Count) items from state file"
+
         # Create the target directory if it doesn't exist
+        Write-Verbose "Set-WmrFileState: Ensuring destination directory exists: '$destinationPath'"
         if (-not (Test-Path $destinationPath)) {
+            Write-Verbose "Set-WmrFileState: Creating destination directory: '$destinationPath'"
             New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
         }
 
@@ -304,9 +314,11 @@ function Set-WmrFileState {
         # Process each item in the directory content
         foreach ($item in $dirContent) {
             Write-Debug "Processing item: $($item | ConvertTo-Json -Compress)"
+            Write-Verbose "Set-WmrFileState: Processing item with RelativePath: '$($item.RelativePath)'"
 
             if (-not $item.RelativePath) {
                 Write-Warning "Item $($item.FullName) has no relative path information. Skipping."
+                Write-Debug "Item details: $($item | ConvertTo-Json -Depth 3)"
                 continue
             }
 
@@ -333,19 +345,25 @@ function Set-WmrFileState {
 
             # Create directory or file based on PSIsContainer
             if ($item.PSIsContainer) {
+                Write-Verbose "Set-WmrFileState: Processing directory: $($item.RelativePath)"
                 if (-not (Test-Path $targetPath)) {
                     Write-Debug "Creating directory: $targetPath"
+                    Write-Verbose "Set-WmrFileState: Creating directory at: '$targetPath'"
                     try {
                         New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
                         Write-Debug "Successfully created directory: $targetPath"
+                        Write-Verbose "Set-WmrFileState: Successfully created directory: '$targetPath'"
                     }
                     catch {
                         Write-Warning "Failed to create directory $targetPath : $($_.Exception.Message)"
+                        Write-Error "Set-WmrFileState: Critical error creating directory '$targetPath': $($_.Exception.Message)"
+                        Write-Debug "Directory creation error details: $($_.Exception | ConvertTo-Json -Depth 3)"
                         continue
                     }
                 }
                 else {
                     Write-Debug "Directory already exists: $targetPath"
+                    Write-Verbose "Set-WmrFileState: Directory already exists: '$targetPath'"
                 }
             }
             else {

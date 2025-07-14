@@ -195,9 +195,16 @@ function ConvertTo-TestEnvironmentPath {
         return $Path
     }
 
-    # Don't redirect paths that are already in test environments
-    if ($Path.Contains("WMR-Tests-") -or $Path.Contains("test-restore") -or $Path.Contains("test-backup") -or $Path.Contains("test-state")) {
+    # Don't redirect paths that are already in test environments or project directories
+    if ($Path.Contains("WMR-Tests-") -or $Path.Contains("test-restore") -or $Path.Contains("test-backup") -or $Path.Contains("test-state") -or $Path.Contains("WindowsMelodyRecovery\Temp") -or $Path.Contains("Debug-FileState-Test")) {
         Write-Verbose "ConvertTo-TestEnvironmentPath: Path already in test environment, no redirection needed for '$Path'"
+        return $Path
+    }
+
+    # Also don't redirect paths that are within the project directory
+    $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    if ($Path.StartsWith($moduleRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Write-Verbose "ConvertTo-TestEnvironmentPath: Path is within project directory, no redirection needed for '$Path'"
         return $Path
     }
 
