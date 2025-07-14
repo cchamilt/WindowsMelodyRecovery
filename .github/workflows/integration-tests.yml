@@ -124,18 +124,17 @@ jobs:
 
             - name: Install chezmoi in WSL
               shell: pwsh
+              continue-on-error: true
               run: |
                   Write-Host "Installing chezmoi in WSL..." -ForegroundColor Green
-                  try {
-                      # Install chezmoi using the default user (usually root)
-                      wsl -d Ubuntu-22.04 -- bash -c "sh -c \"\$(curl -fsLS get.chezmoi.io)\" -- -b /usr/local/bin"
 
-                      # Verify installation
-                      $chezmoiVersion = wsl -d Ubuntu-22.04 -- bash -c "chezmoi --version"
-                      Write-Host "Chezmoi installed successfully: $chezmoiVersion" -ForegroundColor Green
+                  try {
+                      # Install chezmoi using default WSL distribution
+                      wsl -- bash -c "curl -fsLS get.chezmoi.io | sh -s -- -b /usr/local/bin"
+                      wsl -- bash -c "chezmoi --version"
+                      Write-Host "Chezmoi installed successfully" -ForegroundColor Green
                   } catch {
-                      Write-Host "Chezmoi installation failed: $($_.Exception.Message)" -ForegroundColor Red
-                      Write-Host "Tests may skip chezmoi-related functionality" -ForegroundColor Yellow
+                      Write-Host "Chezmoi installation failed - continuing anyway" -ForegroundColor Yellow
                   }
 
             - name: Setup package managers
@@ -205,6 +204,18 @@ jobs:
             - name: Initialize Windows Melody Recovery module
               shell: pwsh
               run: |
+                  # Create test results directory structure
+                  $testResultsDirs = @(
+                      "test-results",
+                      "test-results\integration",
+                      "test-results\logs"
+                  )
+
+                  foreach ($dir in $testResultsDirs) {
+                      New-Item -Path $dir -ItemType Directory -Force -ErrorAction SilentlyContinue
+                      Write-Host "Created directory: $dir" -ForegroundColor Green
+                  }
+
                   # Import the module
                   Import-Module .\WindowsMelodyRecovery.psm1 -Force
 
@@ -230,8 +241,17 @@ jobs:
 
                   Write-Host "Running test suite: $testSuite" -ForegroundColor Green
 
-                  # Create test results directory
-                  New-Item -Path "test-results\integration" -ItemType Directory -Force
+                  # Create test results directory structure
+                  $testResultsDirs = @(
+                      "test-results",
+                      "test-results\integration",
+                      "test-results\logs"
+                  )
+
+                  foreach ($dir in $testResultsDirs) {
+                      New-Item -Path $dir -ItemType Directory -Force -ErrorAction SilentlyContinue
+                      Write-Host "Created directory: $dir" -ForegroundColor Green
+                  }
 
                   # Configure Pester
                   $config = New-PesterConfiguration
@@ -245,7 +265,7 @@ jobs:
                   # Set environment variables for tests
                   $env:WMR_TEST_MODE = "true"
                   $env:WMR_BACKUP_ROOT = "$env:TEMP\WMR-Tests\Backups"
-                  $env:WMR_WSL_DISTRO = "Ubuntu-22.04"
+                  $env:WMR_WSL_DISTRO = ""
                   $env:WMR_CLOUD_PATH = "$env:USERPROFILE\OneDrive\WindowsMelodyRecovery"
 
                   # Run the tests
@@ -272,20 +292,28 @@ jobs:
               shell: pwsh
               if: always()
               run: |
-                  $sysInfo = @{
-                    OS = (Get-CimInstance Win32_OperatingSystem).Caption
-                    PowerShell = $PSVersionTable.PSVersion.ToString()
-                    WSL = try { wsl --version } catch { "Not available" }
-                    Chocolatey = try { choco --version } catch { "Not installed" }
-                    Scoop = try { scoop --version } catch { "Not installed" }
-                    Winget = try { winget --version } catch { "Not installed" }
-                    DotNet = try { dotnet --version } catch { "Not installed" }
-                    Git = try { git --version } catch { "Not installed" }
-                    Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                  }
+                  try {
+                      $sysInfo = @{
+                        OS = try { (Get-CimInstance Win32_OperatingSystem).Caption } catch { "Windows (CIM not available)" }
+                        PowerShell = $PSVersionTable.PSVersion.ToString()
+                        WSL = try { wsl --version 2>$null } catch { "Not available" }
+                        WSLDistributions = try { wsl --list --quiet 2>$null | Where-Object { $_ -and $_.Trim() } } catch { @() }
+                        Chocolatey = try { choco --version 2>$null } catch { "Not installed" }
+                        Scoop = try { scoop --version 2>$null } catch { "Not installed" }
+                        Winget = try { winget --version 2>$null } catch { "Not installed" }
+                        DotNet = try { dotnet --version 2>$null } catch { "Not installed" }
+                        Git = try { git --version 2>$null } catch { "Not installed" }
+                        Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                      }
 
-                  New-Item -Path "test-results" -ItemType Directory -Force
-                  $sysInfo | ConvertTo-Json | Out-File "test-results\system-info.json"
+                      New-Item -Path "test-results" -ItemType Directory -Force -ErrorAction SilentlyContinue
+                      $sysInfo | ConvertTo-Json | Out-File "test-results\system-info.json" -Encoding UTF8
+                      Write-Host "System information collected successfully" -ForegroundColor Green
+                  } catch {
+                      Write-Host "System information collection failed: $($_.Exception.Message)" -ForegroundColor Red
+                      # Create minimal info file to prevent upload step failure
+                      @{ Error = $_.Exception.Message; Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss" } | ConvertTo-Json | Out-File "test-results\system-info.json" -Encoding UTF8
+                  }
 
             - name: Upload integration test results
               uses: actions/upload-artifact@v4
