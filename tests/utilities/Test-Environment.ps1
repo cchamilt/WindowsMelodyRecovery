@@ -218,6 +218,16 @@ function Initialize-TestEnvironment {
         Write-Verbose "Loaded general test utilities from: $utilityPath"
     }
 
+    # Set critical test environment variables for path redirection
+    $env:WMR_TEST_MODE = 'true'
+    $env:WMR_STATE_PATH = $testPaths.TestState
+    $env:WMR_BACKUP_PATH = $testPaths.TestBackup
+    $env:WMR_LOG_PATH = $testPaths.Logs
+
+    # Disable PowerShell telemetry and update checks during testing
+    $env:POWERSHELL_TELEMETRY_OPTOUT = '1'
+    $env:POWERSHELL_UPDATECHECK_OPTOUT = '1'
+
     # --- Suite-specific setup ---
     switch ($SuiteName) {
         'Unit' {

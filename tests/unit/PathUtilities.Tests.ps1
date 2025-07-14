@@ -24,19 +24,39 @@ BeforeAll {
 Describe "Convert-WmrPath" {
 
     It "should correctly expand environment variables for Windows paths" {
-        $env:TEST_VAR = "TestFolder"
-        $windowsPath = "C:\Users\$env:USERNAME\$env:TEST_VAR\file.txt"
-        $result = Convert-WmrPath -Path $windowsPath
-        $result.PathType | Should -Be "File"
-        $result.Path | Should -Be $windowsPath
-        $env:TEST_VAR = $null
+        # Temporarily disable test mode for this logic test
+        $originalTestMode = $env:WMR_TEST_MODE
+        $env:WMR_TEST_MODE = $null
+
+        try {
+            $env:TEST_VAR = "TestFolder"
+            $windowsPath = "C:\Users\$env:USERNAME\$env:TEST_VAR\file.txt"
+            $result = Convert-WmrPath -Path $windowsPath
+            $result.PathType | Should -Be "File"
+            $result.Path | Should -Be $windowsPath
+            $env:TEST_VAR = $null
+        }
+        finally {
+            # Restore test mode
+            $env:WMR_TEST_MODE = $originalTestMode
+        }
     }
 
     It "should correctly handle file:// URIs" {
-        $path = "file://C:/Program Files/App/app.exe"
-        $result = Convert-WmrPath -Path $path
-        $result.PathType | Should -Be "File"
-        $result.Path | Should -Be "C:\Program Files\App\app.exe"
+        # Temporarily disable test mode for this logic test
+        $originalTestMode = $env:WMR_TEST_MODE
+        $env:WMR_TEST_MODE = $null
+
+        try {
+            $path = "file://C:/Program Files/App/app.exe"
+            $result = Convert-WmrPath -Path $path
+            $result.PathType | Should -Be "File"
+            $result.Path | Should -Be "C:\Program Files\App\app.exe"
+        }
+        finally {
+            # Restore test mode
+            $env:WMR_TEST_MODE = $originalTestMode
+        }
     }
 
     It "should correctly handle winreg:// HKLM paths" {

@@ -59,9 +59,13 @@ BeforeAll {
     # Mock all file system operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
     Mock Test-Path { return $false } -ParameterFilter { $Path -like "*missing*" }
+    Mock Test-Path { return $false } -ParameterFilter { $Path -like "*NewStateDir*" }
+    Mock Test-Path { return $false } -ParameterFilter { $Path -like "*level1*level2*level3*" -and $PathType -eq "Container" }
     Mock Get-Content { return "mock file content" }
     Mock Set-Content { }
-    Mock New-Item { }
+    Mock New-Item {
+        return @{ FullName = $Path }
+    } -ParameterFilter { $ItemType -eq "Directory" }
     Mock Get-ChildItem { return @() }
     Mock Get-FileHash { return @{ Hash = "MOCKHASH123" } }
 
