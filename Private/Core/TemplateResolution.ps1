@@ -16,13 +16,7 @@
 #>
 
 # Import required modules
-$script:ModuleRoot = Split-Path -Parent $PSScriptRoot
-
-# Import dependency modules
-. "$PSScriptRoot\MachineContext.ps1"
-. "$PSScriptRoot\ConfigurationMerging.ps1"
-. "$PSScriptRoot\ConditionalProcessing.ps1"
-. "$PSScriptRoot\ConfigurationValidation.ps1"
+Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
 function Resolve-WmrTemplateInheritance {
     <#

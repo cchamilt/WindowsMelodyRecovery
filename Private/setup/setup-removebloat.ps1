@@ -14,13 +14,8 @@ function Remove-Bloat {
         return $false
     }
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     try {
         Write-Information -MessageData "Starting Windows bloatware removal..." -InformationAction Continue
@@ -80,7 +75,7 @@ function Remove-Bloat {
                     $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
 
                     # Also remove provisioned package if it exists
-                    $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $app
+                    $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -Like $app
                     if ($provPackage) {
                         $provPackage | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
                     }
@@ -225,7 +220,7 @@ function Remove-Bloat {
                     $package | Remove-AppxPackage -ErrorAction Stop | Out-Null
 
                     # Also remove provisioned package
-                    $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app
+                    $provPackage = Get-AppxProvisionedPackage -Online | Where-Object DisplayName -EQ $app
                     if ($provPackage) {
                         $provPackage | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
                     }
@@ -432,45 +427,45 @@ function Remove-Bloat {
         Write-Warning -Message "`nDisabling suggestion notifications..."
         $suggestionSettings = @{
             # Windows Suggestions
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" = @{
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"                                                                                             = @{
                 "SubscribedContent-338388Enabled" = 0  # Suggestions on Start
                 "SubscribedContent-338389Enabled" = 0  # Suggestions in Settings
                 "SubscribedContent-353694Enabled" = 0  # Timeline suggestions
                 "SubscribedContent-353696Enabled" = 0  # Tips and tricks
                 "SubscribedContent-338387Enabled" = 0  # App suggestions
                 "SubscribedContent-310093Enabled" = 0  # General suggestions
-                "SystemPaneSuggestionsEnabled" = 0     # System suggestions
-                "SoftLandingEnabled" = 0               # Feature highlights
-                "FeatureManagementEnabled" = 0         # Feature suggestions
-                "ShowSyncProviderNotifications" = 0    # OneDrive suggestions
-                "PreInstalledAppsEnabled" = 0          # Pre-installed apps suggestions
-                "OemPreInstalledAppsEnabled" = 0       # OEM pre-installed apps suggestions
+                "SystemPaneSuggestionsEnabled"    = 0     # System suggestions
+                "SoftLandingEnabled"              = 0               # Feature highlights
+                "FeatureManagementEnabled"        = 0         # Feature suggestions
+                "ShowSyncProviderNotifications"   = 0    # OneDrive suggestions
+                "PreInstalledAppsEnabled"         = 0          # Pre-installed apps suggestions
+                "OemPreInstalledAppsEnabled"      = 0       # OEM pre-installed apps suggestions
             }
             # Windows Explorer Suggestions
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" = @{
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"                                                                                                  = @{
                 "ShowSyncProviderNotifications" = 0    # OneDrive notifications
-                "Start_TrackProgs" = 0                 # App launch tracking
-                "ShowInfoTip" = 0                      # Item tooltips
+                "Start_TrackProgs"              = 0                 # App launch tracking
+                "ShowInfoTip"                   = 0                      # Item tooltips
             }
             # Notification Settings
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.Suggested" = @{
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.Suggested"                                                               = @{
                 "Enabled" = 0                          # System suggested toast notifications
             }
             # Start Menu Suggestions
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" = @{
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start"                                                                                                              = @{
                 "ShowAppsList" = 0                     # App suggestions in Start
             }
             # Microsoft Store Suggestions
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Store" = @{
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Store"                                                                                                              = @{
                 "AutoDownload" = 2                     # Disable automatic app updates
             }
             # Edge Browser Suggestions
             "HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\ServiceUI" = @{
-                "EnableCortana" = 0                    # Cortana in Edge
+                "EnableCortana"               = 0                    # Cortana in Edge
                 "ShowSearchSuggestionsGlobal" = 0      # Search suggestions
             }
             # Windows Tips
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" = @{
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps"                                                                               = @{
                 "DisableAutoInstall" = 1               # Disable auto-install of suggested apps
             }
         }

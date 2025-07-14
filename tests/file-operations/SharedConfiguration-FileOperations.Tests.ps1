@@ -14,71 +14,16 @@
 #>
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it for FileOps.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'FileOps'
 
-    # Load test environment
-    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
-    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
-
-    # Import shared configuration scripts directly (these are not exported module functions)
-    try {
-        $SharedConfigScripts = @(
-            "Private/Core/ConfigurationMerging.ps1",
-            "Private/Core/ConfigurationValidation.ps1"
-        )
-
-        foreach ($script in $SharedConfigScripts) {
-            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
-            . $scriptPath
-        }
-    }
-    catch {
-        throw "Cannot find or import additional shared configuration scripts: $($_.Exception.Message)"
-    }
-
-    # Get standardized test paths
-    $script:TestPaths = $global:TestEnvironment
-    $script:TestMachineBackup = Join-Path $script:TestPaths.TestBackup "machine"
-    $script:TestSharedBackup = Join-Path $script:TestPaths.TestBackup "shared"
-    # Import additional scripts needed for shared configuration
-    try {
-        $AdditionalScripts = @(
-            "Private/Core/TemplateInheritance.ps1",
-            "Private/Core/TemplateResolution.ps1"
-        )
-
-        foreach ($script in $AdditionalScripts) {
-            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
-            . $scriptPath
-        }
-    }
-    catch {
-        throw "Cannot find or import additional shared configuration scripts: $($_.Exception.Message)"
-    }
+    # Get standardized test paths from the initialized environment
+    $script:TestMachineBackup = Join-Path $script:TestEnvironment.TestBackup "machine"
+    $script:TestSharedBackup = Join-Path $script:TestEnvironment.TestBackup "shared"
 
     # Ensure test directories exist
     if (-not (Test-Path $script:TestMachineBackup)) {
@@ -121,6 +66,11 @@ BeforeAll {
         Write-Warning -Message "No $BackupType backup found"
         return $null
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "SharedConfiguration File Operations" -Tag "FileOperations" {

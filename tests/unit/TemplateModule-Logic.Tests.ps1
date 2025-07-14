@@ -2,14 +2,13 @@
 # Tests the core template processing logic without file system operations
 
 BeforeAll {
-    # Import the template module to make functions available
-    Import-Module (Resolve-Path "$PSScriptRoot/../../Private/Core/WindowsMelodyRecovery.Template.psm1") -Force
-
-    # Load the unified test environment (works for both Docker and Windows)
+    # Import the unified test environment library and initialize it.
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Initialize test environment
-    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+    # Import the main module and the template module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+    Import-Module (Resolve-Path (Join-Path $script:TestEnvironment.ModuleRoot "Private/Core/WindowsMelodyRecovery.Template.psm1")) -Force
 
     # Mock all file operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
@@ -131,6 +130,11 @@ files:
             return $Path
         }
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {

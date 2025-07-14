@@ -7,13 +7,8 @@
         [switch]$Install
     )
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     function Install-GogGalaxy {
         $gogPath = "C:\Program Files (x86)\GOG Galaxy\GalaxyClient.exe"
@@ -88,7 +83,7 @@
     }
 
     try {
-        Write-Information -MessageData "Setting up GOG Games..." -InformationAction Continue
+        Write-Information -MessageData "Setting up GOG games..." -InformationAction Continue
 
         # Determine games list path
         if (!$GamesListPath) {

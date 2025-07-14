@@ -7,13 +7,8 @@ function Initialize-[Feature] {
         [switch]$Force
     )
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     try {
         Write-Information -MessageData "Setting up [Feature]..." -InformationAction Continue
@@ -68,7 +63,7 @@ Sets up [Feature] configurations and settings.
 
 .DESCRIPTION
 This function installs and configures [Feature] with the necessary settings.
-It uses the environment configuration loaded by Import-Environment.
+It uses the WindowsMelodyRecovery module for configuration and utilities.
 
 .PARAMETER Force
 Skip confirmation prompts and force installation/configuration.
@@ -82,7 +77,7 @@ Initialize-[Feature] -Force
 Sets up [Feature] without prompts.
 
 .NOTES
-- Requires Import-Environment to be available
+- Requires WindowsMelodyRecovery module
 - Returns $true on success, $false on failure
 - Uses winget as primary package manager with chocolatey fallback
 - Stores configuration in backup location when applicable

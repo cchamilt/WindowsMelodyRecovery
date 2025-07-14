@@ -3,86 +3,31 @@
 # Logic tests moved to tests/unit/module-tests-Logic.Tests.ps1
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it for FileOps.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'FileOps'
 
-    # Load test environment
-    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
-    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\ApplicationState.ps1")
-        . (Join-Path $moduleRoot "Private\Core\FileState.ps1")
-        . (Join-Path $moduleRoot "Private\Core\EncryptionUtilities.ps1")
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-        . (Join-Path $moduleRoot "Private\Core\Prerequisites.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
-
-    # Find module root for test paths
-    $moduleRoot = $PSScriptRoot
-    while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-        $moduleRoot = Split-Path -Parent $moduleRoot
-        if ([string]::IsNullOrEmpty($moduleRoot)) {
-            throw "Could not find WindowsMelodyRecovery module root"
-        }
-    }
-
-    # Set up test environment with real paths in safe test directories
-    $TestModulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psm1"
-    $TestManifestPath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
-    $TestInstallScriptPath = (Resolve-Path "$PSScriptRoot/../../Install-Module.ps1").Path
-
-    # Create temporary test directory in environment-appropriate safe location
-    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-    (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
-
-    if ($isDockerEnvironment) {
-        $TestTempDir = Join-Path "/workspace/Temp" "WindowsMelodyRecovery-FileOps"
-    }
-    else {
-        # Use project Temp directory for local Windows environments
-        $TestTempDir = Join-Path $moduleRoot "Temp" "WindowsMelodyRecovery-FileOps"
-    }
-
-    if (-not (Test-Path $TestTempDir)) {
-        New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
-    }
-
-    # Set up test environment variables
-    $env:WMR_CONFIG_PATH = $TestTempDir
-    $env:WMR_BACKUP_PATH = Join-Path $TestTempDir "backups"
-    $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
+    # Set up test environment variables from the initialized environment
+    $env:WMR_CONFIG_PATH = $script:TestEnvironment.Temp
+    $env:WMR_BACKUP_PATH = $script:TestEnvironment.TestBackup
+    $env:WMR_LOG_PATH = $script:TestEnvironment.Logs
     $env:COMPUTERNAME = "TEST-MACHINE"
-    $env:USERPROFILE = $TestTempDir
+    $env:USERPROFILE = $script:TestEnvironment.Temp
+}
 
-    # Create backup and log directories
-    New-Item -Path $env:WMR_BACKUP_PATH -ItemType Directory -Force | Out-Null
-    New-Item -Path $env:WMR_LOG_PATH -ItemType Directory -Force | Out-Null
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOperations", "Safe" {
 
     Context "Module File Validation" {
         It "Should have valid module manifest file" {
+            $TestManifestPath = Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1"
             Test-Path $TestManifestPath | Should -Be $true
 
             $manifest = Import-PowerShellDataFile $TestManifestPath
@@ -93,6 +38,7 @@ Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOper
         }
 
         It "Should have valid main module file" {
+            $TestModulePath = Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psm1"
             Test-Path $TestModulePath | Should -Be $true
 
             # Test syntax by reading and parsing content
@@ -102,6 +48,7 @@ Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOper
         }
 
         It "Should have valid installation script file" {
+            $TestInstallScriptPath = Join-Path $script:TestEnvironment.ModuleRoot "Install-Module.ps1"
             Test-Path $TestInstallScriptPath | Should -Be $true
 
             # Test syntax by reading and parsing content
@@ -113,7 +60,7 @@ Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOper
 
     Context "Directory Creation Operations" {
         It "Should create test directory successfully" {
-            $testDir = Join-Path $TestTempDir "creation-test"
+            $testDir = Join-Path $script:TestEnvironment.Temp "creation-test"
             New-Item -Path $testDir -ItemType Directory -Force | Out-Null
             Test-Path $testDir | Should -Be $true
 
@@ -123,10 +70,10 @@ Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOper
 
         It "Should create configuration directories" {
             $expectedDirs = @(
-                (Join-Path $TestTempDir "Config"),
-                (Join-Path $TestTempDir "backups"),
-                (Join-Path $TestTempDir "logs"),
-                (Join-Path $TestTempDir "scripts")
+                (Join-Path $script:TestEnvironment.Temp "Config"),
+                $script:TestEnvironment.TestBackup,
+                $script:TestEnvironment.Logs,
+                (Join-Path $script:TestEnvironment.Temp "scripts")
             )
 
             foreach ($dir in $expectedDirs) {
@@ -136,7 +83,7 @@ Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOper
         }
 
         It "Should create nested directory structures" {
-            $nestedDir = Join-Path $TestTempDir "nested\sub\structure"
+            $nestedDir = Join-Path $script:TestEnvironment.Temp "nested\sub\structure"
             New-Item -Path $nestedDir -ItemType Directory -Force | Out-Null
             Test-Path $nestedDir | Should -Be $true
         }
@@ -144,14 +91,14 @@ Describe "Windows Melody Recovery Module - File Operations Tests" -Tag "FileOper
 
     Context "File Creation and Content Operations" {
         It "Should create and write configuration files" {
-            $configDir = Join-Path $TestTempDir "Config"
+            $configDir = Join-Path $script:TestEnvironment.Temp "Config"
             New-Item -Path $configDir -ItemType Directory -Force | Out-Null
 
             $configFile = Join-Path $configDir "windows.env"
             $configContent = @"
 # Windows Melody Recovery Configuration
-WMR_BACKUP_ROOT=$($TestTempDir)\backups
-WMR_LOG_PATH=$($TestTempDir)\logs
+WMR_BACKUP_ROOT=$($script:TestEnvironment.TestBackup)
+WMR_LOG_PATH=$($script:TestEnvironment.Logs)
 "@
             Set-Content -Path $configFile -Value $configContent -Encoding UTF8
 
@@ -162,7 +109,7 @@ WMR_LOG_PATH=$($TestTempDir)\logs
         }
 
         It "Should create backup manifest files" {
-            $backupPath = Join-Path $TestTempDir "test-backup"
+            $backupPath = Join-Path $script:TestEnvironment.Temp "test-backup"
             New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
 
             $manifestPath = Join-Path $backupPath "manifest.json"
@@ -184,7 +131,7 @@ WMR_LOG_PATH=$($TestTempDir)\logs
         }
 
         It "Should create script files with proper encoding" {
-            $scriptDir = Join-Path $TestTempDir "scripts"
+            $scriptDir = Join-Path $script:TestEnvironment.Temp "scripts"
             New-Item -Path $scriptDir -ItemType Directory -Force | Out-Null
 
             $scriptFile = Join-Path $scriptDir "test-script.ps1"
@@ -210,7 +157,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
 
     Context "Initialization File Operations" {
         It "Should initialize with custom configuration path" {
-            $customConfigPath = Join-Path $TestTempDir "custom-config"
+            $customConfigPath = Join-Path $script:TestEnvironment.Temp "custom-config"
 
             # This will create actual directories and files
             { Initialize-WindowsMelodyRecovery -InstallPath $customConfigPath -NoPrompt } | Should -Not -Throw
@@ -219,7 +166,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should copy template files during initialization" {
-            $initPath = Join-Path $TestTempDir "init-test"
+            $initPath = Join-Path $script:TestEnvironment.Temp "init-test"
 
             # Initialize with NoPrompt to avoid user interaction
             { Initialize-WindowsMelodyRecovery -InstallPath $initPath -NoPrompt } | Should -Not -Throw
@@ -230,7 +177,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should handle directory creation with special characters" {
-            $specialDir = Join-Path $TestTempDir "test-dir with spaces & symbols"
+            $specialDir = Join-Path $script:TestEnvironment.Temp "test-dir with spaces & symbols"
             New-Item -Path $specialDir -ItemType Directory -Force | Out-Null
             Test-Path $specialDir | Should -Be $true
 
@@ -243,7 +190,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
 
     Context "Backup File Operations" {
         It "Should create backup directory structure" {
-            $backupRoot = Join-Path $TestTempDir "backup-test"
+            $backupRoot = Join-Path $script:TestEnvironment.Temp "backup-test"
             $machineName = $env:COMPUTERNAME
             $expectedBackupPath = Join-Path $backupRoot $machineName
 
@@ -260,7 +207,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should create backup files with correct timestamps" {
-            $backupPath = Join-Path $TestTempDir "timestamp-test"
+            $backupPath = Join-Path $script:TestEnvironment.Temp "timestamp-test"
             New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
 
             $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
@@ -281,7 +228,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should handle large backup files" {
-            $backupPath = Join-Path $TestTempDir "large-backup-test"
+            $backupPath = Join-Path $script:TestEnvironment.Temp "large-backup-test"
             New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
 
             # Create a larger JSON structure to test file handling
@@ -315,7 +262,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
 
     Context "Error Handling File Operations" {
         It "Should handle permission errors gracefully" {
-            $restrictedPath = Join-Path $TestTempDir "restricted-test"
+            $restrictedPath = Join-Path $script:TestEnvironment.Temp "restricted-test"
 
             # Create directory first
             New-Item -Path $restrictedPath -ItemType Directory -Force | Out-Null
@@ -327,7 +274,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should handle corrupted file recovery" {
-            $corruptedDir = Join-Path $TestTempDir "corrupted-test"
+            $corruptedDir = Join-Path $script:TestEnvironment.Temp "corrupted-test"
             New-Item -Path $corruptedDir -ItemType Directory -Force | Out-Null
 
             # Create a corrupted JSON file
@@ -348,7 +295,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should handle long file paths" {
-            $longPath = Join-Path $TestTempDir "very\long\nested\directory\structure\with\many\levels\for\testing\path\limits"
+            $longPath = Join-Path $script:TestEnvironment.Temp "very\long\nested\directory\structure\with\many\levels\for\testing\path\limits"
             New-Item -Path $longPath -ItemType Directory -Force | Out-Null
             Test-Path $longPath | Should -Be $true
 
@@ -360,7 +307,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
 
     Context "Cleanup and Maintenance Operations" {
         It "Should clean up temporary files" {
-            $tempDir = Join-Path $TestTempDir "temp-cleanup-test"
+            $tempDir = Join-Path $script:TestEnvironment.Temp "temp-cleanup-test"
             New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
 
             # Create some temporary files
@@ -384,7 +331,7 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
         }
 
         It "Should handle directory removal with content" {
-            $removeTestDir = Join-Path $TestTempDir "remove-test"
+            $removeTestDir = Join-Path $script:TestEnvironment.Temp "remove-test"
             New-Item -Path $removeTestDir -ItemType Directory -Force | Out-Null
 
             # Create nested structure with files
@@ -400,20 +347,6 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
             Test-Path $removeTestDir | Should -Be $false
         }
     }
-}
-
-AfterAll {
-    # Comprehensive cleanup
-    if (Test-Path $TestTempDir) {
-        Remove-Item -Path $TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Reset environment variables
-    Remove-Item -Path "env:WMR_CONFIG_PATH" -ErrorAction SilentlyContinue
-    Remove-Item -Path "env:WMR_BACKUP_PATH" -ErrorAction SilentlyContinue
-    Remove-Item -Path "env:WMR_LOG_PATH" -ErrorAction SilentlyContinue
-    Remove-Item -Path "env:COMPUTERNAME" -ErrorAction SilentlyContinue
-    Remove-Item -Path "env:USERPROFILE" -ErrorAction SilentlyContinue
 }
 
 

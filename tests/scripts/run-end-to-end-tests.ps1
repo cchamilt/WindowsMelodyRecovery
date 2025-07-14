@@ -56,7 +56,7 @@ Write-Information -MessageData "🏁 Running End-to-End Tests for Windows Melody
 
 # Initialize a dedicated, isolated environment for this end-to-end test run
 Write-Warning -Message "🧹 Initializing isolated end-to-end test environment..."
-$testEnvironment = Initialize-TestEnvironment -SuiteName 'E2E'
+$testEnvironment = Initialize-WmrTestEnvironment -SuiteName 'E2E'
 Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 Write-Information -MessageData "" -InformationAction Continue
 
@@ -84,7 +84,7 @@ else {
 Write-Information -MessageData "Executing end-to-end tests... (Timeout: $Timeout minutes)" -InformationAction Continue
 
 $pesterConfig = @{
-    Run = @{
+    Run    = @{
         Path = $testsToRun | ForEach-Object { Join-Path $e2eTestsPath "$_.Tests.ps1" }
     }
     Output = @{
@@ -94,8 +94,8 @@ $pesterConfig = @{
 
 if ($GenerateReport) {
     $pesterConfig.TestResult = @{
-        Enabled = $true
-        OutputPath = Join-Path $testEnvironment.Logs "e2e-test-results.xml"
+        Enabled      = $true
+        OutputPath   = Join-Path $testEnvironment.Logs "e2e-test-results.xml"
         OutputFormat = 'JUnitXml'
     }
 }
@@ -124,7 +124,7 @@ Remove-Job -Job $job -Force
 # Cleanup
 if (-not $SkipCleanup) {
     Write-Warning -Message "🧹 Cleaning up test environment..."
-    Remove-TestEnvironment
+    Remove-WmrTestEnvironment
     Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
 }
 else {

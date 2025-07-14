@@ -96,7 +96,7 @@ Write-Verbose -Message "Environment: $(if ($isCICD) { 'CI/CD' } else { 'Developm
 try {
     # Initialize a dedicated, isolated environment for this Windows test run
     Write-Warning -Message "🧹 Initializing isolated Windows test environment..."
-    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Windows'
+    $testEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Windows'
     Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 
     # Import the module
@@ -105,14 +105,13 @@ try {
     Import-Module $modulePath -Force
 
     # Administrative privilege check using module function
-    $adminInfo = Test-WmrAdministrativePrivilege -Quiet
-    $isAdmin = $adminInfo.IsElevated
-    Write-Verbose -Message "Admin Rights: $(if ($isAdmin) { 'Yes' } else { 'No' })"
-
-    if ($needsAdmin -and -not $isAdmin) {
-        Write-Error -Message "✗ Administrative privileges required for $Category tests"
-        Write-Warning -Message "  Please run PowerShell as Administrator"
-        exit 1
+    Write-Warning "Running tests that require administrative privileges..."
+    # Check if running with admin privileges
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Warning "Not running with administrative privileges, skipping admin-required tests."
+        # Exit with a special code to indicate skipped tests
+        exit 100
     }
 
     # Create restore point for destructive tests
@@ -209,7 +208,7 @@ try {
     # Cleanup
     if (-not $SkipCleanup) {
         Write-Warning -Message "🧹 Cleaning up test environment..."
-        Remove-TestEnvironment
+        Remove-WmrTestEnvironment
         Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
     }
 

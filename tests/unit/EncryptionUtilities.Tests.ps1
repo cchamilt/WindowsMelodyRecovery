@@ -1,46 +1,72 @@
 ﻿# tests/unit/EncryptionUtilities.Tests.ps1
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Import only the specific script needed to avoid TUI dependencies
-    try {
-        $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
-        . $EncryptionUtilitiesScript
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-        # Initialize test environment
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-        Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
+    function New-TestSecureString {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)]
+            [string]$PlainText
+        )
+        $secureString = [System.Security.SecureString]::new()
+        $PlainText.ToCharArray() | ForEach-Object { $secureString.AppendChar($_) }
+        $secureString.MakeReadOnly()
+        return $secureString
     }
-    catch {
-        throw "Cannot find or import EncryptionUtilities script: $($_.Exception.Message)"
+
+    function New-TestEncryptionKey {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $false)]
+            [int]$KeySize = 256,
+            [Parameter(Mandatory = $false)]
+            [System.Security.SecureString]$Password = (New-TestSecureString -PlainText "TestP@ssw0rd!"),
+            [Parameter(Mandatory = $false)]
+            [byte[]]$Salt
+        )
+        if (-not $Salt) {
+            $Salt = New-Object byte[] 32
+            for ($i = 0; $i -lt 32; $i++) {
+                $Salt[$i] = $i
+            }
+        }
+        $pbkdf2 = New-Object System.Security.Cryptography.Rfc2898DeriveBytes($Password, $Salt, 100000)
+        $key = $pbkdf2.GetBytes(32)
+        $pbkdf2.Dispose()
+        return $key
     }
 
-    # Create and import the test helper module
-    $helperPath = Join-Path $PSScriptRoot "../utilities/EncryptionTestHelper.ps1"
-    . $helperPath
+    function New-TestInitializationVector {
+        [CmdletBinding()]
+        param()
+        $aes = [System.Security.Cryptography.AesManaged]::new()
+        $aes.GenerateIV()
+        $aes.Dispose()
+        return $aes.IV
+    }
 
-    # Set up test environment
-    $script:TestDataPath = [string](New-TestTempDirectory)
+    $script:TestPassword = "TestP@ssw0rd!"
+    $script:TestSecureString = New-TestSecureString -PlainText $TestPassword
+    $script:TestSalt = New-Object byte[] 32
+    for ($i = 0; $i -lt 32; $i++) {
+        $script:TestSalt[$i] = $i
+    }
+    $script:TestKey = New-TestEncryptionKey -Password $TestSecureString -Salt $TestSalt
+    $script:TestInitializationVector = New-TestInitializationVector
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe 'EncryptionUtilities' {
-    BeforeAll {
-        # Load Docker test bootstrap for cross-platform compatibility
-        . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-
-        $script:TestPassword = "TestP@ssw0rd!"
-        $script:TestSecureString = New-TestSecureString -PlainText $TestPassword
-        $script:TestSalt = New-Object byte[] 32
-        for ($i = 0; $i -lt 32; $i++) {
-            $script:TestSalt[$i] = $i
-        }
-        $script:TestKey = New-TestEncryptionKey -Password $TestSecureString -Salt $TestSalt
-        $script:TestInitializationVector = New-TestInitializationVector
-    }
-
     Context 'Protect-WmrData' {
         It 'Should encrypt string data correctly' {
             # Arrange
@@ -203,13 +229,6 @@ Describe 'EncryptionUtilities' {
             # Assert
             $decrypted | Should -Be $unicodeText
         }
-    }
-}
-
-AfterAll {
-    # Clean up test environment
-    if ($script:TestDataPath) {
-        Remove-TestTempDirectory -Path $script:TestDataPath
     }
 }
 

@@ -2,29 +2,28 @@
 # Tests for complete backup/restore workflows with BitLocker and Windows Backup integration
 
 BeforeAll {
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
+
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
     # Import setup scripts
-    . "$PSScriptRoot/../../Private/setup/setup-bitlocker.ps1"
-    . "$PSScriptRoot/../../Private/setup/Initialize-WindowsBackup.ps1"
+    . (Join-Path $script:TestEnvironment.ModuleRoot "Private/setup/setup-bitlocker.ps1")
+    . (Join-Path $script:TestEnvironment.ModuleRoot "Private/setup/Initialize-WindowsBackup.ps1")
 
     # Test environment setup
-    $script:TestWorkspace = Join-Path $env:TEMP "WorkflowTest_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-    $script:TestBackupLocation = Join-Path $script:TestWorkspace "Backups"
-    $script:TestRestoreLocation = Join-Path $script:TestWorkspace "Restore"
+    $script:TestWorkspace = $script:TestEnvironment.TestRoot
+    $script:TestBackupLocation = $script:TestEnvironment.TestBackup
+    $script:TestRestoreLocation = $script:TestEnvironment.TestRestore
     $script:TestDrive = $env:SystemDrive
     $script:IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-    # Create test workspace
-    New-Item -Path $script:TestWorkspace -ItemType Directory -Force | Out-Null
-    New-Item -Path $script:TestBackupLocation -ItemType Directory -Force | Out-Null
-    New-Item -Path $script:TestRestoreLocation -ItemType Directory -Force | Out-Null
-
     # Mock configuration data
     $script:MockConfig = @{
-        BackupRoot = $script:TestBackupLocation
-        MachineName = $env:COMPUTERNAME
+        BackupRoot    = $script:TestBackupLocation
+        MachineName   = $env:COMPUTERNAME
         CloudProvider = "OneDrive"
         ModuleVersion = "1.0.0"
         IsInitialized = $true
@@ -32,30 +31,25 @@ BeforeAll {
 
     # Mock system state data
     $script:MockSystemState = @{
-        BitLockerStatus = @{
-            IsEnabled = $false
+        BitLockerStatus     = @{
+            IsEnabled            = $false
             EncryptionPercentage = 0
-            VolumeStatus = "FullyDecrypted"
-            KeyProtectors = @()
+            VolumeStatus         = "FullyDecrypted"
+            KeyProtectors        = @()
         }
         WindowsBackupStatus = @{
             BackupServiceAvailable = $true
-            BackupServiceStatus = "Running"
-            FileHistoryAvailable = $true
-            FileHistoryEnabled = $false
-            BackupTaskConfigured = $false
-            BackupTaskStatus = "Not Configured"
+            BackupServiceStatus    = "Running"
+            FileHistoryAvailable   = $true
+            FileHistoryEnabled     = $false
+            BackupTaskConfigured   = $false
+            BackupTaskStatus       = "Not Configured"
         }
     }
 }
 
 AfterAll {
-    # Cleanup test workspace
-    if (Test-Path $script:TestWorkspace) {
-        Remove-Item -Path $script:TestWorkspace -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Cleanup test scheduled tasks
+    # Cleanup test scheduled tasks before removing the environment
     $testTasks = @(
         "WindowsMelodyRecovery_SystemBackup",
         "WindowsMelodyRecovery_BackupCleanup",
@@ -73,6 +67,9 @@ AfterAll {
             # Ignore cleanup errors
         }
     }
+
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "System Backup Workflow Validation" {
@@ -116,11 +113,11 @@ Describe "System Backup Workflow Validation" {
         It "Should integrate with main backup function" {
             Mock Backup-WindowsMelodyRecovery {
                 return @{
-                    Success = $true
-                    BackupPath = $script:TestBackupLocation
-                    Timestamp = Get-Date
+                    Success       = $true
+                    BackupPath    = $script:TestBackupLocation
+                    Timestamp     = Get-Date
                     FilesBackedUp = 100
-                    SizeBytes = 1048576
+                    SizeBytes     = 1048576
                 }
             }
 
@@ -142,13 +139,13 @@ Describe "System Backup Workflow Validation" {
             Mock Get-WmiObject { return @{ TotalPhysicalMemory = 8589934592 } }
 
             $manifest = @{
-                BackupDate = Get-Date
-                MachineName = $env:COMPUTERNAME
-                SystemInfo = @{
-                    OS = (Get-WmiObject Win32_OperatingSystem).Caption
+                BackupDate          = Get-Date
+                MachineName         = $env:COMPUTERNAME
+                SystemInfo          = @{
+                    OS     = (Get-WmiObject Win32_OperatingSystem).Caption
                     Memory = (Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory
                 }
-                BitLockerStatus = Test-BitLockerStatus -Drive $script:TestDrive
+                BitLockerStatus     = Test-BitLockerStatus -Drive $script:TestDrive
                 WindowsBackupStatus = Test-WindowsBackupStatus
             }
 
@@ -197,12 +194,12 @@ Describe "System Backup Workflow Validation" {
         It "Should backup BitLocker recovery keys if available" {
             Mock Get-BitLockerVolume {
                 return @{
-                    MountPoint = $script:TestDrive
+                    MountPoint   = $script:TestDrive
                     KeyProtector = @(
                         @{
                             KeyProtectorType = "RecoveryKey"
-                            KeyProtectorId = "12345678-1234-1234-1234-123456789012"
-                            RecoveryKey = "123456-123456-123456-123456-123456-123456-123456-123456"
+                            KeyProtectorId   = "12345678-1234-1234-1234-123456789012"
+                            RecoveryKey      = "123456-123456-123456-123456-123456-123456-123456-123456"
                         }
                     )
                 }
@@ -248,14 +245,14 @@ Describe "System Backup Workflow Validation" {
 
         It "Should create backup verification report" {
             $verificationReport = @{
-                BackupDate = Get-Date
-                BackupLocation = $script:TestBackupLocation
-                FilesBackedUp = 4
-                TotalSizeBytes = 2097152
-                IntegrityCheck = "Passed"
-                BitLockerStatus = "Captured"
+                BackupDate          = Get-Date
+                BackupLocation      = $script:TestBackupLocation
+                FilesBackedUp       = 4
+                TotalSizeBytes      = 2097152
+                IntegrityCheck      = "Passed"
+                BitLockerStatus     = "Captured"
                 WindowsBackupStatus = "Captured"
-                Errors = @()
+                Errors              = @()
             }
 
             $reportPath = Join-Path $script:TestBackupLocation "backup_verification.json"
@@ -273,9 +270,9 @@ Describe "System Restore Workflow Validation" {
     Context "Pre-Restore System State Assessment" {
         It "Should assess current system state before restore" {
             $systemState = @{
-                BitLockerStatus = Test-BitLockerStatus -Drive $script:TestDrive
+                BitLockerStatus     = Test-BitLockerStatus -Drive $script:TestDrive
                 WindowsBackupStatus = Test-WindowsBackupStatus
-                AvailableDiskSpace = (Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='$($script:TestDrive)'").FreeSpace
+                AvailableDiskSpace  = (Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='$($script:TestDrive)'").FreeSpace
             }
 
             $systemState.BitLockerStatus | Should -Not -BeNullOrEmpty
@@ -304,8 +301,8 @@ Describe "System Restore Workflow Validation" {
             Mock Get-Content {
                 return @{
                     IntegrityCheck = "Passed"
-                    FilesBackedUp = 4
-                    Errors = @()
+                    FilesBackedUp  = 4
+                    Errors         = @()
                 } | ConvertTo-Json
             }
 
@@ -319,11 +316,11 @@ Describe "System Restore Workflow Validation" {
         It "Should integrate with main restore function" {
             Mock Restore-WindowsMelodyRecovery {
                 return @{
-                    Success = $true
-                    RestorePath = $script:TestBackupLocation
-                    Timestamp = Get-Date
+                    Success       = $true
+                    RestorePath   = $script:TestBackupLocation
+                    Timestamp     = Get-Date
                     FilesRestored = 100
-                    Errors = @()
+                    Errors        = @()
                 }
             }
 
@@ -343,17 +340,17 @@ Describe "System Restore Workflow Validation" {
 
         It "Should create restore report with system changes" {
             $restoreReport = @{
-                RestoreDate = Get-Date
-                BackupSource = $script:TestBackupLocation
+                RestoreDate   = Get-Date
+                BackupSource  = $script:TestBackupLocation
                 FilesRestored = 4
                 SystemChanges = @{
-                    BitLockerConfigured = $false
+                    BitLockerConfigured     = $false
                     WindowsBackupConfigured = $true
-                    RegistryKeysRestored = 15
-                    ServicesReconfigured = 2
+                    RegistryKeysRestored    = 15
+                    ServicesReconfigured    = 2
                 }
-                Errors = @()
-                Warnings = @()
+                Errors        = @()
+                Warnings      = @()
             }
 
             $restoreReport.RestoreDate | Should -Not -BeNullOrEmpty
@@ -401,8 +398,8 @@ Describe "System Restore Workflow Validation" {
         It "Should restore BitLocker configuration if available" {
             Mock Setup-BitLocker {
                 return @{
-                    Success = $true
-                    DriveEncrypted = $false
+                    Success             = $true
+                    DriveEncrypted      = $false
                     RecoveryKeyRestored = $true
                 }
             }
@@ -416,9 +413,9 @@ Describe "System Restore Workflow Validation" {
         It "Should restore Windows Backup configuration" {
             Mock Initialize-WindowsBackup {
                 return @{
-                    Success = $true
+                    Success               = $true
                     FileHistoryConfigured = $true
-                    BackupTaskCreated = $true
+                    BackupTaskCreated     = $true
                 }
             }
 
@@ -432,8 +429,8 @@ Describe "System Restore Workflow Validation" {
     Context "Post-Restore Verification" {
         It "Should verify system state after restore" {
             $postRestoreState = @{
-                BitLockerStatus = Test-BitLockerStatus -Drive $script:TestDrive
-                WindowsBackupStatus = Test-WindowsBackupStatus
+                BitLockerStatus       = Test-BitLockerStatus -Drive $script:TestDrive
+                WindowsBackupStatus   = Test-WindowsBackupStatus
                 ConfigurationRestored = $true
             }
 
@@ -447,7 +444,7 @@ Describe "System Restore Workflow Validation" {
             Mock Test-Path { return $true } -ParameterFilter { $Path -eq $testFile }
             Mock Get-FileHash {
                 return @{
-                    Hash = "ABC123DEF456789"
+                    Hash      = "ABC123DEF456789"
                     Algorithm = "SHA256"
                 }
             }
@@ -461,13 +458,13 @@ Describe "System Restore Workflow Validation" {
 
         It "Should create post-restore verification report" {
             $postRestoreReport = @{
-                RestoreDate = Get-Date
-                SystemState = @{
-                    BitLockerOperational = $true
+                RestoreDate     = Get-Date
+                SystemState     = @{
+                    BitLockerOperational     = $true
                     WindowsBackupOperational = $true
-                    ConfigurationValid = $true
+                    ConfigurationValid       = $true
                 }
-                FilesVerified = 4
+                FilesVerified   = 4
                 IntegrityChecks = "Passed"
                 Recommendations = @(
                     "Restart system to apply all changes",
@@ -502,8 +499,8 @@ Describe "End-to-End Backup and Restore Workflow" {
 
         It "Should maintain data consistency throughout workflow" {
             $originalData = @{
-                MachineName = $env:COMPUTERNAME
-                BackupDate = Get-Date
+                MachineName   = $env:COMPUTERNAME
+                BackupDate    = Get-Date
                 Configuration = $script:MockConfig
             }
 

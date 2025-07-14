@@ -31,16 +31,7 @@ function Invoke-WmrTemplate {
 
     # 1. Import necessary modules/functions
     try {
-        # Dot-source PowerShell scripts (they contain Export-ModuleMember which fails when imported as modules)
-        . (Join-Path $PSScriptRoot "PathUtilities.ps1")
-        . (Join-Path $PSScriptRoot "Prerequisites.ps1")
-        . (Join-Path $PSScriptRoot "FileState.ps1")
-        . (Join-Path $PSScriptRoot "RegistryState.ps1")
-        . (Join-Path $PSScriptRoot "ApplicationState.ps1")
-        . (Join-Path $PSScriptRoot "EncryptionUtilities.ps1")
-
-        # Import the actual PowerShell module
-        Import-Module (Join-Path $PSScriptRoot "WindowsMelodyRecovery.Template.psm1") -Force
+        Import-Module WindowsMelodyRecovery -ErrorAction Stop
     }
     catch {
         throw "Failed to load required core modules: $($_.Exception.Message)"
@@ -87,7 +78,106 @@ function Invoke-WmrTemplate {
 
     # 4. Check prerequisites
     try {
-        if (-not (Test-WmrPrerequisite -TemplateConfig $templateConfig -Operation $Operation)) {
+        $allPrerequisitesMet = $true
+        if ($templateConfig.prerequisites) {
+            foreach ($prereq in $templateConfig.prerequisites) {
+                $prereqMet = $false
+                $checkResult = ""
+                switch ($prereq.type) {
+                    "application" {
+                        try {
+                            $scriptBlock = [scriptblock]::Create($prereq.check_command)
+                            $commandOutput = & $scriptBlock | Out-String
+                            $checkResult = "Output: `n$commandOutput`n"
+                            if ($commandOutput -match $prereq.expected_output) {
+                                $prereqMet = $true
+                            }
+                        }
+                        catch {
+                            $checkResult = "Error: $($_.Exception.Message)`n"
+                        }
+                    }
+                    "registry" {
+                        try {
+                            $regPath = (Convert-WmrPath -Path $prereq.path).Path
+                            if ($env:WMR_TEST_MODE -eq 'true' -or $env:DOCKER_TEST -eq 'true' -or $env:PESTER_OUTPUT_PATH -or $env:DOCKER_ENVIRONMENT -eq 'true') {
+                                $mockResult = Get-WmrRegistryMockData -RegistryPath $regPath
+                                if ($mockResult) {
+                                    $checkResult = "Mock registry data found for path: $regPath`n"
+                                    $prereqMet = $true
+                                }
+                                else {
+                                    $checkResult = "Mock registry data not found for path: $regPath`n"
+                                    $prereqMet = $false
+                                }
+                            }
+                            else {
+                                if ($prereq.key_name) {
+                                    $regValue = (Get-ItemProperty -Path $regPath -Name $prereq.key_name -ErrorAction Stop).($prereq.key_name)
+                                    $checkResult = "Current Value: $regValue`n"
+                                    if ($regValue -eq $prereq.expected_value) {
+                                        $prereqMet = $true
+                                    }
+                                }
+                                else {
+                                    if (Test-Path $regPath -ErrorAction Stop) {
+                                        $checkResult = "Key exists.`n"
+                                        $prereqMet = $true
+                                    }
+                                }
+                            }
+                        }
+                        catch {
+                            $checkResult = "Error: $($_.Exception.Message)`n"
+                        }
+                    }
+                    "script" {
+                        try {
+                            if ($prereq.path) {
+                                $scriptOutput = & $prereq.path | Out-String
+                            }
+                            elseif ($prereq.inline_script) {
+                                $scriptBlock = [scriptblock]::Create($prereq.inline_script)
+                                $scriptOutput = & $scriptBlock | Out-String
+                            }
+                            $checkResult = "Output: `n$scriptOutput`n"
+                            if ($scriptOutput -match $prereq.expected_output) {
+                                $prereqMet = $true
+                            }
+                        }
+                        catch {
+                            $checkResult = "Error: $($_.Exception.Message)`n"
+                        }
+                    }
+                    default {
+                        Write-Warning "  Unknown prerequisite type: $($prereq.type)"
+                        $checkResult = "Unknown type.`n"
+                    }
+                }
+                if (-not $prereqMet) {
+                    $allPrerequisitesMet = $false
+                    switch ($prereq.on_missing) {
+                        "warn" {
+                            Write-Warning "    Warning: Prerequisite `'$($prereq.name)`' is missing or failed: $($prereq.check_command) $($prereq.path) $checkResult"
+                        }
+                        "fail_backup" {
+                            if ($Operation -eq "Backup") {
+                                throw "    Error: Prerequisite `'$($prereq.name)`' failed. Cannot proceed with Backup operation as `'$($prereq.on_missing)`' is set."
+                            }
+                        }
+                        "fail_restore" {
+                            if ($Operation -eq "Restore") {
+                                throw "    Error: Prerequisite `'$($prereq.name)`' failed. Cannot proceed with Restore operation as `'$($prereq.on_missing)`' is set."
+                            }
+                        }
+                        default {
+                            throw "    Error: Prerequisite `'$($prereq.name)`' failed. Aborting."
+                        }
+                    }
+                }
+            }
+        }
+        if (-not $allPrerequisitesMet) {
             throw "Prerequisites not met for $Operation operation. Aborting."
         }
     }

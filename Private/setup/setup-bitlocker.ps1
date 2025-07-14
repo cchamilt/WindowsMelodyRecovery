@@ -16,13 +16,8 @@ function Enable-BitLocker {
         return $false
     }
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     try {
         Write-Information -MessageData "Configuring BitLocker Drive Encryption..." -InformationAction Continue
@@ -153,9 +148,9 @@ function Enable-BitLocker {
             Write-Warning -Message "  Starting BitLocker encryption..."
             try {
                 $encryptionParams = @{
-                    MountPoint = $Drive
+                    MountPoint       = $Drive
                     EncryptionMethod = 'XtsAes256'
-                    UsedSpaceOnly = $true
+                    UsedSpaceOnly    = $true
                 }
 
                 if ($SkipHardwareTest) {
@@ -249,18 +244,18 @@ function Test-BitLockerStatus {
         $status = Get-BitLockerVolume -MountPoint $Drive -ErrorAction SilentlyContinue
         if ($status) {
             return @{
-                IsEnabled = $status.ProtectionStatus -eq "On"
+                IsEnabled            = $status.ProtectionStatus -eq "On"
                 EncryptionPercentage = $status.EncryptionPercentage
-                VolumeStatus = $status.VolumeStatus
-                KeyProtectors = $status.KeyProtector
+                VolumeStatus         = $status.VolumeStatus
+                KeyProtectors        = $status.KeyProtector
             }
         }
         else {
             return @{
-                IsEnabled = $false
+                IsEnabled            = $false
                 EncryptionPercentage = 0
-                VolumeStatus = "Not Configured"
-                KeyProtectors = @()
+                VolumeStatus         = "Not Configured"
+                KeyProtectors        = @()
             }
         }
     }

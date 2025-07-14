@@ -14,15 +14,18 @@ if (-not $env:CI -and -not $env:GITHUB_ACTIONS) {
 }
 
 BeforeAll {
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../../WindowsMelodyRecovery.psd1") -Force
+    # Import the unified test environment library and initialize it for Windows tests.
+    . (Join-Path $PSScriptRoot "..\..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Windows'
 
-    # Set up test environment
-    $script:TestTempDir = Join-Path $env:TEMP "WMR-WindowsRegistry-Integration-Tests"
-    if (Test-Path $script:TestTempDir) {
-        Remove-Item $script:TestTempDir -Recurse -Force
-    }
-    New-Item -Path $script:TestTempDir -ItemType Directory -Force | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+
+    # Import the test utility
+    . (Join-Path $script:TestEnvironment.ModuleRoot "tests/utilities/Test-WmrAdminPrivilege.ps1")
+
+    # Set up test environment paths from the initialized environment
+    $script:TestTempDir = $script:TestEnvironment.Temp
 
     # Create test registry key (safe location in HKCU)
     $script:TestRegistryPath = "HKCU:\SOFTWARE\WMR-Integration-Test"
@@ -33,14 +36,13 @@ BeforeAll {
 }
 
 AfterAll {
-    # Clean up test environment
-    if (Test-Path $script:TestTempDir) {
-        Remove-Item $script:TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Clean up test registry key
-    if (Test-Path $script:TestRegistryPath) {
-        Remove-Item $script:TestRegistryPath -Recurse -Force -ErrorAction SilentlyContinue
+    if ($script:TestEnvironment) {
+        # Clean up test registry key before removing the environment
+        if (Test-Path $script:TestRegistryPath) {
+            Remove-Item $script:TestRegistryPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        # Clean up the test environment created in BeforeAll.
+        Remove-WmrTestEnvironment
     }
 }
 
@@ -53,10 +55,10 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
             Set-ItemProperty -Path $script:TestRegistryPath -Name "TestDWord" -Value 42
 
             $registryConfig = @{
-                path = $script:TestRegistryPath
+                path   = $script:TestRegistryPath
                 values = @{
                     "TestString" = "String"
-                    "TestDWord" = "DWord"
+                    "TestDWord"  = "DWord"
                 }
             }
 
@@ -75,10 +77,10 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
         It "Should restore registry values correctly" {
             # Create state file with test data
             $stateData = @{
-                path = $script:TestRegistryPath
+                path   = $script:TestRegistryPath
                 values = @{
                     "RestoreString" = "RestoreValue"
-                    "RestoreDWord" = 123
+                    "RestoreDWord"  = 123
                 }
             }
 
@@ -86,10 +88,10 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
             $stateData | ConvertTo-Json | Out-File -FilePath $stateFile -Encoding UTF8
 
             $registryConfig = @{
-                path = $script:TestRegistryPath
+                path   = $script:TestRegistryPath
                 values = @{
                     "RestoreString" = "String"
-                    "RestoreDWord" = "DWord"
+                    "RestoreDWord"  = "DWord"
                 }
             }
 
@@ -107,7 +109,7 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
             $nonExistentPath = "HKCU:\SOFTWARE\WMR-NonExistent-Test"
 
             $registryConfig = @{
-                path = $nonExistentPath
+                path   = $nonExistentPath
                 values = @{
                     "TestValue" = "String"
                 }
@@ -121,15 +123,15 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
         It "Should process registry template correctly" {
             $template = @{
                 metadata = @{
-                    name = "registry-test-template"
+                    name    = "registry-test-template"
                     version = "1.0"
                 }
                 registry = @(
                     @{
-                        path = $script:TestRegistryPath
+                        path   = $script:TestRegistryPath
                         values = @{
                             "TemplateString" = "TemplateValue"
-                            "TemplateDWord" = 456
+                            "TemplateDWord"  = 456
                         }
                     }
                 )
@@ -152,10 +154,10 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
         It "Should handle registry template restore" {
             # Create state file first
             $stateData = @{
-                path = $script:TestRegistryPath
+                path   = $script:TestRegistryPath
                 values = @{
                     "RestoreTemplateString" = "RestoreTemplateValue"
-                    "RestoreTemplateDWord" = 789
+                    "RestoreTemplateDWord"  = 789
                 }
             }
 
@@ -164,15 +166,15 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
 
             $template = @{
                 metadata = @{
-                    name = "registry-restore-template"
+                    name    = "registry-restore-template"
                     version = "1.0"
                 }
                 registry = @(
                     @{
-                        path = $script:TestRegistryPath
+                        path   = $script:TestRegistryPath
                         values = @{
                             "RestoreTemplateString" = "String"
-                            "RestoreTemplateDWord" = "DWord"
+                            "RestoreTemplateDWord"  = "DWord"
                         }
                     }
                 )
@@ -196,12 +198,12 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
         It "Should identify HKLM operations as requiring admin privileges" {
             $template = @{
                 metadata = @{
-                    name = "hklm-privilege-test"
+                    name    = "hklm-privilege-test"
                     version = "1.0"
                 }
                 registry = @(
                     @{
-                        path = "HKLM:\SOFTWARE\Test"
+                        path   = "HKLM:\SOFTWARE\Test"
                         values = @{
                             "TestValue" = "String"
                         }
@@ -218,12 +220,12 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
         It "Should identify HKCU operations as not requiring admin privileges" {
             $template = @{
                 metadata = @{
-                    name = "hkcu-privilege-test"
+                    name    = "hkcu-privilege-test"
                     version = "1.0"
                 }
                 registry = @(
                     @{
-                        path = "HKCU:\SOFTWARE\Test"
+                        path   = "HKCU:\SOFTWARE\Test"
                         values = @{
                             "TestValue" = "String"
                         }
@@ -245,7 +247,7 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
                 $restrictedPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Test"
 
                 $registryConfig = @{
-                    path = $restrictedPath
+                    path   = $restrictedPath
                     values = @{
                         "TestValue" = "String"
                     }
@@ -262,7 +264,7 @@ Describe "Windows Registry Integration Tests" -Tag "Windows", "Integration", "Re
             $invalidPath = "HKXX:\Invalid\Path"
 
             $registryConfig = @{
-                path = $invalidPath
+                path   = $invalidPath
                 values = @{
                     "TestValue" = "String"
                 }
@@ -297,11 +299,11 @@ Describe "Windows Scheduled Tasks Integration Tests" -Tag "Windows", "Integratio
         It "Should handle task installation requirements" {
             # This test verifies the task installation logic without actually installing
             $taskConfig = @{
-                name = "WMR-Test-Task"
+                name        = "WMR-Test-Task"
                 description = "Test task for Windows Melody Recovery"
-                action = "powershell.exe"
-                arguments = "-Command Write-Information -MessageData 'Test'" -InformationAction Continue
-                trigger = @{
+                action      = "powershell.exe"
+                arguments   = "-Command Write-Information -MessageData 'Test' -InformationAction Continue"
+                trigger     = @{
                     type = "Daily"
                     time = "02:00"
                 }
@@ -309,7 +311,7 @@ Describe "Windows Scheduled Tasks Integration Tests" -Tag "Windows", "Integratio
 
             # Mock the task installation (don't actually install)
             $requirements = Get-WmrPrivilegeRequirements -Template @{
-                metadata = @{ name = "task-test" }
+                metadata        = @{ name = "task-test" }
                 scheduled_tasks = @($taskConfig)
             }
 
@@ -329,9 +331,9 @@ Describe "Windows File System Integration Tests" -Tag "Windows", "Integration", 
             Set-ItemProperty -Path $testFile -Name Attributes -Value "ReadOnly,Hidden"
 
             $fileConfig = @{
-                path = $testFile
+                path                = $testFile
                 preserve_attributes = $true
-                encrypt = $false
+                encrypt             = $false
             }
 
             $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TestTempDir
@@ -346,9 +348,9 @@ Describe "Windows File System Integration Tests" -Tag "Windows", "Integration", 
             "test content" | Out-File -FilePath $testFile -Encoding UTF8
 
             $fileConfig = @{
-                path = $testFile
+                path                 = $testFile
                 preserve_permissions = $true
-                encrypt = $false
+                encrypt              = $false
             }
 
             $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TestTempDir
@@ -370,9 +372,9 @@ Describe "Windows File System Integration Tests" -Tag "Windows", "Integration", 
 
                 if (Test-Path $junctionDir) {
                     $fileConfig = @{
-                        path = $junctionDir
+                        path           = $junctionDir
                         preserve_links = $true
-                        encrypt = $false
+                        encrypt        = $false
                     }
 
                     $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TestTempDir

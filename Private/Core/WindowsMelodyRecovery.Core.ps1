@@ -68,10 +68,6 @@ function Set-ConfigValue {
     $script:Config[$Key] = $Value
 }
 
-function Test-ModuleInitialized {
-    return $script:Config.IsInitialized
-}
-
 function Get-BackupRoot {
     return $script:Config.BackupRoot
 }
@@ -317,9 +313,9 @@ $ScriptContent
 
             return @{
                 ExitCode = $process.ExitCode
-                Output = $output
-                Error = $errorOutput
-                Success = $process.ExitCode -eq 0
+                Output   = $output
+                Error    = $errorOutput
+                Success  = $process.ExitCode -eq 0
             }
         }
         else {
@@ -462,88 +458,6 @@ echo "Home directory sync completed!"
     }
     catch {
         Write-Error -Message "Failed to sync WSL home directory: $($_.Exception.Message)"
-        return $false
-    }
-}
-
-function Test-WSLRepository {
-    <#
-    .SYNOPSIS
-    Check git repositories in WSL for uncommitted changes
-
-    .DESCRIPTION
-    Scans work directories for git repositories and reports status
-
-    .PARAMETER WorkDirectory
-    Base directory to scan for repositories
-
-    .EXAMPLE
-    Test-WSLRepositories -WorkDirectory "/home/user/projects"
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $false)]
-        [string]$WorkDirectory = "/home/\$(whoami)/work/repos"
-    )
-
-    $repoCheckScript = @'
-#!/bin/bash
-set -e
-
-WORK_DIR="$workDirLinux"
-
-echo "Checking for git repositories in: $WORK_DIR"
-
-if [ ! -d "$WORK_DIR" ]; then
-    echo "Work directory does not exist: $WORK_DIR"
-    exit 0
-fi
-
-echo "Checking git repositories in $WORK_DIR..."
-
-find "$WORK_DIR" -name ".git" -type d | while read gitdir; do
-    repo_dir=$(dirname "$gitdir")
-    repo_name=$(basename "$repo_dir")
-    echo "Checking: $repo_name"
-
-    cd "$repo_dir"
-
-    # Check for uncommitted changes
-    if ! git diff --quiet; then
-        echo "  ⚠️  Uncommitted changes found"
-    fi
-
-    # Check for untracked files
-    if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-        echo "  ⚠️  Untracked files found"
-    fi
-
-    # Check if ahead/behind remote
-    if git remote -v | grep -q origin; then
-        git fetch origin 2>/dev/null || true
-        current_branch=$(git branch --show-current)
-        if [ -n "$current_branch" ]; then
-            local_commit=$(git rev-parse HEAD)
-            remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null || echo "")
-
-            if [ "$local_commit" != "$remote_commit" ] && [ -n "$remote_commit" ]; then
-                echo "  ⚠️  Out of sync with remote"
-            fi
-        fi
-    fi
-
-    echo "  ✅ $repo_name checked"
-done
-
-echo "Repository check completed!"
-'@
-
-    try {
-        Invoke-WSLScript -ScriptContent $repoCheckScript
-        return $true
-    }
-    catch {
-        Write-Error -Message "Failed to check WSL repositories: $($_.Exception.Message)"
         return $false
     }
 }

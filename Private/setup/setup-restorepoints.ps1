@@ -10,13 +10,8 @@ function Initialize-RestorePoint {
         return $false
     }
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     try {
         Write-Information -MessageData "Configuring System Restore..." -InformationAction Continue

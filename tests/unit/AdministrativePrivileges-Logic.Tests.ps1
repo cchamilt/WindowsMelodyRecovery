@@ -16,42 +16,18 @@
 #>
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Import test utilities and environment
-    . "$PSScriptRoot/../utilities/Test-Utilities.ps1"
-    . "$PSScriptRoot/../utilities/Test-Environment.ps1"
-    Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
+    # Import the main module to make functions available for testing.
+    # The new environment initializer finds the module root for us.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+}
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\AdministrativePrivileges.ps1")
-        . (Join-Path $moduleRoot "Private\Core\Test-WmrAdminPrivilege.ps1")
-        . (Join-Path $moduleRoot "Private\Core\Prerequisites.ps1")
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
-
-    # Test data directory
-    $script:TestDataPath = Join-Path $PSScriptRoot "../mock-data"
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Administrative Privilege Logic Tests" {
@@ -626,14 +602,6 @@ Describe "Administrative Operations Mock Framework" {
 
             $scenarios.Count | Should -Be 4
         }
-    }
-}
-
-AfterAll {
-    # Clean up any test resources
-    if ($script:TestDataPath -and (Test-Path $script:TestDataPath)) {
-        # Clean up test data if needed
-        Write-Verbose "Test data path exists: $script:TestDataPath"
     }
 }
 

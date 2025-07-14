@@ -6,39 +6,14 @@ param()
 # Tests the application state logic and core functionality
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Initialize test environment
-    . "$PSScriptRoot/../utilities/Test-Environment.ps1"
-    Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\ApplicationState.ps1")
-        . (Join-Path $moduleRoot "Private\Core\EncryptionUtilities.ps1")
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
-
-    # Mock all file operations
+    # Mock all file operations for pure logic testing
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
     Mock Test-Path { return $false } -ParameterFilter { $Path -like "*missing*" }
     Mock New-Item { return @{ FullName = $Path } }
@@ -99,6 +74,11 @@ foreach (`$app in `$apps) {
 foreach (`$app in `$apps) {
     Write-Information -MessageData `"Simulating uninstall of `$(`$app.Name) (ID: `$(`$app.Id))`" -InformationAction Continue
 }"
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "ApplicationState Logic Tests" -Tag "Unit", "Logic" {

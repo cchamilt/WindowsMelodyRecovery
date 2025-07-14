@@ -9,6 +9,9 @@ function Test-WindowsMelodyRecovery {
         [switch]$NoPrompt
     )
 
+    # Import the test utility
+    . (Resolve-Path "$PSScriptRoot/Test-WmrAdminPrivilege.ps1")
+
     # Verify admin privileges (Windows only) by calling the mockable helper
     if ($IsWindows) {
         if (-not (Test-WmrAdminPrivilege)) {
@@ -18,15 +21,15 @@ function Test-WindowsMelodyRecovery {
     }
 
     $results = @{
-        ModuleLoaded = $false
-        ConfigurationValid = $false
+        ModuleLoaded             = $false
+        ConfigurationValid       = $false
         BackupLocationAccessible = $false
-        ScheduledTasksInstalled = $false
-        BackupFunctionality = $false
-        RestoreFunctionality = $false
-        UpdateFunctionality = $false
-        Errors = @()
-        Warnings = @()
+        ScheduledTasksInstalled  = $false
+        BackupFunctionality      = $false
+        RestoreFunctionality     = $false
+        UpdateFunctionality      = $false
+        Errors                   = @()
+        Warnings                 = @()
     }
 
     Write-Information -MessageData "" -InformationAction Continue

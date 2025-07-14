@@ -14,153 +14,6 @@
     Requires: PowerShell 5.1 or later
 #>
 
-function Test-WmrAdministrativePrivilege {
-    <#
-    .SYNOPSIS
-        Enhanced administrative privilege testing with detailed information.
-
-    .DESCRIPTION
-        Tests for administrative privileges and provides detailed information
-        about the current security context, including elevation status and
-        privilege escalation capabilities.
-
-    .PARAMETER ThrowIfNotAdmin
-        If specified, throws an exception if not running with administrative privileges.
-
-    .PARAMETER Quiet
-        If specified, suppresses warning messages.
-
-    .EXAMPLE
-        Test-WmrAdministrativePrivileges
-
-    .EXAMPLE
-        Test-WmrAdministrativePrivileges -ThrowIfNotAdmin
-
-    .OUTPUTS
-        PSCustomObject with privilege information
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $false)]
-        [switch]$ThrowIfNotAdmin,
-
-        [Parameter(Mandatory = $false)]
-        [switch]$Quiet
-    )
-
-    $privilegeInfo = @{
-        IsWindows = $IsWindows
-        IsElevated = $false
-        CanElevate = $false
-        CurrentUser = $null
-        ProcessId = $PID
-        SecurityPrincipal = $null
-        ElevationMethod = $null
-        Warnings = @()
-        Errors = @()
-    }
-
-    try {
-        if ($IsWindows) {
-            # Get current Windows identity and principal
-            $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-            $currentPrincipal = [Security.Principal.WindowsPrincipal]$currentIdentity
-
-            $privilegeInfo.CurrentUser = $currentIdentity.Name
-            $privilegeInfo.SecurityPrincipal = $currentPrincipal
-            $privilegeInfo.IsElevated = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-            # Check if we can potentially elevate
-            $privilegeInfo.CanElevate = Test-WmrElevationCapability
-
-            # Determine elevation method
-            if ($privilegeInfo.IsElevated) {
-                $privilegeInfo.ElevationMethod = "Already Elevated"
-            }
-            elseif ($privilegeInfo.CanElevate) {
-                $privilegeInfo.ElevationMethod = "UAC Available"
-            }
-            else {
-                $privilegeInfo.ElevationMethod = "No Elevation Available"
-            }
-
-        }
-        else {
-            # Non-Windows environment
-            $privilegeInfo.CurrentUser = $env:USER
-            $privilegeInfo.IsElevated = (id -u) -eq 0  # Check if root on Unix-like systems
-            $privilegeInfo.CanElevate = $false
-            $privilegeInfo.ElevationMethod = "Unix/Linux Environment"
-        }
-
-        # Add warnings if needed
-        if (-not $privilegeInfo.IsElevated -and -not $Quiet) {
-            $privilegeInfo.Warnings += "Not running with administrative privileges"
-        }
-
-        if ($ThrowIfNotAdmin -and -not $privilegeInfo.IsElevated) {
-            throw "Administrative privileges are required for this operation. Current user: $($privilegeInfo.CurrentUser)"
-        }
-
-    }
-    catch {
-        $privilegeInfo.Errors += $_.Exception.Message
-        if ($ThrowIfNotAdmin) {
-            throw
-        }
-    }
-
-    return [PSCustomObject]$privilegeInfo
-}
-
-function Test-WmrElevationCapability {
-    <#
-    .SYNOPSIS
-        Tests if the current process can potentially be elevated.
-
-    .DESCRIPTION
-        Checks if UAC is available and if the current user can potentially
-        elevate to administrative privileges.
-
-    .EXAMPLE
-        Test-WmrElevationCapability
-
-    .OUTPUTS
-        Boolean indicating if elevation is possible
-    #>
-    [CmdletBinding()]
-    param()
-
-    if (-not $IsWindows) {
-        return $false
-    }
-
-    try {
-        # Check if UAC is enabled
-        $uacEnabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "EnableLUA" -ErrorAction SilentlyContinue
-
-        if ($uacEnabled -and $uacEnabled.EnableLUA -eq 1) {
-            # UAC is enabled, check if current user is in Administrators group
-            $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
-            $adminGroup = [Security.Principal.SecurityIdentifier]::new([Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
-
-            # Check if user is in administrators group
-            foreach ($group in $currentUser.Groups) {
-                if ($group.Equals($adminGroup)) {
-                    return $true
-                }
-            }
-        }
-
-        return $false
-
-    }
-    catch {
-        Write-Verbose "Failed to check elevation capability: $($_.Exception.Message)"
-        return $false
-    }
-}
-
 function Invoke-WmrWithElevation {
     <#
     .SYNOPSIS
@@ -203,23 +56,22 @@ function Invoke-WmrWithElevation {
         [switch]$NoPrompt
     )
 
-    $privilegeInfo = Test-WmrAdministrativePrivileges -Quiet
+    $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
     if ($WhatIfPreference) {
         Write-Warning -Message "What if: Would execute script block with elevation"
-        Write-Verbose -Message "Current elevation status: $($privilegeInfo.IsElevated)"
-        Write-Verbose -Message "Can elevate: $($privilegeInfo.CanElevate)"
-        return @{ WhatIf = $true; WouldElevate = (-not $privilegeInfo.IsElevated) }
+        Write-Verbose -Message "Current elevation status: $isElevated"
+        return @{ WhatIf = $true; WouldElevate = (-not $isElevated) }
     }
 
     try {
-        if ($privilegeInfo.IsElevated) {
+        if ($isElevated) {
             # Already elevated, execute directly
             Write-Verbose "Already running with administrative privileges"
             return & $ScriptBlock @ArgumentList
 
         }
-        elseif ($privilegeInfo.CanElevate -and -not $NoPrompt) {
+        elseif (-not $NoPrompt) {
             # Can elevate, but would require UAC prompt
             Write-Warning "This operation requires administrative privileges."
             Write-Warning "In a production environment, this would prompt for UAC elevation."
@@ -228,9 +80,9 @@ function Invoke-WmrWithElevation {
             if ($env:MOCK_MODE -eq "true" -or $env:CI -eq "true") {
                 Write-Warning "Simulating elevation failure in test/CI environment"
                 return @{
-                    Success = $false
+                    Success           = $false
                     RequiresElevation = $true
-                    Message = "Elevation required but not available in test environment"
+                    Message           = "Elevation required but not available in test environment"
                 }
             }
 
@@ -249,9 +101,9 @@ function Invoke-WmrWithElevation {
 
             Write-Warning $message
             return @{
-                Success = $false
+                Success           = $false
                 RequiresElevation = $true
-                Message = $message
+                Message           = $message
             }
         }
 
@@ -259,140 +111,17 @@ function Invoke-WmrWithElevation {
     catch {
         Write-Error "Failed to execute with elevation: $($_.Exception.Message)"
         return @{
-            Success = $false
+            Success           = $false
             RequiresElevation = $true
-            Error = $_.Exception.Message
+            Error             = $_.Exception.Message
         }
     }
 }
 
-function Test-WmrAdminRequiredOperation {
+function Get-WmrPrivilegeRequirements {
     <#
     .SYNOPSIS
-        Tests if an operation requires administrative privileges.
-
-    .DESCRIPTION
-        Analyzes an operation to determine if it requires administrative privileges
-        based on the paths, registry keys, services, or other resources it accesses.
-
-    .PARAMETER OperationType
-        The type of operation (Registry, File, Service, ScheduledTask, WindowsFeature).
-
-    .PARAMETER Path
-        The path or resource being accessed.
-
-    .PARAMETER Action
-        The action being performed (Read, Write, Create, Delete, Modify).
-
-    .EXAMPLE
-        Test-WmrAdminRequiredOperation -OperationType "Registry" -Path "HKLM:\SOFTWARE\Test" -Action "Write"
-
-    .EXAMPLE
-        Test-WmrAdminRequiredOperation -OperationType "File" -Path "C:\Windows\System32\test.txt" -Action "Create"
-
-    .OUTPUTS
-        Boolean indicating if administrative privileges are required
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateSet("Registry", "File", "Service", "ScheduledTask", "WindowsFeature", "WindowsCapability")]
-        [string]$OperationType,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateSet("Read", "Write", "Create", "Delete", "Modify", "Execute")]
-        [string]$Action
-    )
-
-    switch ($OperationType) {
-        "Registry" {
-            # HKLM writes generally require admin
-            if ($Path -like "HKLM:*" -and $Action -in @("Write", "Create", "Delete", "Modify")) {
-                return $true
-            }
-
-            # Specific protected registry paths
-            $protectedPaths = @(
-                "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies",
-                "HKLM:\SYSTEM\CurrentControlSet",
-                "HKLM:\SOFTWARE\Classes"
-            )
-
-            foreach ($protectedPath in $protectedPaths) {
-                if ($Path -like "$protectedPath*") {
-                    return $true
-                }
-            }
-
-            return $false
-        }
-
-        "File" {
-            # System directories generally require admin for writes
-            $systemPaths = @(
-                "C:\Windows\",
-                "C:\Program Files\",
-                "C:\Program Files (x86)\",
-                "C:\Windows\System32\",
-                "C:\Windows\SysWOW64\"
-            )
-
-            # Also check environment variable paths
-            if ($env:SystemRoot) {
-                $systemPaths += "$env:SystemRoot\System32\"
-                $systemPaths += "$env:SystemRoot\SysWOW64\"
-            }
-
-            if ($Action -in @("Write", "Create", "Delete", "Modify")) {
-                foreach ($systemPath in $systemPaths) {
-                    if ($Path -like "$systemPath*") {
-                        return $true
-                    }
-                }
-            }
-
-            return $false
-        }
-
-        "Service" {
-            # Service modifications generally require admin
-            if ($Action -in @("Write", "Create", "Delete", "Modify", "Execute")) {
-                return $true
-            }
-            return $false
-        }
-
-        "ScheduledTask" {
-            # Scheduled task operations generally require admin
-            if ($Action -in @("Create", "Delete", "Modify")) {
-                return $true
-            }
-            return $false
-        }
-
-        "WindowsFeature" {
-            # Windows feature operations always require admin
-            return $true
-        }
-
-        "WindowsCapability" {
-            # Windows capability operations always require admin
-            return $true
-        }
-
-        default {
-            return $false
-        }
-    }
-}
-
-function Get-WmrPrivilegeRequirement {
-    <#
-    .SYNOPSIS
-        Gets privilege requirements for a template or operation.
+        Analyzes a template to determine its privilege requirements.
 
     .DESCRIPTION
         Analyzes a template configuration or operation to determine what
@@ -421,10 +150,10 @@ function Get-WmrPrivilegeRequirement {
     )
 
     $requirements = @{
-        RequiresAdmin = $false
-        AdminOperations = @()
-        SafeOperations = @()
-        Warnings = @()
+        RequiresAdmin      = $false
+        AdminOperations    = @()
+        SafeOperations     = @()
+        Warnings           = @()
         CanRunWithoutAdmin = $false
     }
 
@@ -443,7 +172,10 @@ function Get-WmrPrivilegeRequirement {
     if ($TemplateConfig.registry) {
         foreach ($reg in $TemplateConfig.registry) {
             if ($reg.action -eq $Operation -or $reg.action -eq "sync") {
-                $isAdminRequired = Test-WmrAdminRequiredOperation -OperationType "Registry" -Path $reg.path -Action "Write"
+                $isAdminRequired = $false
+                if ($reg.path -like "HKLM:*" -and $reg.action -in @("Write", "Create", "Delete", "Modify")) {
+                    $isAdminRequired = $true
+                }
 
                 if ($isAdminRequired) {
                     $requirements.RequiresAdmin = $true
@@ -461,7 +193,16 @@ function Get-WmrPrivilegeRequirement {
         foreach ($file in $TemplateConfig.files) {
             if ($file.action -eq $Operation -or $file.action -eq "sync") {
                 $action = if ($Operation -eq "Backup") { "Read" } else { "Write" }
-                $isAdminRequired = Test-WmrAdminRequiredOperation -OperationType "File" -Path $file.path -Action $action
+                $isAdminRequired = $false
+                if ($action -in @("Write", "Create", "Delete", "Modify")) {
+                    $systemPaths = @("C:\Windows\", "C:\Program Files\", "C:\Program Files (x86)\")
+                    foreach ($systemPath in $systemPaths) {
+                        if ($file.path -like "$systemPath*") {
+                            $isAdminRequired = $true
+                            break
+                        }
+                    }
+                }
 
                 if ($isAdminRequired) {
                     $requirements.RequiresAdmin = $true
@@ -502,7 +243,7 @@ function Get-WmrPrivilegeRequirement {
 function Invoke-WmrSafeAdminOperation {
     <#
     .SYNOPSIS
-        Safely invokes an operation that may require administrative privileges.
+        Safely executes an operation that may require administrative privileges.
 
     .DESCRIPTION
         Attempts to perform an operation that may require admin privileges,
@@ -543,13 +284,13 @@ function Invoke-WmrSafeAdminOperation {
     )
 
     $result = @{
-        Success = $false
-        Data = $null
+        Success            = $false
+        Data               = $null
         RequiredPrivileges = $RequiredPrivileges
-        ActualPrivileges = "Unknown"
-        UsedFallback = $false
-        Warnings = @()
-        Errors = @()
+        ActualPrivileges   = "Unknown"
+        UsedFallback       = $false
+        Warnings           = @()
+        Errors             = @()
     }
 
     try {
@@ -613,15 +354,20 @@ function Invoke-WmrSafeAdminOperation {
     return [PSCustomObject]$result
 }
 
-# Export functions for module use
-# Export-ModuleMember -Function @(
-#     'Test-WmrAdministrativePrivileges',
-#     'Test-WmrElevationCapability',
-#     'Invoke-WmrWithElevation',
-#     'Test-WmrAdminRequiredOperation',
-#     'Get-WmrPrivilegeRequirements',
-#     'Invoke-WmrSafeAdminOperation'
-# )
+if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
+    # Only export when loaded as a module, not when dot-sourced
+    try {
+        Export-ModuleMember -Function @(
+            # Main privilege management functions
+            'Invoke-WmrWithElevation',
+            'Get-WmrPrivilegeRequirements',
+            'Invoke-WmrSafeAdminOperation'
+        )
+    }
+    catch {
+        # Silently ignore Export-ModuleMember errors when not in module context
+    }
+}
 
 
 

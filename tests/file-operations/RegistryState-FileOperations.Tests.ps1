@@ -16,94 +16,44 @@
 Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
     BeforeAll {
-        # Skip all registry tests in Docker/Linux environment
-        if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        # Import the unified test environment library and initialize it for FileOps.
+        . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+        $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'FileOps'
+
+        # Skip all registry tests in non-Windows environments
+        if (-not $script:TestEnvironment.IsWindows) {
             Write-Warning "Registry file operations tests skipped in non-Windows environment"
             return
         }
 
-        # Load Docker test bootstrap only for non-Windows environments
-        if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-            . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-        }
+        # Import the main module to make functions available for testing.
+        Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-        # Load test environment
-        . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
-        $script:TestEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
-
-        # Import core functions through module system for code coverage
-        try {
-            # First import the module for code coverage
-            $moduleRoot = $PSScriptRoot
-            while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-                $moduleRoot = Split-Path -Parent $moduleRoot
-                if ([string]::IsNullOrEmpty($moduleRoot)) {
-                    throw "Could not find WindowsMelodyRecovery module root"
-                }
-            }
-
-            # Import the module
-            Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-            # Directly dot-source the Core files to ensure functions are available
-            . (Join-Path $moduleRoot "Private\Core\RegistryState.ps1")
-            . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-            Write-Verbose "Successfully loaded core functions for code coverage"
-        }
-        catch {
-            throw "Cannot find or import required functions: $($_.Exception.Message)"
-        }
-
-        # Get standardized test paths
+        # Get standardized test paths from the initialized environment
         $script:TestBackupDir = $script:TestEnvironment.TestBackup
         $script:TestRestoreDir = $script:TestEnvironment.TestRestore
         $script:TestStateDir = $script:TestEnvironment.TestState
 
-        # Module functions are already imported via specific scripts above
-
-        # Set up test registry path (only on Windows)
-        if ($IsWindows) {
-            $script:TestRegistryPath = "HKCU:\Software\WindowsMelodyRecovery\FileOperationsTest"
-        }
-        else {
-            $script:TestRegistryPath = $null
-        }
-
-        # Ensure test directories exist with null checks
-        @($script:TestBackupDir, $script:TestRestoreDir, $script:TestStateDir) | ForEach-Object {
-            if ($_ -and -not (Test-Path $_)) {
-                New-Item -ItemType Directory -Path $_ -Force | Out-Null
-            }
-        }
-
+        # Set up test registry path
+        $script:TestRegistryPath = "HKCU:\Software\WindowsMelodyRecovery\FileOperationsTest"
     }
 
     AfterAll {
-        # Skip cleanup in Docker/Linux environment
-        if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-            return
-        }
-
-        # Clean up test environment
-        if ($script:TestEnvironment -and $script:TestEnvironment.TestState) {
-            if (Test-Path $script:TestEnvironment.TestState) {
-                Remove-Item $script:TestEnvironment.TestState -Recurse -Force -ErrorAction SilentlyContinue
+        if ($script:TestEnvironment) {
+            # Clean up the test environment created in BeforeAll.
+            if ($script:TestRegistryPath -and (Test-Path $script:TestRegistryPath)) {
+                Remove-Item $script:TestRegistryPath -Recurse -Force -ErrorAction SilentlyContinue
             }
-        }
-
-        # Clean up test registry keys
-        if ($script:TestRegistryPath -and (Test-Path $script:TestRegistryPath)) {
-            Remove-Item $script:TestRegistryPath -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-WmrTestEnvironment
         }
     }
 
     Context "State File Creation and Management" {
 
-        It "Should create registry state files with proper structure" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should create registry state files with proper structure" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -130,10 +80,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should handle encrypted state files" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle encrypted state files" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -159,10 +109,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should create state files with UTF-8 encoding" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should create state files with UTF-8 encoding" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -190,10 +140,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
     Context "Registry Key Operations" {
 
-        It "Should create and clean up test registry keys" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should create and clean up test registry keys" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -220,10 +170,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should handle different registry value types" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle different registry value types" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -236,7 +186,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 }
 
                 # Test different data types (only on Windows)
-                if ($IsWindows) {
+                if ($script:TestEnvironment.IsWindows) {
                     Set-ItemProperty -Path $testKeyPath -Name "StringValue" -Value "Test String"
                     Set-ItemProperty -Path $testKeyPath -Name "DWordValue" -Value 12345
                     # Skip binary type test as it may not be supported on all PowerShell versions
@@ -256,10 +206,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should handle nested registry key structures" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle nested registry key structures" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -297,17 +247,17 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
     Context "State File and Registry Integration" {
 
-                It "Should backup registry value to state file" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should backup registry value to state file" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
             $testKeyPath = "$script:TestRegistryPath\BackupTest"
             $stateFilePath = Join-Path $script:TestBackupDir "registry_backup.json"
 
-                        try {
+            try {
                 # Create test registry key with value
                 if (Test-Path $testKeyPath) {
                     Remove-Item -Path $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -346,10 +296,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-                It "Should restore registry value from state file" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should restore registry value from state file" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -391,10 +341,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should handle backup and restore of entire registry keys" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle backup and restore of entire registry keys" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -410,7 +360,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 Set-ItemProperty -Path $testKeyPath -Name "Value2" -Value "Data2"
                 Set-ItemProperty -Path $testKeyPath -Name "Value3" -Value 12345
 
-                                # Backup entire key
+                # Backup entire key
                 $keyProperties = Get-ItemProperty -Path $testKeyPath
                 $keyValues = @{
                     "Value1" = $keyProperties.Value1
@@ -450,10 +400,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
     Context "Error Handling and Edge Cases" {
 
-        It "Should handle corrupted state files gracefully" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle corrupted state files gracefully" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -474,10 +424,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should handle missing registry keys during backup" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle missing registry keys during backup" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -496,10 +446,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             $result | Should -BeNullOrEmpty
         }
 
-        It "Should handle permission issues with registry keys" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle permission issues with registry keys" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -528,10 +478,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should handle large registry values" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle large registry values" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 
@@ -580,10 +530,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
     Context "Multiple State Files Management" {
 
-        It "Should handle multiple state files in directory" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+        It "Should handle multiple state files in directory" -Skip:(-not $script:TestEnvironment.IsWindows) {
             # Skip this test in non-Windows environments
-            if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
-                Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
+            if (-not $script:TestEnvironment.IsWindows) {
+                Set-ItResult -Skipped -Because "Registry operations not supported in non-Windows environment"
                 return
             }
 

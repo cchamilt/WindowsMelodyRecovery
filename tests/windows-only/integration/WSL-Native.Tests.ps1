@@ -17,13 +17,17 @@
 #>
 
 BeforeAll {
+    # Import the unified test environment library and initialize it for Windows tests.
+    . (Join-Path $PSScriptRoot "..\..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Windows'
+
     # CRITICAL SAFETY CHECK: Only run on a Windows machine.
-    if (-not $IsWindows) {
+    if (-not $script:TestEnvironment.IsWindows) {
         throw "Native WSL tests can only be run on a Windows machine."
     }
 
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../../WindowsMelodyRecovery.psd1") -Force
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
     # Check if WSL is available
     $script:WSLAvailable = $false
@@ -37,6 +41,11 @@ BeforeAll {
     catch {
         Write-Warning "WSL is not available or not found in PATH. Skipping native WSL tests."
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Native WSL Integration Tests" -Tag "WindowsOnly", "WSL" {

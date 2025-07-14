@@ -36,7 +36,86 @@ function Invoke-WmrInheritanceRule {
         Write-Verbose "Processing inheritance rule: $($rule.name)"
 
         # Check if rule conditions are met
-        if (Test-WmrInheritanceRuleCondition -Rule $rule -ResolvedConfig $ResolvedConfig -MachineContext $MachineContext) {
+        $ruleMet = $true
+        if ($rule.condition) {
+            if ($rule.condition.machine_selectors) {
+                $ruleMet = $false
+                foreach ($selector in $rule.condition.machine_selectors) {
+                    $result = $false
+                    switch ($selector.type) {
+                        "machine_name" {
+                            $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                            if ($caseSensitive) {
+                                $result = $MachineContext.MachineName -ceq $selector.value
+                            }
+                            else {
+                                $result = $MachineContext.MachineName -eq $selector.value
+                            }
+                        }
+                        "hostname_pattern" {
+                            $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                            if ($caseSensitive) {
+                                $result = $MachineContext.MachineName -cmatch $selector.value
+                            }
+                            else {
+                                $result = $MachineContext.MachineName -match $selector.value
+                            }
+                        }
+                        "environment_variable" {
+                            $envValue = $MachineContext.EnvironmentVariables[$selector.value]
+                            if ($envValue) {
+                                $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                                if ($caseSensitive) {
+                                    $result = $envValue -ceq $selector.expected_value
+                                }
+                                else {
+                                    $result = $envValue -eq $selector.expected_value
+                                }
+                            }
+                        }
+                        "registry_value" {
+                            try {
+                                $regValue = Get-ItemProperty -Path $selector.path -Name $selector.key_name -ErrorAction SilentlyContinue
+                                if ($regValue) {
+                                    $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                                    if ($caseSensitive) {
+                                        $result = $regValue.$($selector.key_name) -ceq $selector.expected_value
+                                    }
+                                    else {
+                                        $result = $regValue.$($selector.key_name) -eq $selector.expected_value
+                                    }
+                                }
+                            }
+                            catch {
+                                Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
+                            }
+                        }
+                        "script" {
+                            try {
+                                $scriptBlock = [ScriptBlock]::Create($selector.script)
+                                $scriptResult = & $scriptBlock $MachineContext
+                                $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                                if ($caseSensitive) {
+                                    $result = $scriptResult -ceq $selector.expected_result
+                                }
+                                else {
+                                    $result = $scriptResult -eq $selector.expected_result
+                                }
+                            }
+                            catch {
+                                Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
+                            }
+                        }
+                    }
+                    if ($result) {
+                        $ruleMet = $true
+                        break
+                    }
+                }
+            }
+        }
+
+        if ($ruleMet) {
             Write-Verbose "Applying inheritance rule: $($rule.name)"
 
             # Apply rule to matching configuration sections
@@ -52,61 +131,6 @@ function Invoke-WmrInheritanceRule {
     }
 
     return $ResolvedConfig
-}
-
-function Test-WmrInheritanceRuleCondition {
-    <#
-    .SYNOPSIS
-        Tests if an inheritance rule condition is met.
-    #>
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [PSObject]$Rule,
-
-        [Parameter(Mandatory = $true)]
-        [PSObject]$ResolvedConfig,
-
-        [Parameter(Mandatory = $true)]
-        [PSObject]$MachineContext
-    )
-
-    if (-not $Rule.condition) {
-        return $true  # No condition means always apply
-    }
-
-    # Check inheritance tags condition
-    if ($Rule.condition.inheritance_tags) {
-        $requiredTags = $Rule.condition.inheritance_tags.contains
-        if ($requiredTags) {
-            # Check if any items have the required tags
-            $hasMatchingTags = $false
-            foreach ($section in $Rule.applies_to) {
-                if ($ResolvedConfig.$section) {
-                    foreach ($item in $ResolvedConfig.$section) {
-                        if ($item.inheritance_tags) {
-                            $commonTags = $item.inheritance_tags | Where-Object { $_ -in $requiredTags }
-                            if ($commonTags.Count -gt 0) {
-                                $hasMatchingTags = $true
-                                break
-                            }
-                        }
-                    }
-                    if ($hasMatchingTags) { break }
-                }
-            }
-            return $hasMatchingTags
-        }
-    }
-
-    # Check machine selectors condition
-    if ($Rule.condition.machine_selectors) {
-        # Import Test-WmrMachineSelector from MachineContext module
-        return Test-WmrMachineSelector -MachineSelectors $Rule.condition.machine_selectors -MachineContext $MachineContext
-    }
-
-    return $true
 }
 
 function Invoke-WmrInheritanceRuleToSection {
@@ -132,7 +156,22 @@ function Invoke-WmrInheritanceRuleToSection {
     $nonMatchingItems = @()
 
     foreach ($item in $Items) {
-        if (Test-WmrRuleItemMatch -Item $item -Rule $Rule) {
+        $itemMatch = $true
+        if ($Rule.item_selectors) {
+            if ($Rule.item_selectors.inheritance_tags) {
+                if ($item.inheritance_tags) {
+                    $commonTags = $item.inheritance_tags | Where-Object { $_ -in $Rule.item_selectors.inheritance_tags.contains }
+                    if ($commonTags.Count -eq 0) {
+                        $itemMatch = $false
+                    }
+                }
+                else {
+                    $itemMatch = $false
+                }
+            }
+        }
+
+        if ($itemMatch) {
             $matchingItems += $item
         }
         else {
@@ -183,7 +222,12 @@ function Invoke-WmrInheritanceRuleToSection {
             # Validate items and remove invalid ones
             $validItems = @()
             foreach ($item in $matchingItems) {
-                if (Test-WmrConfigurationItemValidity -Item $item -Rule $Rule) {
+                $isValid = $true
+                if ($Rule.parameters.validation_script) {
+                    $scriptBlock = [ScriptBlock]::Create($Rule.parameters.validation_script)
+                    $isValid = & $scriptBlock $item $MachineContext
+                }
+                if ($isValid) {
                     $validItems += $item
                 }
             }
@@ -220,7 +264,85 @@ function Invoke-WmrConditionalSection {
         Write-Verbose "Processing conditional section: $($section.name)"
 
         # Check if conditions are met
-        if (Test-WmrConditionalSectionCondition -ConditionalSection $section -MachineContext $MachineContext) {
+        $sectionMet = $true
+        if ($section.condition) {
+            if ($section.condition.machine_selectors) {
+                $sectionMet = $false
+                foreach ($selector in $section.condition.machine_selectors) {
+                    $result = $false
+                    switch ($selector.type) {
+                        "machine_name" {
+                            $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                            if ($caseSensitive) {
+                                $result = $MachineContext.MachineName -ceq $selector.value
+                            }
+                            else {
+                                $result = $MachineContext.MachineName -eq $selector.value
+                            }
+                        }
+                        "hostname_pattern" {
+                            $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                            if ($caseSensitive) {
+                                $result = $MachineContext.MachineName -cmatch $selector.value
+                            }
+                            else {
+                                $result = $MachineContext.MachineName -match $selector.value
+                            }
+                        }
+                        "environment_variable" {
+                            $envValue = $MachineContext.EnvironmentVariables[$selector.value]
+                            if ($envValue) {
+                                $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                                if ($caseSensitive) {
+                                    $result = $envValue -ceq $selector.expected_value
+                                }
+                                else {
+                                    $result = $envValue -eq $selector.expected_value
+                                }
+                            }
+                        }
+                        "registry_value" {
+                            try {
+                                $regValue = Get-ItemProperty -Path $selector.path -Name $selector.key_name -ErrorAction SilentlyContinue
+                                if ($regValue) {
+                                    $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                                    if ($caseSensitive) {
+                                        $result = $regValue.$($selector.key_name) -ceq $selector.expected_value
+                                    }
+                                    else {
+                                        $result = $regValue.$($selector.key_name) -eq $selector.expected_value
+                                    }
+                                }
+                            }
+                            catch {
+                                Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
+                            }
+                        }
+                        "script" {
+                            try {
+                                $scriptBlock = [ScriptBlock]::Create($selector.script)
+                                $scriptResult = & $scriptBlock $MachineContext
+                                $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                                if ($caseSensitive) {
+                                    $result = $scriptResult -ceq $selector.expected_result
+                                }
+                                else {
+                                    $result = $scriptResult -eq $selector.expected_result
+                                }
+                            }
+                            catch {
+                                Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
+                            }
+                        }
+                    }
+                    if ($result) {
+                        $sectionMet = $true
+                        break
+                    }
+                }
+            }
+        }
+        if ($sectionMet) {
             Write-Verbose "Applying conditional section: $($section.name)"
 
             # Apply conditional configuration
@@ -255,118 +377,6 @@ function Invoke-WmrConditionalSection {
     }
 
     return $ResolvedConfig
-}
-
-function Test-WmrConditionalSectionCondition {
-    <#
-    .SYNOPSIS
-        Tests if conditional section conditions are met.
-    #>
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [PSObject]$ConditionalSection,
-
-        [Parameter(Mandatory = $true)]
-        [PSObject]$MachineContext
-    )
-
-    if (-not $ConditionalSection.conditions) {
-        return $true  # No conditions means always apply
-    }
-
-    $logic = if ($ConditionalSection.logic) { $ConditionalSection.logic } else { "and" }
-    $conditionResults = @()
-
-    foreach ($condition in $ConditionalSection.conditions) {
-        $result = $false
-
-        switch ($condition.type) {
-            "custom_script" {
-                try {
-                    $scriptBlock = [ScriptBlock]::Create($condition.check)
-                    $scriptResult = & $scriptBlock $MachineContext
-                    $result = Test-WmrStringComparison -Value $scriptResult -Expected $condition.expected_result -Operator "equals"
-                }
-                catch {
-                    Write-Verbose "Failed to execute conditional script: $($_.Exception.Message)"
-                    $result = $false
-                }
-            }
-            "hardware_check" {
-                try {
-                    $scriptBlock = [ScriptBlock]::Create($condition.check)
-                    $checkResult = & $scriptBlock
-                    $result = $checkResult -match $condition.expected_result
-                }
-                catch {
-                    Write-Verbose "Failed to execute hardware check: $($_.Exception.Message)"
-                    $result = $false
-                }
-            }
-            "environment_variable" {
-                $envValue = $MachineContext.EnvironmentVariables[$condition.variable]
-                if ($envValue) {
-                    $result = Test-WmrStringComparison -Value $envValue -Expected $condition.expected_value -Operator $condition.operator
-                }
-                else {
-                    $result = $false
-                }
-            }
-            default {
-                Write-Warning "Unknown conditional section condition type: $($condition.type)"
-                $result = $false
-            }
-        }
-
-        $conditionResults += $result
-    }
-
-    # Apply logic
-    switch ($logic) {
-        "and" {
-            return ($conditionResults -notcontains $false)
-        }
-        "or" {
-            return ($conditionResults -contains $true)
-        }
-        "not" {
-            return ($conditionResults -notcontains $true)
-        }
-        default {
-            Write-Warning "Unknown conditional logic: $logic"
-            return $false
-        }
-    }
-}
-
-function Test-WmrRuleItemMatch {
-    <#
-    .SYNOPSIS
-        Tests if an item matches a rule condition.
-    #>
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [PSObject]$Item,
-
-        [Parameter(Mandatory = $true)]
-        [PSObject]$Rule
-    )
-
-    # Check inheritance tags
-    if ($Rule.condition.inheritance_tags) {
-        $requiredTags = $Rule.condition.inheritance_tags.contains
-        if ($Item.inheritance_tags) {
-            $commonTags = $Item.inheritance_tags | Where-Object { $_ -in $requiredTags }
-            return $commonTags.Count -gt 0
-        }
-    }
-
-    # Check other conditions as needed
-    return $false
 }
 
 # Functions are available when dot-sourced, no need to export when not in module context

@@ -62,8 +62,11 @@ Import-Module (Join-Path $PSScriptRoot 'Private/Core/WindowsMelodyRecovery.Templ
 . (Join-Path $PSScriptRoot 'Private/Core/RegistryState.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/ApplicationState.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/AdministrativePrivileges.ps1')
-. (Join-Path $PSScriptRoot 'Private/Core/ConfigurationValidation.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/ConditionalProcessing.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/ConfigurationMerging.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/TemplateResolution.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/TemplateInheritance.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/MachineContext.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/PathUtilities.ps1')
 
 # Define core functions first

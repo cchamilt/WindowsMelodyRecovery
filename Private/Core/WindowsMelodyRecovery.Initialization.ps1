@@ -29,19 +29,26 @@ function Initialize-WindowsMelodyRecoveryModule {
     if ($script:ModuleInitialized -and -not $Force) {
         Write-Verbose "Module already initialized. Use -Force to re-initialize."
         return @{
-            Success = $true
-            Message = "Module already initialized"
+            Success          = $true
+            Message          = "Module already initialized"
             LoadedComponents = $script:LoadedComponents
-            Warnings = @()
+            Warnings         = @()
         }
     }
 
     try {
         # Step 1: Validate module structure
         if (-not $SkipValidation) {
-            $validationResult = Test-ModuleStructure
-            if (-not $validationResult.Success) {
-                throw "Module structure validation failed: $($validationResult.Message)"
+            $requiredPaths = @("Private", "Private\Core", "Public", "Templates")
+            $missingPaths = @()
+            foreach ($path in $requiredPaths) {
+                $fullPath = Join-Path $PSScriptRoot ".." $path
+                if (-not (Test-Path $fullPath)) {
+                    $missingPaths += $path
+                }
+            }
+            if ($missingPaths.Count -gt 0) {
+                throw "Module structure validation failed: Missing required directories: $($missingPaths -join ', ')"
             }
         }
 
@@ -70,10 +77,19 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         # Step 6: Validate dependencies
-        $depResult = Test-ModuleDependency
-        if (-not $depResult.Success) {
-            Write-Warning "Dependency validation failed: $($depResult.Message)"
-            $script:InitializationErrors += $depResult.Message
+        $dependencies = @(@{ Name = "Pester"; ModuleName = "Pester" }, @{ Name = "PowerShell"; Version = "5.1" })
+        $missingDeps = @()
+        foreach ($dep in $dependencies) {
+            if ($dep.ModuleName) {
+                $module = Get-Module -Name $dep.ModuleName -ListAvailable -ErrorAction SilentlyContinue
+                if (-not $module) {
+                    $missingDeps += $dep.Name
+                }
+            }
+        }
+        if ($missingDeps.Count -gt 0) {
+            Write-Warning "Dependency validation failed: Missing dependencies: $($missingDeps -join ', ')"
+            $script:InitializationErrors += "Missing dependencies: $($missingDeps -join ', ')"
         }
 
         # Step 7: Setup aliases
@@ -96,10 +112,10 @@ function Initialize-WindowsMelodyRecoveryModule {
         }
 
         return @{
-            Success = $true
-            Message = "Module initialized successfully"
+            Success          = $true
+            Message          = "Module initialized successfully"
             LoadedComponents = $script:LoadedComponents
-            Warnings = $script:InitializationErrors
+            Warnings         = $script:InitializationErrors
         }
 
     }
@@ -109,72 +125,11 @@ function Initialize-WindowsMelodyRecoveryModule {
 
         Write-Error "Module initialization failed: $($_.Exception.Message)"
         return @{
-            Success = $false
-            Message = $_.Exception.Message
+            Success          = $false
+            Message          = $_.Exception.Message
             LoadedComponents = $script:LoadedComponents
-            Errors = $script:InitializationErrors
+            Errors           = $script:InitializationErrors
         }
-    }
-}
-
-function Test-ModuleStructure {
-    [CmdletBinding()]
-    param()
-
-    Write-Verbose "Validating module structure..."
-
-    $requiredPaths = @(
-        "Private",
-        "Private\Core",
-        "Private\backup",
-        "Private\restore",
-        "Private\setup",
-        "Private\tasks",
-        "Private\scripts",
-        "Public",
-        "Config",
-        "Templates"
-    )
-
-    $missingPaths = @()
-    foreach ($path in $requiredPaths) {
-        $fullPath = Join-Path $PSScriptRoot ".." $path
-        if (-not (Test-Path $fullPath)) {
-            $missingPaths += $path
-        }
-    }
-
-    if ($missingPaths.Count -gt 0) {
-        return @{
-            Success = $false
-            Message = "Missing required directories: $($missingPaths -join ', ')"
-        }
-    }
-
-    $requiredFiles = @(
-        "Private\Core\WindowsMelodyRecovery.Core.ps1",
-        "WindowsMelodyRecovery.psm1",
-        "WindowsMelodyRecovery.psd1"
-    )
-
-    $missingFiles = @()
-    foreach ($file in $requiredFiles) {
-        $fullPath = Join-Path $PSScriptRoot ".." $file
-        if (-not (Test-Path $fullPath)) {
-            $missingFiles += $file
-        }
-    }
-
-    if ($missingFiles.Count -gt 0) {
-        return @{
-            Success = $false
-            Message = "Missing required files: $($missingFiles -join ', ')"
-        }
-    }
-
-    return @{
-        Success = $true
-        Message = "Module structure validation passed"
     }
 }
 
@@ -347,45 +302,45 @@ function Get-DefaultConfiguration {
     param()
 
     return @{
-        BackupRoot = if ($env:WMR_BACKUP_PATH) { $env:WMR_BACKUP_PATH } elseif ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Backups" } else { "/tmp/WindowsMelodyRecovery/Backups" }
-        MachineName = $env:COMPUTERNAME
+        BackupRoot                = if ($env:WMR_BACKUP_PATH) { $env:WMR_BACKUP_PATH } elseif ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Backups" } else { "/tmp/WindowsMelodyRecovery/Backups" }
+        MachineName               = $env:COMPUTERNAME
         WindowsMelodyRecoveryPath = Split-Path $PSScriptRoot -Parent
-        CloudProvider = "OneDrive"
-        ModuleVersion = "1.0.0"
-        LastConfigured = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-        IsInitialized = $false
-        EmailSettings = @{
+        CloudProvider             = "OneDrive"
+        ModuleVersion             = "1.0.0"
+        LastConfigured            = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+        IsInitialized             = $false
+        EmailSettings             = @{
             FromAddress = $null
-            ToAddress = $null
-            Password = $null
-            SmtpServer = $null
-            SmtpPort = 587
-            EnableSsl = $true
+            ToAddress   = $null
+            Password    = $null
+            SmtpServer  = $null
+            SmtpPort    = 587
+            EnableSsl   = $true
         }
-        BackupSettings = @{
+        BackupSettings            = @{
             RetentionDays = 30
-            ExcludePaths = @()
-            IncludePaths = @()
+            ExcludePaths  = @()
+            IncludePaths  = @()
         }
-        ScheduleSettings = @{
+        ScheduleSettings          = @{
             BackupSchedule = $null
             UpdateSchedule = $null
         }
-        NotificationSettings = @{
-            EnableEmail = $false
+        NotificationSettings      = @{
+            EnableEmail     = $false
             NotifyOnSuccess = $false
             NotifyOnFailure = $true
         }
-        RecoverySettings = @{
-            Mode = "Selective"
+        RecoverySettings          = @{
+            Mode           = "Selective"
             ForceOverwrite = $false
         }
-        LoggingSettings = @{
-            Path = if ($env:WMR_LOG_PATH) { $env:WMR_LOG_PATH } elseif ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Logs" } else { "/tmp/WindowsMelodyRecovery/Logs" }
+        LoggingSettings           = @{
+            Path  = if ($env:WMR_LOG_PATH) { $env:WMR_LOG_PATH } elseif ($env:TEMP) { Join-Path $env:TEMP "WindowsMelodyRecovery\Logs" } else { "/tmp/WindowsMelodyRecovery/Logs" }
             Level = "Information"
         }
-        UpdateSettings = @{
-            AutoUpdate = $true
+        UpdateSettings            = @{
+            AutoUpdate      = $true
             ExcludePackages = @()
         }
     }
@@ -472,53 +427,41 @@ function Import-PublicFunction {
     [CmdletBinding()]
     param()
 
-    Write-Verbose "Loading public functions..."
+    Write-Verbose "Verifying public functions..."
 
     try {
-        # Fix: Get the module root directory (two levels up from Private/Core)
-        # $PSScriptRoot here is Private/Core, so we need to go up twice
-        $privateDir = Split-Path $PSScriptRoot -Parent  # This gets us to Private
-        $moduleRoot = Split-Path $privateDir -Parent    # This gets us to the module root
-        $publicPath = Join-Path $moduleRoot "Public"
+        # Public functions are exported by the module manifest.
+        # This function just verifies they are available.
+        $publicFunctions = @(
+            'Backup-WindowsMelodyRecovery',
+            'Convert-ToWinget',
+            'Get-WindowsMelodyRecoveryStatus',
+            'Initialize-WindowsMelodyRecovery',
+            'Install-WindowsMelodyRecoveryTask',
+            'Remove-WindowsMelodyRecoveryTask',
+            'Restore-WindowsMelodyRecovery',
+            'Set-WindowsMelodyRecovery',
+            'Set-WindowsMelodyRecoveryScript',
+            'Start-WindowsMelodyRecovery',
+            'Sync-WindowsMelodyRecoveryScript',
+            'Test-WindowsMelodyRecovery',
+            'Update-WindowsMelodyRecovery'
+        )
 
-        Write-Verbose "PSScriptRoot: $PSScriptRoot"
-        Write-Verbose "Module root calculated as: $moduleRoot"
-        Write-Verbose "Public path: $publicPath"
-
-        if (-not (Test-Path $publicPath)) {
-            return @{
-                Success = $false
-                Message = "Public functions directory not found: $publicPath"
-            }
-        }
-
-        $publicScripts = Get-ChildItem -Path "$publicPath\*.ps1" -ErrorAction SilentlyContinue
         $loadedFunctions = @()
         $failedFunctions = @()
 
-        foreach ($script in $publicScripts) {
-            try {
-                $functionName = $script.BaseName
-                Write-Verbose "Loading function: $functionName from $($script.FullName)"
-
-                . $script.FullName
-
-                # Verify function was loaded
-                if (Get-Command $functionName -ErrorAction SilentlyContinue) {
-                    $loadedFunctions += $functionName
-                }
-                else {
-                    $failedFunctions += $functionName
-                }
+        foreach ($functionName in $publicFunctions) {
+            if (Get-Command $functionName -ErrorAction SilentlyContinue) {
+                $loadedFunctions += $functionName
             }
-            catch {
-                $failedFunctions += $script.BaseName
-                Write-Warning "Failed to load function $($script.BaseName): $($_.Exception.Message)"
+            else {
+                $failedFunctions += $functionName
             }
         }
 
         if ($failedFunctions.Count -gt 0) {
-            Write-Warning "Failed to load functions: $($failedFunctions -join ', ')"
+            Write-Warning "Failed to find public functions: $($failedFunctions -join ', ')"
         }
 
         # Store loaded functions in script scope for module export
@@ -527,8 +470,8 @@ function Import-PublicFunction {
         $script:LoadedComponents += "PublicFunctions"
 
         return @{
-            Success = $loadedFunctions.Count -gt 0
-            Message = "Loaded $($loadedFunctions.Count) public functions"
+            Success         = $loadedFunctions.Count -gt 0
+            Message         = "Verified $($loadedFunctions.Count) public functions"
             LoadedFunctions = $loadedFunctions
             FailedFunctions = $failedFunctions
         }
@@ -537,7 +480,7 @@ function Import-PublicFunction {
     catch {
         return @{
             Success = $false
-            Message = "Failed to load public functions: $($_.Exception.Message)"
+            Message = "Failed to verify public functions: $($_.Exception.Message)"
         }
     }
 }
@@ -588,64 +531,6 @@ function Initialize-ModuleEnvironment {
     }
 }
 
-function Test-ModuleDependency {
-    [CmdletBinding()]
-    param()
-
-    Write-Verbose "Testing module dependencies..."
-
-    try {
-        $dependencies = @(
-            @{ Name = "Pester"; ModuleName = "Pester" },
-            @{ Name = "PowerShell"; Version = "5.1" }
-        )
-
-        $missingDeps = @()
-        $warnings = @()
-
-        foreach ($dep in $dependencies) {
-            if ($dep.ModuleName) {
-                $module = Get-Module -Name $dep.ModuleName -ListAvailable -ErrorAction SilentlyContinue
-                if (-not $module) {
-                    $missingDeps += $dep.Name
-                }
-            }
-        }
-
-        # Test PowerShell version
-        if ($PSVersionTable.PSVersion.Major -lt 5) {
-            $warnings += "PowerShell 5.1 or higher recommended"
-        }
-
-        if ($missingDeps.Count -gt 0) {
-            return @{
-                Success = $false
-                Message = "Missing dependencies: $($missingDeps -join ', ')"
-            }
-        }
-
-        if ($warnings.Count -gt 0) {
-            return @{
-                Success = $true
-                Message = "Dependencies validated with warnings: $($warnings -join '; ')"
-                Warnings = $warnings
-            }
-        }
-
-        return @{
-            Success = $true
-            Message = "All dependencies validated successfully"
-        }
-
-    }
-    catch {
-        return @{
-            Success = $false
-            Message = "Dependency validation failed: $($_.Exception.Message)"
-        }
-    }
-}
-
 function Set-ModuleAlias {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Low')]
     param()
@@ -654,11 +539,10 @@ function Set-ModuleAlias {
 
     try {
         $aliases = @{
-            "wmr-init" = "Initialize-WindowsMelodyRecovery"
-            "wmr-backup" = "Backup-WindowsMelodyRecovery"
+            "wmr-init"    = "Initialize-WindowsMelodyRecovery"
+            "wmr-backup"  = "Backup-WindowsMelodyRecovery"
             "wmr-restore" = "Restore-WindowsMelodyRecovery"
-            "wmr-setup" = "Setup-WindowsMelodyRecovery"
-            "wmr-test" = "Test-WindowsMelodyRecovery"
+            "wmr-setup"   = "Setup-WindowsMelodyRecovery"
         }
 
         $createdAliases = @()
@@ -688,8 +572,8 @@ function Set-ModuleAlias {
         $script:LoadedComponents += "ModuleAliases"
 
         return @{
-            Success = $true
-            Message = "Created $($createdAliases.Count) module aliases"
+            Success        = $true
+            Message        = "Created $($createdAliases.Count) module aliases"
             CreatedAliases = $createdAliases
         }
 
@@ -707,10 +591,10 @@ function Get-ModuleInitializationStatus {
     param()
 
     return @{
-        Initialized = $script:ModuleInitialized
+        Initialized      = $script:ModuleInitialized
         LoadedComponents = $script:LoadedComponents
-        Errors = $script:InitializationErrors
-        Config = $script:Config
+        Errors           = $script:InitializationErrors
+        Config           = $script:Config
     }
 }
 

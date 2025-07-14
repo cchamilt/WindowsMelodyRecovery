@@ -9,89 +9,23 @@ param()
 $ConfirmPreference = 'None'
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it for FileOps.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'FileOps'
 
-    # Load test environment
-    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
-    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\FileState.ps1")
-        . (Join-Path $moduleRoot "Private\Core\EncryptionUtilities.ps1")
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
-
-    # Get standardized test paths
-    $script:TestPaths = $global:TestEnvironment
-
-    # Define Test-SafeTestPath function for safety validation
-    function Test-SafeTestPath {
-        param([string]$Path)
-        if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 10) { return $false }
-        # Must be in a test directory
-        return $Path.Contains("WMR-Tests") -or $Path.Contains("test-") -or $Path.Contains("Temp")
-    }
-
-    # Define Remove-TestItems function for safe cleanup
-    function Remove-TestItems {
-        param(
-            [string]$Path,
-            [switch]$Recurse,
-            [switch]$Force
-        )
-        if ($Path -and (Test-SafeTestPath $Path) -and (Test-Path $Path)) {
-            Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$false -ErrorAction SilentlyContinue
-        }
-    }
-
-    # Import test utilities if they exist
-    $testHelperPath = Join-Path $PSScriptRoot "..\utilities\TestHelper.ps1"
-    if (Test-Path $testHelperPath) {
-        . $testHelperPath
-    }
-
-    $encryptionHelperPath = Join-Path $PSScriptRoot "..\utilities\EncryptionTestHelper.ps1"
-    if (Test-Path $encryptionHelperPath) {
-        . $encryptionHelperPath
-    }
-
-    # Use standardized test directories
-    $script:testStateDir = Join-Path $script:TestPaths.TestRestore "state"
-    $script:testDataDir = Join-Path $script:TestPaths.TestRestore "data"
-    $script:SourceDir = Join-Path $script:TestPaths.TestRestore "source"
-    $script:DestDir = Join-Path $script:TestPaths.TestRestore "dest"
-    $script:TempStateDir = Join-Path $script:TestPaths.Temp "FileStateTests"
+    # Use standardized test directories from the initialized environment
+    $script:testStateDir = Join-Path $script:TestEnvironment.TestRestore "state"
+    $script:testDataDir = Join-Path $script:TestEnvironment.TestRestore "data"
+    $script:SourceDir = Join-Path $script:TestEnvironment.TestRestore "source"
+    $script:DestDir = Join-Path $script:TestEnvironment.TestRestore "dest"
+    $script:TempStateDir = Join-Path $script:TestEnvironment.Temp "FileStateTests"
     $script:testPassphrase = ConvertTo-SecureString -String "TestPassphrase123!" -AsPlainText -Force
 
-    # Function to safely remove items
-    function Remove-TestItem {
-        param([string]$Path)
-        if ((Test-Path $Path) -and (Test-SafeTestPath $Path)) {
-            Remove-Item -Path $Path -Force -Recurse -ErrorAction SilentlyContinue -Confirm:$false
-        }
-    }
-
     # Create fresh test directories
+    # Note: The initializer already creates the root dirs, but we might need specific sub-dirs here.
     New-Item -ItemType Directory -Path $script:testStateDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:testDataDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:SourceDir -Force | Out-Null
@@ -123,10 +57,8 @@ BeforeAll {
 }
 
 AfterAll {
-    # Clean up temporary directories safely
-    if ($script:TempStateDir -and (Test-SafeTestPath $script:TempStateDir)) {
-        Remove-Item -Path $script:TempStateDir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
-    }
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Get-WmrFileState - File Type" {

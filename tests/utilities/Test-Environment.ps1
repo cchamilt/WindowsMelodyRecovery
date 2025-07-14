@@ -1,380 +1,378 @@
 ﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Unified Test Environment Management for Windows Melody Recovery
+    Unified and Standardized Test Environment Management for Windows Melody Recovery.
 
 .DESCRIPTION
-    Centralized script for setting up test environments. This script provides a library
-    of functions that can be called by specific test runners to set up the
-    appropriate, isolated environment for each test suite.
+    This script provides a single, comprehensive system for managing test environments.
+    It combines the safety features and structured configuration of the previous
+    "Standard" environment with the dynamic, isolated directory creation of the
+    simpler environment script.
 
-    This script itself does not perform any setup; it only provides the functions.
+    It provides a single function, 'Initialize-WmrTestEnvironment', to be used by
+    all test runners and Pester test files.
 
-.NOTES
-    This script replaces the previous monolithic approach with a modular, function-based
-    library to enforce strict test environment isolation.
+    Features:
+    - Consistent, isolated test environment for each test run.
+    - Strong safety checks to prevent operations outside the test directory.
+    - Unified configuration for easy maintenance.
+    - Explicit environment detection (Docker, CI, Windows, etc.).
+    - Suite-specific setup for Unit, Integration, FileOps, E2E, and Windows tests.
 #>
 
-# --- Core Environment Detection Functions ---
+#region Core Configuration and State
+# Script-level variables for state and configuration management.
 
-<#
-.SYNOPSIS
-Short description
+$script:ModuleRoot = $null
+$script:TestRunInitialized = $false
+$script:CurrentTestEnvironment = $null
 
-.DESCRIPTION
-Long description
-
-.EXAMPLE
-An example
-
-.NOTES
-General notes
-#>
-function Get-EnvironmentType {
-    [OutputType('PSCustomObject')]
-    [CmdletBinding()]
-    param()
-
-    Write-Verbose "🔍 Detecting test environment..."
-
-    $envType = [PSCustomObject]@{
-        IsDocker  = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
-        IsWindows = $IsWindows
-        IsCI      = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+# Central configuration for all test-related paths, variables, and safety checks.
+$script:TestConfiguration = @{
+    Directories = @{
+        # Core directories to be created inside the isolated test root
+        TestRestore = "test-restore"
+        TestBackup  = "test-backups"
+        Temp        = "temp"
+        TestState   = "test-state"
+        Logs        = "logs"
+        MockData    = "mock-data"
+        Reports     = "reports"
     }
 
-    Write-Verbose "Environment Detection Results: Docker=$($envType.IsDocker), Windows=$($envType.IsWindows), CI=$($envType.IsCI)"
-    return $envType
+    SafetyPatterns = @{
+        # The root path MUST contain one of these patterns
+        RequiredInPath = @("WMR-Tests", "Temp", "tmp")
+        # The root path MUST NOT contain any of these patterns
+        ForbiddenPaths = @("C:\Windows", "C:\Program Files", "$env:SystemRoot")
+        # Safety check will fail if the current path is one of these
+        ForbiddenRoots = @("C:\", "D:\", "/")
+    }
+
+    Environment = @{
+        Variables = @{
+            "WMR_TEST_MODE"                 = "true"
+            "WMR_SAFE_MODE"                 = "true" # Enables additional safety checks in module code
+            "WMR_LOG_LEVEL"                 = "Debug"
+            "POWERSHELL_TELEMETRY_OPTOUT"   = "1"
+            "POWERSHELL_UPDATECHECK_OPTOUT" = "1"
+        }
+    }
 }
+#endregion
 
-<#
-.SYNOPSIS
-Short description
+#region Core Functions
+# --- Main Public Functions ---
 
-.DESCRIPTION
-Long description
-
-.EXAMPLE
-An example
-
-.NOTES
-General notes
-#>
-function Find-ModuleRoot {
-    [OutputType('string')]
-    [CmdletBinding()]
-    param()
-
+function Initialize-WmrTestEnvironment {
     <#
     .SYNOPSIS
-        Finds the module root directory using multiple detection methods.
-
+        Initializes a unified, isolated, and safe test environment for a specific test suite.
     .DESCRIPTION
-        Searches for the module root by looking for the module manifest file,
-        working upward from the current script location or working directory.
+        This is the primary function for all test setup. It performs the following steps:
+        1. Detects the current environment (OS, CI, Docker).
+        2. Finds the module root.
+        3. Performs strict safety checks to ensure it's not running in a production directory.
+        4. Creates a unique, isolated root directory for the test run.
+        5. Sets up a standard structure of subdirectories within the isolated root.
+        6. Sets all required environment variables for testing.
+        7. Loads suite-specific mocks or utilities based on the -SuiteName parameter.
+        8. Returns a hashtable containing all relevant paths for the test run.
+    .PARAMETER SuiteName
+        The name of the test suite to initialize. This determines which, if any,
+        additional mock utilities are loaded.
+    .PARAMETER SessionId
+        An optional unique ID for the test run. If not provided, a random one is generated.
+        This is used to create the isolated test directory.
+    .PARAMETER Force
+        Force re-creation of the test directory if it already exists.
+    .EXAMPLE
+        $testEnv = Initialize-WmrTestEnvironment -SuiteName 'Unit'
+    .EXAMPLE
+        $testEnv = Initialize-WmrTestEnvironment -SuiteName 'Integration' -Force
     #>
-    $moduleManifestName = "WindowsMelodyRecovery.psd1"
-    $searchPaths = @()
-
-    # Method 1: Try from script location (if available)
-    if ($PSScriptRoot) {
-        $searchPaths += $PSScriptRoot
-        $searchPaths += Split-Path -Parent $PSScriptRoot  # tests/
-        $searchPaths += Split-Path -Parent (Split-Path -Parent $PSScriptRoot)  # module root
-    }
-
-    # Method 2: Try from current working directory
-    $searchPaths += Get-Location
-    $searchPaths += Split-Path -Parent (Get-Location)
-
-    # Method 3: Try common relative paths
-    $searchPaths += Join-Path (Get-Location) ".."
-    $searchPaths += Join-Path (Get-Location) "../.."
-
-    # Search each path and work upward
-    foreach ($startPath in $searchPaths) {
-        if (-not $startPath -or -not (Test-Path $startPath)) {
-            continue
-        }
-
-        $currentPath = Resolve-Path $startPath -ErrorAction SilentlyContinue
-        if (-not $currentPath) {
-            continue
-        }
-
-        # Search upward from current path
-        $searchDepth = 0
-        while ($currentPath -and $searchDepth -lt 10) {
-            $manifestPath = Join-Path $currentPath $moduleManifestName
-
-            if (Test-Path $manifestPath) {
-                Write-Verbose "Found module root via manifest: $currentPath"
-                return $currentPath.ToString()
-            }
-
-            # Also check for other identifying files/directories
-            $identifyingPaths = @(
-                Join-Path $currentPath "Public"
-                Join-Path $currentPath "Private"
-                Join-Path $currentPath "tests"
-                Join-Path $currentPath "Templates"
-            )
-
-            $identifyingPathsFound = 0
-            foreach ($identifyingPath in $identifyingPaths) {
-                if (Test-Path $identifyingPath) {
-                    $identifyingPathsFound++
-                }
-            }
-
-            # If we found 3 or more identifying paths, this is likely the module root
-            if ($identifyingPathsFound -ge 3) {
-                Write-Verbose "Found module root via structure: $currentPath"
-                return $currentPath.ToString()
-            }
-
-            $parentPath = Split-Path -Parent $currentPath
-            if ($parentPath -eq $currentPath) {
-                break  # Reached filesystem root
-            }
-            $currentPath = $parentPath
-            $searchDepth++
-        }
-    }
-
-    # Final fallback: use current directory
-    $fallbackPath = Get-Location
-    Write-Warning "Could not find module root, using current directory: $fallbackPath"
-    return $fallbackPath.ToString()
-}
-
-# --- Test Suite Specific Initializers ---
-
-<#
-.SYNOPSIS
-Short description
-
-.DESCRIPTION
-Long description
-
-.PARAMETER SuiteName
-Parameter description
-
-.PARAMETER SessionId
-Parameter description
-
-.EXAMPLE
-An example
-
-.NOTES
-General notes
-#>
-function Initialize-TestEnvironment {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('Unit', 'FileOps', 'Integration', 'E2E', 'Windows')]
         [string]$SuiteName,
 
         [Parameter(Mandatory = $false)]
-        [string]$SessionId = (New-Guid).Guid.Substring(0, 8)
+        [string]$SessionId = (New-Guid).Guid.Substring(0, 8),
+
+        [switch]$Force
     )
 
-    $envType = Get-EnvironmentType
-    $moduleRoot = Find-ModuleRoot
+    Write-Information -MessageData "🔧 Initializing Unified Test Environment for Suite: $SuiteName" -InformationAction Continue
 
-    # Create a unique, isolated root path for this test run
-    $baseTempPath = if ($envType.IsCI) {
-        if ($envType.IsWindows) { $env:TEMP } else { '/tmp' }
+    # --- Step 1: Environment Detection and Path Finding ---
+    $envDetails = Get-WmrEnvironmentType
+    $script:ModuleRoot = Find-WmrModuleRoot
+    if (-not $script:ModuleRoot) {
+        throw "Could not find the module root. Cannot initialize test environment."
+    }
+
+    # --- Step 2: Create Isolated Root Path ---
+    $baseTempPath = if ($envDetails.IsCI) {
+        if ($envDetails.IsWindows) { $env:TEMP } else { '/tmp' }
     }
     else {
-        Join-Path $moduleRoot "Temp"
+        Join-Path $script:ModuleRoot "Temp"
     }
+
     $testRoot = Join-Path $baseTempPath "WMR-Tests-$SuiteName-$SessionId"
-    New-Item -Path $testRoot -ItemType Directory -Force | Out-Null
-    Write-Verbose "✅ Initialized isolated test root: $testRoot"
+    Write-Verbose "Isolated Test Root: $testRoot"
 
-    # Define standard paths within the isolated root
-    $testPaths = @{
-        TestRoot    = $testRoot
-        TestRestore = Join-Path $testRoot "test-restore"
-        TestBackup  = Join-Path $testRoot "test-backup"
-        Temp        = Join-Path $testRoot "temp"
-        TestState   = Join-Path $testRoot "test-state"
-        Logs        = Join-Path $testRoot "logs"
+    # --- Step 3: Safety Validation ---
+    Test-WmrEnvironmentSafety -TestRoot $testRoot -Strict
+    Write-Verbose "✅ Environment safety validation passed."
+
+    # --- Step 4: Create Directory Structure ---
+    if ($Force -and (Test-Path $testRoot)) {
+        Write-Warning "Force cleanup requested - removing existing test directory..."
+        Remove-Item -Path $testRoot -Recurse -Force
+    }
+    $testPaths = New-WmrTestDirectoryStructure -TestRoot $testRoot
+    Write-Verbose "✅ Test directory structure created."
+
+    # --- Step 5: Set Environment Variables ---
+    Set-WmrTestEnvironmentVariables -TestPaths $testPaths -EnvironmentDetails $envDetails
+    Write-Verbose "✅ Test environment variables configured."
+
+    # --- Step 6: Suite-Specific Setup ---
+    Invoke-WmrSuiteSpecificSetup -SuiteName $SuiteName -ModuleRoot $script:ModuleRoot
+    Write-Verbose "✅ Suite-specific setup for '$SuiteName' complete."
+
+
+    # --- Step 7: Finalize and Return ---
+    $script:TestRunInitialized = $true
+    $script:CurrentTestEnvironment = $testPaths
+    $global:TestEnvironment = $script:CurrentTestEnvironment # For backward compatibility with some tests
+
+    Write-Information -MessageData "🎉 Unified test environment initialized successfully!" -InformationAction Continue
+    return $script:CurrentTestEnvironment
+}
+
+function Remove-WmrTestEnvironment {
+    <#
+    .SYNOPSIS
+        Safely removes the currently active test environment directory.
+    #>
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
+    param()
+
+    if (-not $script:TestRunInitialized -or -not $script:CurrentTestEnvironment) {
+        Write-Verbose "No active test environment to remove."
+        return
     }
 
-    # Create all standard directories
-    $testPaths.Values | ForEach-Object {
-        if (-not (Test-Path $_)) {
-            New-Item -Path $_ -ItemType Directory -Force | Out-Null
+    $testRoot = $script:CurrentTestEnvironment.TestRoot
+    Write-Warning "🧹 Cleaning up isolated test environment at: $testRoot"
+
+    # Final safety check before removing
+    Test-WmrEnvironmentSafety -TestRoot $testRoot -Strict
+
+    if ($PSCmdlet.ShouldProcess($testRoot, "Remove Test Environment Directory")) {
+        Remove-Item -Path $testRoot -Recurse -Force
+        Write-Verbose "✅ Test environment cleanup successful."
+    }
+
+    $script:TestRunInitialized = $false
+    $script:CurrentTestEnvironment = $null
+    $global:TestEnvironment = $null
+}
+
+
+# --- Internal Helper Functions ---
+
+function Get-WmrEnvironmentType {
+    [OutputType([PSCustomObject])]
+    [CmdletBinding()]
+    param()
+
+    Write-Verbose "🔍 Detecting test environment type..."
+    $isDocker = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
+    $isWindows = $IsWindows
+    $isCI = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+
+    $envType = [PSCustomObject]@{
+        IsDocker  = $isDocker
+        IsWindows = $isWindows
+        IsLinux   = $IsLinux
+        IsMacOs   = $IsMacOS
+        IsCI      = $isCI
+        Platform  = if ($isWindows) { 'Windows' } elseif ($isLinux) { 'Linux' } else { 'MacOS' }
+    }
+
+    Write-Verbose "Environment: $($envType | ConvertTo-Json -Compress)"
+    return $envType
+}
+
+function Find-WmrModuleRoot {
+    [OutputType('string')]
+    [CmdletBinding()]
+    param()
+
+    Write-Verbose "🔍 Finding module root..."
+    $currentPath = $PSScriptRoot
+    if (-not $currentPath) { $currentPath = Get-Location }
+
+    $searchDepth = 0
+    while ($currentPath -and $searchDepth -lt 10) {
+        if (Test-Path (Join-Path $currentPath "WindowsMelodyRecovery.psd1")) {
+            Write-Verbose "Found module root at: $currentPath"
+            return $currentPath.ToString()
+        }
+        $parentPath = Split-Path -Parent $currentPath
+        if ($parentPath -eq $currentPath) { break }
+        $currentPath = $parentPath
+        $searchDepth++
+    }
+
+    Write-Error "Could not find module root directory."
+    return $null
+}
+
+function Test-WmrEnvironmentSafety {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TestRoot,
+        [switch]$Strict
+    )
+
+    Write-Verbose "🛡️  Performing environment safety validation for path: $TestRoot"
+
+    # Check 1: Forbidden Roots
+    foreach ($root in $script:TestConfiguration.SafetyPatterns.ForbiddenRoots) {
+        if ($TestRoot -eq $root) {
+            throw "Safety Error: Test root cannot be a filesystem root ('$root')."
         }
     }
 
-    # Load general test utilities for all environments
-    $utilityPath = Join-Path $moduleRoot "tests/utilities/Test-Utilities.ps1"
-    if (Test-Path $utilityPath) {
-        . $utilityPath
-        Write-Verbose "Loaded general test utilities from: $utilityPath"
+    # Check 2: Required Patterns
+    $foundRequired = $false
+    foreach ($pattern in $script:TestConfiguration.SafetyPatterns.RequiredInPath) {
+        if ($TestRoot -like "*$pattern*") {
+            $foundRequired = $true
+            break
+        }
+    }
+    if (-not $foundRequired) {
+        throw "Safety Error: Test root path '$TestRoot' must contain one of the required safety patterns: $($script:TestConfiguration.SafetyPatterns.RequiredInPath -join ', ')."
     }
 
-    # Set critical test environment variables for path redirection
-    $env:WMR_TEST_MODE = 'true'
-    $env:WMR_STATE_PATH = $testPaths.TestState
-    $env:WMR_BACKUP_PATH = $testPaths.TestBackup
-    $env:WMR_LOG_PATH = $testPaths.Logs
+    # Check 3: Forbidden Paths
+    foreach ($pattern in $script:TestConfiguration.SafetyPatterns.ForbiddenPaths) {
+        if ($TestRoot -like "*$pattern*") {
+            throw "Safety Error: Test root path '$TestRoot' contains a forbidden pattern: '$pattern'."
+        }
+    }
 
-    # Disable PowerShell telemetry and update checks during testing
-    $env:POWERSHELL_TELEMETRY_OPTOUT = '1'
-    $env:POWERSHELL_UPDATECHECK_OPTOUT = '1'
+    Write-Verbose "Safety validation passed."
+}
 
-    # --- Suite-specific setup ---
+function New-WmrTestDirectoryStructure {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TestRoot
+    )
+
+    $paths = @{
+        TestRoot   = $TestRoot
+        ModuleRoot = $script:ModuleRoot
+    }
+
+    foreach ($dirEntry in $script:TestConfiguration.Directories.GetEnumerator()) {
+        $fullPath = Join-Path $TestRoot $dirEntry.Value
+        New-Item -Path $fullPath -ItemType Directory -Force | Out-Null
+        $paths[$dirEntry.Name] = $fullPath
+    }
+
+    return $paths
+}
+
+function Set-WmrTestEnvironmentVariables {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$TestPaths,
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$EnvironmentDetails
+    )
+
+    # Set standard variables
+    foreach ($var in $script:TestConfiguration.Environment.Variables.GetEnumerator()) {
+        $env:($var.Name) = $var.Value
+    }
+
+    # Set dynamic path variables
+    $env:WMR_STATE_PATH = $TestPaths.TestState
+    $env:WMR_BACKUP_PATH = $TestPaths.TestBackup
+    $env:WMR_LOG_PATH = $TestPaths.Logs
+    $env:WMR_TEMP_PATH = $TestPaths.Temp
+
+    # Set environment indicator variables
+    $env:WMR_IS_DOCKER = $EnvironmentDetails.IsDocker.ToString()
+    $env:WMR_IS_CI = $EnvironmentDetails.IsCI.ToString()
+}
+
+function Invoke-WmrSuiteSpecificSetup {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$SuiteName,
+        [Parameter(Mandatory)]
+        [string]$ModuleRoot
+    )
+
+    $utilitiesPath = Join-Path $ModuleRoot "tests/utilities"
+
+    # A helper function to safely dot-source a utility if it exists.
+    function Import-TestUtility {
+        param([string]$UtilityName)
+        $utilityFile = Join-Path $utilitiesPath "$UtilityName.ps1"
+        if (Test-Path $utilityFile) {
+            . $utilityFile
+            Write-Verbose "Loaded test utility: $UtilityName"
+        }
+        else {
+            Write-Warning "Could not find test utility: $UtilityName"
+        }
+    }
+
+    Write-Verbose "🔧 Performing setup for '$SuiteName' suite..."
     switch ($SuiteName) {
         'Unit' {
-            # Unit tests should have NO file system or registry mocks.
-            # They should be pure logic tests.
-            Write-Verbose "🔧 Initializing Unit Test environment. (Minimal setup)"
+            # Unit tests should be pure logic and require minimal setup.
+            # Mocks should be defined within the test files themselves.
         }
         'FileOps' {
-            Write-Verbose "🔧 Initializing File Operations Test environment."
-            # FileOps tests get the standard paths, but no complex mocks.
+            # FileOps tests need the standard paths, but no complex application mocks.
         }
         'Integration' {
-            Write-Verbose "🔧 Initializing Integration Test environment."
-            # Load mocks for external services, but not a full virtual file system.
-            . (Join-Path $moduleRoot "tests/utilities/Mock-Utilities.ps1")
+            # Load mocks for external services, applications, etc.
+            Import-TestUtility "Mock-Utilities"
+            Import-TestUtility "Mock-Integration"
         }
         'E2E' {
-            Write-Verbose "🔧 Initializing End-to-End Test environment."
             # E2E tests get the full mock infrastructure.
-            . (Join-Path $moduleRoot "tests/utilities/Enhanced-Mock-Infrastructure.ps1")
-            if ($envType.IsDocker) {
-                . (Join-Path $moduleRoot "tests/utilities/Docker-Path-Mocks.ps1")
+            Import-TestUtility "Mock-Utilities"
+            Import-TestUtility "Enhanced-Mock-Infrastructure"
+            if ((Get-WmrEnvironmentType).IsDocker) {
+                Import-TestUtility "Docker-Path-Mocks"
             }
         }
         'Windows' {
-            Write-Verbose "🔧 Initializing Windows-Only Test environment."
             # Windows tests run against the real system, so minimal mocking is needed.
-            # Safety checks should be handled by the test runner itself.
+            # Safety checks are paramount and handled by the core initializer.
         }
-    }
-
-    # Make paths available to the script scope
-    $global:TestEnvironment = $testPaths
-    Write-Verbose "✅ Test environment '$SuiteName' initialized successfully."
-    return $global:TestEnvironment
-}
-
-# --- Deprecated Global Variables and Functions ---
-# The following are kept for brief backward compatibility but will be removed.
-
-# $script:ModuleRoot = Find-ModuleRoot
-# if ($script:IsCICDEnvironment) {
-# ... existing logic ...
-# } else {
-# ... existing logic ...
-# }
-
-# function Ensure-TestModules { ... }
-# Ensure-TestModules
-
-# Import Test-Utilities for cleanup and helper functions
-. (Join-Path $PSScriptRoot "Test-Utilities.ps1")
-
-# Functions are automatically available when dot-sourced
-# Export-ModuleMember is not needed since this script is dot-sourced, not imported as a module
-
-<#
-.SYNOPSIS
-Imports core WindowsMelodyRecovery functions for testing with code coverage support.
-
-.DESCRIPTION
-This function loads core WindowsMelodyRecovery functions through the module system
-to enable proper code coverage tracking while avoiding TUI dependencies.
-
-.PARAMETER Functions
-Array of function names to import. If not specified, imports all core functions.
-
-.PARAMETER SkipTUI
-Skip TUI module loading to avoid dependencies. Default is $true.
-
-.EXAMPLE
-Import-WmrCoreForTesting -Functions @('Get-WmrFileState', 'Set-WmrFileState')
-#>
-function Import-WmrCoreForTesting {
-    [CmdletBinding()]
-    param(
-        [string[]]$Functions = @(),
-        [bool]$SkipTUI = $true
-    )
-
-    # Find the module root
-    $moduleRoot = $PSScriptRoot
-    while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-        $moduleRoot = Split-Path -Parent $moduleRoot
-        if ([string]::IsNullOrEmpty($moduleRoot)) {
-            throw "Could not find WindowsMelodyRecovery module root"
-        }
-    }
-
-    # Ensure TUI dependency is available for module import
-    if (-not (Get-Module -Name Microsoft.PowerShell.ConsoleGuiTools -ListAvailable)) {
-        Write-Verbose "Installing Microsoft.PowerShell.ConsoleGuiTools for code coverage testing..."
-        try {
-            Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
-            Write-Verbose "Successfully installed Microsoft.PowerShell.ConsoleGuiTools"
-        }
-        catch {
-            Write-Warning "Failed to install Microsoft.PowerShell.ConsoleGuiTools: $($_.Exception.Message)"
-            throw "Cannot import module without TUI dependency. Please install Microsoft.PowerShell.ConsoleGuiTools manually."
-        }
-    }
-
-    # Import the full module for code coverage
-    try {
-        $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
-        Import-Module $modulePath -Force -Global -ErrorAction Stop
-        Write-Verbose "Successfully imported WindowsMelodyRecovery module for code coverage"
-
-        # Explicitly load Core functions that may not be exported by the module
-        $coreFiles = @(
-            "Private\Core\PathUtilities.ps1",         # Load first - contains ConvertTo-TestEnvironmentPath
-            "Private\Core\EncryptionUtilities.ps1",
-            "Private\Core\ApplicationState.ps1",
-            "Private\Core\FileState.ps1",
-            "Private\Core\RegistryState.ps1",
-            "Private\Core\Prerequisites.ps1",
-            "Private\Core\AdministrativePrivileges.ps1",
-            "Private\Core\Test-WmrAdminPrivilege.ps1"
-        )
-
-        foreach ($coreFile in $coreFiles) {
-            $coreFilePath = Join-Path $moduleRoot $coreFile
-            if (Test-Path $coreFilePath) {
-                try {
-                    # Load in global scope to ensure functions are available to tests
-                    Invoke-Expression ". '$coreFilePath'"
-                    Write-Verbose "Successfully loaded core file: $coreFile"
-                }
-                catch {
-                    Write-Warning "Failed to load core file $coreFile`: $($_.Exception.Message)"
-                }
-            }
-        }
-
-        # Verify that the requested functions are available
-        if ($Functions.Count -gt 0) {
-            foreach ($func in $Functions) {
-                if (-not (Get-Command $func -ErrorAction SilentlyContinue)) {
-                    Write-Warning "Function $func not found after module import"
-                }
-            }
-        }
-    }
-    catch {
-        throw "Failed to import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 }
+#endregion
 
 
 

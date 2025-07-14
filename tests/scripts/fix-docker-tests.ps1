@@ -112,9 +112,11 @@ foreach ($testFile in $testFiles) {
 
 # Fix Export-ModuleMember issues in source files
 $sourceFiles = @(
-    "Private/Core/ConfigurationValidation.ps1",
-    "Private/Core/Prerequisites.ps1",
-    "Private/Core/PathUtilities.ps1"
+    "Private/Core/ConditionalProcessing.ps1",
+    "Private/Core/ConfigurationMerging.ps1",
+    "Private/Core/TemplateResolution.ps1",
+    "Private/Core/TemplateInheritance.ps1",
+    "Private/Core/MachineContext.ps1"
 )
 
 Write-Information -MessageData "`n🔧 Fixing Export-ModuleMember issues in source files..." -InformationAction Continue

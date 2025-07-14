@@ -2,48 +2,33 @@
 # Phase 6.1: Encryption Workflow Testing - Unit Tests
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-
-    # Load the unified test environment (works for both Docker and Windows)
+    # Import the unified test environment library and initialize it.
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Initialize test environment
-    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\EncryptionUtilities.ps1")
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
+    function New-TestSecureString {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)]
+            [string]$PlainText
+        )
+        $secureString = [System.Security.SecureString]::new()
+        $PlainText.ToCharArray() | ForEach-Object { $secureString.AppendChar($_) }
+        $secureString.MakeReadOnly()
+        return $secureString
     }
 
-    # Create and import the test helper module
-    $helperPath = Join-Path $PSScriptRoot "../utilities/EncryptionTestHelper.ps1"
-    . $helperPath
-
-    # Set up test environment
-    $script:TestDataPath = [string](New-TestTempDirectory)
     $script:TestPassword = "TestP@ssw0rd123!"
     $script:TestSecureString = New-TestSecureString -PlainText $TestPassword
     $script:TestWrongPassword = New-TestSecureString -PlainText "WrongP@ssw0rd!"
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe 'Encryption Workflow Tests' {
@@ -360,14 +345,6 @@ Newlines and tabs:
             # Assert
             $results | Should -Not -Contain $false
         }
-    }
-}
-
-AfterAll {
-    # Clean up test environment
-    Clear-WmrEncryptionCache
-    if ($script:TestDataPath -and (Test-Path $script:TestDataPath)) {
-        Remove-Item -Path $script:TestDataPath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 

@@ -2,41 +2,40 @@
 # Tests for setup-bitlocker.ps1 and Initialize-WindowsBackup.ps1
 
 BeforeAll {
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
+    # Import the unified test environment library and initialize it for Windows tests.
+    . (Join-Path $PSScriptRoot "..\..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Windows'
+
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
     # Import setup scripts
-    . "$PSScriptRoot/../../Private/setup/setup-bitlocker.ps1"
-    . "$PSScriptRoot/../../Private/setup/Initialize-WindowsBackup.ps1"
+    . (Join-Path $script:TestEnvironment.ModuleRoot "Private/setup/setup-bitlocker.ps1")
+    . (Join-Path $script:TestEnvironment.ModuleRoot "Private/setup/Initialize-WindowsBackup.ps1")
 
-    # Test data setup
-    $script:TestBackupLocation = Join-Path $env:TEMP "TestBackup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+    # Test data setup using the initialized environment
+    $script:TestBackupLocation = $script:TestEnvironment.TestBackup
     $script:TestDrive = $env:SystemDrive
     $script:IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
     # Mock data for testing
     $script:MockBitLockerStatus = @{
-        MountPoint = $script:TestDrive
-        ProtectionStatus = "Off"
+        MountPoint           = $script:TestDrive
+        ProtectionStatus     = "Off"
         EncryptionPercentage = 0
-        VolumeStatus = "FullyDecrypted"
-        KeyProtector = @()
+        VolumeStatus         = "FullyDecrypted"
+        KeyProtector         = @()
     }
 
     $script:MockTPMStatus = @{
         TpmPresent = $true
-        TpmReady = $true
+        TpmReady   = $true
         TpmEnabled = $true
     }
 }
 
 AfterAll {
-    # Cleanup test backup location
-    if (Test-Path $script:TestBackupLocation) {
-        Remove-Item -Path $script:TestBackupLocation -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Cleanup test scheduled tasks
+    # Cleanup test scheduled tasks before removing the environment
     $testTasks = @(
         "WindowsMelodyRecovery_SystemBackup",
         "WindowsMelodyRecovery_BackupCleanup"
@@ -53,6 +52,9 @@ AfterAll {
             # Ignore cleanup errors
         }
     }
+
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "BitLocker Setup Script Tests" {

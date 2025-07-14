@@ -52,7 +52,7 @@ Write-Information -MessageData "⚙️ Running Integration Tests for Windows Mel
 
 # Initialize a dedicated, isolated environment for this integration test run
 Write-Warning -Message "🧹 Initializing isolated integration test environment..."
-$testEnvironment = Initialize-TestEnvironment -SuiteName 'Integration'
+$testEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 Write-Information -MessageData "" -InformationAction Continue
 
@@ -93,14 +93,14 @@ foreach ($test in $testsToRun) {
 
     try {
         $pesterConfig = @{
-            Run = @{ Path = $testFile }
+            Run    = @{ Path = $testFile }
             Output = @{ Verbosity = $OutputFormat }
         }
 
         if ($GenerateReport) {
             $pesterConfig.TestResult = @{
-                Enabled = $true
-                OutputPath = Join-Path $testEnvironment.Logs "integration-test-results.xml"
+                Enabled      = $true
+                OutputPath   = Join-Path $testEnvironment.Logs "integration-test-results.xml"
                 OutputFormat = 'JUnitXml'
             }
         }
@@ -127,7 +127,7 @@ foreach ($test in $testsToRun) {
 # Cleanup
 if (-not $SkipCleanup) {
     Write-Warning -Message "🧹 Cleaning up test environment..."
-    Remove-TestEnvironment
+    Remove-WmrTestEnvironment
     Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
 }
 

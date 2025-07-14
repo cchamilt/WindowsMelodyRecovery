@@ -1,4 +1,4 @@
-﻿function Restore-SystemSetting {
+﻿function Restore-WmrSystemSetting {
     <#
     .SYNOPSIS
     Restores system settings from backup data.
@@ -18,10 +18,10 @@
     Shows what would be restored without making actual changes.
 
     .EXAMPLE
-    Restore-SystemSettings -BackupPath "C:\Backups\SystemSettings"
+    Restore-WmrSystemSetting -BackupPath "C:\Backups\SystemSettings"
 
     .EXAMPLE
-    Restore-SystemSettings -BackupPath "C:\Backups\SystemSettings" -WhatIf
+    Restore-WmrSystemSetting -BackupPath "C:\Backups\SystemSettings" -WhatIf
 
     .NOTES
     This function requires administrator privileges for some system settings.
@@ -149,12 +149,12 @@
     # Create restore manifest
     $restoreManifestPath = Join-Path (Split-Path $BackupPath) "restore-manifest.json"
     $restoreManifest = @{
-        RestoreType = "SystemSettings"
-        Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-        Version = "1.0.0"
-        SourceBackup = $BackupPath
+        RestoreType   = "SystemSettings"
+        Timestamp     = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+        Version       = "1.0.0"
+        SourceBackup  = $BackupPath
         RestoredItems = @()
-        Status = if ($WhatIfPreference) { "Simulated" }
+        Status        = if ($WhatIfPreference) { "Simulated" }
         else { "Completed" }
     }
 
@@ -163,8 +163,8 @@
         $regFiles = Get-ChildItem $registryPath -Filter "*.reg"
         foreach ($regFile in $regFiles) {
             $restoreManifest.RestoredItems += @{
-                Type = "Registry"
-                Path = "registry/$($regFile.Name)"
+                Type   = "Registry"
+                Path   = "registry/$($regFile.Name)"
                 Status = "Restored"
             }
         }
@@ -174,8 +174,8 @@
         $prefFiles = Get-ChildItem $preferencesPath -Filter "*.json"
         foreach ($prefFile in $prefFiles) {
             $restoreManifest.RestoredItems += @{
-                Type = "Preferences"
-                Path = "preferences/$($prefFile.Name)"
+                Type   = "Preferences"
+                Path   = "preferences/$($prefFile.Name)"
                 Status = "Restored"
             }
         }
@@ -185,8 +185,8 @@
         $configFiles = Get-ChildItem $configPath -Filter "*.json"
         foreach ($configFile in $configFiles) {
             $restoreManifest.RestoredItems += @{
-                Type = "Config"
-                Path = "config/$($configFile.Name)"
+                Type   = "Config"
+                Path   = "config/$($configFile.Name)"
                 Status = "Restored"
             }
         }
@@ -212,6 +212,8 @@
 
     return $restoreManifest
 }
+
+Export-ModuleMember -Function 'Restore-WmrSystemSetting'
 
 
 

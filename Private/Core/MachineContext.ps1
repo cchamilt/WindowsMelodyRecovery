@@ -103,7 +103,80 @@ function Get-WmrApplicableMachineConfiguration {
     $applicableConfigs = @()
 
     foreach ($config in $MachineSpecificConfigs) {
-        if (Test-WmrMachineSelector -MachineSelectors $config.machine_selectors -MachineContext $MachineContext) {
+        $configApplicable = $false
+        foreach ($selector in $config.machine_selectors) {
+            $result = $false
+            switch ($selector.type) {
+                "machine_name" {
+                    $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                    if ($caseSensitive) {
+                        $result = $MachineContext.MachineName -ceq $selector.value
+                    }
+                    else {
+                        $result = $MachineContext.MachineName -eq $selector.value
+                    }
+                }
+                "hostname_pattern" {
+                    $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                    if ($caseSensitive) {
+                        $result = $MachineContext.MachineName -cmatch $selector.value
+                    }
+                    else {
+                        $result = $MachineContext.MachineName -match $selector.value
+                    }
+                }
+                "environment_variable" {
+                    $envValue = $MachineContext.EnvironmentVariables[$selector.value]
+                    if ($envValue) {
+                        $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                        if ($caseSensitive) {
+                            $result = $envValue -ceq $selector.expected_value
+                        }
+                        else {
+                            $result = $envValue -eq $selector.expected_value
+                        }
+                    }
+                }
+                "registry_value" {
+                    try {
+                        $regValue = Get-ItemProperty -Path $selector.path -Name $selector.key_name -ErrorAction SilentlyContinue
+                        if ($regValue) {
+                            $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                            if ($caseSensitive) {
+                                $result = $regValue.$($selector.key_name) -ceq $selector.expected_value
+                            }
+                            else {
+                                $result = $regValue.$($selector.key_name) -eq $selector.expected_value
+                            }
+                        }
+                    }
+                    catch {
+                        Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
+                    }
+                }
+                "script" {
+                    try {
+                        $scriptBlock = [ScriptBlock]::Create($selector.script)
+                        $scriptResult = & $scriptBlock $MachineContext
+                        $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
+                        if ($caseSensitive) {
+                            $result = $scriptResult -ceq $selector.expected_result
+                        }
+                        else {
+                            $result = $scriptResult -eq $selector.expected_result
+                        }
+                    }
+                    catch {
+                        Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
+                    }
+                }
+            }
+            if ($result) {
+                $configApplicable = $true
+                break
+            }
+        }
+        if ($configApplicable) {
             Write-Verbose "Machine-specific configuration '$($config.name)' applies to this machine"
             $applicableConfigs += $config
         }
@@ -113,209 +186,6 @@ function Get-WmrApplicableMachineConfiguration {
     $applicableConfigs = $applicableConfigs | Sort-Object { if ($_.priority) { $_.priority } else { 80 } } -Descending
 
     return $applicableConfigs
-}
-
-function Test-WmrMachineSelector {
-    <#
-    .SYNOPSIS
-        Tests if machine selectors match the current machine.
-    #>
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [array]$MachineSelectors,
-
-        [Parameter(Mandatory = $true)]
-        [PSObject]$MachineContext
-    )
-
-    foreach ($selector in $MachineSelectors) {
-        $result = $false
-
-        switch ($selector.type) {
-            "machine_name" {
-                $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
-                $result = Test-WmrStringComparison -Value $MachineContext.MachineName -Expected $selector.value -Operator $selector.operator -CaseSensitive $caseSensitive
-            }
-            "hostname_pattern" {
-                $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
-                $result = Test-WmrStringComparison -Value $MachineContext.MachineName -Expected $selector.value -Operator "matches" -CaseSensitive $caseSensitive
-            }
-            "environment_variable" {
-                $envValue = $MachineContext.EnvironmentVariables[$selector.value]
-                if ($envValue) {
-                    $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
-                    $result = Test-WmrStringComparison -Value $envValue -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $caseSensitive
-                }
-            }
-            "registry_value" {
-                try {
-                    $regValue = Get-ItemProperty -Path $selector.path -Name $selector.key_name -ErrorAction SilentlyContinue
-                    if ($regValue) {
-                        $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
-                        $result = Test-WmrStringComparison -Value $regValue.$($selector.key_name) -Expected $selector.expected_value -Operator $selector.operator -CaseSensitive $caseSensitive
-                    }
-                }
-                catch {
-                    Write-Verbose "Failed to read registry value for selector: $($_.Exception.Message)"
-                }
-            }
-            "script" {
-                try {
-                    $scriptBlock = [ScriptBlock]::Create($selector.script)
-                    $scriptResult = & $scriptBlock $MachineContext
-                    $caseSensitive = if ($null -ne $selector.case_sensitive -and $selector.case_sensitive -ne "") { [bool]$selector.case_sensitive } else { $false }
-                    $result = Test-WmrStringComparison -Value $scriptResult -Expected $selector.expected_result -Operator $selector.operator -CaseSensitive $caseSensitive
-                }
-                catch {
-                    Write-Verbose "Failed to execute selector script: $($_.Exception.Message)"
-                }
-            }
-        }
-
-        if ($result) {
-            return $true  # At least one selector matches
-        }
-    }
-
-    return $false  # No selectors matched
-}
-
-function Test-WmrStringComparison {
-    <#
-    .SYNOPSIS
-        Tests string comparison with various operators.
-    #>
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Value,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Expected,
-
-        [Parameter(Mandatory = $false)]
-        [string]$Operator = "equals",
-
-        [Parameter(Mandatory = $false)]
-        [bool]$CaseSensitive = $false
-    )
-
-    switch ($Operator) {
-        "equals" {
-            if ($CaseSensitive) {
-                return $Value -ceq $Expected
-            }
-            else {
-                return $Value -eq $Expected
-            }
-        }
-        "not_equals" {
-            if ($CaseSensitive) {
-                return $Value -cne $Expected
-            }
-            else {
-                return $Value -ne $Expected
-            }
-        }
-        "contains" {
-            if ($CaseSensitive) {
-                return $Value -clike "*$Expected*"
-            }
-            else {
-                return $Value -like "*$Expected*"
-            }
-        }
-        "matches" {
-            if ($CaseSensitive) {
-                return $Value -cmatch $Expected
-            }
-            else {
-                return $Value -match $Expected
-            }
-        }
-        "greater_than" {
-            if ($CaseSensitive) {
-                return $Value -cgt $Expected
-            }
-            else {
-                return $Value -gt $Expected
-            }
-        }
-        "less_than" {
-            if ($CaseSensitive) {
-                return $Value -clt $Expected
-            }
-            else {
-                return $Value -lt $Expected
-            }
-        }
-        default {
-            Write-Warning "Unknown comparison operator: $Operator"
-            return $false
-        }
-    }
-}
-
-function Get-WmrApplicableMachineConfiguration {
-    <#
-    .SYNOPSIS
-        Gets machine-specific configurations that apply to the current machine.
-
-    .DESCRIPTION
-        Filters machine-specific configurations based on machine selectors and returns
-        them sorted by priority (highest priority first).
-
-    .PARAMETER MachineSpecificConfigs
-        Array of machine-specific configurations to filter.
-
-    .PARAMETER MachineContext
-        Machine context information to test selectors against.
-
-    .EXAMPLE
-        $configs = Get-WmrApplicableMachineConfiguration -MachineSpecificConfigs $machineConfigs -MachineContext $context
-    #>
-    [CmdletBinding()]
-    [OutputType([System.Array])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.Array]$MachineSpecificConfigs,
-
-        [Parameter(Mandatory = $true)]
-        [System.Collections.Hashtable]$MachineContext
-    )
-
-    Write-Verbose "Filtering machine-specific configurations for current machine"
-
-    $applicableConfigs = @()
-
-    foreach ($config in $MachineSpecificConfigs) {
-        if (-not $config.machine_selectors) {
-            Write-Verbose "Configuration '$($config.name)' has no machine selectors, skipping"
-            continue
-        }
-
-        $isApplicable = Test-WmrMachineSelector -MachineSelectors $config.machine_selectors -MachineContext $MachineContext
-
-        if ($isApplicable) {
-            Write-Verbose "Configuration '$($config.name)' applies to current machine"
-            $applicableConfigs += $config
-        }
-        else {
-            Write-Verbose "Configuration '$($config.name)' does not apply to current machine"
-        }
-    }
-
-    # Sort by priority (highest first), then by name for consistent ordering
-    $sortedConfigs = $applicableConfigs | Sort-Object -Property @(
-        @{ Expression = { if ($_.priority) { $_.priority } else { 0 } }; Descending = $true },
-        @{ Expression = { $_.name }; Descending = $false }
-    )
-
-    Write-Verbose "Found $($sortedConfigs.Count) applicable machine configurations"
-    return $sortedConfigs
 }
 
 # Functions are available when dot-sourced, no need to export when not in module context

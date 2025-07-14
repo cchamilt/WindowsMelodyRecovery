@@ -13,14 +13,17 @@
 #>
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-
-    # Load the unified test environment (works for both Docker and Windows)
+    # Import the unified test environment library and initialize it.
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Initialize test environment
-    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "WSL Logic Unit Tests" -Tag "Unit", "WSL" {

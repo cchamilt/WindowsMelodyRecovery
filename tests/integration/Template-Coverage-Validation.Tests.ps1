@@ -18,30 +18,20 @@
 #>
 
 BeforeAll {
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Setup test environment
-    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $script:TestRoot = Join-Path $tempPath "WMR-Template-Coverage-Tests"
-    $script:TestBackupRoot = Join-Path $script:TestRoot "backups"
-    $script:TestRestoreRoot = Join-Path $script:TestRoot "restore"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Create test directories
-    @($script:TestRoot, $script:TestBackupRoot, $script:TestRestoreRoot) | ForEach-Object {
-        if (-not (Test-Path $_)) {
-            New-Item -Path $_ -ItemType Directory -Force | Out-Null
-        }
-    }
+    # Setup test environment paths from the initialized environment
+    $script:TestRoot = $script:TestEnvironment.TestRoot
+    $script:TestBackupRoot = $script:TestEnvironment.TestBackup
+    $script:TestRestoreRoot = $script:TestEnvironment.TestRestore
 
     # Get module paths
-    $script:ModuleRoot = Split-Path (Get-Module WindowsMelodyRecovery).Path -Parent
+    $script:ModuleRoot = $script:TestEnvironment.ModuleRoot
     $script:TemplatesPath = Join-Path $script:ModuleRoot "Templates\System"
 
     # Import required functions
@@ -65,15 +55,15 @@ BeforeAll {
             if ($hasMetadata -and $hasContent) {
                 # Return a mock structure for validation
                 return @{
-                    metadata = @{
-                        name = "Test Template"
+                    metadata      = @{
+                        name        = "Test Template"
                         description = "Test Description"
-                        version = "1.0"
-                        author = "Windows Melody Recovery"
+                        version     = "1.0"
+                        author      = "Windows Melody Recovery"
                     }
-                    registry = @()
-                    files = @()
-                    applications = @()
+                    registry      = @()
+                    files         = @()
+                    applications  = @()
                     prerequisites = @()
                 }
             }
@@ -93,18 +83,18 @@ BeforeAll {
 
     # Define template categories for organized testing
     $script:TemplateCategories = @{
-        "System" = @("system-settings", "power", "display", "sound", "network")
-        "Input" = @("keyboard", "mouse", "touchpad", "touchscreen")
-        "Applications" = @("applications", "browsers", "defaultapps")
+        "System"           = @("system-settings", "power", "display", "sound", "network")
+        "Input"            = @("keyboard", "mouse", "touchpad", "touchscreen")
+        "Applications"     = @("applications", "browsers", "defaultapps")
         "Microsoft Office" = @("excel", "word", "outlook", "onenote", "visio")
-        "Gaming" = @("gamemanagers")
-        "Development" = @("powershell", "terminal", "ssh")
+        "Gaming"           = @("gamemanagers")
+        "Development"      = @("powershell", "terminal", "ssh")
         "Windows Features" = @("windows-updates", "windows-optional-features", "windows-capabilities")
-        "Remote Access" = @("rdp-client", "rdp-server", "vpn")
-        "Security" = @("keepassxc")
-        "System UI" = @("explorer", "startmenu")
-        "Hardware" = @("printer")
-        "WSL" = @("wsl")
+        "Remote Access"    = @("rdp-client", "rdp-server", "vpn")
+        "Security"         = @("keepassxc")
+        "System UI"        = @("explorer", "startmenu")
+        "Hardware"         = @("printer")
+        "WSL"              = @("wsl")
     }
 
     # Helper function to validate YAML structure
@@ -192,6 +182,11 @@ BeforeAll {
             return $false
         }
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
@@ -415,11 +410,11 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should handle JSON parsing for all template types" {
             $testData = @{
-                "Simple" = '{"key": "value", "number": 123}'
+                "Simple"  = '{"key": "value", "number": 123}'
                 "Complex" = '{"nested": {"array": [1, 2, 3], "object": {"deep": true}}, "unicode": "测试"}'
-                "Array" = '[{"id": 1, "name": "test"}, {"id": 2, "name": "test2"}]'
-                "Empty" = '{}'
-                "Null" = 'null'
+                "Array"   = '[{"id": 1, "name": "test"}, {"id": 2, "name": "test2"}]'
+                "Empty"   = '{}'
+                "Null"    = 'null'
             }
 
             foreach ($testCase in $testData.Keys) {
@@ -431,9 +426,9 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
         It "Should handle special characters in JSON" {
             $specialChars = @{
                 "Backslashes" = '{"path": "C:\\Users\\Test\\AppData"}'
-                "Quotes" = '{"message": "He said \"Hello\""}'
-                "Unicode" = '{"chinese": "你好", "emoji": "🎉"}'
-                "Newlines" = '{"multiline": "Line 1\nLine 2\nLine 3"}'
+                "Quotes"      = '{"message": "He said \"Hello\""}'
+                "Unicode"     = '{"chinese": "你好", "emoji": "🎉"}'
+                "Newlines"    = '{"multiline": "Line 1\nLine 2\nLine 3"}'
             }
 
             foreach ($testCase in $specialChars.Keys) {
@@ -504,17 +499,17 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
 
         It "Should generate comprehensive coverage report" {
             $report = @{
-                TotalTemplates = $script:AllTemplates.Count
-                Categories = $script:TemplateCategories.Keys.Count
-                TemplatesWithRegistry = ($script:AllTemplates | Where-Object {
+                TotalTemplates             = $script:AllTemplates.Count
+                Categories                 = $script:TemplateCategories.Keys.Count
+                TemplatesWithRegistry      = ($script:AllTemplates | Where-Object {
                         $content = Get-Content $_.FullName -Raw
                         $content -match "registry\s*:"
                     }).Count
-                TemplatesWithFiles = ($script:AllTemplates | Where-Object {
+                TemplatesWithFiles         = ($script:AllTemplates | Where-Object {
                         $content = Get-Content $_.FullName -Raw
                         $content -match "files\s*:"
                     }).Count
-                TemplatesWithApplications = ($script:AllTemplates | Where-Object {
+                TemplatesWithApplications  = ($script:AllTemplates | Where-Object {
                         $content = Get-Content $_.FullName -Raw
                         $content -match "applications\s*:"
                     }).Count
@@ -539,19 +534,6 @@ Describe "Template Coverage Validation" -Tag "Template", "Coverage" {
             $report.TemplatesWithApplications | Should -BeGreaterThan 5
             $report.TemplatesWithPrerequisites | Should -BeGreaterThan 15
         }
-    }
-}
-
-AfterAll {
-    # Comprehensive cleanup
-    try {
-        if (Test-Path $script:TestRoot) {
-            Remove-Item $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Warning -Message "Cleaned up template test directory: $script:TestRoot"
-        }
-    }
-    catch {
-        Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"
     }
 }
 

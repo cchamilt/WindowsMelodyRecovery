@@ -46,7 +46,7 @@ Write-Information -MessageData "🧪 Running Unit Tests for Windows Melody Recov
 
 # Initialize a dedicated, isolated environment for this unit test run
 Write-Warning -Message "🧹 Initializing isolated unit test environment..."
-$testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+$testEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 Write-Information -MessageData "" -InformationAction Continue
 
@@ -201,7 +201,7 @@ foreach ($test in $testsToRun) {
 
 # Cleanup
 Write-Warning -Message "🧹 Cleaning up test environment..."
-Remove-TestEnvironment
+Remove-WmrTestEnvironment
 Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
 
 # Summary

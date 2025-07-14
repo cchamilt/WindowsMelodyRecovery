@@ -1,26 +1,21 @@
 ﻿BeforeAll {
-    # Import required modules and functions
-    $script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Import the main module
-    Import-Module (Join-Path $script:ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import core functions
-    . (Join-Path $script:ModuleRoot "Private\Core\WindowsMelodyRecovery.Core.ps1")
-    . (Join-Path $script:ModuleRoot "Private\Core\WindowsMelodyRecovery.Initialization.ps1")
-    . (Join-Path $script:ModuleRoot "Private\Core\InvokeWmrTemplate.ps1")
-
-    # Set up test environment
-    $script:TestRoot = Join-Path $env:TEMP "WMR-SharedConfig-Integration-Tests"
-    $script:TestBackupRoot = Join-Path $script:TestRoot "Backups"
+    # Set up test environment paths
+    $script:TestRoot = $script:TestEnvironment.TestRoot
+    $script:TestBackupRoot = $script:TestEnvironment.TestBackup
     $script:TestMachineBackup = Join-Path $script:TestBackupRoot "TEST-MACHINE"
     $script:TestSharedBackup = Join-Path $script:TestBackupRoot "shared"
-    $script:TestRestoreRoot = Join-Path $script:TestRoot "Restore"
-    $script:TestTemplatesRoot = Join-Path $script:TestRoot "Templates"
+    $script:TestRestoreRoot = $script:TestEnvironment.TestRestore
+    $script:TestTemplatesRoot = Join-Path $script:TestEnvironment.Temp "Templates"
 
     # Create test directories
-    @($script:TestRoot, $script:TestBackupRoot, $script:TestMachineBackup,
-        $script:TestSharedBackup, $script:TestRestoreRoot, $script:TestTemplatesRoot) | ForEach-Object {
+    @($script:TestMachineBackup, $script:TestSharedBackup, $script:TestTemplatesRoot) | ForEach-Object {
         if (-not (Test-Path $_)) {
             New-Item -ItemType Directory -Path $_ -Force | Out-Null
         }
@@ -28,11 +23,11 @@
 
     # Set up test module configuration
     $script:TestConfig = @{
-        BackupRoot = $script:TestBackupRoot
-        MachineName = "TEST-MACHINE"
-        WindowsMelodyRecoveryPath = $script:ModuleRoot
-        CloudProvider = "OneDrive"
-        IsInitialized = $true
+        BackupRoot                = $script:TestBackupRoot
+        MachineName               = "TEST-MACHINE"
+        WindowsMelodyRecoveryPath = $script:TestEnvironment.ModuleRoot
+        CloudProvider             = "OneDrive"
+        IsInitialized             = $true
     }
 
     # Mock Get-WindowsMelodyRecovery for testing
@@ -72,6 +67,11 @@
     }
 }
 
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
+}
+
 Describe "SharedConfiguration Integration Tests" -Tag "Integration", "SharedConfiguration" {
 
     Context "Machine-Specific vs Shared Configuration Priority" {
@@ -82,10 +82,10 @@ Describe "SharedConfiguration Integration Tests" -Tag "Integration", "SharedConf
             New-Item -ItemType Directory -Path $machineConfigPath -Force | Out-Null
 
             $machineConfig = @{
-                Source = "Machine"
-                Theme = "Dark"
-                Language = "en-US"
-                Priority = 1
+                Source    = "Machine"
+                Theme     = "Dark"
+                Language  = "en-US"
+                Priority  = 1
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             }
             $machineConfig | ConvertTo-Json -Depth 3 | Out-File (Join-Path $machineConfigPath "display.json") -Encoding UTF8
@@ -95,10 +95,10 @@ Describe "SharedConfiguration Integration Tests" -Tag "Integration", "SharedConf
             New-Item -ItemType Directory -Path $sharedConfigPath -Force | Out-Null
 
             $sharedConfig = @{
-                Source = "Shared"
-                Theme = "Light"
-                Language = "en-GB"
-                Priority = 2
+                Source    = "Shared"
+                Theme     = "Light"
+                Language  = "en-GB"
+                Priority  = 2
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             }
             $sharedConfig | ConvertTo-Json -Depth 3 | Out-File (Join-Path $sharedConfigPath "display.json") -Encoding UTF8
@@ -122,12 +122,12 @@ Describe "SharedConfiguration Integration Tests" -Tag "Integration", "SharedConf
             New-Item -ItemType Directory -Path $sharedConfigPath -Force | Out-Null
 
             $sharedConfig = @{
-                Source = "Shared"
-                Theme = "Light"
-                Language = "en-GB"
-                FontSize = 12
+                Source       = "Shared"
+                Theme        = "Light"
+                Language     = "en-GB"
+                FontSize     = 12
                 FallbackUsed = $true
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Timestamp    = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             }
             $sharedConfig | ConvertTo-Json -Depth 3 | Out-File (Join-Path $sharedConfigPath "display.json") -Encoding UTF8
 
@@ -157,31 +157,31 @@ Describe "SharedConfiguration Integration Tests" -Tag "Integration", "SharedConf
         It "Should merge configurations correctly for template-based operations" {
             # Create base configuration
             $baseConfig = @{
-                BackupRoot = $script:TestBackupRoot
-                MachineName = "DEFAULT-MACHINE"
-                CloudProvider = "OneDrive"
-                EmailSettings = @{
+                BackupRoot     = $script:TestBackupRoot
+                MachineName    = "DEFAULT-MACHINE"
+                CloudProvider  = "OneDrive"
+                EmailSettings  = @{
                     FromAddress = "default@example.com"
-                    SmtpServer = "smtp.office365.com"
-                    SmtpPort = 587
+                    SmtpServer  = "smtp.office365.com"
+                    SmtpPort    = 587
                 }
                 BackupSettings = @{
                     RetentionDays = 30
-                    ExcludePaths = @("*.tmp", "*.log")
+                    ExcludePaths  = @("*.tmp", "*.log")
                 }
             }
 
             # Create override configuration
             $overrideConfig = @{
-                MachineName = "TEST-MACHINE"
-                CloudProvider = "GoogleDrive"
-                EmailSettings = @{
+                MachineName    = "TEST-MACHINE"
+                CloudProvider  = "GoogleDrive"
+                EmailSettings  = @{
                     FromAddress = "test@example.com"
-                    ToAddress = "admin@example.com"
+                    ToAddress   = "admin@example.com"
                 }
                 BackupSettings = @{
                     RetentionDays = 60
-                    IncludePaths = @("*.config", "*.json")
+                    IncludePaths  = @("*.config", "*.json")
                 }
             }
 
@@ -264,13 +264,13 @@ files:
             New-Item -ItemType Directory -Path $sharedRegistryPath -Force | Out-Null
 
             $sharedRegistryConfig = @{
-                Name = "Test Registry Setting"
-                Path = "HKCU:\Software\TestApp"
-                Values = @{
+                Name      = "Test Registry Setting"
+                Path      = "HKCU:\Software\TestApp"
+                Values    = @{
                     Setting1 = "SharedValue1"
                     Setting2 = "SharedValue2"
                 }
-                Source = "Shared"
+                Source    = "Shared"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             }
             $sharedRegistryConfig | ConvertTo-Json -Depth 3 | Out-File (Join-Path $sharedRegistryPath "test_app.json") -Encoding UTF8
@@ -296,13 +296,13 @@ files:
             New-Item -ItemType Directory -Path $machineRegistryPath -Force | Out-Null
 
             $machineRegistryConfig = @{
-                Name = "Test Registry Setting"
-                Path = "HKCU:\Software\TestApp"
-                Values = @{
+                Name      = "Test Registry Setting"
+                Path      = "HKCU:\Software\TestApp"
+                Values    = @{
                     Setting1 = "MachineValue1"  # Override shared value
                     Setting3 = "MachineValue3"  # Machine-specific value
                 }
-                Source = "Machine"
+                Source    = "Machine"
                 Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             }
             $machineRegistryConfig | ConvertTo-Json -Depth 3 | Out-File (Join-Path $machineRegistryPath "test_app.json") -Encoding UTF8
@@ -343,9 +343,9 @@ files:
 
                     $machineConfig = @{
                         Component = $componentName
-                        Source = "Machine"
-                        Settings = @{
-                            Theme = "Dark"
+                        Source    = "Machine"
+                        Settings  = @{
+                            Theme         = "Dark"
                             CustomSetting = "MachineValue"
                         }
                     }
@@ -359,9 +359,9 @@ files:
 
                     $sharedConfig = @{
                         Component = $componentName
-                        Source = "Shared"
-                        Settings = @{
-                            Theme = "Light"
+                        Source    = "Shared"
+                        Settings  = @{
+                            Theme         = "Light"
                             SharedSetting = "SharedValue"
                         }
                     }
@@ -403,8 +403,8 @@ files:
             New-Item -ItemType Directory -Path $validSharedPath -Force | Out-Null
 
             $validSharedConfig = @{
-                Name = "Valid Shared"
-                Value = "SharedValue"
+                Name   = "Valid Shared"
+                Value  = "SharedValue"
                 Source = "Shared"
             }
             $validSharedConfig | ConvertTo-Json -Depth 3 | Out-File (Join-Path $validSharedPath "config.json") -Encoding UTF8
@@ -432,13 +432,6 @@ files:
             # Should return null gracefully
             $resolvedPath | Should -Be $null
         }
-    }
-}
-
-AfterAll {
-    # Clean up test environment
-    if (Test-Path $script:TestRoot) {
-        Remove-Item $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 

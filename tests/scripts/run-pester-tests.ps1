@@ -6,11 +6,17 @@ param(
     [switch]$GenerateReport
 )
 
+# Import the unified test environment library and initialize it
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+# The suite name for initialization is 'Integration' as this runner handles various integration suites.
+$testEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
+
 Write-Information -MessageData "🧪 Running Pester Tests - Suite: $TestSuite" -InformationAction Continue
 
 # Check platform compatibility
 if ($TestSuite -eq "WindowsOnly" -and -not $IsWindows) {
     Write-Error -Message "❌ WindowsOnly test suite can only run on Windows systems"
+    Remove-WmrTestEnvironment
     exit 1
 }
 
@@ -18,30 +24,17 @@ if ($TestSuite -eq "WindowsOnly" -and -not $IsWindows) {
 Import-Module Pester -Force -ErrorAction Stop
 Write-Information -MessageData "✓ Pester imported" -InformationAction Continue
 
-# Environment detection for path configuration
-$isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-(Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
+# Use paths from the initialized environment
+$basePath = $testEnvironment.ModuleRoot
+$testResultsPath = $testEnvironment.Reports
+$tempPath = $testEnvironment.Temp
 
-# Set base paths based on environment
-if ($isDockerEnvironment) {
-    $basePath = "/workspace"
-    $testResultsPath = "/workspace/test-results"
-    $tempPath = "/workspace/Temp"
-}
-else {
-    # Use project root for local Windows environments
-    $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $basePath = $moduleRoot
-    $testResultsPath = Join-Path $moduleRoot "test-results"
-    $tempPath = Join-Path $moduleRoot "Temp"
-}
-
-# Create output directories
+# Create output directories (now managed by the initializer, this is for verification)
 $outputDirs = @(
     (Join-Path $testResultsPath "junit"),
     (Join-Path $testResultsPath "coverage"),
-    (Join-Path $testResultsPath "reports"),
-    (Join-Path $testResultsPath "logs"),
+    (Join-Path $testResultsPath "reports"), # Note: this is recursive, for tool compatibility.
+    $testEnvironment.Logs,
     $tempPath
 )
 
@@ -61,7 +54,7 @@ $config.Output.RenderMode = 'Plaintext'
 
 # Test result configuration
 $config.TestResult.Enabled = $true
-    $config.TestResult.OutputFormat = 'JUnitXml'
+$config.TestResult.OutputFormat = 'JUnitXml'
 $config.TestResult.OutputPath = Join-Path $testResultsPath "junit/test-results.xml"
 
 # Code coverage configuration (enabled for production code only)
@@ -197,6 +190,7 @@ foreach ($path in $config.Run.Path.Value) {
 if ($missingFiles.Count -gt 0) {
     Write-Error -Message "❌ Missing test files:"
     $missingFiles | ForEach-Object { Write-Error -Message "  - $_" }
+    Remove-WmrTestEnvironment
     exit 1
 }
 
@@ -222,13 +216,13 @@ try {
     try {
         # Create a simplified results object to avoid serialization issues
         $simplifiedResults = @{
-            TotalCount = $results.TotalCount
-            PassedCount = $results.PassedCount
-            FailedCount = $results.FailedCount
+            TotalCount   = $results.TotalCount
+            PassedCount  = $results.PassedCount
+            FailedCount  = $results.FailedCount
             SkippedCount = $results.SkippedCount
-            Duration = $results.Duration.ToString()
-            TestSuite = $TestSuite
-            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            Duration     = $results.Duration.ToString()
+            TestSuite    = $TestSuite
+            Timestamp    = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         }
         $simplifiedResults | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
         Write-Information -MessageData "💾 JSON results saved to: $jsonPath" -InformationAction Continue
@@ -252,6 +246,10 @@ try {
         # Add HTML report generation here if needed
     }
 
+    # Final cleanup
+    Remove-WmrTestEnvironment
+    Write-Information -MessageData "✅ Test environment cleaned up." -InformationAction Continue
+
     # Return appropriate exit code
     if ($results.FailedCount -gt 0) {
         Write-Error -Message "❌ Some tests failed!"
@@ -264,8 +262,8 @@ try {
 
 }
 catch {
-    Write-Error -Message "❌ Test execution failed: $($_.Exception.Message)"
-    Write-Information -MessageData $_.ScriptStackTrace  -InformationAction Continue-ForegroundColor Red
+    Write-Error -Message "💥 Pester execution failed: $($_.Exception.Message)"
+    Remove-WmrTestEnvironment
     exit 1
 }
 

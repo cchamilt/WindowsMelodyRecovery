@@ -2,12 +2,6 @@
 # WSL Package Install Script
 # Restores WSL packages from backup data
 
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory = $true)]
-    [string]$StateJson
-)
-
 function Install-WSLAptPackage {
     param([array]$AptPackages)
 
@@ -76,36 +70,44 @@ function Install-WSLPipPackage {
     }
 }
 
-# Main execution
-try {
-    if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-        Write-Warning "WSL not available for package restoration"
-        return
+function Install-WslPackage {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$StateJson
+    )
+    try {
+        if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
+            Write-Warning "WSL not available for package restoration"
+            return
+        }
+
+        $packages = $StateJson | ConvertFrom-Json
+
+        if ($packages.Count -eq 0) {
+            Write-Warning -Message "No packages found in backup to restore"
+            return
+        }
+
+        # Group packages by package manager
+        $aptPackages = $packages | Where-Object { $_.PackageManager -eq "apt" }
+        $npmPackages = $packages | Where-Object { $_.PackageManager -eq "npm" }
+        $pipPackages = $packages | Where-Object { $_.PackageManager -eq "pip" }
+
+        # Install packages by manager
+        Install-WSLAptPackage -AptPackages $aptPackages
+        Install-WSLNpmPackage -NpmPackages $npmPackages
+        Install-WSLPipPackage -PipPackages $pipPackages
+
+        Write-Information -MessageData "WSL package restoration completed" -InformationAction Continue
+
     }
-
-    $packages = $StateJson | ConvertFrom-Json
-
-    if ($packages.Count -eq 0) {
-        Write-Warning -Message "No packages found in backup to restore"
-        return
+    catch {
+        Write-Error "Failed to restore WSL packages: $($_.Exception.Message)"
     }
-
-    # Group packages by package manager
-    $aptPackages = $packages | Where-Object { $_.PackageManager -eq "apt" }
-    $npmPackages = $packages | Where-Object { $_.PackageManager -eq "npm" }
-    $pipPackages = $packages | Where-Object { $_.PackageManager -eq "pip" }
-
-    # Install packages by manager
-    Install-WSLAptPackages -AptPackages $aptPackages
-    Install-WSLNpmPackages -NpmPackages $npmPackages
-    Install-WSLPipPackages -PipPackages $pipPackages
-
-    Write-Information -MessageData "WSL package restoration completed" -InformationAction Continue
-
 }
-catch {
-    Write-Error "Failed to restore WSL packages: $($_.Exception.Message)"
-}
+
+Export-ModuleMember -Function 'Install-WslPackage', 'Install-WSLAptPackage', 'Install-WSLNpmPackage', 'Install-WSLPipPackage'
 
 
 

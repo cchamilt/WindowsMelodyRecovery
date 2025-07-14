@@ -14,22 +14,23 @@ if (-not $env:CI -and -not $env:GITHUB_ACTIONS) {
 }
 
 BeforeAll {
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../../WindowsMelodyRecovery.psd1") -Force
+    # Import the unified test environment library and initialize it for Windows tests.
+    . (Join-Path $PSScriptRoot "..\..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Windows'
 
-    # Set up test environment
-    $script:TestTempDir = Join-Path $env:TEMP "WMR-WindowsPrincipal-Tests"
-    if (Test-Path $script:TestTempDir) {
-        Remove-Item $script:TestTempDir -Recurse -Force
-    }
-    New-Item -Path $script:TestTempDir -ItemType Directory -Force | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+
+    # Import the test utility
+    . (Join-Path $script:TestEnvironment.ModuleRoot "tests/utilities/Test-WmrAdminPrivilege.ps1")
+
+    # Use the temp directory from the initialized environment
+    $script:TestTempDir = $script:TestEnvironment.Temp
 }
 
 AfterAll {
-    # Clean up test environment
-    if (Test-Path $script:TestTempDir) {
-        Remove-Item $script:TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
@@ -57,12 +58,12 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
         It "Should analyze template privilege requirements correctly" {
             $template = @{
                 metadata = @{
-                    name = "test-template"
+                    name    = "test-template"
                     version = "1.0"
                 }
                 registry = @(
                     @{
-                        path = "HKLM:\SOFTWARE\Test"
+                        path   = "HKLM:\SOFTWARE\Test"
                         values = @()
                     }
                 )
@@ -100,7 +101,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
 
         It "Should identify Windows features as requiring admin" {
             $template = @{
-                metadata = @{ name = "windows-features-test" }
+                metadata         = @{ name = "windows-features-test" }
                 windows_features = @(
                     @{ name = "IIS-WebServerRole" }
                 )
@@ -209,7 +210,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
 
         It "Should handle registry state operations" {
             $registryConfig = @{
-                path = "HKCU:\SOFTWARE\WMR-Test"
+                path   = "HKCU:\SOFTWARE\WMR-Test"
                 values = @{
                     "TestValue" = "TestData"
                 }
@@ -245,7 +246,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
             "test content" | Out-File -FilePath $testPath -Encoding UTF8
 
             $fileConfig = @{
-                path = $testPath
+                path    = $testPath
                 encrypt = $false
             }
 
@@ -260,7 +261,7 @@ Describe "Windows Principal Unit Tests" -Tag "Windows", "Unit", "Principal" {
             New-Item -Path $testDir -ItemType Directory -Force | Out-Null
 
             $dirConfig = @{
-                path = $testDir
+                path    = $testDir
                 encrypt = $false
             }
 

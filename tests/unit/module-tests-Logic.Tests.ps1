@@ -3,37 +3,12 @@
 # File operations moved to tests/file-operations/module-tests-FileOperations.Tests.ps1
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
-
-    # Load the unified test environment (works for both Docker and Windows)
+    # Import the unified test environment library and initialize it.
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Initialize test environment
-    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
-
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
     # Create a dummy function for Get-WindowsMelodyRecovery (doesn't exist as a file)
     function Get-WindowsMelodyRecovery {
@@ -110,7 +85,6 @@ BeforeAll {
     Mock Convert-ToWinget { }
     Mock Set-WindowsMelodyRecoveryScript { }
     Mock Sync-WindowsMelodyRecoveryScript { }
-    Mock Test-WindowsMelodyRecovery { }
     Mock Update-WindowsMelodyRecovery { }
     Mock Install-WindowsMelodyRecoveryTask { }
     Mock Remove-WindowsMelodyRecoveryTask { }
@@ -120,6 +94,11 @@ BeforeAll {
     Mock Get-Module {
         return @{ Name = "WindowsMelodyRecovery"; Path = $TestModulePath }
     } -ParameterFilter { $Name -eq "WindowsMelodyRecovery" }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
@@ -168,7 +147,14 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
                 'Initialize-WindowsMelodyRecovery',
                 'Get-WindowsMelodyRecoveryStatus',
                 'Backup-WindowsMelodyRecovery',
-                'Restore-WindowsMelodyRecovery'
+                'Restore-WindowsMelodyRecovery',
+                'Start-WindowsMelodyRecovery',
+                'Convert-ToWinget',
+                'Set-WindowsMelodyRecoveryScript',
+                'Sync-WindowsMelodyRecoveryScript',
+                'Update-WindowsMelodyRecovery',
+                'Install-WindowsMelodyRecoveryTask',
+                'Remove-WindowsMelodyRecoveryTask'
             )
 
             foreach ($function in $expectedFunctions) {
@@ -313,7 +299,6 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
                 'Convert-ToWinget',
                 'Set-WindowsMelodyRecoveryScript',
                 'Sync-WindowsMelodyRecoveryScript',
-                'Test-WindowsMelodyRecovery',
                 'Update-WindowsMelodyRecovery',
                 'Install-WindowsMelodyRecoveryTask',
                 'Remove-WindowsMelodyRecoveryTask'
@@ -374,15 +359,28 @@ Describe "Windows Melody Recovery Module - Logic Tests" -Tag "Unit", "Logic" {
             Should -Invoke Initialize-WindowsMelodyRecovery -Times 1
         }
     }
-}
 
-AfterAll {
-    # Cleanup mocked environment
-    Remove-Variable -Name env:WMR_CONFIG_PATH -ErrorAction SilentlyContinue
-    Remove-Variable -Name env:WMR_BACKUP_PATH -ErrorAction SilentlyContinue
-    Remove-Variable -Name env:WMR_LOG_PATH -ErrorAction SilentlyContinue
-    Remove-Variable -Name env:COMPUTERNAME -ErrorAction SilentlyContinue
-    Remove-Variable -Name env:USERPROFILE -ErrorAction SilentlyContinue
+    Context "Update Logic" {
+        It "Should test update command logic" {
+            # Test update function invocation
+            { Update-WindowsMelodyRecovery -NoPrompt } | Should -Not -Throw
+            Should -Invoke Update-WindowsMelodyRecovery -Times 1
+        }
+    }
+
+    Context "Scheduled Task Logic" {
+        It "Should test task installation logic" {
+            # Test task creation function invocation
+            { Install-WindowsMelodyRecoveryTask -ErrorAction Stop } | Should -Not -Throw
+            Should -Invoke Install-WindowsMelodyRecoveryTask -Times 1
+        }
+
+        It "Should test task removal logic" {
+            # Test task removal function invocation
+            { Remove-WindowsMelodyRecoveryTask -ErrorAction Stop } | Should -Not -Throw
+            Should -Invoke Remove-WindowsMelodyRecoveryTask -Times 1
+        }
+    }
 }
 
 

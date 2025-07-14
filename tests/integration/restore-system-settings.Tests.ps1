@@ -1,27 +1,31 @@
 ﻿Describe "System Settings Restore Tests" {
     BeforeAll {
-        # Import the module with standardized pattern
-        try {
-            $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-            Import-Module $ModulePath -Force -ErrorAction Stop
-        }
-        catch {
-            throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-        }
+        # Import the unified test environment library and initialize it for Integration tests.
+        . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+        $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-        # Set up test paths
-        $testBackupPath = "/workspace/test-backups/system-settings"
-        $testRestorePath = "/workspace/test-restore/system-settings"
-        $mockRegistryPath = "/mock-registry"
-        $mockAppDataPath = "/mock-appdata"
+        # Import the main module to make functions available for testing.
+        Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-        # Create test directories if they don't exist
+        # Set up test paths from the initialized environment
+        $testBackupPath = Join-Path $script:TestEnvironment.TestBackup "system-settings"
+        $testRestorePath = Join-Path $script:TestEnvironment.TestRestore "system-settings"
+        $mockRegistryPath = "/mock-registry"  # This seems to be a hardcoded mock path
+        $mockAppDataPath = "/mock-appdata"    # This seems to be a hardcoded mock path
+
+        # The initializer already creates the root test directories.
+        # We might need to create the specific subdirectories for this test.
         if (-not (Test-Path $testBackupPath)) {
             New-Item -Path $testBackupPath -ItemType Directory -Force | Out-Null
         }
         if (-not (Test-Path $testRestorePath)) {
             New-Item -Path $testRestorePath -ItemType Directory -Force | Out-Null
         }
+    }
+
+    AfterAll {
+        # Clean up the test environment created in BeforeAll.
+        Remove-WmrTestEnvironment
     }
 
     Context "Environment Setup" {
@@ -85,9 +89,9 @@ Windows Registry Editor Version 5.00
 
             $mockPrefFile = Join-Path $preferencesPath "user-preferences.json"
             @{
-                Theme = "Dark"
-                Language = "en-US"
-                TimeZone = "UTC"
+                Theme       = "Dark"
+                Language    = "en-US"
+                TimeZone    = "UTC"
                 RestoreTest = "RestoredPreference"
             } | ConvertTo-Json | Out-File -FilePath $mockPrefFile -Encoding UTF8
 
@@ -117,19 +121,19 @@ Windows Registry Editor Version 5.00
             $mockConfigFile = Join-Path $configPath "system-config.json"
             @{
                 Display = @{
-                    Resolution = "1920x1080"
+                    Resolution  = "1920x1080"
                     RefreshRate = 60
-                    Scaling = 100
+                    Scaling     = 100
                 }
-                Power = @{
-                    Plan = "Balanced"
-                    SleepTimeout = 15
+                Power   = @{
+                    Plan             = "Balanced"
+                    SleepTimeout     = 15
                     HibernateTimeout = 30
                 }
                 Network = @{
-                    WiFiEnabled = $true
+                    WiFiEnabled     = $true
                     EthernetEnabled = $true
-                    VPNEnabled = $false
+                    VPNEnabled      = $false
                 }
             } | ConvertTo-Json -Depth 3 | Out-File -FilePath $mockConfigFile -Encoding UTF8
 
@@ -156,9 +160,9 @@ Windows Registry Editor Version 5.00
             $manifestPath = Join-Path $testBackupPath "backup-manifest.json"
             @{
                 BackupType = "SystemSettings"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
-                Items = @(
+                Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version    = "1.0.0"
+                Items      = @(
                     @{ Type = "Registry"; Path = "registry" },
                     @{ Type = "Preferences"; Path = "preferences" },
                     @{ Type = "Config"; Path = "config" }
@@ -175,16 +179,16 @@ Windows Registry Editor Version 5.00
         It "Should create restore manifest" {
             $restoreManifestPath = Join-Path $testRestorePath "restore-manifest.json"
             @{
-                RestoreType = "SystemSettings"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
-                SourceBackup = $testBackupPath
+                RestoreType   = "SystemSettings"
+                Timestamp     = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version       = "1.0.0"
+                SourceBackup  = $testBackupPath
                 RestoredItems = @(
                     @{ Type = "Registry"; Path = "registry/restored-registry.reg" },
                     @{ Type = "Preferences"; Path = "preferences/restored-preferences.json" },
                     @{ Type = "Config"; Path = "config/restored-system-config.json" }
                 )
-                Status = "Completed"
+                Status        = "Completed"
             } | ConvertTo-Json -Depth 3 | Out-File -FilePath $restoreManifestPath -Encoding UTF8
 
             Test-Path $restoreManifestPath | Should -Be $true
@@ -234,16 +238,6 @@ Windows Registry Editor Version 5.00
 
             $restoredContent = Get-Content $existingFile -Raw
             $restoredContent | Should -Match "Backup content"
-        }
-    }
-
-    AfterAll {
-        # Clean up test files
-        if (Test-Path $testBackupPath) {
-            Remove-Item -Path $testBackupPath -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        if (Test-Path $testRestorePath) {
-            Remove-Item -Path $testRestorePath -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 }

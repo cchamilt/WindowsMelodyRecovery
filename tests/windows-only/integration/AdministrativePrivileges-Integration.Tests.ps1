@@ -19,63 +19,52 @@
 #>
 
 BeforeAll {
+    # Import the unified test environment library and initialize it for Windows tests.
+    . (Join-Path $PSScriptRoot "..\..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Windows'
+
     # CRITICAL SAFETY CHECK: Only run in CI/CD environment
-    $isCICD = $env:GITHUB_ACTIONS -eq "true" -or
-    $env:AZURE_PIPELINES -eq "True" -or
-    $env:CI -eq "true" -or
-    $env:BUILD_BUILDID -or
-    $env:SYSTEM_TEAMPROJECT -or
-    $env:RUNNER_OS -eq "Windows"
-
-    $isWindowsCI = $IsWindows -and $isCICD
-
-    if (-not $isWindowsCI) {
+    if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
         Write-Warning "Administrative privilege integration tests are disabled outside Windows CI/CD environment"
-        Write-Warning "Current environment: IsWindows=$IsWindows, CI/CD=$isCICD"
         return
     }
 
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Import test utilities
-    . "$PSScriptRoot/../utilities/Test-Utilities.ps1"
+    # Import test utility
+    . (Join-Path $script:TestEnvironment.ModuleRoot "tests/utilities/Test-WmrAdminPrivilege.ps1")
 
     # Verify we're running with admin privileges in CI/CD
-    $isAdmin = try {
-        ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    }
-    catch {
-        $false
-    }
-
-    if (-not $isAdmin) {
+    if (-not (Test-WmrAdminPrivilege)) {
         throw "Administrative privilege integration tests require elevated privileges in CI/CD environment"
     }
 
-    # Set up test environment
-    $script:TestBackupDir = Join-Path $env:TEMP "WMR-AdminTest-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-    $script:TestStateDir = Join-Path $script:TestBackupDir "State"
-    $script:TestTemplateDir = Join-Path $PSScriptRoot "../../Templates/System"
-
-    # Create test directories
-    New-Item -ItemType Directory -Path $script:TestBackupDir -Force | Out-Null
-    New-Item -ItemType Directory -Path $script:TestStateDir -Force | Out-Null
+    # Set up test environment paths from the initialized environment
+    $script:TestBackupDir = $script:TestEnvironment.TestBackup
+    $script:TestStateDir = $script:TestEnvironment.TestState
+    $script:TestTemplateDir = Join-Path $script:TestEnvironment.ModuleRoot "Templates/System"
 
     Write-Warning -Message "Running administrative privilege integration tests in CI/CD environment"
     Write-Verbose -Message "Test backup directory: $script:TestBackupDir"
 }
 
+AfterAll {
+    if ($script:TestEnvironment) {
+        Remove-WmrTestEnvironment
+    }
+}
+
 Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "AdminRequired", "CICDOnly" {
     BeforeAll {
-        if (-not $isWindowsCI) {
+        if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
             return
         }
     }
 
     Context "Windows Optional Features Integration" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -112,12 +101,12 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
         It "Should handle Windows Optional Features prerequisites correctly" {
             # Test prerequisite checking for admin-required operations
             $templateConfig = @{
-                metadata = @{ name = "Test Template" }
+                metadata      = @{ name = "Test Template" }
                 prerequisites = @(
                     @{
-                        type = "script"
-                        name = "Administrative Privileges Required"
-                        inline_script = @"
+                        type            = "script"
+                        name            = "Administrative Privileges Required"
+                        inline_script   = @"
                             try {
                                 `$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
                                 `$isAdmin = `$currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -132,7 +121,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
                             }
 "@
                         expected_output = "Administrative privileges confirmed"
-                        on_missing = "warn"
+                        on_missing      = "warn"
                     }
                 )
             }
@@ -144,7 +133,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
     Context "Windows Capabilities Integration" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -181,7 +170,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
     Context "Scheduled Task Management Integration" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -222,9 +211,9 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             # Mock configuration for testing
             Mock -CommandName "Get-WindowsMelodyRecovery" -MockWith {
                 return @{
-                    BackupRoot = $script:TestBackupDir
-                    MachineName = "TestMachine"
-                    WindowsMelodyRecoveryPath = $PSScriptRoot
+                    BackupRoot                = $script:TestBackupDir
+                    MachineName               = "TestMachine"
+                    WindowsMelodyRecoveryPath = $script:TestEnvironment.ModuleRoot
                 }
             }
 
@@ -251,7 +240,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
     Context "Registry Operations Integration" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -299,10 +288,10 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
                 # Test Get-WmrRegistryState with HKLM path
                 $registryConfig = @{
-                    name = "Test Registry State"
-                    path = $testKeyPath
-                    type = "key"
-                    action = "backup"
+                    name               = "Test Registry State"
+                    path               = $testKeyPath
+                    type               = "key"
+                    action             = "backup"
                     dynamic_state_path = "test_registry.json"
                 }
 
@@ -335,7 +324,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
     Context "Service Management Integration" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -377,7 +366,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
     Context "Setup Script Integration" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -394,7 +383,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             )
 
             foreach ($scriptName in $setupScripts) {
-                $scriptPath = Join-Path $PSScriptRoot "../../Private/setup/$scriptName"
+                $scriptPath = Join-Path $script:TestEnvironment.ModuleRoot "Private/setup/$scriptName"
 
                 if (Test-Path $scriptPath) {
                     # Test that script exists and can be parsed
@@ -416,9 +405,9 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
             # Mock dependencies for testing
             Mock -CommandName "Get-WindowsMelodyRecovery" -MockWith {
                 return @{
-                    BackupRoot = $script:TestBackupDir
-                    MachineName = "TestMachine"
-                    WindowsMelodyRecoveryPath = $PSScriptRoot
+                    BackupRoot                = $script:TestBackupDir
+                    MachineName               = "TestMachine"
+                    WindowsMelodyRecoveryPath = $script:TestEnvironment.ModuleRoot
                 }
             }
 
@@ -439,7 +428,7 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
     Context "Administrative Privilege Validation" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -474,14 +463,14 @@ Describe "Administrative Privilege Integration Tests" -Tag "WindowsOnly", "Admin
 
 Describe "Administrative Privilege Error Handling" -Tag "WindowsOnly", "AdminRequired", "CICDOnly" {
     BeforeAll {
-        if (-not $isWindowsCI) {
+        if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
             return
         }
     }
 
     Context "Graceful Degradation Testing" {
         BeforeEach {
-            if (-not $isWindowsCI) {
+            if (-not $script:TestEnvironment.IsWindows -or -not $script:TestEnvironment.IsCI) {
                 Set-ItResult -Skipped -Because "Not running in Windows CI/CD environment"
                 return
             }
@@ -523,25 +512,6 @@ Describe "Administrative Privilege Error Handling" -Tag "WindowsOnly", "AdminReq
             Assert-MockCalled -CommandName "Test-WmrAdminPrivilege" -Times 1
         }
     }
-}
-
-AfterAll {
-    if (-not $isWindowsCI) {
-        return
-    }
-
-    # Clean up test environment
-    try {
-        if (Test-Path $script:TestBackupDir) {
-            Remove-Item -Path $script:TestBackupDir -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Verbose -Message "Cleaned up test backup directory: $script:TestBackupDir"
-        }
-    }
-    catch {
-        Write-Warning "Failed to clean up test backup directory: $_"
-    }
-
-    Write-Information -MessageData "Administrative privilege integration tests completed" -InformationAction Continue
 }
 
 

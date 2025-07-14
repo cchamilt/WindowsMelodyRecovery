@@ -2,29 +2,32 @@
 # Tests realistic user scenarios and workflows
 
 BeforeAll {
-    # Import the module using standardized pattern
-    $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-    try {
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Failed to import module from $ModulePath : $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for End-to-End tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'E2E'
 
-    # Set up user journey test environment
-    $script:UserRoot = Join-Path $TestDrive "UserJourney"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+
+    # Set up user journey test environment paths
+    $script:UserRoot = $script:TestEnvironment.TestRoot
     $script:HomeDir = Join-Path $script:UserRoot "UserHome"
     $script:WorkDir = Join-Path $script:UserRoot "WorkMachine"
     $script:BackupStorage = Join-Path $script:UserRoot "CloudBackup"
 
-    # Create user environment
-    @($script:UserRoot, $script:HomeDir, $script:WorkDir, $script:BackupStorage) | ForEach-Object {
+    # Create user environment directories
+    @($script:HomeDir, $script:WorkDir, $script:BackupStorage) | ForEach-Object {
         New-Item -Path $_ -ItemType Directory -Force | Out-Null
     }
 
     # Mock user environment
     $env:USERPROFILE = $script:HomeDir
     $env:COMPUTERNAME = "USER-HOME-PC"
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJourney" {
@@ -351,22 +354,6 @@ Describe "Windows Melody Recovery - User Journey Tests" -Tag "EndToEnd", "UserJo
             Write-Verbose -Message "  Status: $([math]::Round($statusTime.TotalSeconds, 2))s, Backup: $([math]::Round($backupTime.TotalSeconds, 2))s"
         }
     }
-}
-
-AfterAll {
-    # Comprehensive cleanup
-    Write-Warning -Message "🧹 Cleaning up user journey test environment..."
-
-    if (Test-Path $script:UserRoot) {
-        Remove-Item -Path $script:UserRoot -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Reset environment variables
-    @("WMR_CONFIG_PATH", "WMR_BACKUP_PATH", "WMR_LOG_PATH", "COMPUTERNAME", "USERPROFILE") | ForEach-Object {
-        Remove-Item -Path "env:$_" -ErrorAction SilentlyContinue
-    }
-
-    Write-Information -MessageData "✅ User journey test cleanup completed" -InformationAction Continue
 }
 
 

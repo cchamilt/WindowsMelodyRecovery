@@ -10,50 +10,32 @@
 
 Describe "Cloud Provider Failover Scenario Tests" {
     BeforeAll {
-        # Import the module with standardized pattern
-        try {
-            $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-            Import-Module $ModulePath -Force -ErrorAction Stop
-        }
-        catch {
-            throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-        }
+        # Import the unified test environment library and initialize it for Integration tests.
+        . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+        $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
+
+        # Import the main module to make functions available for testing.
+        Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
         # Import cloud provider detection functions
-        $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {
-            "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1"
-        }
-        elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
-            "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1"
-        }
-        else {
-            throw "Cannot find cloud-provider-detection.ps1 script"
-        }
-        . $CloudDetectionScript
+        . (Join-Path $script:TestEnvironment.ModuleRoot "tests/mock-data/cloud/cloud-provider-detection.ps1")
 
-        # Set up test environment
-        $script:TestBackupRoot = if ($env:TEMP) {
-            Join-Path $env:TEMP "WMR-Failover-Tests"
-        }
-        else {
-            "/tmp/WMR-Failover-Tests"
-        }
-
-        New-Item -Path $script:TestBackupRoot -ItemType Directory -Force | Out-Null
+        # Set up test environment paths
+        $script:TestBackupRoot = $script:TestEnvironment.TestBackup
 
         # Create test data for failover scenarios
         $script:TestData = @{
             "critical_data.json" = @{
                 system_restore_point = "2024-01-15T08:00:00Z"
-                user_profile_backup = "enabled"
+                user_profile_backup  = "enabled"
                 application_settings = @("vscode", "chrome", "office")
             } | ConvertTo-Json -Depth 3
 
             "recovery_info.json" = @{
                 backup_timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                machine_id = "TEST-PC-001"
-                backup_size = "150MB"
-                file_count = 1250
+                machine_id       = "TEST-PC-001"
+                backup_size      = "150MB"
+                file_count       = 1250
             } | ConvertTo-Json -Depth 3
         }
 
@@ -84,8 +66,8 @@ Describe "Cloud Provider Failover Scenario Tests" {
             if ($PSCmdlet.ShouldProcess($failureMarker, "Create failure simulation marker")) {
                 @{
                     failure_type = $FailureType
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                    simulated = $true
+                    timestamp    = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    simulated    = $true
                 } | ConvertTo-Json | Out-File -FilePath $failureMarker -Encoding UTF8
             }
         }
@@ -130,10 +112,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
             if ($PSCmdlet.ShouldProcess($networkIssueMarker, "Create network issue simulation marker")) {
                 @{
-                    latency_ms = $Latency
+                    latency_ms          = $Latency
                     packet_loss_percent = $PacketLoss
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                    simulated = $true
+                    timestamp           = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    simulated           = $true
                 } | ConvertTo-Json | Out-File -FilePath $networkIssueMarker -Encoding UTF8
             }
         }
@@ -156,6 +138,11 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 Remove-Item $networkIssueMarker -Force
             }
         }
+    }
+
+    AfterAll {
+        # Clean up the test environment created in BeforeAll.
+        Remove-WmrTestEnvironment
     }
 
     Context "Primary Provider Failure Scenarios" {
@@ -370,10 +357,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Simulate storage quota exceeded
                 $quotaExceededMarker = Join-Path $testProvider.BackupPath ".quota_exceeded"
                 @{
-                    quota_exceeded = $true
-                    used_storage = $testProvider.StorageTotal
+                    quota_exceeded    = $true
+                    used_storage      = $testProvider.StorageTotal
                     available_storage = "0 GB"
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    timestamp         = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json | Out-File -FilePath $quotaExceededMarker -Encoding UTF8
 
                 try {
@@ -413,10 +400,10 @@ Describe "Cloud Provider Failover Scenario Tests" {
                 # Simulate small storage provider being full
                 $quotaExceededMarker = Join-Path $smallStorageProvider.BackupPath ".quota_exceeded"
                 @{
-                    quota_exceeded = $true
-                    used_storage = $smallStorageProvider.StorageTotal
+                    quota_exceeded    = $true
+                    used_storage      = $smallStorageProvider.StorageTotal
                     available_storage = "0 GB"
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    timestamp         = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json | Out-File -FilePath $quotaExceededMarker -Encoding UTF8
 
                 try {
@@ -573,12 +560,12 @@ Describe "Cloud Provider Failover Scenario Tests" {
 
                 # Simulate failover event
                 $failoverEvent = @{
-                    timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                    event_type = "failover"
-                    primary_provider = $primaryProvider.Name
+                    timestamp          = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    event_type         = "failover"
+                    primary_provider   = $primaryProvider.Name
                     secondary_provider = $secondaryProvider.Name
-                    reason = "primary_provider_unavailable"
-                    success = $true
+                    reason             = "primary_provider_unavailable"
+                    success            = $true
                 }
 
                 $failoverEvent | ConvertTo-Json | Out-File -FilePath $failoverLogPath -Append -Encoding UTF8

@@ -4,6 +4,7 @@
 
 ### Test Function Cleanup & Separation
 - **[URGENT]** Remove all Test- files and functions from Public and Private directories
+  - Remove plural nouns from PowerShell methods and files when updating their importation/use/locations.
   - Move `Public/Test-WindowsMelodyRecovery.ps1` to test utilities with proper imports
   - Move `Private/Core/Test-WmrAdminPrivilege.ps1` to test utilities
   - Remove all Test- functions from production code in Private/ directories:

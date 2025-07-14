@@ -58,12 +58,12 @@ Write-Information -MessageData "📁 Running File Operation Tests for Windows Me
 
 # Initialize a dedicated, isolated environment for this file operations test run
 Write-Warning -Message "🧹 Initializing isolated file operations test environment..."
-$testEnvironment = Initialize-TestEnvironment -SuiteName 'FileOps'
+$testEnvironment = Initialize-WmrTestEnvironment -SuiteName 'FileOps'
 Write-Information -MessageData "✅ Test environment ready in: $($testEnvironment.TestRoot)" -InformationAction Continue
 Write-Information -MessageData "" -InformationAction Continue
 
 # Environment Detection and Safety Assessment for this specific suite
-$envType = Get-EnvironmentType
+$envType = Get-WmrEnvironmentType
 $allowDestructiveTests = $false
 if ($envType.IsDocker) {
     Write-Information -MessageData "🐳 Mode: Docker Cross-Platform (safe operations with mocking)" -InformationAction Continue
@@ -121,7 +121,7 @@ else {
 # Enhanced Safety check - ensure we're only operating in safe directories
 Write-Warning -Message "🔒 Enhanced Safety Check - Verifying test directories..."
 $safeDirs = @($testEnvironment.TestRestore, $testEnvironment.TestBackup, $testEnvironment.Temp, $testEnvironment.TestState)
-$moduleRoot = Find-ModuleRoot
+$moduleRoot = Find-WmrModuleRoot
 
 Write-Verbose -Message "Debug: Checking directories:"
 foreach ($dir in $safeDirs) {
@@ -216,7 +216,7 @@ foreach ($test in $testsToRun) {
         $startTime = Get-Date
 
         # Configure Pester for better output with optional reporting
-        $moduleRoot = Find-ModuleRoot
+        $moduleRoot = Find-WmrModuleRoot
 
         $pesterConfig = @{
             Run    = @{
@@ -319,14 +319,14 @@ foreach ($test in $testsToRun) {
     Write-Information -MessageData "" -InformationAction Continue
 }
 
-# Cleanup
 if (-not $SkipCleanup) {
+    # Cleanup
     Write-Warning -Message "🧹 Cleaning up test environment..."
-    Remove-TestEnvironment
+    Remove-WmrTestEnvironment
     Write-Information -MessageData "✅ Cleanup complete." -InformationAction Continue
 }
 else {
-    Write-Warning -Message "⚠️ Cleanup skipped due to -SkipCleanup flag."
+    Write-Warning -Message "⚠️  Cleanup skipped."
 }
 
 # Enhanced Summary

@@ -6,29 +6,24 @@ param()
 # Tests the end-to-end encryption workflow integration
 
 BeforeAll {
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Set up test environment
-    $script:TestDataPath = Join-Path ([System.IO.Path]::GetTempPath()) "WMR_EncryptionIntegration_$(Get-Random)"
-    $script:TestStateDir = Join-Path $script:TestDataPath "StateFiles"
-    $script:TestSourceDir = Join-Path $script:TestDataPath "SourceFiles"
-    $script:TestBackupDir = Join-Path $script:TestDataPath "BackupFiles"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+
+    # Set up test environment paths
+    $script:TestStateDir = $script:TestEnvironment.TestState
+    $script:TestSourceDir = Join-Path $script:TestEnvironment.Temp "SourceFiles"
+    $script:TestBackupDir = $script:TestEnvironment.TestBackup
     $script:TestPassword = "Integration_Test_P@ssw0rd123!"
     # PSScriptAnalyzer suppression: Test requires known plaintext password
     [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     $script:TestSecureString = ConvertTo-SecureString -String $script:TestPassword -AsPlainText -Force
 
     # Create test directories
-    New-Item -ItemType Directory -Path $script:TestStateDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:TestSourceDir -Force | Out-Null
-    New-Item -ItemType Directory -Path $script:TestBackupDir -Force | Out-Null
 
     # Helper function to create test files
     function New-TestFile {
@@ -43,8 +38,13 @@ BeforeAll {
     # Helper function to validate safe test paths
     function Test-SafeTestPath {
         param($Path)
-        return $Path -and $Path.StartsWith($script:TestDataPath)
+        return $Path -and $Path.StartsWith($script:TestEnvironment.Temp)
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe 'Encryption Workflow Integration Tests' {
@@ -65,13 +65,13 @@ Describe 'Encryption Workflow Integration Tests' {
             # Arrange
             $testFilePath = Join-Path $script:TestSourceDir "sensitive_config.json"
             $sensitiveConfig = @{
-                api_key = "secret-api-key-12345"
+                api_key           = "secret-api-key-12345"
                 database_password = "super-secret-db-password"
-                encryption_keys = @{
-                    primary = "primary-encryption-key"
+                encryption_keys   = @{
+                    primary   = "primary-encryption-key"
                     secondary = "secondary-encryption-key"
                 }
-                user_credentials = @{
+                user_credentials  = @{
                     username = "admin"
                     password = "admin-password"
                 }
@@ -81,15 +81,15 @@ Describe 'Encryption Workflow Integration Tests' {
 
             # Create test template for encrypted file
             $templateConfig = @{
-                name = "Encrypted Config Test"
+                name        = "Encrypted Config Test"
                 description = "Test template for encrypted configuration"
-                files = @(
+                files       = @(
                     @{
-                        name = "Sensitive Configuration"
-                        path = $testFilePath
-                        type = "file"
-                        action = "backup"
-                        encrypt = $true
+                        name               = "Sensitive Configuration"
+                        path               = $testFilePath
+                        type               = "file"
+                        action             = "backup"
+                        encrypt            = $true
                         dynamic_state_path = "files/sensitive_config.json"
                     }
                 )
@@ -134,17 +134,17 @@ Describe 'Encryption Workflow Integration Tests' {
             $privateConfigPath = Join-Path $script:TestSourceDir "private_config.json"
 
             $publicConfig = @{
-                app_name = "Test Application"
-                version = "1.0.0"
+                app_name        = "Test Application"
+                version         = "1.0.0"
                 public_settings = @{
-                    theme = "dark"
+                    theme    = "dark"
                     language = "en"
                 }
             } | ConvertTo-Json -Depth 3
 
             $privateConfig = @{
                 license_key = "PRIVATE-LICENSE-KEY-12345"
-                user_data = @{
+                user_data   = @{
                     email = "user@example.com"
                     token = "private-auth-token"
                 }
@@ -155,22 +155,22 @@ Describe 'Encryption Workflow Integration Tests' {
 
             # Create template with mixed encryption
             $templateConfig = @{
-                name = "Mixed Encryption Test"
+                name  = "Mixed Encryption Test"
                 files = @(
                     @{
-                        name = "Public Configuration"
-                        path = $publicConfigPath
-                        type = "file"
-                        action = "backup"
-                        encrypt = $false
+                        name               = "Public Configuration"
+                        path               = $publicConfigPath
+                        type               = "file"
+                        action             = "backup"
+                        encrypt            = $false
                         dynamic_state_path = "files/public_config.json"
                     },
                     @{
-                        name = "Private Configuration"
-                        path = $privateConfigPath
-                        type = "file"
-                        action = "backup"
-                        encrypt = $true
+                        name               = "Private Configuration"
+                        path               = $privateConfigPath
+                        type               = "file"
+                        action             = "backup"
+                        encrypt            = $true
                         dynamic_state_path = "files/private_config.json"
                     }
                 )
@@ -212,11 +212,11 @@ Describe 'Encryption Workflow Integration Tests' {
             New-TestFile -Path $testFilePath -Content "Test content"
 
             $templateConfig = @{
-                name = "Encryption Error Test"
-                path = $testFilePath
-                type = "file"
-                action = "backup"
-                encrypt = $true
+                name               = "Encryption Error Test"
+                path               = $testFilePath
+                type               = "file"
+                action             = "backup"
+                encrypt            = $true
                 dynamic_state_path = "files/test_file.txt"
             }
 
@@ -234,15 +234,15 @@ Describe 'Encryption Workflow Integration Tests' {
             # Arrange
             $testConfigPath = Join-Path $script:TestSourceDir "task_config.json"
             $taskConfig = @{
-                task_name = "Test Encrypted Backup"
+                task_name          = "Test Encrypted Backup"
                 encryption_enabled = $true
-                backup_paths = @(
+                backup_paths       = @(
                     @{
-                        path = "C:\Users\TestUser\.ssh\config"
+                        path    = "C:\Users\TestUser\.ssh\config"
                         encrypt = $true
                     },
                     @{
-                        path = "C:\Users\TestUser\Documents\credentials.json"
+                        path    = "C:\Users\TestUser\Documents\credentials.json"
                         encrypt = $true
                     }
                 )
@@ -292,11 +292,11 @@ Describe 'Encryption Workflow Integration Tests' {
             New-TestFile -Path $sensitiveFilePath -Content "Sensitive content"
 
             $templateConfig = @{
-                name = "Sensitive File"
-                path = $sensitiveFilePath
-                type = "file"
-                action = "backup"
-                encrypt = $true
+                name               = "Sensitive File"
+                path               = $sensitiveFilePath
+                type               = "file"
+                action             = "backup"
+                encrypt            = $true
                 dynamic_state_path = "files/sensitive_file.txt"
             }
 
@@ -328,11 +328,11 @@ Describe 'Encryption Workflow Integration Tests' {
             $jobs = @()
             foreach ($file in $testFiles) {
                 $templateConfig = @{
-                    name = "Concurrent File $(Split-Path $file -Leaf)"
-                    path = $file
-                    type = "file"
-                    action = "backup"
-                    encrypt = $true
+                    name               = "Concurrent File $(Split-Path $file -Leaf)"
+                    path               = $file
+                    type               = "file"
+                    action             = "backup"
+                    encrypt            = $true
                     dynamic_state_path = "files/$(Split-Path $file -Leaf)"
                 }
 
@@ -360,11 +360,11 @@ Describe 'Encryption Workflow Integration Tests' {
             New-TestFile -Path $testFilePath -Content "Test cleanup content"
 
             $templateConfig = @{
-                name = "Cleanup Test"
-                path = $testFilePath
-                type = "file"
-                action = "backup"
-                encrypt = $true
+                name               = "Cleanup Test"
+                path               = $testFilePath
+                type               = "file"
+                action             = "backup"
+                encrypt            = $true
                 dynamic_state_path = "files/cleanup_test.txt"
             }
 
@@ -375,7 +375,7 @@ Describe 'Encryption Workflow Integration Tests' {
             $result.Encrypted | Should -Be $true
 
             # Verify no temporary files are left behind
-            $tempFiles = Get-ChildItem -Path $script:TestDataPath -Recurse -Filter "*.tmp" -ErrorAction SilentlyContinue
+            $tempFiles = Get-ChildItem -Path $script:TestEnvironment.Temp -Recurse -Filter "*.tmp" -ErrorAction SilentlyContinue
             $tempFiles | Should -HaveCount 0
 
             # Clear encryption cache to ensure cleanup
@@ -390,13 +390,13 @@ Describe 'Encryption Workflow Integration Tests' {
             $restoredFilePath = Join-Path $script:TestSourceDir "restored_file.json"
 
             $originalData = @{
-                secret_key = "very-secret-key-12345"
+                secret_key  = "very-secret-key-12345"
                 credentials = @{
                     username = "admin"
                     password = "super-secret-password"
                 }
-                config = @{
-                    database_url = "postgresql://user:pass@localhost/db"
+                config      = @{
+                    database_url  = "postgresql://user:pass@localhost/db"
                     api_endpoints = @(
                         "https://api.example.com/v1",
                         "https://backup.example.com/v1"
@@ -408,11 +408,11 @@ Describe 'Encryption Workflow Integration Tests' {
 
             # Act - Backup with encryption
             $backupConfig = @{
-                name = "End-to-End Test"
-                path = $originalFilePath
-                type = "file"
-                action = "backup"
-                encrypt = $true
+                name               = "End-to-End Test"
+                path               = $originalFilePath
+                type               = "file"
+                action             = "backup"
+                encrypt            = $true
                 dynamic_state_path = "files/e2e_test.json"
             }
 
@@ -456,27 +456,27 @@ Describe 'Encryption Workflow Integration Tests' {
             # Create template configurations
             $templates = @(
                 @{
-                    name = "SSH Config"
-                    path = $sshConfigPath
-                    type = "file"
-                    action = "backup"
-                    encrypt = $false  # Config file doesn't need encryption
+                    name               = "SSH Config"
+                    path               = $sshConfigPath
+                    type               = "file"
+                    action             = "backup"
+                    encrypt            = $false  # Config file doesn't need encryption
                     dynamic_state_path = "files/ssh_config"
                 },
                 @{
-                    name = "SSH Private Key"
-                    path = $sshPrivateKeyPath
-                    type = "file"
-                    action = "backup"
-                    encrypt = $true  # Private key needs encryption
+                    name               = "SSH Private Key"
+                    path               = $sshPrivateKeyPath
+                    type               = "file"
+                    action             = "backup"
+                    encrypt            = $true  # Private key needs encryption
                     dynamic_state_path = "files/ssh_private_key"
                 },
                 @{
-                    name = "SSH Public Key"
-                    path = $sshPublicKeyPath
-                    type = "file"
-                    action = "backup"
-                    encrypt = $false  # Public key doesn't need encryption
+                    name               = "SSH Public Key"
+                    path               = $sshPublicKeyPath
+                    type               = "file"
+                    action             = "backup"
+                    encrypt            = $false  # Public key doesn't need encryption
                     dynamic_state_path = "files/ssh_public_key"
                 }
             )
@@ -505,14 +505,6 @@ Describe 'Encryption Workflow Integration Tests' {
             $decryptedPrivateKey = Unprotect-WmrData -EncodedData $encryptedPrivateKey -Passphrase $script:TestSecureString
             $decryptedPrivateKey | Should -Match "BEGIN PRIVATE KEY"
         }
-    }
-}
-
-AfterAll {
-    # Clean up test environment
-    Clear-WmrEncryptionCache
-    if ($script:TestDataPath -and (Test-SafeTestPath $script:TestDataPath)) {
-        Remove-Item -Path $script:TestDataPath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 

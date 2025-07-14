@@ -57,27 +57,8 @@ param(
     [switch]$DocumentInstallation
 )
 
-# Import required modules and functions
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
-
-# Load core utilities
-$coreUtilitiesPath = Join-Path $modulePath "Private\Core\WindowsMelodyRecovery.Core.ps1"
-if (Test-Path $coreUtilitiesPath) {
-    . $coreUtilitiesPath
-}
-else {
-    Write-Warning "Core utilities not found at: $coreUtilitiesPath"
-}
-
-# Load environment configuration
-$loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-}
-else {
-    Write-Warning "Load environment script not found at: $loadEnvPath"
-}
+# Import required modules
+Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
 function Initialize-ApplicationDiscovery {
     [CmdletBinding(SupportsShouldProcess)]
@@ -283,13 +264,13 @@ function New-InstallationDocumentation {
 
     foreach ($app in $Applications) {
         $doc = @{
-            Name = $app.Name
-            Version = $app.Version
-            Publisher = $app.Publisher
+            Name                = $app.Name
+            Version             = $app.Version
+            Publisher           = $app.Publisher
             InstallationMethods = @()
-            DownloadSources = @()
-            InstallationNotes = ""
-            ManualSteps = @()
+            DownloadSources     = @()
+            InstallationNotes   = ""
+            ManualSteps         = @()
         }
 
         # Determine likely installation methods based on publisher and name
@@ -345,13 +326,13 @@ function Save-InstallationDocumentation {
                 $flatDocs = @()
                 foreach ($doc in $Documentation) {
                     $flatDoc = @{
-                        Name = $doc.Name
-                        Version = $doc.Version
-                        Publisher = $doc.Publisher
+                        Name                = $doc.Name
+                        Version             = $doc.Version
+                        Publisher           = $doc.Publisher
                         InstallationMethods = ($doc.InstallationMethods -join "; ")
-                        DownloadSources = ($doc.DownloadSources -join "; ")
-                        InstallationNotes = $doc.InstallationNotes
-                        ManualSteps = ($doc.ManualSteps -join " | ")
+                        DownloadSources     = ($doc.DownloadSources -join "; ")
+                        InstallationNotes   = $doc.InstallationNotes
+                        ManualSteps         = ($doc.ManualSteps -join " | ")
                     }
                     $flatDocs += New-Object PSObject -Property $flatDoc
                 }
@@ -406,31 +387,31 @@ function New-UserEditableApplicationList {
     try {
         # Create template for user-editable applications list
         $userAppsTemplate = @{
-            metadata = @{
-                name = "User Editable Applications"
-                description = "User-customizable list of applications to install/manage"
-                version = "1.0"
+            metadata   = @{
+                name          = "User Editable Applications"
+                description   = "User-customizable list of applications to install/manage"
+                version       = "1.0"
                 last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             categories = @{
-                essential = @{
-                    description = "Essential applications that should always be installed"
+                essential    = @{
+                    description  = "Essential applications that should always be installed"
                     applications = @()
                 }
                 productivity = @{
-                    description = "Productivity and office applications"
+                    description  = "Productivity and office applications"
                     applications = @()
                 }
-                development = @{
-                    description = "Development tools and environments"
+                development  = @{
+                    description  = "Development tools and environments"
                     applications = @()
                 }
-                gaming = @{
-                    description = "Gaming platforms and games"
+                gaming       = @{
+                    description  = "Gaming platforms and games"
                     applications = @()
                 }
-                optional = @{
-                    description = "Optional applications based on user preference"
+                optional     = @{
+                    description  = "Optional applications based on user preference"
                     applications = @()
                 }
             }
@@ -438,32 +419,32 @@ function New-UserEditableApplicationList {
 
         # Create template for user-editable games list
         $userGamesTemplate = @{
-            metadata = @{
-                name = "User Editable Games"
-                description = "User-customizable list of games to install/manage"
-                version = "1.0"
+            metadata  = @{
+                name          = "User Editable Games"
+                description   = "User-customizable list of games to install/manage"
+                version       = "1.0"
                 last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             platforms = @{
                 steam = @{
                     description = "Steam games to install"
-                    games = @()
+                    games       = @()
                 }
-                epic = @{
+                epic  = @{
                     description = "Epic Games Store games to install"
-                    games = @()
+                    games       = @()
                 }
-                gog = @{
+                gog   = @{
                     description = "GOG Galaxy games to install"
-                    games = @()
+                    games       = @()
                 }
-                xbox = @{
+                xbox  = @{
                     description = "Xbox Game Pass games to install"
-                    games = @()
+                    games       = @()
                 }
                 other = @{
                     description = "Other games and platforms"
-                    games = @()
+                    games       = @()
                 }
             }
         }
@@ -543,56 +524,56 @@ function Initialize-ApplicationDecisionWorkflow {
     try {
         # Create decision workflow configuration
         $workflowConfig = @{
-            metadata = @{
-                name = "Application Decision Workflows"
-                description = "Configuration for application install/uninstall decision logic"
-                version = "1.0"
+            metadata  = @{
+                name          = "Application Decision Workflows"
+                description   = "Configuration for application install/uninstall decision logic"
+                version       = "1.0"
                 last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             workflows = @{
-                install_decisions = @{
+                install_decisions   = @{
                     description = "Logic for deciding whether to install applications"
-                    rules = @(
+                    rules       = @(
                         @{
-                            name = "Essential Applications"
+                            name      = "Essential Applications"
                             condition = "category -eq 'essential'"
-                            action = "install"
-                            priority = 1
+                            action    = "install"
+                            priority  = 1
                         },
                         @{
-                            name = "User Approved Applications"
+                            name      = "User Approved Applications"
                             condition = "user_approved -eq true"
-                            action = "install"
-                            priority = 2
+                            action    = "install"
+                            priority  = 2
                         },
                         @{
-                            name = "Optional Applications"
+                            name      = "Optional Applications"
                             condition = "category -eq 'optional'"
-                            action = "prompt"
-                            priority = 3
+                            action    = "prompt"
+                            priority  = 3
                         }
                     )
                 }
                 uninstall_decisions = @{
                     description = "Logic for deciding whether to uninstall applications"
-                    rules = @(
+                    rules       = @(
                         @{
-                            name = "Bloatware Applications"
+                            name      = "Bloatware Applications"
                             condition = "category -eq 'bloatware'"
-                            action = "uninstall"
-                            priority = 1
+                            action    = "uninstall"
+                            priority  = 1
                         },
                         @{
-                            name = "Outdated Applications"
+                            name      = "Outdated Applications"
                             condition = "last_used -lt (Get-Date).AddDays(-90)"
-                            action = "prompt"
-                            priority = 2
+                            action    = "prompt"
+                            priority  = 2
                         },
                         @{
-                            name = "Unknown Applications"
+                            name      = "Unknown Applications"
                             condition = "category -eq 'unknown'"
-                            action = "prompt"
-                            priority = 3
+                            action    = "prompt"
+                            priority  = 3
                         }
                     )
                 }
@@ -626,11 +607,11 @@ function Test-ApplicationDiscoveryStatus {
 
         $status = @{
             ApplicationDiscoveryConfigured = $false
-            UnmanagedAppsDiscovered = $false
-            InstallationDocumented = $false
-            UserListsCreated = $false
-            WorkflowsInitialized = $false
-            OutputPath = $OutputPath
+            UnmanagedAppsDiscovered        = $false
+            InstallationDocumented         = $false
+            UserListsCreated               = $false
+            WorkflowsInitialized           = $false
+            OutputPath                     = $OutputPath
         }
 
         if (Test-Path $OutputPath) {
@@ -661,12 +642,12 @@ function Test-ApplicationDiscoveryStatus {
         Write-Warning "Failed to check application discovery status: $_"
         return @{
             ApplicationDiscoveryConfigured = $false
-            UnmanagedAppsDiscovered = $false
-            InstallationDocumented = $false
-            UserListsCreated = $false
-            WorkflowsInitialized = $false
-            OutputPath = $OutputPath
-            Error = $_.Exception.Message
+            UnmanagedAppsDiscovered        = $false
+            InstallationDocumented         = $false
+            UserListsCreated               = $false
+            WorkflowsInitialized           = $false
+            OutputPath                     = $OutputPath
+            Error                          = $_.Exception.Message
         }
     }
 }

@@ -73,7 +73,7 @@ if ($IsWindows) {
 }
 
 # Import test environment utilities
-. (Join-Path $PSScriptRoot "..\utilities\Test-Environment-Standard.ps1")
+. (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
 function Write-TestHeader {
     param([string]$Title, [string]$Level)
@@ -136,11 +136,11 @@ function Invoke-UnitTest {
         Write-TestResult "Unit Tests" $success $passed $failed $duration.TotalSeconds
 
         return @{
-            Success = $success
-            Passed = $passed
-            Failed = $failed
+            Success  = $success
+            Passed   = $passed
+            Failed   = $failed
             Duration = $duration.TotalSeconds
-            Output = $output
+            Output   = $output
         }
     }
     catch {
@@ -149,11 +149,11 @@ function Invoke-UnitTest {
         Write-TestResult "Unit Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
-            Success = $false
-            Passed = 0
-            Failed = 1
+            Success  = $false
+            Passed   = 0
+            Failed   = 1
             Duration = $duration.TotalSeconds
-            Output = $_.Exception.Message
+            Output   = $_.Exception.Message
         }
     }
 }
@@ -182,11 +182,11 @@ function Invoke-FileOperationTest {
         Write-TestResult "File Operation Tests" $success $passed $failed $duration.TotalSeconds
 
         return @{
-            Success = $success
-            Passed = $passed
-            Failed = $failed
+            Success  = $success
+            Passed   = $passed
+            Failed   = $failed
             Duration = $duration.TotalSeconds
-            Output = $output
+            Output   = $output
         }
     }
     catch {
@@ -195,11 +195,11 @@ function Invoke-FileOperationTest {
         Write-TestResult "File Operation Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
-            Success = $false
-            Passed = 0
-            Failed = 1
+            Success  = $false
+            Passed   = 0
+            Failed   = 1
             Duration = $duration.TotalSeconds
-            Output = $_.Exception.Message
+            Output   = $_.Exception.Message
         }
     }
 }
@@ -278,11 +278,11 @@ function Invoke-IntegrationTest {
         Write-TestResult "Integration Tests" $success $passed $failed $duration.TotalSeconds
 
         return @{
-            Success = $success
-            Passed = $passed
-            Failed = $failed
+            Success  = $success
+            Passed   = $passed
+            Failed   = $failed
             Duration = $duration.TotalSeconds
-            Output = $outputLines
+            Output   = $outputLines
         }
     }
     catch {
@@ -291,11 +291,11 @@ function Invoke-IntegrationTest {
         Write-TestResult "Integration Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
-            Success = $false
-            Passed = 0
-            Failed = 1
+            Success  = $false
+            Passed   = 0
+            Failed   = 1
             Duration = $duration.TotalSeconds
-            Output = $_.Exception.Message
+            Output   = $_.Exception.Message
         }
     }
 }
@@ -306,11 +306,11 @@ function Invoke-WindowsTest {
     if (-not $IsWindows) {
         Write-Warning -Message "⏭️  Skipping Windows-specific tests (not running on Windows)"
         return @{
-            Success = $true
-            Passed = 0
-            Failed = 0
+            Success  = $true
+            Passed   = 0
+            Failed   = 0
             Duration = 0
-            Output = "Skipped - not running on Windows"
+            Output   = "Skipped - not running on Windows"
         }
     }
 
@@ -333,11 +333,11 @@ function Invoke-WindowsTest {
         Write-TestResult "Windows Tests" $success $passed $failed $duration.TotalSeconds
 
         return @{
-            Success = $success
-            Passed = $passed
-            Failed = $failed
+            Success  = $success
+            Passed   = $passed
+            Failed   = $failed
             Duration = $duration.TotalSeconds
-            Output = $output
+            Output   = $output
         }
     }
     catch {
@@ -346,11 +346,11 @@ function Invoke-WindowsTest {
         Write-TestResult "Windows Tests" $false 0 1 $duration.TotalSeconds
 
         return @{
-            Success = $false
-            Passed = 0
-            Failed = 1
+            Success  = $false
+            Passed   = 0
+            Failed   = 1
             Duration = $duration.TotalSeconds
-            Output = $_.Exception.Message
+            Output   = $_.Exception.Message
         }
     }
 }
@@ -430,18 +430,18 @@ function Save-TestReport {
 
     $report = @{
         TestRun = @{
-            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            TestLevel = $TestLevel
-            Host = $env:COMPUTERNAME
+            Timestamp         = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            TestLevel         = $TestLevel
+            Host              = $env:COMPUTERNAME
             PowerShellVersion = $PSVersionTable.PSVersion.ToString()
-            Platform = if ($IsWindows) { "Windows" } else { "Non-Windows" }
+            Platform          = if ($IsWindows) { "Windows" } else { "Non-Windows" }
         }
         Results = $Results
         Summary = @{
-            TotalPassed = ($Results.Values | Measure-Object -Property Passed -Sum).Sum
-            TotalFailed = ($Results.Values | Measure-Object -Property Failed -Sum).Sum
+            TotalPassed   = ($Results.Values | Measure-Object -Property Passed -Sum).Sum
+            TotalFailed   = ($Results.Values | Measure-Object -Property Failed -Sum).Sum
             TotalDuration = ($Results.Values | Measure-Object -Property Duration -Sum).Sum
-            AllSuccess = ($Results.Values | ForEach-Object { $_.Success }) -notcontains $false
+            AllSuccess    = ($Results.Values | ForEach-Object { $_.Success }) -notcontains $false
         }
     }
 

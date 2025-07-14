@@ -19,32 +19,28 @@
 #>
 
 BeforeAll {
-    # Import enhanced mock infrastructure and utilities
-    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
-    . "$PSScriptRoot\..\utilities\Test-Environment-Standard.ps1"
-    . "$PSScriptRoot\..\utilities\Enhanced-Mock-Infrastructure.ps1"
-    . "$PSScriptRoot\..\utilities\Mock-Integration.ps1"
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Source the setup scripts for unmanaged app discovery
-    . "$PSScriptRoot/../../Private/setup/setup-application-discovery.ps1"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Initialize enhanced test environment with application focus
-    $script:TestEnvironment = Initialize-StandardTestEnvironment -TestType "Integration" -IsolationLevel "Standard"
+    # The new initializer loads Mock-Integration.ps1, which contains this function.
     Initialize-MockForTestType -TestType "Integration" -TestContext "ApplicationBackup" -Scope "Comprehensive"
 
     # Mock WindowsMelodyRecovery configuration needed for discovery
     $script:MockConfig = @{
         IsInitialized = $true
-        BackupRoot = $script:TestEnvironment.TestBackup
-        MachineName = "TestMachine"
+        BackupRoot    = $script:TestEnvironment.TestBackup
+        MachineName   = "TestMachine"
     }
     Mock Get-WindowsMelodyRecovery { return $script:MockConfig }
 }
 
 AfterAll {
-    if ($script:TestEnvironment) {
-        Remove-StandardTestEnvironment -TestEnvironment $script:TestEnvironment
-    }
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Managed Application Backup & Restore" -Tag "Integration", "Applications" {

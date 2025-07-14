@@ -8,39 +8,23 @@
 #>
 
 BeforeAll {
-    # Import Pester for Mock functionality
-    Import-Module Pester -Force
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Import test utilities
-    . $PSScriptRoot/../utilities/Test-Utilities.ps1
-    . $PSScriptRoot/../utilities/Mock-Utilities.ps1
+    # Use paths from the initialized environment
+    $TestModulePath = Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psm1"
+    $TestManifestPath = Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1"
+    $TestInstallScriptPath = Join-Path $script:TestEnvironment.ModuleRoot "Install-Module.ps1"
+    $modulePath = $script:TestEnvironment.ModuleRoot
+    $TestTempDir = $script:TestEnvironment.Temp
 
-    # For Docker testing, use the installed module
-    $moduleInfo = Get-Module -ListAvailable WindowsMelodyRecovery | Select-Object -First 1
-    if ($moduleInfo) {
-        $TestModulePath = $moduleInfo.Path
-        $TestManifestPath = Join-Path $moduleInfo.ModuleBase "WindowsMelodyRecovery.psd1"
-        $modulePath = $moduleInfo.ModuleBase
-    }
-    else {
-        # Fallback to relative paths for local testing
-        $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
-        $TestManifestPath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psd1"
-        $modulePath = Join-Path $PSScriptRoot "../.."
-    }
-    $TestInstallScriptPath = Join-Path $PSScriptRoot "../../Install-Module.ps1"
+    # The new initializer handles environment variables.
+}
 
-    # Create temporary test directory
-    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $TestTempDir = Join-Path $tempPath "WindowsMelodyRecovery-Integration-Tests"
-    if (-not (Test-Path $TestTempDir)) {
-        New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
-    }
-
-    # Mock environment variables for testing
-    $env:WMR_CONFIG_PATH = $TestTempDir
-    $env:WMR_BACKUP_PATH = Join-Path $TestTempDir "backups"
-    $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Windows Melody Recovery - Installation Integration Tests" -Tag "Installation" {
@@ -347,16 +331,6 @@ Describe "Windows Melody Recovery - Pester Integration Tests" -Tag "Pester" {
             }
         }
     }
-}
-
-AfterAll {
-    # Cleanup
-    if (Test-Path $TestTempDir) {
-        Remove-Item -Path $TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Remove module
-    Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
 }
 
 

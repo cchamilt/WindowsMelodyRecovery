@@ -14,50 +14,15 @@
 #>
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it for FileOps.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'FileOps'
 
-    # Load test environment
-    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
-    Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+    Import-Module (Resolve-Path (Join-Path $script:TestEnvironment.ModuleRoot "Private/Core/WindowsMelodyRecovery.Template.psm1")) -Force
 
-    # Import core functions through module system for code coverage
-    try {
-        # First import the module for code coverage
-        $moduleRoot = $PSScriptRoot
-        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
-            $moduleRoot = Split-Path -Parent $moduleRoot
-            if ([string]::IsNullOrEmpty($moduleRoot)) {
-                throw "Could not find WindowsMelodyRecovery module root"
-            }
-        }
-
-        # Import the module
-        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
-
-        # Directly dot-source the Core files to ensure functions are available
-        . (Join-Path $moduleRoot "Private\Core\TemplateInheritance.ps1")
-        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
-
-        Write-Verbose "Successfully loaded core functions for code coverage"
-    }
-    catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
-    }
-
-    # Set up environment-aware test paths
-    $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or
-    (Test-Path '/.dockerenv' -ErrorAction SilentlyContinue)
-
-    if ($isDockerEnvironment) {
-        $script:TempTemplateDir = "/workspace/Temp"
-    }
-    else {
-        # Use project Temp directory for local Windows environments
-        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        $script:TempTemplateDir = Join-Path $moduleRoot "Temp"
-    }
-
+    $script:TempTemplateDir = Join-Path $script:TestEnvironment.Temp "TemplateFileOps"
     $script:TempTemplatePath = Join-Path $script:TempTemplateDir "test_template.yaml"
 
     # Ensure temp directory exists
@@ -81,13 +46,12 @@ prerequisites:
     $basicTemplateContent | Out-File -FilePath $script:TempTemplatePath -Encoding UTF8 -Force
 }
 
-Describe "TemplateModule File Operations" -Tag "FileOperations", "Safe" {
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
+}
 
-    AfterAll {
-        # Clean up the dummy template file
-        Remove-Item -Path $script:TempTemplatePath -Force -ErrorAction SilentlyContinue
-        # Optionally remove the Temp directory if empty or if it was created by the test
-    }
+Describe "TemplateModule File Operations" -Tag "FileOperations", "Safe" {
 
     Context "Template File Reading and Writing" {
 

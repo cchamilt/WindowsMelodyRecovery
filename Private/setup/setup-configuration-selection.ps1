@@ -56,27 +56,8 @@ param(
     [switch]$CreateProfile
 )
 
-# Import required modules and functions
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$modulePath = Split-Path -Parent (Split-Path -Parent $scriptPath)
-
-# Load core utilities
-$coreUtilitiesPath = Join-Path $modulePath "Private\Core\WindowsMelodyRecovery.Core.ps1"
-if (Test-Path $coreUtilitiesPath) {
-    . $coreUtilitiesPath
-}
-else {
-    Write-Warning "Core utilities not found at: $coreUtilitiesPath"
-}
-
-# Load environment configuration
-$loadEnvPath = Join-Path $modulePath "Private\scripts\Import-Environment.ps1"
-if (Test-Path $loadEnvPath) {
-    . $loadEnvPath
-}
-else {
-    Write-Warning "Load environment script not found at: $loadEnvPath"
-}
+# Import required modules
+Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
 function Initialize-ConfigurationSelection {
     [CmdletBinding(SupportsShouldProcess)]
@@ -205,14 +186,14 @@ function Get-AvailableSetupScript {
 
         foreach ($file in $scriptFiles) {
             $scriptInfo = @{
-                Name = $file.BaseName
-                FileName = $file.Name
-                FullPath = $file.FullName
-                Description = ""
-                Category = "Unknown"
-                Dependencies = @()
+                Name          = $file.BaseName
+                FileName      = $file.Name
+                FullPath      = $file.FullName
+                Description   = ""
+                Category      = "Unknown"
+                Dependencies  = @()
                 RequiresAdmin = $false
-                Parameters = @()
+                Parameters    = @()
             }
 
             # Parse script header for metadata
@@ -314,27 +295,27 @@ function New-ConfigurationProfile {
 
     try {
         $configProfile = @{
-            metadata = @{
-                name = $ProfileName
-                description = "Configuration profile for $ProfileName system setup"
-                version = "1.0"
-                created = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+            metadata          = @{
+                name          = $ProfileName
+                description   = "Configuration profile for $ProfileName system setup"
+                version       = "1.0"
+                created       = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                 last_modified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
-            system_type = $ProfileName
-            setup_scripts = @()
-            preferences = @{
+            system_type       = $ProfileName
+            setup_scripts     = @()
+            preferences       = @{
                 auto_approve_essential = $true
-                prompt_for_optional = $true
-                skip_dangerous = $false
-                backup_before_changes = $true
+                prompt_for_optional    = $true
+                skip_dangerous         = $false
+                backup_before_changes  = $true
             }
             script_categories = @{
-                system = @()
-                security = @()
+                system      = @()
+                security    = @()
                 development = @()
-                gaming = @()
-                other = @()
+                gaming      = @()
+                other       = @()
             }
         }
 
@@ -561,14 +542,14 @@ function Get-SystemInformation {
 
     try {
         $systemInfo = @{
-            HasWSL = $false
-            HasGit = $false
-            HasSteam = $false
-            HasEpicGames = $false
-            HasGOG = $false
+            HasWSL           = $false
+            HasGit           = $false
+            HasSteam         = $false
+            HasEpicGames     = $false
+            HasGOG           = $false
             HasDockerDesktop = $false
-            HasVisualStudio = $false
-            HasVSCode = $false
+            HasVisualStudio  = $false
+            HasVSCode        = $false
         }
 
         # Check for WSL
@@ -643,30 +624,30 @@ function New-SetupExecutionPlan {
     try {
         $executionPlan = @{
             metadata = @{
-                profile_name = $Profile.metadata.name
-                created = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                profile_name  = $Profile.metadata.name
+                created       = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                 total_scripts = $Profile.setup_scripts.Count
             }
-            phases = @{
-                system = @{
+            phases   = @{
+                system       = @{
                     description = "System configuration and essential setup"
-                    order = 1
-                    scripts = @()
+                    order       = 1
+                    scripts     = @()
                 }
                 applications = @{
                     description = "Application installation and configuration"
-                    order = 2
-                    scripts = @()
+                    order       = 2
+                    scripts     = @()
                 }
-                development = @{
+                development  = @{
                     description = "Development environment setup"
-                    order = 3
-                    scripts = @()
+                    order       = 3
+                    scripts     = @()
                 }
-                gaming = @{
+                gaming       = @{
                     description = "Gaming platform and game setup"
-                    order = 4
-                    scripts = @()
+                    order       = 4
+                    scripts     = @()
                 }
             }
         }
@@ -676,12 +657,12 @@ function New-SetupExecutionPlan {
             $script = $AvailableScripts | Where-Object { $_.Name -eq $scriptName } | Select-Object -First 1
             if ($script) {
                 $scriptInfo = @{
-                    name = $script.Name
-                    filename = $script.FileName
-                    description = $script.Description
-                    category = $script.Category
+                    name           = $script.Name
+                    filename       = $script.FileName
+                    description    = $script.Description
+                    category       = $script.Category
                     requires_admin = $script.RequiresAdmin
-                    dependencies = $script.Dependencies
+                    dependencies   = $script.Dependencies
                 }
 
                 switch ($script.Category) {
@@ -744,11 +725,11 @@ function Test-ConfigurationSelectionStatus {
 
         $status = @{
             ConfigurationSelectionConfigured = $false
-            ProfileExists = $false
-            ExecutionPlanExists = $false
-            AvailableScripts = 0
-            ProfileName = $ProfileName
-            OutputPath = $OutputPath
+            ProfileExists                    = $false
+            ExecutionPlanExists              = $false
+            AvailableScripts                 = 0
+            ProfileName                      = $ProfileName
+            OutputPath                       = $OutputPath
         }
 
         if (Test-Path $OutputPath) {
@@ -775,12 +756,12 @@ function Test-ConfigurationSelectionStatus {
         Write-Warning "Failed to check configuration selection status: $_"
         return @{
             ConfigurationSelectionConfigured = $false
-            ProfileExists = $false
-            ExecutionPlanExists = $false
-            AvailableScripts = 0
-            ProfileName = $ProfileName
-            OutputPath = $OutputPath
-            Error = $_.Exception.Message
+            ProfileExists                    = $false
+            ExecutionPlanExists              = $false
+            AvailableScripts                 = 0
+            ProfileName                      = $ProfileName
+            OutputPath                       = $OutputPath
+            Error                            = $_.Exception.Message
         }
     }
 }

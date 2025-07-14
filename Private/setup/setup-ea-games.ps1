@@ -7,13 +7,8 @@
         [switch]$Install
     )
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     function Install-EAApp {
         $eaPath = "$env:LOCALAPPDATA\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe"
@@ -60,8 +55,8 @@
                     $content = Get-Content $_.FullName | ConvertFrom-Json
                     if ($content.gameTitle) {
                         $installedGames += @{
-                            Name = $content.gameTitle
-                            Id = $content.gameId
+                            Name        = $content.gameTitle
+                            Id          = $content.gameId
                             InstallPath = $content.installPath
                         }
                     }
@@ -76,7 +71,7 @@
     }
 
     try {
-        Write-Information -MessageData "Setting up EA Games..." -InformationAction Continue
+        Write-Information -MessageData "Setting up EA games..." -InformationAction Continue
 
         # Determine games list path
         if (!$GamesListPath) {

@@ -264,8 +264,10 @@ The initialization system creates the following aliases:
 - `wmr-backup` → `Backup-WindowsMelodyRecovery`
 - `wmr-restore` → `Restore-WindowsMelodyRecovery`
 - `wmr-setup` → `Setup-WindowsMelodyRecovery`
-- `wmr-test` → `Test-WindowsMelodyRecovery`
 - `wmr-status` → `Show-WindowsMelodyRecoveryStatus`
+
+These aliases are automatically exported and available when the module is imported.
+This allows for quick and easy access to the core functions of the module from the command line.
 
 ## Environment Variables
 

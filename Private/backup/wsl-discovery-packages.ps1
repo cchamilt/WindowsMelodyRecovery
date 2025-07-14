@@ -23,8 +23,8 @@ function Get-WSLAptPackage {
                     $parts = $line.Split("`t")
                     if ($parts.Length -eq 2) {
                         $packages += @{
-                            Name = $parts[0].Trim()
-                            Status = $parts[1].Trim()
+                            Name           = $parts[0].Trim()
+                            Status         = $parts[1].Trim()
                             PackageManager = "apt"
                         }
                     }
@@ -38,9 +38,6 @@ function Get-WSLAptPackage {
     }
     return @()
 }
-
-# Create alias for plural form
-Set-Alias -Name Get-WSLAptPackages -Value Get-WSLAptPackage
 
 function Get-WSLNpmPackage {
     try {
@@ -56,9 +53,9 @@ function Get-WSLNpmPackage {
             if ($npmData.dependencies) {
                 foreach ($pkg in $npmData.dependencies.PSObject.Properties) {
                     $packages += @{
-                        Name = $pkg.Name
-                        Version = $pkg.Value.version
-                        Status = "installed"
+                        Name           = $pkg.Name
+                        Version        = $pkg.Value.version
+                        Status         = "installed"
                         PackageManager = "npm"
                     }
                 }
@@ -71,9 +68,6 @@ function Get-WSLNpmPackage {
     }
     return @()
 }
-
-# Create alias for plural form
-Set-Alias -Name Get-WSLNpmPackages -Value Get-WSLNpmPackage
 
 function Get-WSLPipPackage {
     try {
@@ -88,9 +82,9 @@ function Get-WSLPipPackage {
             $packages = @()
             foreach ($pkg in $pipPackages) {
                 $packages += @{
-                    Name = $pkg.name
-                    Version = $pkg.version
-                    Status = "installed"
+                    Name           = $pkg.name
+                    Version        = $pkg.version
+                    Status         = "installed"
                     PackageManager = "pip"
                 }
             }
@@ -103,47 +97,7 @@ function Get-WSLPipPackage {
     return @()
 }
 
-# Create alias for plural form
-Set-Alias -Name Get-WSLPipPackages -Value Get-WSLPipPackage
-
-# Main execution
-try {
-    $allPackages = @()
-
-    switch ($PackageManager.ToLower()) {
-        "apt" {
-            $allPackages += Get-WSLAptPackages
-        }
-        "npm" {
-            $allPackages += Get-WSLNpmPackages
-        }
-        "pip" {
-            $allPackages += Get-WSLPipPackages
-        }
-        "all" {
-            $allPackages += Get-WSLAptPackages
-            $allPackages += Get-WSLNpmPackages
-            $allPackages += Get-WSLPipPackages
-        }
-        default {
-            Write-Warning "Unknown package manager: $PackageManager. Using 'all'."
-            $allPackages += Get-WSLAptPackages
-            $allPackages += Get-WSLNpmPackages
-            $allPackages += Get-WSLPipPackages
-        }
-    }
-
-    if ($allPackages.Count -eq 0) {
-        Write-Output "[]"
-    }
-    else {
-        Write-Output ($allPackages | ConvertTo-Json -Depth 5)
-    }
-}
-catch {
-    Write-Error "Failed to discover WSL packages: $($_.Exception.Message)"
-    Write-Output "[]"
-}
+Export-ModuleMember -Function 'Get-WSLAptPackage', 'Get-WSLNpmPackage', 'Get-WSLPipPackage'
 
 
 

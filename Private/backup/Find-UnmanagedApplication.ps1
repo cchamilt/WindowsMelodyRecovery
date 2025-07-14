@@ -42,7 +42,7 @@ param(
     [switch]$Force
 )
 
-function Get-InstalledApplication {
+function Get-WmrInstalledApplication {
     <#
     .SYNOPSIS
         Get all installed Windows applications from registry.
@@ -79,7 +79,7 @@ function Get-InstalledApplication {
     }
 }
 
-function Get-ManagedApplication {
+function Get-WmrManagedApplication {
     <#
     .SYNOPSIS
         Load applications managed by package managers from backup files.
@@ -127,7 +127,7 @@ function Get-ManagedApplication {
     return $managedApps
 }
 
-function Compare-ApplicationName {
+function Compare-WmrApplicationName {
     <#
     .SYNOPSIS
         Simple name comparison for matching installed vs managed apps.
@@ -150,7 +150,7 @@ function Compare-ApplicationName {
     ($clean1.Contains($clean2.Trim()) -or $clean2.Contains($clean1.Trim())))
 }
 
-function Find-UnmanagedApplication {
+function Find-WmrUnmanagedApplication {
     <#
     .SYNOPSIS
         Identify applications not managed by any package manager.
@@ -167,12 +167,12 @@ function Find-UnmanagedApplication {
     Write-Information "Analyzing unmanaged applications..." -InformationAction Continue
 
     # Get all installed applications
-    $installedApps = Get-InstalledApplication
+    $installedApps = Get-WmrInstalledApplication
 
     # Load managed applications from both machine and shared paths
     $managedApps = @()
-    $managedApps += Get-ManagedApplication -ApplicationsPath (Join-Path $MachineBackupPath "Applications")
-    $managedApps += Get-ManagedApplication -ApplicationsPath (Join-Path $SharedBackupPath "Applications")
+    $managedApps += Get-WmrManagedApplication -ApplicationsPath (Join-Path $MachineBackupPath "Applications")
+    $managedApps += Get-WmrManagedApplication -ApplicationsPath (Join-Path $SharedBackupPath "Applications")
 
     # Find unmanaged applications
     $unmanagedApps = @()
@@ -181,7 +181,7 @@ function Find-UnmanagedApplication {
         $isManaged = $false
 
         foreach ($managedApp in $managedApps) {
-            if (Compare-ApplicationName -Name1 $app.Name -Name2 $managedApp.Name) {
+            if (Compare-WmrApplicationName -Name1 $app.Name -Name2 $managedApp.Name) {
                 $isManaged = $true
                 break
             }
@@ -206,7 +206,7 @@ function Find-UnmanagedApplication {
     return $results
 }
 
-function Save-UnmanagedAnalysis {
+function Save-WmrUnmanagedAnalysis {
     <#
     .SYNOPSIS
         Save unmanaged applications analysis to backup directories.
@@ -247,50 +247,17 @@ function Save-UnmanagedAnalysis {
         Timestamp = $Results.Timestamp
         ComputerName = $Results.ComputerName
     }
+    $summaryFile = Join-Path $sharedUnmanagedPath "unmanaged-summary.json"
+    $summary | ConvertTo-Json -Depth 3 | Set-Content -Path $summaryFile -Encoding UTF8
+    Write-Information "Saved summary to: $summaryFile" -InformationAction Continue
 
-    $sharedFile = Join-Path $sharedUnmanagedPath "unmanaged-summary.json"
-    $summary | ConvertTo-Json | Set-Content -Path $sharedFile -Encoding UTF8
-    Write-Information "Saved summary to: $sharedFile" -InformationAction Continue
+    # Save to a single file for easy import
+    $unmanagedAppsFile = Join-Path $machineUnmanagedPath "unmanaged-apps.json"
+    $Results.UnmanagedApplications | ConvertTo-Json -Depth 3 | Set-Content -Path $unmanagedAppsFile -Encoding UTF8
+    Write-Information "Saved unmanaged applications list to: $unmanagedAppsFile" -InformationAction Continue
 }
 
-# Main execution
-try {
-    # Get module configuration for default paths
-    $config = Get-WindowsMelodyRecovery
-    if (-not $config.IsInitialized) {
-        throw "Module not initialized. Please run Initialize-WindowsMelodyRecovery first."
-    }
-
-    # Set default paths if not provided
-    if (-not $BackupRootPath) { $BackupRootPath = $config.BackupRoot }
-    if (-not $MachineBackupPath) { $MachineBackupPath = Join-Path $BackupRootPath $config.MachineName }
-    if (-not $SharedBackupPath) { $SharedBackupPath = Join-Path $BackupRootPath "shared" }
-
-    # Validate paths
-    if (-not $Force) {
-        foreach ($path in @($BackupRootPath, $MachineBackupPath, $SharedBackupPath)) {
-            if (-not (Test-Path $path)) {
-                throw "Required path not found: $path (use -Force to override)"
-            }
-        }
-    }
-
-    if ($PSCmdlet.ShouldProcess("Unmanaged applications analysis", "Analyze and save results")) {
-        # Perform analysis
-        $results = Find-UnmanagedApplication -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
-
-        # Save results
-        Save-UnmanagedAnalysis -Results $results -MachineBackupPath $MachineBackupPath -SharedBackupPath $SharedBackupPath
-
-        # Return results for calling scripts
-        return $results
-    }
-
-}
-catch {
-    Write-Error "Unmanaged applications analysis failed: $_"
-    return $null
-}
+Export-ModuleMember -Function 'Get-WmrInstalledApplication', 'Get-WmrManagedApplication', 'Compare-WmrApplicationName', 'Find-WmrUnmanagedApplication', 'Save-WmrUnmanagedAnalysis'
 
 
 

@@ -3,40 +3,6 @@
 # Requires Convert-WmrPath from PathUtilities.ps1
 # Requires EncryptionUtilities.ps1 for encryption/decryption
 
-function Test-WmrFileConfig {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [PSObject]$FileConfig
-    )
-
-    # Required properties
-    $requiredProps = @('name', 'path', 'type', 'dynamic_state_path')
-    foreach ($prop in $requiredProps) {
-        # Handle both PSObject and YAML parser object structures
-        $propValue = $null
-        try {
-            $propValue = $FileConfig.$prop
-        }
-        catch {
-            # Property doesn't exist
-        }
-
-        if ([string]::IsNullOrWhiteSpace($propValue)) {
-            Write-Warning "FileConfig is missing required property: $prop"
-            return $false
-        }
-    }
-
-    # Validate type
-    if ($FileConfig.type -notin @('file', 'directory')) {
-        Write-Warning "FileConfig type must be 'file' or 'directory', got: $($FileConfig.type)"
-        return $false
-    }
-
-    return $true
-}
-
 function Get-WmrFileState {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -51,8 +17,23 @@ function Get-WmrFileState {
     )
 
     # Validate FileConfig
-    if (-not (Test-WmrFileConfig -FileConfig $FileConfig)) {
-        Write-Warning "Invalid FileConfig object provided"
+    $requiredProps = @('name', 'path', 'type', 'dynamic_state_path')
+    foreach ($prop in $requiredProps) {
+        $propValue = $null
+        try {
+            $propValue = $FileConfig.$prop
+        }
+        catch {
+            # Property doesn't exist
+        }
+
+        if ([string]::IsNullOrWhiteSpace($propValue)) {
+            Write-Warning "FileConfig is missing required property: $prop"
+            return $null
+        }
+    }
+    if ($FileConfig.type -notin @('file', 'directory')) {
+        Write-Warning "FileConfig type must be 'file' or 'directory', got: $($FileConfig.type)"
         return $null
     }
 
@@ -233,8 +214,23 @@ function Set-WmrFileState {
     )
 
     # Validate FileConfig
-    if (-not (Test-WmrFileConfig -FileConfig $FileConfig)) {
-        Write-Warning "Invalid FileConfig object provided"
+    $requiredProps = @('name', 'path', 'type', 'dynamic_state_path')
+    foreach ($prop in $requiredProps) {
+        $propValue = $null
+        try {
+            $propValue = $FileConfig.$prop
+        }
+        catch {
+            # Property doesn't exist
+        }
+
+        if ([string]::IsNullOrWhiteSpace($propValue)) {
+            Write-Warning "FileConfig is missing required property: $prop"
+            return
+        }
+    }
+    if ($FileConfig.type -notin @('file', 'directory')) {
+        Write-Warning "FileConfig type must be 'file' or 'directory', got: $($FileConfig.type)"
         return
     }
 

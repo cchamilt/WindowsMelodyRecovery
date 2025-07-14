@@ -10,32 +10,20 @@
 #>
 
 BeforeAll {
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
+
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
     # Import WSL Docker communication utilities
-    . "$PSScriptRoot/../utilities/WSL-Docker-Communication.ps1"
+    . (Join-Path $script:TestEnvironment.ModuleRoot "tests/utilities/WSL-Docker-Communication.ps1")
 
-    # Setup test environment
-    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $script:TestBackupRoot = Join-Path $tempPath "WMR-Integration-Tests\WSL"
+    # Setup test environment paths
+    $script:TestBackupRoot = $script:TestEnvironment.TestBackup
     $script:WSLDistro = $env:WMR_WSL_DISTRO ?? "Ubuntu-22.04"
     $script:ContainerName = "wmr-wsl-mock"
-
-    # Create test directories
-    if (-not (Test-Path $script:TestBackupRoot)) {
-        New-Item -Path $script:TestBackupRoot -ItemType Directory -Force | Out-Null
-    }
-
-    # Set test mode
-    $env:WMR_TEST_MODE = "true"
-    $env:WMR_BACKUP_ROOT = $script:TestBackupRoot
 
     # Test WSL container connectivity
     Write-Information -MessageData "Testing WSL container connectivity..." -InformationAction Continue
@@ -46,6 +34,11 @@ BeforeAll {
     else {
         Write-Error -Message "WSL Docker container connectivity: FAILED"
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "WSL Integration Tests (Docker Mock)" -Tag "Integration", "WSL" {
@@ -525,17 +518,6 @@ rm -f test-file-*.txt
             }
         }
     }
-}
-
-AfterAll {
-    # Clean up test environment
-    if (Test-Path $script:TestBackupRoot) {
-        Remove-Item -Path $script:TestBackupRoot -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Remove test environment variables
-    Remove-Item -Path "env:WMR_TEST_MODE" -ErrorAction SilentlyContinue
-    Remove-Item -Path "env:WMR_BACKUP_ROOT" -ErrorAction SilentlyContinue
 }
 
 

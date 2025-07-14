@@ -6,20 +6,18 @@ param()
 # Tests the secure file handling and encryption integration
 
 BeforeAll {
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Set up test environment
-    $script:TestDataPath = Join-Path ([System.IO.Path]::GetTempPath()) "WMR_SecureFiles_$(Get-Random)"
-    $script:TestSecureDir = Join-Path $script:TestDataPath "SecureFiles"
-    $script:TestBackupDir = Join-Path $script:TestDataPath "BackupFiles"
-    $script:TestTempDir = Join-Path $script:TestDataPath "TempFiles"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+
+    # Set up test environment paths
+    $script:TestDataPath = $script:TestEnvironment.TestRoot
+    $script:TestSecureDir = Join-Path $script:TestEnvironment.Temp "SecureFiles"
+    $script:TestBackupDir = $script:TestEnvironment.TestBackup
+    $script:TestTempDir = Join-Path $script:TestEnvironment.Temp "TempFiles"
     $script:TestPassword = "SecureFile_P@ssw0rd123!"
     # PSScriptAnalyzer suppression: Test requires known plaintext password
     [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
@@ -27,7 +25,6 @@ BeforeAll {
 
     # Create test directories
     New-Item -ItemType Directory -Path $script:TestSecureDir -Force | Out-Null
-    New-Item -ItemType Directory -Path $script:TestBackupDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:TestTempDir -Force | Out-Null
 
     # Helper function to create secure test files
@@ -203,9 +200,9 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
         It 'Should implement secure storage with integrity checking' {
             # Arrange
             $originalData = @{
-                username = "admin"
-                password = "super-secret-password"
-                api_key = "sk-1234567890abcdef"
+                username     = "admin"
+                password     = "super-secret-password"
+                api_key      = "sk-1234567890abcdef"
                 database_url = "postgresql://user:pass@localhost/db"
             } | ConvertTo-Json -Depth 2
 
@@ -216,8 +213,8 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
             $secureStorage = @{
                 encrypted_data = $encrypted
                 integrity_hash = $hash
-                timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                version = "1.0"
+                timestamp      = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                version        = "1.0"
             } | ConvertTo-Json -Depth 2
 
             $storageFilePath = Join-Path $script:TestBackupDir "secure_storage.json"
@@ -252,18 +249,18 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
             foreach ($file in $sensitiveFiles) {
                 $encrypted = Protect-WmrData -Data $file.Content -Passphrase $script:TestSecureString
                 $metadata = @{
-                    name = $file.Name
-                    type = $file.Type
-                    encrypted = $true
+                    name                 = $file.Name
+                    type                 = $file.Type
+                    encrypted            = $true
                     encryption_algorithm = "AES-256-CBC"
-                    key_derivation = "PBKDF2"
-                    created = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                    size_original = $file.Content.Length
-                    size_encrypted = $encrypted.Length
+                    key_derivation       = "PBKDF2"
+                    created              = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                    size_original        = $file.Content.Length
+                    size_encrypted       = $encrypted.Length
                 }
 
                 $storageItem = @{
-                    metadata = $metadata
+                    metadata          = $metadata
                     encrypted_content = $encrypted
                 } | ConvertTo-Json -Depth 3
 
@@ -271,8 +268,8 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
                 Set-Content -Path $storageFilePath -Value $storageItem -NoNewline -Encoding UTF8
 
                 $storageResults += @{
-                    File = $file
-                    Path = $storageFilePath
+                    File     = $file
+                    Path     = $storageFilePath
                     Metadata = $metadata
                 }
             }
@@ -298,9 +295,9 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
         It 'Should implement secure storage with versioning' {
             # Arrange
             $configData = @{
-                version = 1
-                settings = @{
-                    debug = $false
+                version     = 1
+                settings    = @{
+                    debug   = $false
                     timeout = 30
                 }
                 credentials = @{
@@ -320,9 +317,9 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
                 $encrypted = Protect-WmrData -Data $jsonData -Passphrase $script:TestSecureString
 
                 $versionedStorage = @{
-                    version = $i
-                    timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                    encrypted_data = $encrypted
+                    version          = $i
+                    timestamp        = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                    encrypted_data   = $encrypted
                     previous_version = if ($i -gt 1) { $i - 1 } else { $null }
                 } | ConvertTo-Json -Depth 2
 
@@ -331,8 +328,8 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
 
                 $versions += @{
                     Version = $i
-                    Path = $versionPath
-                    Data = $configData.Clone()
+                    Path    = $versionPath
+                    Data    = $configData.Clone()
                 }
             }
 
@@ -374,11 +371,11 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
             # Encrypt compressed data
             $encrypted = Protect-WmrData -Data $compressedBytes -Passphrase $script:TestSecureString
             $compressedStorage = @{
-                compressed = $true
-                original_size = $largeData.Length
+                compressed      = $true
+                original_size   = $largeData.Length
                 compressed_size = $compressedBytes.Length
-                encrypted_size = $encrypted.Length
-                encrypted_data = $encrypted
+                encrypted_size  = $encrypted.Length
+                encrypted_data  = $encrypted
             } | ConvertTo-Json -Depth 2
 
             $storagePath = Join-Path $script:TestBackupDir "compressed_secure.json"
@@ -513,11 +510,8 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
 }
 
 AfterAll {
-    # Clean up test environment
-    Clear-WmrEncryptionCache
-    if ($script:TestDataPath -and (Test-SafeTestPath $script:TestDataPath)) {
-        Remove-Item -Path $script:TestDataPath -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 

@@ -1,24 +1,17 @@
 ﻿#!/usr/bin/env pwsh
 
 BeforeAll {
-    # Load Docker test bootstrap for cross-platform compatibility
-    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+    # Import the unified test environment library and initialize it.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
 
-    # Import only the PathUtilities script directly to avoid TUI dependencies
-    try {
-        $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
-        . $PathUtilitiesScript
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+}
 
-        # Also need the test environment path function
-        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
-        . $TestEnvironmentScript
-
-        # Initialize test environment for path redirection
-        Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
-    }
-    catch {
-        throw "Cannot find or import PathUtilities script: $($_.Exception.Message)"
-    }
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Convert-WmrPath" {

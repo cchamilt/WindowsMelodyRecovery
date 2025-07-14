@@ -78,38 +78,38 @@
 
     # Build status object
     $status = @{
-        ModuleInfo = @{
-            Name = $moduleInfo.Name
+        ModuleInfo     = @{
+            Name    = $moduleInfo.Name
             Version = $moduleVersion
-            Path = $moduleInfo.Path
-            Loaded = $null -ne $moduleInfo
+            Path    = $moduleInfo.Path
+            Loaded  = $null -ne $moduleInfo
         }
         Initialization = @{
-            Initialized = $initStatus.Initialized
+            Initialized      = $initStatus.Initialized
             LoadedComponents = $initStatus.LoadedComponents
-            Errors = $initStatus.Errors
+            Errors           = $initStatus.Errors
         }
-        Configuration = @{
-            IsInitialized = $config.IsInitialized
-            BackupRoot = $config.BackupRoot
-            MachineName = $config.MachineName
-            CloudProvider = $config.CloudProvider
-            ModuleVersion = $moduleVersion  # Use module version from loaded module or manifest
+        Configuration  = @{
+            IsInitialized  = $config.IsInitialized
+            BackupRoot     = $config.BackupRoot
+            MachineName    = $config.MachineName
+            CloudProvider  = $config.CloudProvider
+            ModuleVersion  = $moduleVersion  # Use module version from loaded module or manifest
             LastConfigured = $config.LastConfigured
         }
-        Environment = @{
+        Environment    = @{
             PowerShellVersion = $PSVersionTable.PSVersion.ToString()
-            OS = $PSVersionTable.OS
-            Platform = $PSVersionTable.Platform
-            CurrentUser = $env:USERNAME
-            ComputerName = $env:COMPUTERNAME
+            OS                = $PSVersionTable.OS
+            Platform          = $PSVersionTable.Platform
+            CurrentUser       = $env:USERNAME
+            ComputerName      = $env:COMPUTERNAME
         }
-        Functions = @{
+        Functions      = @{
             Available = @()
-            Missing = @()
+            Missing   = @()
         }
-        Dependencies = @{
-            Pester = $null -ne (Get-Module Pester -ListAvailable -ErrorAction SilentlyContinue)
+        Dependencies   = @{
+            Pester            = $null -ne (Get-Module Pester -ListAvailable -ErrorAction SilentlyContinue)
             PowerShellVersion = $PSVersionTable.PSVersion.Major -ge 5
         }
     }
@@ -121,8 +121,7 @@
         'Initialize-WindowsMelodyRecovery',
         'Backup-WindowsMelodyRecovery',
         'Restore-WindowsMelodyRecovery',
-        'Setup-WindowsMelodyRecovery',
-        'Test-WindowsMelodyRecovery'
+        'Setup-WindowsMelodyRecovery'
     )
 
     foreach ($function in $expectedFunctions) {
@@ -137,20 +136,20 @@
     # Add detailed configuration if requested
     if ($Detailed) {
         $status.Configuration.Detailed = @{
-            EmailSettings = $config.EmailSettings
-            BackupSettings = $config.BackupSettings
-            ScheduleSettings = $config.ScheduleSettings
+            EmailSettings        = $config.EmailSettings
+            BackupSettings       = $config.BackupSettings
+            ScheduleSettings     = $config.ScheduleSettings
             NotificationSettings = $config.NotificationSettings
-            RecoverySettings = $config.RecoverySettings
-            LoggingSettings = $config.LoggingSettings
-            UpdateSettings = $config.UpdateSettings
+            RecoverySettings     = $config.RecoverySettings
+            LoggingSettings      = $config.LoggingSettings
+            UpdateSettings       = $config.UpdateSettings
         }
     }
 
     # Filter based on parameters
     if ($ShowErrors) {
         $status = @{
-            Errors = $status.Initialization.Errors
+            Errors           = $status.Initialization.Errors
             MissingFunctions = $status.Functions.Missing
             DependencyIssues = @()
         }

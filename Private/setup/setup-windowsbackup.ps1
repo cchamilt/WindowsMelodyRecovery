@@ -19,13 +19,8 @@ function Initialize-WindowsBackup {
         return $false
     }
 
-    # Load environment configuration (optional - module will use fallback configuration)
-    try {
-        Import-Environment | Out-Null
-    }
-    catch {
-        Write-Verbose "Using module configuration fallback"
-    }
+    # Import required modules
+    Import-Module WindowsMelodyRecovery -ErrorAction Stop
 
     try {
         Write-Information -MessageData "Configuring Windows Backup Service..." -InformationAction Continue
@@ -276,11 +271,11 @@ try {
         # Final verification
         Write-Warning -Message "Verifying Windows Backup configuration..."
         $configSummary = @{
-            BackupLocation = $BackupLocation
-            FileHistoryEnabled = $EnableFileHistory
+            BackupLocation           = $BackupLocation
+            FileHistoryEnabled       = $EnableFileHistory
             SystemImageBackupEnabled = $EnableSystemImageBackup
-            BackupFrequency = $BackupFrequency
-            RetentionDays = $RetentionDays
+            BackupFrequency          = $BackupFrequency
+            RetentionDays            = $RetentionDays
         }
 
         Write-Information -MessageData "Configuration Summary:" -InformationAction Continue

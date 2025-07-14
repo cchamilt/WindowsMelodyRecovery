@@ -18,61 +18,25 @@
 #>
 
 BeforeAll {
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
+
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
     # Import mock cloud provider functions
-    $CloudDetectionScript = if (Test-Path "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1") {
-        "$PSScriptRoot\..\mock-data\cloud\cloud-provider-detection.ps1"
-    }
-    elseif (Test-Path "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1") {
-        "/workspace/tests/mock-data/cloud/cloud-provider-detection.ps1"
-    }
-    else {
-        throw "Cannot find cloud-provider-detection.ps1 script"
-    }
-    . $CloudDetectionScript
+    . (Join-Path $script:TestEnvironment.ModuleRoot "tests/mock-data/cloud/cloud-provider-detection.ps1")
 
-    # Set up test environment
-    $script:TestRoot = if ($env:TEMP) {
-        Join-Path $env:TEMP "WMR-Cloud-Consolidated-Tests"
-    }
-    else {
-        "/tmp/WMR-Cloud-Consolidated-Tests"
-    }
-    $script:TestBackupRoot = Join-Path $script:TestRoot "Backups"
-    $script:TestRestoreRoot = Join-Path $script:TestRoot "Restores"
-    New-Item -Path $script:TestRoot -ItemType Directory -Force | Out-Null
-    New-Item -Path $script:TestBackupRoot -ItemType Directory -Force | Out-Null
-    New-Item -Path $script:TestRestoreRoot -ItemType Directory -Force | Out-Null
-
-
-    # Create mock cloud provider directories
-    $script:MockCloudRoot = if (Test-Path "/workspace/tests/mock-data/cloud") {
-        "/workspace/tests/mock-data/cloud"
-    }
-    else {
-        "$PSScriptRoot\..\mock-data\cloud"
-    }
-    $requiredProviders = @("OneDrive", "GoogleDrive", "Dropbox", "Box", "Custom")
-    foreach ($provider in $requiredProviders) {
-        $providerPath = Join-Path $script:MockCloudRoot $provider
-        if (-not (Test-Path $providerPath)) {
-            New-Item -Path $providerPath -ItemType Directory -Force | Out-Null
-            New-Item -Path (Join-Path $providerPath "WindowsMelodyRecovery") -ItemType Directory -Force | Out-Null
-        }
-    }
+    # Use paths from the initialized environment
+    $script:TestRoot = $script:TestEnvironment.TestRoot
+    $script:TestBackupRoot = $script:TestEnvironment.TestBackup
+    $script:TestRestoreRoot = $script:TestEnvironment.TestRestore
 
     # Create common test data for backup/restore tests
     $script:TestData = @{
         "system_settings.json" = @{ display = @{ resolution = "1920x1080" } } | ConvertTo-Json;
-        "applications.json" = @{ installed = @( @{ name = "VSCode" } ) } | ConvertTo-Json;
+        "applications.json"    = @{ installed = @( @{ name = "VSCode" } ) } | ConvertTo-Json;
     }
     foreach ($file in $script:TestData.Keys) {
         $filePath = Join-Path $script:TestBackupRoot $file
@@ -81,9 +45,8 @@ BeforeAll {
 }
 
 AfterAll {
-    if (Test-Path $script:TestRoot) {
-        Remove-Item -Path $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Cloud Services Integration Tests" -Tag "Integration", "Cloud" {

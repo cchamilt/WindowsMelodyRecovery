@@ -1,10 +1,19 @@
 ﻿Describe "Timeout Tests" {
     BeforeAll {
-        # Load Docker test bootstrap for cross-platform compatibility
-        . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+        # Import the unified test environment library and initialize it.
+        . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+        $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Unit'
+
+        # Import the main module to make functions available for testing.
+        Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
         # Import test utilities for timeout functions
         . (Join-Path $PSScriptRoot "../utilities/Test-Utilities.ps1")
+    }
+
+    AfterAll {
+        # Clean up the test environment created in BeforeAll.
+        Remove-WmrTestEnvironment
     }
 
     Context "Test-Level Timeouts" {

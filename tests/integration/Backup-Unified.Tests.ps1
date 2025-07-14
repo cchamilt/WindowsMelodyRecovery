@@ -31,35 +31,22 @@ File has potential violations but uses safe patterns (mocking, test directories)
 #>
 
 BeforeAll {
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Setup unified test environment
-    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $script:TestBackupRoot = Join-Path $tempPath "WMR-Unified-Backup-Tests"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+
+    # Get paths from the initialized environment
+    $script:TestBackupRoot = $script:TestEnvironment.TestBackup
     $script:TestCloudPath = Join-Path $script:TestBackupRoot "cloud-providers"
-    $script:TestMockPath = Join-Path $script:TestBackupRoot "mock-data"
-
-    # Create test directories
-    @($script:TestBackupRoot, $script:TestCloudPath, $script:TestMockPath) | ForEach-Object {
-        if (-not (Test-Path $_)) {
-            New-Item -Path $_ -ItemType Directory -Force | Out-Null
-        }
-    }
-
-    # Set test mode environment
-    $env:WMR_TEST_MODE = "true"
-    $env:WMR_BACKUP_ROOT = $script:TestBackupRoot
-
-    # Get module paths
-    $script:ModuleRoot = Split-Path (Get-Module WindowsMelodyRecovery).Path -Parent
+    $script:TestMockPath = $script:TestEnvironment.MockData
+    $script:ModuleRoot = $script:TestEnvironment.ModuleRoot
     $script:TemplatesPath = Join-Path $script:ModuleRoot "Templates\System"
+
+    # Set environment variables (the initializer handles most, but this one is specific)
+    $env:WMR_BACKUP_ROOT = $script:TestBackupRoot
 
     # Import required functions
     . (Join-Path $script:ModuleRoot "Private\Core\InvokeWmrTemplate.ps1")
@@ -73,16 +60,16 @@ BeforeAll {
         New-Item -Path $appDataPath -ItemType Directory -Force | Out-Null
 
         $mockApps = @{
-            "VSCode" = @{
-                "settings.json" = '{"theme":"dark","fontSize":14}'
+            "VSCode"  = @{
+                "settings.json"   = '{"theme":"dark","fontSize":14}'
                 "extensions.json" = '["ms-vscode.powershell","ms-vscode.csharp"]'
             }
-            "Chrome" = @{
+            "Chrome"  = @{
                 "Preferences" = '{"default_search_provider_enabled":true}'
-                "Bookmarks" = '[{"name":"Test Bookmark","url":"https://example.com"}]'
+                "Bookmarks"   = '[{"name":"Test Bookmark","url":"https://example.com"}]'
             }
             "Firefox" = @{
-                "prefs.js" = 'user_pref("browser.startup.homepage", "about:home");'
+                "prefs.js"      = 'user_pref("browser.startup.homepage", "about:home");'
                 "places.sqlite" = "SQLite database mock"
             }
         }
@@ -106,7 +93,7 @@ BeforeAll {
         New-Item -Path $steamPath -ItemType Directory -Force | Out-Null
 
         @{
-            "config.vdf" = 'Steam Configuration File'
+            "config.vdf"     = 'Steam Configuration File'
             "loginusers.vdf" = 'Steam Login Users'
         } | ForEach-Object {
             $_.GetEnumerator() | ForEach-Object {
@@ -129,20 +116,20 @@ BeforeAll {
         New-Item -Path $systemPath -ItemType Directory -Force | Out-Null
 
         @{
-            "display.json" = @{
-                Resolution = "1920x1080"
+            "display.json"  = @{
+                Resolution  = "1920x1080"
                 RefreshRate = "60Hz"
-                ColorDepth = "32-bit"
+                ColorDepth  = "32-bit"
             }
-            "mouse.json" = @{
-                Sensitivity = "Medium"
+            "mouse.json"    = @{
+                Sensitivity      = "Medium"
                 DoubleClickSpeed = "Fast"
-                ButtonSwap = $false
+                ButtonSwap       = $false
             }
             "keyboard.json" = @{
-                Layout = "US"
+                Layout      = "US"
                 RepeatDelay = "Short"
-                RepeatRate = "Fast"
+                RepeatRate  = "Fast"
             }
         } | ForEach-Object {
             $_.GetEnumerator() | ForEach-Object {
@@ -160,6 +147,11 @@ BeforeAll {
             New-Item -Path $wmrDir -ItemType Directory -Force | Out-Null
         }
     }
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
@@ -246,13 +238,13 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 # Create mock registry backup file
                 $registryBackup = Join-Path $backupPath "registry_display.json"
                 @{
-                    KeyName = "display"
+                    KeyName      = "display"
                     RegistryPath = "HKCU:\Control Panel\Desktop"
-                    Values = @{
-                        Wallpaper = "C:\Windows\Web\Wallpaper\Windows\img0.jpg"
+                    Values       = @{
+                        Wallpaper      = "C:\Windows\Web\Wallpaper\Windows\img0.jpg"
                         WallpaperStyle = "10"
                     }
-                    Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    Timestamp    = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                 } | ConvertTo-Json -Depth 3 | Out-File $registryBackup -Encoding UTF8
 
                 Test-Path $registryBackup | Should -Be $true
@@ -270,18 +262,18 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             # Create user preferences backup
             @{
-                Theme = "Dark"
-                Language = "en-US"
-                TimeZone = "UTC-5"
+                Theme         = "Dark"
+                Language      = "en-US"
+                TimeZone      = "UTC-5"
                 Accessibility = @{
                     HighContrast = $false
-                    LargeText = $false
+                    LargeText    = $false
                     ScreenReader = $false
                 }
-                Privacy = @{
+                Privacy       = @{
                     LocationServices = $false
-                    Telemetry = "Basic"
-                    Advertising = $false
+                    Telemetry        = "Basic"
+                    Advertising      = $false
                 }
             } | ConvertTo-Json -Depth 3 | Out-File $preferencesFile -Encoding UTF8
 
@@ -324,9 +316,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             # Create application configuration backups
             $appConfigs = @{
-                "VSCode" = @{
-                    Settings = @{
-                        "editor.theme" = "Dark+"
+                "VSCode"  = @{
+                    Settings   = @{
+                        "editor.theme"    = "Dark+"
                         "editor.fontSize" = 14
                         "editor.wordWrap" = "on"
                     }
@@ -336,11 +328,11 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                         "ms-vscode.vscode-typescript-next"
                     )
                 }
-                "Chrome" = @{
-                    Settings = @{
+                "Chrome"  = @{
+                    Settings   = @{
                         "default_search_provider" = "Google"
-                        "homepage" = "https://www.google.com"
-                        "startup_urls" = @("https://www.google.com")
+                        "homepage"                = "https://www.google.com"
+                        "startup_urls"            = @("https://www.google.com")
                     }
                     Extensions = @(
                         "uBlock Origin",
@@ -350,11 +342,11 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 }
                 "Firefox" = @{
                     Settings = @{
-                        "browser.startup.homepage" = "about:home"
+                        "browser.startup.homepage"           = "about:home"
                         "privacy.trackingprotection.enabled" = $true
-                        "dom.security.https_only_mode" = $true
+                        "dom.security.https_only_mode"       = $true
                     }
-                    Addons = @(
+                    Addons   = @(
                         "uBlock Origin",
                         "Privacy Badger",
                         "DuckDuckGo Privacy Essentials"
@@ -380,40 +372,40 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             # Create installed applications list
             $installedApps = @(
                 @{
-                    Name = "Visual Studio Code"
-                    Version = "1.85.0"
-                    Publisher = "Microsoft Corporation"
-                    InstallDate = "2024-01-15"
+                    Name            = "Visual Studio Code"
+                    Version         = "1.85.0"
+                    Publisher       = "Microsoft Corporation"
+                    InstallDate     = "2024-01-15"
                     InstallLocation = "C:\Users\TestUser\AppData\Local\Programs\Microsoft VS Code"
-                    PackageManager = "winget"
-                    PackageId = "Microsoft.VisualStudioCode"
+                    PackageManager  = "winget"
+                    PackageId       = "Microsoft.VisualStudioCode"
                 },
                 @{
-                    Name = "Google Chrome"
-                    Version = "120.0.6099.109"
-                    Publisher = "Google LLC"
-                    InstallDate = "2024-01-10"
+                    Name            = "Google Chrome"
+                    Version         = "120.0.6099.109"
+                    Publisher       = "Google LLC"
+                    InstallDate     = "2024-01-10"
                     InstallLocation = "C:\Program Files\Google\Chrome\Application"
-                    PackageManager = "winget"
-                    PackageId = "Google.Chrome"
+                    PackageManager  = "winget"
+                    PackageId       = "Google.Chrome"
                 },
                 @{
-                    Name = "Mozilla Firefox"
-                    Version = "121.0"
-                    Publisher = "Mozilla"
-                    InstallDate = "2024-01-12"
+                    Name            = "Mozilla Firefox"
+                    Version         = "121.0"
+                    Publisher       = "Mozilla"
+                    InstallDate     = "2024-01-12"
                     InstallLocation = "C:\Program Files\Mozilla Firefox"
-                    PackageManager = "winget"
-                    PackageId = "Mozilla.Firefox"
+                    PackageManager  = "winget"
+                    PackageId       = "Mozilla.Firefox"
                 },
                 @{
-                    Name = "7-Zip"
-                    Version = "23.01"
-                    Publisher = "Igor Pavlov"
-                    InstallDate = "2024-01-08"
+                    Name            = "7-Zip"
+                    Version         = "23.01"
+                    Publisher       = "Igor Pavlov"
+                    InstallDate     = "2024-01-08"
                     InstallLocation = "C:\Program Files\7-Zip"
-                    PackageManager = "winget"
-                    PackageId = "7zip.7zip"
+                    PackageManager  = "winget"
+                    PackageId       = "7zip.7zip"
                 }
             )
 
@@ -433,17 +425,17 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             @{
                 BackupType = "Applications"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
+                Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version    = "1.0.0"
                 Components = @(
                     @{ Type = "Configurations"; Path = "configs"; ItemCount = 3 },
                     @{ Type = "InstalledApps"; Path = "installed-applications.json"; ItemCount = 4 },
                     @{ Type = "PackageManagers"; Path = "package-managers"; ItemCount = 3 }
                 )
-                Summary = @{
-                    TotalApplications = 4
+                Summary    = @{
+                    TotalApplications      = 4
                     ConfiguredApplications = 3
-                    PackageManagers = @("winget", "chocolatey", "scoop")
+                    PackageManagers        = @("winget", "chocolatey", "scoop")
                 }
             } | ConvertTo-Json -Depth 4 | Out-File $manifestFile -Encoding UTF8
 
@@ -486,7 +478,7 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             # Create Steam backup data
             $steamData = @{
-                "config.vdf" = @"
+                "config.vdf"         = @"
 "InstallConfigStore"
 {
     "Software"
@@ -517,7 +509,7 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
     }
 }
 "@
-                "loginusers.vdf" = @"
+                "loginusers.vdf"     = @"
 "users"
 {
     "76561198012345678"
@@ -541,29 +533,29 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             # Create games library backup
             $gamesFile = Join-Path $steamPath "games-library.json"
             @{
-                Games = @(
+                Games        = @(
                     @{
-                        AppId = "730"
-                        Name = "Counter-Strike 2"
+                        AppId      = "730"
+                        Name       = "Counter-Strike 2"
                         InstallDir = "Counter-Strike Global Offensive"
                         SizeOnDisk = "15728640000"
                         LastPlayed = "1704067200"
-                        PlayTime = "2400"
+                        PlayTime   = "2400"
                     },
                     @{
-                        AppId = "570"
-                        Name = "Dota 2"
+                        AppId      = "570"
+                        Name       = "Dota 2"
                         InstallDir = "dota 2 beta"
                         SizeOnDisk = "25165824000"
                         LastPlayed = "1704000000"
-                        PlayTime = "5400"
+                        PlayTime   = "5400"
                     }
                 )
                 LibraryPaths = @(
                     "C:\Program Files (x86)\Steam",
                     "D:\SteamLibrary"
                 )
-                LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                LastUpdate   = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $gamesFile -Encoding UTF8
 
             Test-Path $gamesFile | Should -Be $true
@@ -581,33 +573,33 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $epicConfig = Join-Path $epicPath "launcher-config.json"
             @{
                 LauncherSettings = @{
-                    AutoLaunch = $false
-                    MinimizeToTray = $true
-                    EnableOverlay = $true
+                    AutoLaunch      = $false
+                    MinimizeToTray  = $true
+                    EnableOverlay   = $true
                     InstallLocation = "C:\Program Files\Epic Games"
                 }
-                InstalledGames = @(
+                InstalledGames   = @(
                     @{
-                        AppName = "Fortnite"
-                        DisplayName = "Fortnite"
-                        InstallLocation = "C:\Program Files\Epic Games\Fortnite"
-                        InstallSize = "35000000000"
+                        AppName          = "Fortnite"
+                        DisplayName      = "Fortnite"
+                        InstallLocation  = "C:\Program Files\Epic Games\Fortnite"
+                        InstallSize      = "35000000000"
                         LaunchExecutable = "FortniteClient-Win64-Shipping.exe"
-                        LastPlayed = "2024-01-20"
+                        LastPlayed       = "2024-01-20"
                     },
                     @{
-                        AppName = "UnrealEngine"
-                        DisplayName = "Unreal Engine 5.3"
-                        InstallLocation = "C:\Program Files\Epic Games\UE_5.3"
-                        InstallSize = "15000000000"
+                        AppName          = "UnrealEngine"
+                        DisplayName      = "Unreal Engine 5.3"
+                        InstallLocation  = "C:\Program Files\Epic Games\UE_5.3"
+                        InstallSize      = "15000000000"
                         LaunchExecutable = "UnrealEditor.exe"
-                        LastPlayed = "2024-01-18"
+                        LastPlayed       = "2024-01-18"
                     }
                 )
-                LibraryPaths = @(
+                LibraryPaths     = @(
                     "C:\Program Files\Epic Games"
                 )
-                LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                LastUpdate       = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $epicConfig -Encoding UTF8
 
             Test-Path $epicConfig | Should -Be $true
@@ -629,17 +621,17 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             $gogConfig = Join-Path $gogPath "galaxy-config.json"
             @{
-                Settings = @{
-                    AutoStart = $false
+                Settings   = @{
+                    AutoStart      = $false
                     MinimizeToTray = $true
                     OverlayEnabled = $false
                 }
-                Games = @(
+                Games      = @(
                     @{
-                        Name = "The Witcher 3: Wild Hunt"
-                        GameId = "1207664643"
+                        Name        = "The Witcher 3: Wild Hunt"
+                        GameId      = "1207664643"
                         InstallPath = "C:\GOG Games\The Witcher 3 Wild Hunt"
-                        PlayTime = "14400"
+                        PlayTime    = "14400"
                     }
                 )
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
@@ -653,17 +645,17 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             $eaConfig = Join-Path $eaPath "ea-desktop-config.json"
             @{
-                Settings = @{
-                    AutoLaunch = $false
-                    CloudSaves = $true
+                Settings   = @{
+                    AutoLaunch          = $false
+                    CloudSaves          = $true
                     OriginInGameEnabled = $true
                 }
-                Games = @(
+                Games      = @(
                     @{
-                        Name = "Battlefield 2042"
-                        GameId = "Origin.OFR.50.0004663"
+                        Name        = "Battlefield 2042"
+                        GameId      = "Origin.OFR.50.0004663"
                         InstallPath = "C:\Program Files\EA Games\Battlefield 2042"
-                        PlayTime = "7200"
+                        PlayTime    = "7200"
                     }
                 )
                 LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
@@ -679,37 +671,37 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             @{
                 BackupType = "GamingPlatforms"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
-                Platforms = @(
+                Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version    = "1.0.0"
+                Platforms  = @(
                     @{
-                        Name = "Steam"
-                        ConfigPath = "steam"
-                        GamesCount = 2
+                        Name         = "Steam"
+                        ConfigPath   = "steam"
+                        GamesCount   = 2
                         LibraryPaths = 2
                     },
                     @{
-                        Name = "Epic Games Store"
-                        ConfigPath = "epic"
-                        GamesCount = 2
+                        Name         = "Epic Games Store"
+                        ConfigPath   = "epic"
+                        GamesCount   = 2
                         LibraryPaths = 1
                     },
                     @{
-                        Name = "GOG Galaxy"
-                        ConfigPath = "gog"
-                        GamesCount = 1
+                        Name         = "GOG Galaxy"
+                        ConfigPath   = "gog"
+                        GamesCount   = 1
                         LibraryPaths = 1
                     },
                     @{
-                        Name = "EA Desktop"
-                        ConfigPath = "ea"
-                        GamesCount = 1
+                        Name         = "EA Desktop"
+                        ConfigPath   = "ea"
+                        GamesCount   = 1
                         LibraryPaths = 1
                     }
                 )
-                Summary = @{
-                    TotalPlatforms = 4
-                    TotalGames = 6
+                Summary    = @{
+                    TotalPlatforms    = 4
+                    TotalGames        = 6
                     TotalLibraryPaths = 5
                 }
             } | ConvertTo-Json -Depth 4 | Out-File $manifestFile -Encoding UTF8
@@ -731,33 +723,33 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             # Create cloud provider detection results
             $providers = @{
-                OneDrive = @{
-                    Available = $true
-                    Path = Join-Path $script:TestCloudPath "OneDrive"
+                OneDrive    = @{
+                    Available  = $true
+                    Path       = Join-Path $script:TestCloudPath "OneDrive"
                     SyncStatus = "Connected"
-                    FreeSpace = "1.5 TB"
-                    UsedSpace = "500 GB"
+                    FreeSpace  = "1.5 TB"
+                    UsedSpace  = "500 GB"
                 }
                 GoogleDrive = @{
-                    Available = $true
-                    Path = Join-Path $script:TestCloudPath "GoogleDrive"
+                    Available  = $true
+                    Path       = Join-Path $script:TestCloudPath "GoogleDrive"
                     SyncStatus = "Connected"
-                    FreeSpace = "15 GB"
-                    UsedSpace = "10 GB"
+                    FreeSpace  = "15 GB"
+                    UsedSpace  = "10 GB"
                 }
-                Dropbox = @{
-                    Available = $true
-                    Path = Join-Path $script:TestCloudPath "Dropbox"
+                Dropbox     = @{
+                    Available  = $true
+                    Path       = Join-Path $script:TestCloudPath "Dropbox"
                     SyncStatus = "Connected"
-                    FreeSpace = "2 GB"
-                    UsedSpace = "1.5 GB"
+                    FreeSpace  = "2 GB"
+                    UsedSpace  = "1.5 GB"
                 }
-                Box = @{
-                    Available = $false
-                    Path = $null
+                Box         = @{
+                    Available  = $false
+                    Path       = $null
                     SyncStatus = "Not Connected"
-                    FreeSpace = "N/A"
-                    UsedSpace = "N/A"
+                    FreeSpace  = "N/A"
+                    UsedSpace  = "N/A"
                 }
             }
 
@@ -781,21 +773,21 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $oneDriveBackup = @{
                 "system-settings" = @{
                     "display-settings.json" = @{
-                        Resolution = "1920x1080"
-                        RefreshRate = "60Hz"
+                        Resolution   = "1920x1080"
+                        RefreshRate  = "60Hz"
                         ColorProfile = "sRGB"
                     }
-                    "audio-settings.json" = @{
+                    "audio-settings.json"   = @{
                         DefaultDevice = "Speakers"
-                        Volume = 50
-                        Enhancements = $false
+                        Volume        = 50
+                        Enhancements  = $false
                     }
                 }
-                "applications" = @{
+                "applications"    = @{
                     "browser-settings.json" = @{
                         DefaultBrowser = "Chrome"
-                        Bookmarks = @("https://github.com", "https://stackoverflow.com")
-                        Extensions = @("uBlock Origin", "LastPass")
+                        Bookmarks      = @("https://github.com", "https://stackoverflow.com")
+                        Extensions     = @("uBlock Origin", "LastPass")
                     }
                 }
             }
@@ -816,10 +808,10 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             # Create OneDrive backup manifest
             $manifestFile = Join-Path $oneDrivePath "backup-manifest.json"
             @{
-                Provider = "OneDrive"
+                Provider   = "OneDrive"
                 BackupType = "CloudSync"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
+                Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version    = "1.0.0"
                 Categories = @("system-settings", "applications")
                 SyncStatus = "Complete"
             } | ConvertTo-Json -Depth 3 | Out-File $manifestFile -Encoding UTF8
@@ -839,9 +831,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
                 # Create provider-specific backup
                 $backupData = @{
-                    Provider = $provider
+                    Provider   = $provider
                     BackupType = "CloudSync"
-                    Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                    Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
                     Categories = @("gaming", "applications")
                     SyncMethod = if ($provider -eq "GoogleDrive") { "Incremental" } else { "Full" }
                 }
@@ -888,25 +880,25 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             # Create WSL backup data
             $wslConfig = Join-Path $backupPath "wsl-config.json"
             @{
-                Distributions = @(
+                Distributions       = @(
                     @{
-                        Name = "Ubuntu-22.04"
-                        Version = "2"
-                        State = "Running"
-                        DefaultUser = "testuser"
+                        Name            = "Ubuntu-22.04"
+                        Version         = "2"
+                        State           = "Running"
+                        DefaultUser     = "testuser"
                         InstallLocation = "C:\Users\TestUser\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc"
                     },
                     @{
-                        Name = "Debian"
-                        Version = "2"
-                        State = "Stopped"
-                        DefaultUser = "testuser"
+                        Name            = "Debian"
+                        Version         = "2"
+                        State           = "Stopped"
+                        DefaultUser     = "testuser"
                         InstallLocation = "C:\Users\TestUser\AppData\Local\Packages\TheDebianProject.DebianGNULinux_76v4gfsz19hv4"
                     }
                 )
                 DefaultDistribution = "Ubuntu-22.04"
-                WSLVersion = "2"
-                LastUpdate = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                WSLVersion          = "2"
+                LastUpdate          = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             } | ConvertTo-Json -Depth 3 | Out-File $wslConfig -Encoding UTF8
 
             Test-Path $wslConfig | Should -Be $true
@@ -918,9 +910,9 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             }
 
             $dotfiles = @{
-                ".bashrc" = "# Bash configuration"
-                ".vimrc" = "# Vim configuration"
-                ".gitconfig" = "[user]\n    name = Test User\n    email = test@example.com"
+                ".bashrc"     = "# Bash configuration"
+                ".vimrc"      = "# Vim configuration"
+                ".gitconfig"  = "[user]\n    name = Test User\n    email = test@example.com"
                 ".ssh/config" = "Host github.com\n    HostName github.com\n    User git"
             }
 
@@ -950,11 +942,11 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
                 if (Test-Path $categoryPath) {
                     $categorySize = (Get-ChildItem $categoryPath -Recurse -File | Measure-Object -Property Length -Sum).Sum
                     $backupCategories += @{
-                        Category = $_
-                        Path = $_
-                        Size = $categorySize
+                        Category  = $_
+                        Path      = $_
+                        Size      = $categorySize
                         FileCount = (Get-ChildItem $categoryPath -Recurse -File).Count
-                        Status = "Complete"
+                        Status    = "Complete"
                     }
                     $totalSize += $categorySize
                 }
@@ -962,22 +954,22 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
 
             @{
                 BackupType = "MasterBackup"
-                Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                Version = "1.0.0"
+                Timestamp  = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                Version    = "1.0.0"
                 Categories = $backupCategories
-                Summary = @{
+                Summary    = @{
                     TotalCategories = $backupCategories.Count
-                    TotalSize = $totalSize
-                    TotalFiles = ($backupCategories | Measure-Object -Property FileCount -Sum).Sum
-                    CloudProviders = @("OneDrive", "GoogleDrive", "Dropbox")
-                    BackupDuration = "00:05:30"
+                    TotalSize       = $totalSize
+                    TotalFiles      = ($backupCategories | Measure-Object -Property FileCount -Sum).Sum
+                    CloudProviders  = @("OneDrive", "GoogleDrive", "Dropbox")
+                    BackupDuration  = "00:05:30"
                 }
-                Metadata = @{
-                    ComputerName = $env:COMPUTERNAME
-                    UserName = $env:USERNAME
-                    OSVersion = [System.Environment]::OSVersion.VersionString
+                Metadata   = @{
+                    ComputerName      = $env:COMPUTERNAME
+                    UserName          = $env:USERNAME
+                    OSVersion         = [System.Environment]::OSVersion.VersionString
                     PowerShellVersion = $PSVersionTable.PSVersion.ToString()
-                    ModuleVersion = "1.0.0"
+                    ModuleVersion     = "1.0.0"
                 }
             } | ConvertTo-Json -Depth 4 | Out-File $masterManifest -Encoding UTF8
 
@@ -1033,24 +1025,6 @@ Describe "Unified Backup Integration Tests" -Tag "Backup", "Integration" {
             $syncedProviders | Should -BeGreaterThan 0
             Write-Information -MessageData "Successfully synced to $syncedProviders cloud providers" -InformationAction Continue
         }
-    }
-}
-
-AfterAll {
-    # Comprehensive cleanup
-    try {
-        if (Test-Path $script:TestBackupRoot) {
-            Remove-Item $script:TestBackupRoot -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Warning -Message "Cleaned up test backup directory: $script:TestBackupRoot"
-        }
-
-        # Reset environment variables
-        Remove-Item Env:WMR_TEST_MODE -ErrorAction SilentlyContinue
-        Remove-Item Env:WMR_BACKUP_ROOT -ErrorAction SilentlyContinue
-
-    }
-    catch {
-        Write-Warning "Cleanup encountered issues: $($_.Exception.Message)"
     }
 }
 

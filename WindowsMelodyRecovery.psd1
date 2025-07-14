@@ -39,7 +39,6 @@
         'Get-WindowsMelodyRecovery',
         'Set-WindowsMelodyRecovery',
         'Initialize-WindowsMelodyRecovery',
-        'Test-WindowsMelodyRecovery',
 
         # Status and initialization functions
         'Get-WindowsMelodyRecoveryStatus',
@@ -82,7 +81,6 @@
         # Utility functions
         'Import-PrivateScript',
         'Convert-WmrPath',
-        'Test-WmrAdministrativePrivilege',
 
         # Encryption functions
         'Protect-WmrData',
@@ -120,7 +118,6 @@
         'wmr-backup',
         'wmr-restore',
         'wmr-setup',
-        'wmr-test',
         'wmr-status'
     )
 

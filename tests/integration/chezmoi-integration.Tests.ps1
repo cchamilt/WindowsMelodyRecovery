@@ -9,24 +9,22 @@
 #>
 
 BeforeAll {
-    # Import test utilities
-    . $PSScriptRoot/../utilities/Test-Utilities.ps1
-    . $PSScriptRoot/../utilities/Mock-Utilities.ps1
+    # Import the unified test environment library and initialize it for Integration tests.
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    $script:TestEnvironment = Initialize-WmrTestEnvironment -SuiteName 'Integration'
 
-    # Set up test environment
-    $TestModulePath = Join-Path $PSScriptRoot "../../WindowsMelodyRecovery.psm1"
+    # Import the main module to make functions available for testing.
+    Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
-    # Use fallback path if $env:TEMP is not set
-    $tempPath = if ($env:TEMP) { $env:TEMP } else { "/tmp" }
-    $TestTempDir = Join-Path $tempPath "WindowsMelodyRecovery-Chezmoi-Tests"
-    if (-not (Test-Path $TestTempDir)) {
-        New-Item -Path $TestTempDir -ItemType Directory -Force | Out-Null
-    }
+    # Use paths from the initialized environment
+    $TestTempDir = $script:TestEnvironment.Temp
 
-    # Mock environment variables for testing
-    $env:WMR_CONFIG_PATH = $TestTempDir
-    $env:WMR_BACKUP_PATH = Join-Path $TestTempDir "backups"
-    $env:WMR_LOG_PATH = Join-Path $TestTempDir "logs"
+    # Mock environment variables for testing (handled by initializer)
+}
+
+AfterAll {
+    # Clean up the test environment created in BeforeAll.
+    Remove-WmrTestEnvironment
 }
 
 Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
@@ -55,7 +53,7 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
         }
 
         It "Should validate chezmoi installation script syntax" {
-            $chezmoiSetupPath = Join-Path $PSScriptRoot "../../Private/setup/Initialize-Chezmoi.ps1"
+            $chezmoiSetupPath = Join-Path $script:TestEnvironment.ModuleRoot "Private/setup/Initialize-Chezmoi.ps1"
             if (Test-Path $chezmoiSetupPath) {
                 { [System.Management.Automation.PSParser]::Tokenize((Get-Content $chezmoiSetupPath -Raw), [ref]$null) } | Should -Not -Throw
             }
@@ -97,9 +95,9 @@ Describe "Windows Melody Recovery - Chezmoi Integration Tests" -Tag "Chezmoi" {
 
             # Create mock dotfiles
             $mockFiles = @{
-                "dot_bashrc" = "# Mock .bashrc file"
+                "dot_bashrc"    = "# Mock .bashrc file"
                 "dot_gitconfig" = "[user]`n    name = Test User`n    email = test@example.com"
-                "dot_vimrc" = "set number`nset expandtab"
+                "dot_vimrc"     = "set number`nset expandtab"
             }
 
             foreach ($file in $mockFiles.GetEnumerator()) {
@@ -178,7 +176,7 @@ echo "Username: {{ .chezmoi.username }}"
             $backupStructure = @{
                 "source" = @{
                     "dotfiles" = @{
-                        "dot_bashrc" = "# Backup .bashrc"
+                        "dot_bashrc"    = "# Backup .bashrc"
                         "dot_gitconfig" = "[user]`n    name = Backup User"
                     }
                 }
@@ -237,14 +235,14 @@ echo "Username: {{ .chezmoi.username }}"
 
             # Create backup manifest
             $manifest = @{
-                BackupType = "Chezmoi"
+                BackupType  = "Chezmoi"
                 CreatedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                SourcePath = $backupPath
-                Components = @(
+                SourcePath  = $backupPath
+                Components  = @(
                     "chezmoi-source",
                     "chezmoi-config"
                 )
-                Files = @()
+                Files       = @()
             }
 
             # Add files to manifest
@@ -252,8 +250,8 @@ echo "Username: {{ .chezmoi.username }}"
                 $files = Get-ChildItem -Path $backupPath -Recurse -File
                 foreach ($file in $files) {
                     $manifest.Files += @{
-                        Path = $file.FullName.Replace($backupPath, "")
-                        Size = $file.Length
+                        Path     = $file.FullName.Replace($backupPath, "")
+                        Size     = $file.Length
                         Modified = $file.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
                     }
                 }
@@ -304,17 +302,17 @@ echo "Username: {{ .chezmoi.username }}"
             # Create module configuration that includes chezmoi
             $moduleConfig = @{
                 WSL = @{
-                    Enabled = $true
+                    Enabled    = $true
                     Components = @(
                         "packages",
                         "configs",
                         "chezmoi"
                     )
-                    Chezmoi = @{
-                        Enabled = $true
+                    Chezmoi    = @{
+                        Enabled      = $true
                         BackupSource = $true
                         BackupConfig = $true
-                        AutoSetup = $false
+                        AutoSetup    = $false
                     }
                 }
             }
@@ -441,16 +439,6 @@ export USER="{{ .chezmoi.username }}"
             Remove-Item $templateFile -Force -ErrorAction SilentlyContinue
         }
     }
-}
-
-AfterAll {
-    # Cleanup
-    if (Test-Path $TestTempDir) {
-        Remove-Item -Path $TestTempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    # Remove module
-    Remove-Module WindowsMelodyRecovery -ErrorAction SilentlyContinue
 }
 
 
