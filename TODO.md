@@ -1,32 +1,168 @@
-# TODO
+# Windows Melody Recovery - Implementation Plan
 
-## Testing
+## Phase 1: Foundation & Testing (High Priority - In Progress)
 
-- Test test suites in their proper environments and pass in CI/CD
+### Testing Infrastructure
+- **[IN PROGRESS]** Test test suites in their proper environments and pass in CI/CD
+  - Fix Docker test environment stability issues
+  - Enhance Windows-only test coverage for CI/CD execution
+  - Improve integration test reliability
+  - Status: Docker tests need stability improvements, Windows CI/CD tests functional
 
-## User Interface
+### User Experience Improvements
+- **[PENDING]** Test and refine UX (better error handling if config loading fails)
+  - Implement graceful config loading failure handling in TUI
+  - Add user-friendly error messages and recovery options
+  - Enhance TUI navigation and feedback systems
+  - Status: TUI framework exists, needs error handling improvements
 
-- Test and refine UX (e.g., better error handling if config loading fails).
+## Phase 2: User Experience Enhancements (High Priority)
 
-## Features
+### Application Management
+- **[PENDING]** Create export/import or edit calls for simplified user editable app/game lists
+  - Implement CSV/JSON export functionality for app/game lists
+  - Add bulk selection UI in TUI for app management
+  - Create user-friendly editing interface
+  - Status: Basic app discovery exists, needs user management interface
 
-- Support for shared configurations and override logic for host vs default shared
-- Discovering unmanaged packages, document them so that a user can manually store their installation files
-- Determine to uninstall/keep apps not on restore list
-- Refactor setup scripts and test for them in docker
-- Create export/import or edit calls for a simplified user editable app/game lists
-- Manage version pinning
-- Implement restore procedure for the complex templates
-- Add all packaging -winget,choco,npm,etc. and powershell module updates as scheduled tasks
-- Clean up verb practices and naming for gallery release
-- optional filtered/limited user directory rsync in windows and wsl to zip or at least a cloud home backup directory
-- store windows key information - account attached and ideally actual key.
-- Determine a recovery policy similar to Windows - 90 days of weekly backups, cloud store in git or in some form of deltas.
-- Update documentation and workflow - install, initialize, capture state, remove bloat, optimize/recommendations, capture new state, install maintenance/backup tasks
-- Procedural recovery - ie. make sure backup is recovered, remove bloatware, install critical apps, recover configuration, setup wsl, setup dev/env/languages, install remaining apps, games, etc.
-- Certificate storage options like keyvault and local file encryption
-- In addition to cloud file services - support network drive backup and Azure Blob storage
-- server features - services, server features, iis configuration, files/directories
-- document and support administrative privelege management with Windows' new sudo inline option https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
-- Output system backup into packer build compatible HCL formatted files.
-- Rename as retune?
+- **[PENDING]** Determine to uninstall/keep apps not on restore list
+  - Implement app decision workflow in TUI
+  - Add bloatware detection and removal recommendations
+  - Create whitelist/blacklist management system
+  - Status: App discovery implemented, decision logic needed
+
+### Package Management
+- **[PENDING]** Manage version pinning
+  - Implement version constraints for winget, chocolatey, scoop
+  - Add version conflict resolution
+  - Create version rollback capabilities
+  - Status: Package managers integrated, version pinning needed
+
+## Phase 3: Advanced Features (Medium Priority)
+
+### Configuration Management
+- **[PARTIALLY IMPLEMENTED]** Support for shared configurations and override logic for host vs default shared
+  - Enhance template inheritance system
+  - Add machine-specific vs shared configuration logic
+  - Implement configuration merging and conflict resolution
+  - Status: Template inheritance exists, needs enhanced override logic
+
+### Setup & Deployment
+- **[PENDING]** Refactor setup scripts and test for them in docker
+  - Modularize setup scripts for better testability
+  - Create Docker-compatible setup procedures
+  - Add comprehensive setup script testing
+  - Status: Setup scripts exist, need refactoring and Docker testing
+
+### Restore Procedures
+- **[PENDING]** Implement restore procedure for the complex templates
+  - Create restore workflows for registry, system settings, applications
+  - Add validation and rollback capabilities
+  - Implement incremental restore options
+  - Status: Basic restore exists, complex template restore needed
+
+### Scheduled Maintenance
+- **[PARTIALLY IMPLEMENTED]** Add all packaging updates as scheduled tasks (winget, choco, npm, etc.)
+  - Extend existing task system for package manager updates
+  - Add PowerShell module update scheduling
+  - Implement update conflict resolution
+  - Status: Task framework exists, needs package manager integration
+
+## Phase 4: Discovery & Documentation (Medium Priority)
+
+### Application Discovery
+- **[IMPLEMENTED]** Discovering unmanaged packages, document them for manual storage
+  - Status: Fully implemented in Find-UnmanagedApplication.ps1
+  - Enhancement: Add user documentation generation
+
+### Documentation & Workflow
+- **[PENDING]** Update documentation and workflow
+  - Document: install → initialize → capture state → remove bloat → optimize → capture new state → install maintenance tasks
+  - Create procedural recovery documentation
+  - Add troubleshooting guides
+  - Status: Basic docs exist, comprehensive workflow docs needed
+
+### Gallery Preparation
+- **[PENDING]** Clean up verb practices and naming for gallery release
+  - Audit all functions for PowerShell approved verbs
+  - Standardize naming conventions
+  - Prepare for PowerShell Gallery publication
+  - Status: Core functions exist, need verb compliance audit
+
+## Phase 5: Advanced Storage & Backup (Lower Priority)
+
+### Data Protection
+- **[PARTIALLY IMPLEMENTED]** Certificate storage options (keyvault, local file encryption)
+  - Status: AES-256 encryption utilities implemented
+  - Enhancement: Add Azure Key Vault integration
+
+- **[PENDING]** Store Windows key information (account attached, actual key)
+  - Implement secure Windows license key storage
+  - Add account association tracking
+  - Create key recovery procedures
+  - Status: Not implemented, needs security design
+
+### Backup Strategies
+- **[PENDING]** User directory sync (filtered/limited rsync to zip/cloud)
+  - Implement selective user directory backup
+  - Add cloud storage integration beyond current providers
+  - Create incremental sync capabilities
+  - Status: Cloud providers integrated, user directory sync needed
+
+- **[PENDING]** Recovery policy (90 days weekly backups, cloud/git storage with deltas)
+  - Implement retention policy management
+  - Add delta backup capabilities
+  - Create automated cleanup procedures
+  - Status: Basic backup exists, retention policy needed
+
+- **[PENDING]** Network drive backup and Azure Blob storage support
+  - Extend beyond current cloud file services
+  - Add network drive integration
+  - Implement Azure Blob storage provider
+  - Status: File-based cloud providers exist, network/blob storage needed
+
+## Phase 6: Enterprise & Advanced Features (Future)
+
+### Server Features
+- **[PENDING]** Server features (services, server features, IIS configuration, files/directories)
+  - Add Windows Server role and feature backup/restore
+  - Implement IIS configuration management
+  - Create service configuration backup
+  - Status: Client-focused currently, server features needed
+
+### Administrative Management
+- **[PENDING]** Document and support Windows' new sudo inline option
+  - Reference: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
+  - Integrate with existing administrative privilege management
+  - Update documentation for sudo usage
+  - Status: Admin privilege system exists, sudo integration needed
+
+### Infrastructure Integration
+- **[PENDING]** Output system backup into packer build compatible HCL files
+  - Create Packer template generation from system state
+  - Add HCL formatting for infrastructure as code
+  - Implement automated build pipeline integration
+  - Status: System state capture exists, Packer output needed
+
+## Future Considerations
+
+### Branding
+- **[UNDER CONSIDERATION]** Rename as "retune"?
+  - Evaluate branding implications
+  - Consider trademark and naming conflicts
+  - Assess community feedback
+  - Status: Current name functional, rename optional
+
+---
+
+## Implementation Notes
+
+- **Confidence Levels**: High (90%+), Medium (70-89%), Lower (50-69%)
+- **Dependencies**: Many features build on existing template inheritance and encryption systems
+- **Testing Strategy**: Each phase includes comprehensive testing requirements
+- **Documentation**: All features require user documentation and inline help
+
+## Current Status Summary
+- ✅ **Implemented**: Unmanaged app discovery, scheduled tasks framework, encryption utilities, TUI interface
+- 🔄 **In Progress**: Testing infrastructure improvements
+- 📋 **Next Priority**: User experience enhancements and application management workflows

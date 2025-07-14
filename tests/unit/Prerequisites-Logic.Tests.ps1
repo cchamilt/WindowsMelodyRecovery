@@ -17,17 +17,14 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-    # Dot-source Prerequisites.ps1 to ensure all functions are available
-    . (Join-Path (Split-Path $ModulePath) "Private\Core\Prerequisites.ps1")
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+
+    # Import Prerequisites script for testing
+    . (Join-Path $PSScriptRoot "../../Private/Core/Prerequisites.ps1")
 
     # Mock all file and registry operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
@@ -50,11 +47,11 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
             Mock Invoke-Expression { return "Expected Output" }
 
             $scriptPrereq = @{
-                type = "script"
-                name = "Test Script"
-                inline_script = "Write-Output 'Expected Output'"
+                type            = "script"
+                name            = "Test Script"
+                inline_script   = "Write-Output 'Expected Output'"
                 expected_output = "Expected Output"
-                on_missing = "warn"
+                on_missing      = "warn"
             }
 
             # Test prerequisite validation logic
@@ -67,11 +64,11 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
             Mock Invoke-Expression { throw "Script execution failed" }
 
             $failingPrereq = @{
-                type = "script"
-                name = "Failing Script"
-                inline_script = "throw 'Error'"
+                type            = "script"
+                name            = "Failing Script"
+                inline_script   = "throw 'Error'"
                 expected_output = "Success"
-                on_missing = "fail_backup"
+                on_missing      = "fail_backup"
             }
 
             # Should handle failure based on on_missing setting
@@ -108,9 +105,9 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate registry path checking logic" {
             $registryPrereq = @{
-                type = "registry"
-                name = "Test Registry"
-                path = "HKCU:\Software\Test"
+                type       = "registry"
+                name       = "Test Registry"
+                path       = "HKCU:\Software\Test"
                 on_missing = "warn"
             }
 
@@ -134,12 +131,12 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate registry value checking logic" {
             $valuePrereq = @{
-                type = "registry"
-                name = "Registry Value Check"
-                path = "HKCU:\Software\Test"
-                value_name = "TestValue"
+                type           = "registry"
+                name           = "Registry Value Check"
+                path           = "HKCU:\Software\Test"
+                value_name     = "TestValue"
                 expected_value = "ExpectedData"
-                on_missing = "fail_restore"
+                on_missing     = "fail_restore"
             }
 
             # Test value prerequisite structure
@@ -152,11 +149,11 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate application checking logic" {
             $appPrereq = @{
-                type = "application"
-                name = "Test Application"
-                check_command = "test-app --version"
+                type            = "application"
+                name            = "Test Application"
+                check_command   = "test-app --version"
                 expected_output = "v\d+\.\d+\.\d+"
-                on_missing = "warn"
+                on_missing      = "warn"
             }
 
             # Mock successful application check
@@ -168,11 +165,11 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should handle missing applications correctly" {
             $missingAppPrereq = @{
-                type = "application"
-                name = "Missing Application"
-                check_command = "missing-app --version"
+                type            = "application"
+                name            = "Missing Application"
+                check_command   = "missing-app --version"
                 expected_output = "v\d+\.\d+\.\d+"
-                on_missing = "fail_backup"
+                on_missing      = "fail_backup"
             }
 
             # Mock application not found
@@ -186,11 +183,11 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate prerequisite structure correctly" {
             $validPrereq = @{
-                type = "script"
-                name = "Valid Prerequisite"
-                inline_script = "Write-Output 'test'"
+                type            = "script"
+                name            = "Valid Prerequisite"
+                inline_script   = "Write-Output 'test'"
                 expected_output = "test"
-                on_missing = "warn"
+                on_missing      = "warn"
             }
 
             # Validate required fields
@@ -269,12 +266,12 @@ Describe "Prerequisites Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should handle prerequisite dependencies correctly" {
             $dependentPrereq = @{
-                type = "script"
-                name = "Dependent Script"
-                inline_script = "Write-Output 'depends on registry'"
+                type            = "script"
+                name            = "Dependent Script"
+                inline_script   = "Write-Output 'depends on registry'"
                 expected_output = "depends on registry"
-                depends_on = @("Registry Check")
-                on_missing = "warn"
+                depends_on      = @("Registry Check")
+                on_missing      = "warn"
             }
 
             # Test dependency structure

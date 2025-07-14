@@ -6,13 +6,34 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module using standardized pattern
-    $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-    try {
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Failed to import module from $ModulePath : $($_.Exception.Message)"
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+
+    # Import Public functions needed for testing
+    . (Join-Path $PSScriptRoot "../../Public/Initialize-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Get-WindowsMelodyRecoveryStatus.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Backup-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Restore-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Start-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Convert-ToWinget.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Test-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Update-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Set-WindowsMelodyRecovery.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Set-WindowsMelodyRecoveryScripts.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Sync-WindowsMelodyRecoveryScripts.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Install-WindowsMelodyRecoveryTasks.ps1")
+    . (Join-Path $PSScriptRoot "../../Public/Remove-WindowsMelodyRecoveryTasks.ps1")
+
+    # Import supporting Core functions
+    . (Join-Path $PSScriptRoot "../../Private/Core/PathUtilities.ps1")
+
+    # Create a dummy function for Get-WindowsMelodyRecovery (doesn't exist as a file)
+    function Get-WindowsMelodyRecovery {
+        param([string]$Path)
+        return @{ Status = "Mocked"; Path = $Path }
     }
 
     # Set up test environment with mocked paths

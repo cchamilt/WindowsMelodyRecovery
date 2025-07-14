@@ -19,11 +19,17 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module
-    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
+    # Import only the specific scripts needed to avoid TUI dependencies
+    . (Resolve-Path "$PSScriptRoot/../../Private/Core/AdministrativePrivileges.ps1")
+    . (Resolve-Path "$PSScriptRoot/../../Private/Core/Test-WmrAdminPrivilege.ps1")
+    . (Resolve-Path "$PSScriptRoot/../../Private/Core/Prerequisites.ps1")
+    . (Resolve-Path "$PSScriptRoot/../../Public/Install-WindowsMelodyRecoveryTasks.ps1")
+    . (Resolve-Path "$PSScriptRoot/../../Public/Initialize-WindowsMelodyRecovery.ps1")
 
-    # Import test utilities
+    # Import test utilities and environment
     . "$PSScriptRoot/../utilities/Test-Utilities.ps1"
+    . "$PSScriptRoot/../utilities/Test-Environment.ps1"
+    Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
 
     # Test data directory
     $script:TestDataPath = Join-Path $PSScriptRoot "../mock-data"
@@ -111,7 +117,7 @@ Describe "Administrative Privilege Logic Tests" {
             Mock -CommandName "Test-WmrAdminPrivilege" -MockWith { return $false }
 
             # Mock Windows features backup function
-            Mock -CommandName "Backup-WindowsFeatures" -MockWith {
+            Mock -CommandName "Backup-WindowsFeature" -MockWith {
                 if (-not (Test-WmrAdminPrivilege)) {
                     Write-Warning "Windows features backup requires administrative privileges"
                     return @{ Success = $false; RequiresElevation = $true }
@@ -119,7 +125,7 @@ Describe "Administrative Privilege Logic Tests" {
                 return @{ Success = $true; RequiresElevation = $false }
             }
 
-            $result = Backup-WindowsFeatures
+            $result = Backup-WindowsFeature
             $result.Success | Should -Be $false
             $result.RequiresElevation | Should -Be $true
 
@@ -181,14 +187,14 @@ Describe "Administrative Privilege Logic Tests" {
         It "Should validate admin prerequisites in template processing" {
             # Mock template configuration with admin prerequisites
             $templateConfig = @{
-                metadata = @{ name = "Admin Required Template" }
+                metadata      = @{ name = "Admin Required Template" }
                 prerequisites = @(
                     @{
-                        type = "script"
-                        name = "Administrative Privileges Required"
-                        inline_script = "if ((Test-WmrAdminPrivilege)) { 'admin_confirmed' } else { 'admin_required' }"
+                        type            = "script"
+                        name            = "Administrative Privileges Required"
+                        inline_script   = "if ((Test-WmrAdminPrivilege)) { 'admin_confirmed' } else { 'admin_required' }"
                         expected_output = "admin_confirmed"
-                        on_missing = "fail_backup"
+                        on_missing      = "fail_backup"
                     }
                 )
             }
@@ -196,8 +202,8 @@ Describe "Administrative Privilege Logic Tests" {
             # Mock Test-WmrAdminPrivilege to return false
             Mock -CommandName "Test-WmrAdminPrivilege" -MockWith { return $false }
 
-            # Mock Test-WmrPrerequisites
-            Mock -CommandName "Test-WmrPrerequisites" -MockWith {
+            # Mock Test-WmrPrerequisite
+            Mock -CommandName "Test-WmrPrerequisite" -MockWith {
                 param($TemplateConfig, $Operation)
 
                 foreach ($prereq in $TemplateConfig.prerequisites) {
@@ -215,7 +221,7 @@ Describe "Administrative Privilege Logic Tests" {
                 return $true
             }
 
-            $result = Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup"
+            $result = Test-WmrPrerequisite -TemplateConfig $templateConfig -Operation "Backup"
             $result | Should -Be $false
 
             Assert-MockCalled -CommandName "Test-WmrAdminPrivilege" -Times 1
@@ -224,14 +230,14 @@ Describe "Administrative Privilege Logic Tests" {
         It "Should pass admin prerequisites when admin privileges are available" {
             # Mock template configuration with admin prerequisites
             $templateConfig = @{
-                metadata = @{ name = "Admin Required Template" }
+                metadata      = @{ name = "Admin Required Template" }
                 prerequisites = @(
                     @{
-                        type = "script"
-                        name = "Administrative Privileges Required"
-                        inline_script = "if ((Test-WmrAdminPrivilege)) { 'admin_confirmed' } else { 'admin_required' }"
+                        type            = "script"
+                        name            = "Administrative Privileges Required"
+                        inline_script   = "if ((Test-WmrAdminPrivilege)) { 'admin_confirmed' } else { 'admin_required' }"
                         expected_output = "admin_confirmed"
-                        on_missing = "fail_backup"
+                        on_missing      = "fail_backup"
                     }
                 )
             }
@@ -239,8 +245,8 @@ Describe "Administrative Privilege Logic Tests" {
             # Mock Test-WmrAdminPrivilege to return true
             Mock -CommandName "Test-WmrAdminPrivilege" -MockWith { return $true }
 
-            # Mock Test-WmrPrerequisites
-            Mock -CommandName "Test-WmrPrerequisites" -MockWith {
+            # Mock Test-WmrPrerequisite
+            Mock -CommandName "Test-WmrPrerequisite" -MockWith {
                 param($TemplateConfig, $Operation)
 
                 foreach ($prereq in $TemplateConfig.prerequisites) {
@@ -258,7 +264,7 @@ Describe "Administrative Privilege Logic Tests" {
                 return $true
             }
 
-            $result = Test-WmrPrerequisites -TemplateConfig $templateConfig -Operation "Backup"
+            $result = Test-WmrPrerequisite -TemplateConfig $templateConfig -Operation "Backup"
             $result | Should -Be $true
 
             Assert-MockCalled -CommandName "Test-WmrAdminPrivilege" -Times 1
@@ -280,9 +286,9 @@ Describe "Administrative Privilege Logic Tests" {
                 }
                 catch {
                     return @{
-                        Success = $false
+                        Success           = $false
                         RequiresElevation = $true
-                        Error = $_.Exception.Message
+                        Error             = $_.Exception.Message
                     }
                 }
             }
@@ -309,9 +315,9 @@ Describe "Administrative Privilege Logic Tests" {
                 }
                 catch {
                     return @{
-                        Success = $false
+                        Success           = $false
                         RequiresElevation = $true
-                        Error = $_.Exception.Message
+                        Error             = $_.Exception.Message
                     }
                 }
             }
@@ -354,9 +360,9 @@ Describe "Administrative Privilege Logic Tests" {
                 }
                 catch {
                     return @{
-                        Success = $false
+                        Success           = $false
                         RequiresElevation = $true
-                        Error = $_.Exception.Message
+                        Error             = $_.Exception.Message
                     }
                 }
             }
@@ -403,9 +409,9 @@ Describe "Administrative Privilege Logic Tests" {
                 }
                 catch {
                     return @{
-                        Success = $false
+                        Success           = $false
                         RequiresElevation = $true
-                        Error = $_.Exception.Message
+                        Error             = $_.Exception.Message
                     }
                 }
             }
@@ -462,9 +468,9 @@ Describe "Administrative Privilege Logic Tests" {
                 }
                 catch {
                     return @{
-                        Success = $false
+                        Success           = $false
                         RequiresElevation = $true
-                        Error = $_.Exception.Message
+                        Error             = $_.Exception.Message
                     }
                 }
             }
@@ -487,15 +493,15 @@ Describe "Administrative Operations Mock Framework" {
         It "Should provide mock functions for admin-required operations" {
             # Mock administrative operations for testing
             $mockOperations = @{
-                "WindowsFeatures" = @{
-                    "Get-WindowsOptionalFeature" = {
+                "WindowsFeatures"     = @{
+                    "Get-WindowsOptionalFeature"     = {
                         param($Online)
                         return @(
                             @{ FeatureName = "MockFeature1"; State = "Enabled" },
                             @{ FeatureName = "MockFeature2"; State = "Disabled" }
                         )
                     }
-                    "Enable-WindowsOptionalFeature" = {
+                    "Enable-WindowsOptionalFeature"  = {
                         param($FeatureName, $Online)
                         return @{ RestartNeeded = $false }
                     }
@@ -505,14 +511,14 @@ Describe "Administrative Operations Mock Framework" {
                     }
                 }
                 "WindowsCapabilities" = @{
-                    "Get-WindowsCapability" = {
+                    "Get-WindowsCapability"    = {
                         param($Online)
                         return @(
                             @{ Name = "MockCapability1"; State = "Installed" },
                             @{ Name = "MockCapability2"; State = "NotPresent" }
                         )
                     }
-                    "Add-WindowsCapability" = {
+                    "Add-WindowsCapability"    = {
                         param($Name, $Online)
                         return @{ RestartNeeded = $false }
                     }
@@ -521,8 +527,8 @@ Describe "Administrative Operations Mock Framework" {
                         return @{ RestartNeeded = $false }
                     }
                 }
-                "Services" = @{
-                    "Set-Service" = {
+                "Services"            = @{
+                    "Set-Service"   = {
                         param($Name, $StartupType)
                         return $true
                     }
@@ -530,13 +536,13 @@ Describe "Administrative Operations Mock Framework" {
                         param($Name)
                         return $true
                     }
-                    "Stop-Service" = {
+                    "Stop-Service"  = {
                         param($Name)
                         return $true
                     }
                 }
-                "ScheduledTasks" = @{
-                    "Register-ScheduledTask" = {
+                "ScheduledTasks"      = @{
+                    "Register-ScheduledTask"   = {
                         param($TaskName, $Action, $Trigger, $Principal)
                         return $true
                     }
@@ -544,7 +550,7 @@ Describe "Administrative Operations Mock Framework" {
                         param($TaskName)
                         return $true
                     }
-                    "Get-ScheduledTask" = {
+                    "Get-ScheduledTask"        = {
                         param($TaskName)
                         return @{ TaskName = $TaskName; State = "Ready" }
                     }
@@ -560,24 +566,24 @@ Describe "Administrative Operations Mock Framework" {
         It "Should simulate admin privilege escalation scenarios" {
             # Mock different privilege escalation scenarios
             $scenarios = @{
-                "NoPrivileges" = @{
-                    AdminCheck = $false
-                    CanElevate = $false
+                "NoPrivileges"    = @{
+                    AdminCheck       = $false
+                    CanElevate       = $false
                     ExpectedBehavior = "Fail with warning"
                 }
-                "HasPrivileges" = @{
-                    AdminCheck = $true
-                    CanElevate = $true
+                "HasPrivileges"   = @{
+                    AdminCheck       = $true
+                    CanElevate       = $true
                     ExpectedBehavior = "Succeed"
                 }
-                "CanElevate" = @{
-                    AdminCheck = $false
-                    CanElevate = $true
+                "CanElevate"      = @{
+                    AdminCheck       = $false
+                    CanElevate       = $true
                     ExpectedBehavior = "Prompt for elevation"
                 }
                 "ElevationFailed" = @{
-                    AdminCheck = $false
-                    CanElevate = $false
+                    AdminCheck       = $false
+                    CanElevate       = $false
                     ExpectedBehavior = "Fail with elevation error"
                 }
             }

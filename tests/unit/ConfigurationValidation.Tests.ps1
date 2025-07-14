@@ -1,20 +1,20 @@
-﻿BeforeAll {
+BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
     # Import required modules and functions
     $script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
 
-    # Import the main module
-    Import-Module (Join-Path $script:ModuleRoot "WindowsMelodyRecovery.psd1") -Force
-
-    # Import configuration validation functions
+    # Import only the specific scripts needed to avoid TUI dependencies
     . (Join-Path $script:ModuleRoot "Private\Core\ConfigurationValidation.ps1")
-
-    # Import dependencies
+    . (Join-Path $script:ModuleRoot "Private\Core\ConfigurationMerging.ps1")
     . (Join-Path $script:ModuleRoot "Private\Core\WindowsMelodyRecovery.Initialization.ps1")
 
-    # Mock or define Merge-Configurations if not available
+    # Initialize test environment
+    . (Join-Path $PSScriptRoot "../utilities/Test-Environment.ps1")
+    Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
+
+    # Mock or define missing functions if not available
     if (-not (Get-Command Merge-Configurations -ErrorAction SilentlyContinue)) {
         function Merge-Configuration {
             [CmdletBinding()]
@@ -48,20 +48,20 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should validate consistent configurations successfully" {
             $machineConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
                 EmailSettings = @{
                     FromAddress = "machine@example.com"
-                    SmtpPort = 587
+                    SmtpPort    = 587
                 }
             }
 
             $sharedConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
                 EmailSettings = @{
                     FromAddress = "shared@example.com"
-                    SmtpPort = 465
+                    SmtpPort    = 465
                 }
             }
 
@@ -94,12 +94,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should detect type mismatches" {
             $machineConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 RetentionDays = 30  # Integer
             }
 
             $sharedConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 RetentionDays = @("30", "60")  # Array - incompatible type
             }
 
@@ -113,10 +113,10 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         It "Should handle nested structure validation" {
             $machineConfig = @{
                 EmailSettings = @{
-                    FromAddress = "machine@example.com"
-                    SmtpPort = 587
+                    FromAddress    = "machine@example.com"
+                    SmtpPort       = 587
                     Authentication = @{
-                        Type = "OAuth"
+                        Type     = "OAuth"
                         ClientId = "machine-client"
                     }
                 }
@@ -124,10 +124,10 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
             $sharedConfig = @{
                 EmailSettings = @{
-                    FromAddress = "shared@example.com"
-                    SmtpPort = 465
+                    FromAddress    = "shared@example.com"
+                    SmtpPort       = 465
                     Authentication = @{
-                        Type = "Basic"
+                        Type     = "Basic"
                         Username = "shared-user"
                     }
                 }
@@ -141,12 +141,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should apply custom validation rules" {
             $machineConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\MachineBackups")
                 CloudProvider = "OneDrive"
             }
 
             $sharedConfig = @{
-                BackupRoot = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
+                BackupRoot    = (Get-WmrTestPath -WindowsPath "C:\SharedBackups")
                 CloudProvider = "GoogleDrive"
             }
 
@@ -340,12 +340,12 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should apply inheritance rules" {
             $level1 = @{
-                Arrays = @("base1", "base2")
+                Arrays  = @("base1", "base2")
                 Strings = "BaseString"
             }
 
             $level2 = @{
-                Arrays = @("override1", "override2")
+                Arrays  = @("override1", "override2")
                 Strings = "OverrideString"
             }
 
@@ -361,8 +361,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
                     }
 
                     return @{
-                        Success = $true
-                        Message = "Array concatenation applied"
+                        Success        = $true
+                        Message        = "Array concatenation applied"
                         ModifiedConfig = $modifiedConfig
                     }
                 }
@@ -378,8 +378,8 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         It "Should validate against schema" {
             $level1 = @{
                 RequiredString = "Value"
-                RequiredInt = 42
-                OptionalBool = $true
+                RequiredInt    = 42
+                OptionalBool   = $true
             }
 
             $level2 = @{
@@ -387,22 +387,22 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
             }
 
             $schema = @{
-                "RequiredString" = @{
+                "RequiredString"  = @{
                     Required = $true
-                    Type = "String"
+                    Type     = "String"
                 }
-                "RequiredInt" = @{
-                    Required = $true
-                    Type = "Int32"
+                "RequiredInt"     = @{
+                    Required  = $true
+                    Type      = "Int32"
                     Validator = { param($Value) $Value -gt 0 }
                 }
-                "OptionalBool" = @{
+                "OptionalBool"    = @{
                     Required = $false
-                    Type = "Boolean"
+                    Type     = "Boolean"
                 }
                 "MissingRequired" = @{
                     Required = $true
-                    Type = "String"
+                    Type     = "String"
                 }
             }
 
@@ -445,16 +445,16 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         }
     }
 
-    Context "Test-ConfigurationFilePaths Function" {
+    Context "Test-ConfigurationFilePath Function" {
 
         BeforeEach {
             # Create temporary test files - handle Docker environment properly
             $tempPath = if ($env:TEMP) { $env:TEMP } elseif ($env:TMP) { $env:TMP } else { "/tmp" }
-            $script:TempDir = Join-Path $tempPath "ConfigValidationTests"
+            $script:TempDir = Join-Path $tempPath "WMR-ConfigValidation-Tests"
 
             # Ensure TempDir is not null and create directory
             if ([string]::IsNullOrEmpty($script:TempDir)) {
-                $script:TempDir = "/tmp/ConfigValidationTests"
+                $script:TempDir = "/tmp/WMR-ConfigValidation-Tests"
             }
 
             New-Item -ItemType Directory -Path $script:TempDir -Force | Out-Null
@@ -474,13 +474,13 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
         AfterEach {
             # Clean up temporary files
             if (Test-Path $script:TempDir) {
-                Remove-Item $script:TempDir -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item $script:TempDir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
             }
         }
 
         It "Should validate existing valid files" {
             $paths = @($script:ValidJsonFile)
-            $result = Test-ConfigurationFilePaths -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
+            $result = Test-ConfigurationFilePath -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
 
             $result.Success | Should -Be $true
             $result.Errors.Count | Should -Be 0
@@ -495,7 +495,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should detect invalid JSON content" {
             $paths = @($script:InvalidJsonFile)
-            $result = Test-ConfigurationFilePaths -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
+            $result = Test-ConfigurationFilePath -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
 
             $result.Success | Should -Be $false
             $result.Errors.Count | Should -BeGreaterThan 0
@@ -509,7 +509,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should detect empty files" {
             $paths = @($script:EmptyFile)
-            $result = Test-ConfigurationFilePaths -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
+            $result = Test-ConfigurationFilePath -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
 
             $result.Success | Should -Be $true
             $result.Warnings.Count | Should -BeGreaterThan 0
@@ -522,7 +522,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should detect non-existent files" {
             $paths = @($script:NonExistentFile)
-            $result = Test-ConfigurationFilePaths -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
+            $result = Test-ConfigurationFilePath -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
 
             $result.Success | Should -Be $true
             $result.Warnings.Count | Should -BeGreaterThan 0
@@ -535,7 +535,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should handle multiple files with mixed results" {
             $paths = @($script:ValidJsonFile, $script:InvalidJsonFile, $script:NonExistentFile)
-            $result = Test-ConfigurationFilePaths -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
+            $result = Test-ConfigurationFilePath -ConfigurationPaths $paths -AccessibilityChecks $true -ContentValidation $true
 
             $result.Success | Should -Be $false  # Due to invalid JSON
             $result.PathAnalysis.Count | Should -Be 3
@@ -557,7 +557,7 @@ Describe "ConfigurationValidation Unit Tests" -Tag "Unit", "Logic", "Configurati
 
         It "Should skip accessibility checks when disabled" {
             $paths = @($script:ValidJsonFile)
-            $result = Test-ConfigurationFilePaths -ConfigurationPaths $paths -AccessibilityChecks $false -ContentValidation $false
+            $result = Test-ConfigurationFilePath -ConfigurationPaths $paths -AccessibilityChecks $false -ContentValidation $false
 
             $result.Success | Should -Be $true
             $pathResult = $result.PathAnalysis[0]

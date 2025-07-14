@@ -38,9 +38,9 @@ function Get-EnvironmentType {
     Write-Verbose "🔍 Detecting test environment..."
 
     $envType = [PSCustomObject]@{
-        IsDocker = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
+        IsDocker  = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or (Test-Path '/.dockerenv')
         IsWindows = $IsWindows
-        IsCI = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
+        IsCI      = $env:CI -or $env:GITHUB_ACTIONS -or $env:BUILD_BUILDID -or $env:JENKINS_URL
     }
 
     Write-Verbose "Environment Detection Results: Docker=$($envType.IsDocker), Windows=$($envType.IsWindows), CI=$($envType.IsCI)"
@@ -187,7 +187,7 @@ function Initialize-TestEnvironment {
     $baseTempPath = if ($envType.IsCI) {
         if ($envType.IsWindows) { $env:TEMP } else { '/tmp' }
     }
- else {
+    else {
         Join-Path $moduleRoot "Temp"
     }
     $testRoot = Join-Path $baseTempPath "WMR-Tests-$SuiteName-$SessionId"
@@ -196,12 +196,12 @@ function Initialize-TestEnvironment {
 
     # Define standard paths within the isolated root
     $testPaths = @{
-        TestRoot = $testRoot
+        TestRoot    = $testRoot
         TestRestore = Join-Path $testRoot "test-restore"
-        TestBackup = Join-Path $testRoot "test-backup"
-        Temp = Join-Path $testRoot "temp"
-        TestState = Join-Path $testRoot "test-state"
-        Logs = Join-Path $testRoot "logs"
+        TestBackup  = Join-Path $testRoot "test-backup"
+        Temp        = Join-Path $testRoot "temp"
+        TestState   = Join-Path $testRoot "test-state"
+        Logs        = Join-Path $testRoot "logs"
     }
 
     # Create all standard directories
@@ -268,10 +268,16 @@ function Initialize-TestEnvironment {
 # function Ensure-TestModules { ... }
 # Ensure-TestModules
 
-# . (Join-Path $PSScriptRoot "Test-Utilities.ps1")
-# if ($script:IsDockerEnvironment) { ... }
+# Import Test-Utilities for cleanup and helper functions
+. (Join-Path $PSScriptRoot "Test-Utilities.ps1")
 
-Export-ModuleMember -Function Initialize-TestEnvironment, Get-EnvironmentType, Find-ModuleRoot
+# Export functions (only when loaded as a module)
+if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
+    # Functions are automatically available when dot-sourced
+}
+else {
+    Export-ModuleMember -Function Initialize-TestEnvironment, Get-EnvironmentType, Find-ModuleRoot
+}
 
 
 

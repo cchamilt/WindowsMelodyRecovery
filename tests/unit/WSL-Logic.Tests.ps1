@@ -16,14 +16,11 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 }
 
 Describe "WSL Logic Unit Tests" -Tag "Unit", "WSL" {
@@ -107,8 +104,8 @@ backup:
             foreach ($line in $lines) {
                 if ($line -match '^\s*(\*?)\s*([^\s]+)\s+(Running|Stopped)\s+(\d+)') {
                     $distributions += @{
-                        Name = $matches[2]
-                        Status = $matches[3]
+                        Name    = $matches[2]
+                        Status  = $matches[3]
                         Version = $matches[4]
                         Default = $matches[1] -eq '*'
                     }
@@ -124,10 +121,10 @@ backup:
         It "Should validate distribution configuration" {
             # Mock distribution configuration
             $mockDistribution = @{
-                Name = "Ubuntu-22.04"
-                Status = "Running"
-                Version = "2"
-                Default = $true
+                Name     = "Ubuntu-22.04"
+                Status   = "Running"
+                Version  = "2"
+                Default  = $true
                 BasePath = (Get-WmrTestPath -WindowsPath "C:\\Users\\TestUser\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState")
             }
 
@@ -181,7 +178,7 @@ flask==2.3.2
             foreach ($line in $lines) {
                 if ($line -match '^([^=]+)==(.+)') {
                     $packages += @{
-                        Name = $matches[1].Trim()
+                        Name    = $matches[1].Trim()
                         Version = $matches[2].Trim()
                     }
                 }
@@ -239,9 +236,9 @@ localhostForwarding = true
         It "Should validate WSL configuration values" {
             # Mock configuration values
             $mockConfig = @{
-                memory = "8GB"
-                processors = "4"
-                swap = "2GB"
+                memory              = "8GB"
+                processors          = "4"
+                swap                = "2GB"
                 localhostForwarding = "true"
             }
 
@@ -276,9 +273,9 @@ localhostForwarding = true
         It "Should validate chezmoi template variables" {
             # Mock template variables
             $mockTemplateVars = @{
-                "chezmoi.arch" = "amd64"
+                "chezmoi.arch"     = "amd64"
                 "chezmoi.hostname" = "test-host"
-                "chezmoi.os" = "linux"
+                "chezmoi.os"       = "linux"
                 "chezmoi.username" = "testuser"
             }
 
@@ -294,10 +291,10 @@ localhostForwarding = true
         It "Should parse WSL command output" {
             # Mock WSL command output
             $mockCommandOutput = @{
-                Success = $true
-                Output = @("line1", "line2", "line3")
+                Success  = $true
+                Output   = @("line1", "line2", "line3")
                 ExitCode = 0
-                Error = $null
+                Error    = $null
             }
 
             # Test command output processing logic
@@ -310,10 +307,10 @@ localhostForwarding = true
         It "Should handle WSL command errors" {
             # Mock WSL command error
             $mockCommandError = @{
-                Success = $false
-                Output = @()
+                Success  = $false
+                Output   = @()
                 ExitCode = 1
-                Error = "Command not found"
+                Error    = "Command not found"
             }
 
             # Test error handling logic

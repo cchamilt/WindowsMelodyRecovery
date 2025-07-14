@@ -38,13 +38,13 @@ function Test-ConfigurationConsistency {
     )
 
     $result = [PSCustomObject]@{
-        Success = $true
-        Errors = @()
+        Success           = $true
+        Errors            = @()
         ValidationDetails = @{
-            MachineConfigKeys = $MachineConfig.Keys
-            SharedConfigKeys = $SharedConfig.Keys
-            MissingRequiredKeys = @()
-            TypeMismatches = @()
+            MachineConfigKeys     = $MachineConfig.Keys
+            SharedConfigKeys      = $SharedConfig.Keys
+            MissingRequiredKeys   = @()
+            TypeMismatches        = @()
             ValidationRuleResults = @()
         }
     }
@@ -67,9 +67,9 @@ function Test-ConfigurationConsistency {
                 $result.Success = $false
                 $result.Errors += "Type mismatch for key '$key': Machine ($($machineType.Name)) vs Shared ($($sharedType.Name))"
                 $result.ValidationDetails.TypeMismatches += @{
-                    Key = $key
+                    Key         = $key
                     MachineType = $machineType.Name
-                    SharedType = $sharedType.Name
+                    SharedType  = $sharedType.Name
                 }
             }
         }
@@ -80,8 +80,8 @@ function Test-ConfigurationConsistency {
         $ruleResult = & $ValidationRules[$ruleName] $MachineConfig $SharedConfig
         $result.ValidationDetails.ValidationRuleResults += [PSCustomObject]@{
             RuleName = $ruleName
-            Success = $ruleResult.Success
-            Message = $ruleResult.Message
+            Success  = $ruleResult.Success
+            Message  = $ruleResult.Message
         }
         if (-not $ruleResult.Success) {
             $result.Success = $false
@@ -146,7 +146,7 @@ function Test-SharedConfigurationMerging {
                     # Deep merge nested hashtables
                     $nestedOverridden = @()
                     $nestedAdded = @()
-                    $merged[$key] = Merge-Hashtables $merged[$key] $Override[$key] ([ref]$nestedOverridden) ([ref]$nestedAdded)
+                    $merged[$key] = Merge-Hashtable $merged[$key] $Override[$key] ([ref]$nestedOverridden) ([ref]$nestedAdded)
 
                     # Only mark as overridden if something actually changed
                     if ($nestedOverridden.Count -gt 0 -or $nestedAdded.Count -gt 0) {
@@ -173,7 +173,7 @@ function Test-SharedConfigurationMerging {
         # Perform deep merge
         $overriddenKeys = @()
         $addedKeys = @()
-        $merged = Merge-Hashtables $BaseConfig $OverrideConfig ([ref]$overriddenKeys) ([ref]$addedKeys)
+        $merged = Merge-Hashtable $BaseConfig $OverrideConfig ([ref]$overriddenKeys) ([ref]$addedKeys)
 
         # Find preserved keys
         $preservedKeys = @()
@@ -189,13 +189,13 @@ function Test-SharedConfigurationMerging {
             $ruleResult = & $rule $BaseConfig $OverrideConfig $merged
             if (-not $ruleResult.Success) {
                 return @{
-                    Success = $false
-                    Errors = @($ruleResult.Message)
-                    MergedConfig = $merged
+                    Success         = $false
+                    Errors          = @($ruleResult.Message)
+                    MergedConfig    = $merged
                     MergingAnalysis = @{
-                        OverriddenKeys = $overriddenKeys
-                        PreservedKeys = $preservedKeys
-                        AddedKeys = $addedKeys
+                        OverriddenKeys      = $overriddenKeys
+                        PreservedKeys       = $preservedKeys
+                        AddedKeys           = $addedKeys
                         MissingExpectedKeys = @()
                     }
                 }
@@ -216,26 +216,26 @@ function Test-SharedConfigurationMerging {
         }
 
         return @{
-            Success = $errors.Count -eq 0
-            Errors = $errors
-            MergedConfig = $merged
+            Success         = $errors.Count -eq 0
+            Errors          = $errors
+            MergedConfig    = $merged
             MergingAnalysis = @{
-                OverriddenKeys = $overriddenKeys
-                PreservedKeys = $preservedKeys
-                AddedKeys = $addedKeys
+                OverriddenKeys      = $overriddenKeys
+                PreservedKeys       = $preservedKeys
+                AddedKeys           = $addedKeys
                 MissingExpectedKeys = $missingKeys
             }
         }
     }
     catch {
         return @{
-            Success = $false
-            Errors = @("Configuration merging failed: $($_.Exception.Message)")
-            MergedConfig = @{}
+            Success         = $false
+            Errors          = @("Configuration merging failed: $($_.Exception.Message)")
+            MergedConfig    = @{}
             MergingAnalysis = @{
-                OverriddenKeys = @()
-                PreservedKeys = @()
-                AddedKeys = @()
+                OverriddenKeys      = @()
+                PreservedKeys       = @()
+                AddedKeys           = @()
                 MissingExpectedKeys = @()
             }
         }
@@ -264,13 +264,13 @@ function Test-ConfigurationInheritance {
     try {
         if ($ConfigurationHierarchy.Count -eq 0) {
             return @{
-                Success = $false
-                Errors = @("Configuration hierarchy is empty")
-                FinalConfiguration = @{}
+                Success             = $false
+                Errors              = @("Configuration hierarchy is empty")
+                FinalConfiguration  = @{}
                 InheritanceAnalysis = @{
-                    LevelCount = 0
+                    LevelCount       = 0
                     InheritanceChain = @()
-                    KeyOrigins = @{}
+                    KeyOrigins       = @{}
                     SchemaValidation = @()
                 }
             }
@@ -285,7 +285,7 @@ function Test-ConfigurationInheritance {
         for ($level = 0; $level -lt $ConfigurationHierarchy.Count; $level++) {
             $currentLevel = $ConfigurationHierarchy[$level]
             $inheritanceChain += @{
-                Level = $level
+                Level         = $level
                 Configuration = $currentLevel
             }
 
@@ -308,14 +308,14 @@ function Test-ConfigurationInheritance {
                 # Track key origins and override history
                 if (-not $keyOrigins.ContainsKey($key)) {
                     $keyOrigins[$key] = @{
-                        OriginLevel = $level
-                        OriginalValue = $newValue
+                        OriginLevel     = $level
+                        OriginalValue   = $newValue
                         OverrideHistory = @()
                     }
                 }
                 else {
                     $keyOrigins[$key].OverrideHistory += @{
-                        Level = $level
+                        Level    = $level
                         OldValue = $oldValue
                         NewValue = $newValue
                     }
@@ -345,11 +345,11 @@ function Test-ConfigurationInheritance {
                 }
 
                 $schemaValidation += @{
-                    Key = $schemaKey
-                    Present = $present
-                    TypeValid = $typeValid
+                    Key             = $schemaKey
+                    Present         = $present
+                    TypeValid       = $typeValid
                     ValidatorResult = $validatorResult
-                    Required = $schemaRule.Required -eq $true
+                    Required        = $schemaRule.Required -eq $true
                 }
 
                 if ($schemaRule.Required -eq $true -and -not $present) {
@@ -359,26 +359,26 @@ function Test-ConfigurationInheritance {
         }
 
         return @{
-            Success = $schemaErrors.Count -eq 0
-            Errors = $schemaErrors
-            FinalConfiguration = $finalConfig
+            Success             = $schemaErrors.Count -eq 0
+            Errors              = $schemaErrors
+            FinalConfiguration  = $finalConfig
             InheritanceAnalysis = @{
-                LevelCount = $ConfigurationHierarchy.Count
+                LevelCount       = $ConfigurationHierarchy.Count
                 InheritanceChain = $inheritanceChain
-                KeyOrigins = $keyOrigins
+                KeyOrigins       = $keyOrigins
                 SchemaValidation = $schemaValidation
             }
         }
     }
     catch {
         return @{
-            Success = $false
-            Errors = @("Configuration inheritance test failed: $($_.Exception.Message)")
-            FinalConfiguration = @{}
+            Success             = $false
+            Errors              = @("Configuration inheritance test failed: $($_.Exception.Message)")
+            FinalConfiguration  = @{}
             InheritanceAnalysis = @{
-                LevelCount = 0
+                LevelCount       = 0
                 InheritanceChain = @()
-                KeyOrigins = @{}
+                KeyOrigins       = @{}
                 SchemaValidation = @()
             }
         }
@@ -410,12 +410,12 @@ function Test-ConfigurationFilePath {
 
         foreach ($path in $ConfigurationPaths) {
             $pathInfo = @{
-                Path = $path
-                Exists = $false
-                Accessible = $false
+                Path         = $path
+                Exists       = $false
+                Accessible   = $false
                 ValidContent = $false
-                Extension = ""
-                Size = 0
+                Extension    = ""
+                Size         = 0
             }
 
             # Check if file exists
@@ -468,17 +468,17 @@ function Test-ConfigurationFilePath {
         }
 
         return @{
-            Success = $errors.Count -eq 0
-            Errors = $errors
-            Warnings = $warnings
+            Success      = $errors.Count -eq 0
+            Errors       = $errors
+            Warnings     = $warnings
             PathAnalysis = $pathAnalysis
         }
     }
     catch {
         return @{
-            Success = $false
-            Errors = @("Configuration file path test failed: $($_.Exception.Message)")
-            Warnings = @()
+            Success      = $false
+            Errors       = @("Configuration file path test failed: $($_.Exception.Message)")
+            Warnings     = @()
             PathAnalysis = @()
         }
     }

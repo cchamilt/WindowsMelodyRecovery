@@ -3,11 +3,14 @@
 
 # Import required modules and test utilities
 BeforeAll {
-    # Load test environment
-    . "$PSScriptRoot\..\utilities\Test-Utilities.ps1"
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Load the main module
-    Import-Module $PSScriptRoot\..\..\WindowsMelodyRecovery.psd1 -Force
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
     # Load template inheritance functions
     . "$PSScriptRoot\..\..\Private\Core\TemplateInheritance.ps1"

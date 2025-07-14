@@ -2,14 +2,17 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import required modules and functions
-    $script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-    # Import the main module
-    Import-Module (Join-Path $script:ModuleRoot "WindowsMelodyRecovery.psd1") -Force
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
     # Import the initialization module that contains Merge-Configurations
-    . (Join-Path $script:ModuleRoot "Private\Core\WindowsMelodyRecovery.Initialization.ps1")
+    . (Join-Path $PSScriptRoot "../../Private/Core/WindowsMelodyRecovery.Initialization.ps1")
+
+    # Create alias for the function name inconsistency
+    Set-Alias -Name "Merge-Configurations" -Value "Merge-Configuration"
 }
 
 Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration" {
@@ -81,27 +84,27 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
 
         It "Should merge nested hashtables correctly" {
             $baseConfig = @{
-                EmailSettings = @{
+                EmailSettings  = @{
                     FromAddress = "default@example.com"
-                    SmtpServer = "smtp.office365.com"
-                    SmtpPort = 587
-                    EnableSsl = $true
+                    SmtpServer  = "smtp.office365.com"
+                    SmtpPort    = 587
+                    EnableSsl   = $true
                 }
                 BackupSettings = @{
                     RetentionDays = 30
-                    ExcludePaths = @("*.tmp", "*.log")
+                    ExcludePaths  = @("*.tmp", "*.log")
                 }
             }
 
             $overrideConfig = @{
-                EmailSettings = @{
+                EmailSettings  = @{
                     FromAddress = "override@example.com"
-                    ToAddress = "admin@example.com"
-                    SmtpPort = 465
+                    ToAddress   = "admin@example.com"
+                    SmtpPort    = 465
                 }
                 BackupSettings = @{
                     RetentionDays = 60
-                    IncludePaths = @("*.config", "*.json")
+                    IncludePaths  = @("*.config", "*.json")
                 }
             }
 
@@ -124,7 +127,7 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
             $baseConfig = @{
                 Level1 = @{
                     Level2 = @{
-                        Level3 = @{
+                        Level3       = @{
                             Setting1 = "BaseValue"
                             Setting2 = "BaseValue2"
                         }
@@ -136,7 +139,7 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
             $overrideConfig = @{
                 Level1 = @{
                     Level2 = @{
-                        Level3 = @{
+                        Level3     = @{
                             Setting1 = "OverrideValue"
                             Setting3 = "NewValue"
                         }
@@ -161,7 +164,7 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
 
         It "Should handle mixed nested and flat structures" {
             $baseConfig = @{
-                FlatSetting = "FlatValue"
+                FlatSetting   = "FlatValue"
                 NestedSetting = @{
                     SubSetting1 = "SubValue1"
                     SubSetting2 = "SubValue2"
@@ -169,8 +172,8 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
             }
 
             $overrideConfig = @{
-                FlatSetting = "OverrideFlatValue"
-                NestedSetting = @{
+                FlatSetting    = "OverrideFlatValue"
+                NestedSetting  = @{
                     SubSetting2 = "OverrideSubValue2"
                     SubSetting3 = "NewSubValue3"
                 }
@@ -232,12 +235,12 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
 
         It "Should handle array values correctly" {
             $baseConfig = @{
-                ArraySetting = @("item1", "item2", "item3")
+                ArraySetting  = @("item1", "item2", "item3")
                 StringSetting = "string"
             }
 
             $overrideConfig = @{
-                ArraySetting = @("override1", "override2")
+                ArraySetting  = @("override1", "override2")
                 StringSetting = "overrideString"
             }
 
@@ -251,18 +254,18 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
         It "Should handle different value types" {
             $baseConfig = @{
                 StringValue = "string"
-                IntValue = 42
-                BoolValue = $true
-                ArrayValue = @("a", "b", "c")
-                HashValue = @{ Key = "Value" }
+                IntValue    = 42
+                BoolValue   = $true
+                ArrayValue  = @("a", "b", "c")
+                HashValue   = @{ Key = "Value" }
             }
 
             $overrideConfig = @{
                 StringValue = "overrideString"
-                IntValue = 99
-                BoolValue = $false
-                ArrayValue = @("x", "y")
-                HashValue = @{ Key = "OverrideValue"; NewKey = "NewValue" }
+                IntValue    = 99
+                BoolValue   = $false
+                ArrayValue  = @("x", "y")
+                HashValue   = @{ Key = "OverrideValue"; NewKey = "NewValue" }
             }
 
             $result = Merge-Configurations -Base $baseConfig -Override $overrideConfig
@@ -298,10 +301,10 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
 
         It "Should prioritize override values in all conflicts" {
             $baseConfig = @{
-                ConflictSetting1 = "BaseValue1"
-                ConflictSetting2 = @{
+                ConflictSetting1  = "BaseValue1"
+                ConflictSetting2  = @{
                     SubConflict = "BaseSubValue"
-                    NoConflict = "BaseNoConflict"
+                    NoConflict  = "BaseNoConflict"
                 }
                 NoConflictSetting = "BaseNoConflict"
             }
@@ -309,10 +312,10 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
             $overrideConfig = @{
                 ConflictSetting1 = "OverrideValue1"
                 ConflictSetting2 = @{
-                    SubConflict = "OverrideSubValue"
+                    SubConflict   = "OverrideSubValue"
                     NewSubSetting = "NewValue"
                 }
-                NewSetting = "NewValue"
+                NewSetting       = "NewValue"
             }
 
             $result = Merge-Configurations -Base $baseConfig -Override $overrideConfig
@@ -334,13 +337,13 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
             $baseConfig = @{
                 System = @{
                     Display = @{
-                        Theme = "Light"
-                        Resolution = "1920x1080"
+                        Theme       = "Light"
+                        Resolution  = "1920x1080"
                         RefreshRate = 60
                     }
-                    Audio = @{
+                    Audio   = @{
                         Volume = 50
-                        Muted = $false
+                        Muted  = $false
                     }
                 }
             }
@@ -348,12 +351,12 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
             $overrideConfig = @{
                 System = @{
                     Display = @{
-                        Theme = "Dark"           # Conflict - override wins
+                        Theme      = "Dark"           # Conflict - override wins
                         Brightness = 80          # New setting
                         # Resolution preserved from base
                     }
                     Network = @{                 # New section
-                        Wifi = $true
+                        Wifi     = $true
                         Ethernet = $false
                     }
                     # Audio preserved from base
@@ -383,25 +386,25 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
         It "Should merge shared configuration when machine configuration is incomplete" {
             # Simulate machine config with missing settings
             $machineConfig = @{
-                Source = "Machine"
-                MachineName = "SPECIFIC-MACHINE"
+                Source        = "Machine"
+                MachineName   = "SPECIFIC-MACHINE"
                 CloudProvider = "OneDrive"
                 # Missing email and backup settings
             }
 
             # Shared config provides defaults
             $sharedConfig = @{
-                Source = "Shared"
-                MachineName = "DEFAULT-MACHINE"  # Should be overridden
-                CloudProvider = "GoogleDrive"    # Should be overridden
-                EmailSettings = @{
+                Source         = "Shared"
+                MachineName    = "DEFAULT-MACHINE"  # Should be overridden
+                CloudProvider  = "GoogleDrive"    # Should be overridden
+                EmailSettings  = @{
                     FromAddress = "shared@example.com"
-                    SmtpServer = "smtp.gmail.com"
-                    SmtpPort = 587
+                    SmtpServer  = "smtp.gmail.com"
+                    SmtpPort    = 587
                 }
                 BackupSettings = @{
                     RetentionDays = 30
-                    ExcludePaths = @("*.tmp", "*.log")
+                    ExcludePaths  = @("*.tmp", "*.log")
                 }
             }
 
@@ -422,31 +425,31 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
 
         It "Should handle partial machine configuration overrides" {
             $sharedConfig = @{
-                Source = "Shared"
-                EmailSettings = @{
+                Source         = "Shared"
+                EmailSettings  = @{
                     FromAddress = "shared@example.com"
-                    ToAddress = "admin@example.com"
-                    SmtpServer = "smtp.gmail.com"
-                    SmtpPort = 587
-                    EnableSsl = $true
+                    ToAddress   = "admin@example.com"
+                    SmtpServer  = "smtp.gmail.com"
+                    SmtpPort    = 587
+                    EnableSsl   = $true
                 }
                 BackupSettings = @{
-                    RetentionDays = 30
-                    ExcludePaths = @("*.tmp", "*.log")
+                    RetentionDays   = 30
+                    ExcludePaths    = @("*.tmp", "*.log")
                     CompressBackups = $true
                 }
             }
 
             $machineConfig = @{
-                Source = "Machine"
-                EmailSettings = @{
+                Source         = "Machine"
+                EmailSettings  = @{
                     FromAddress = "machine@example.com"  # Override
-                    SmtpPort = 465                       # Override
+                    SmtpPort    = 465                       # Override
                     # Other email settings inherited from shared
                 }
                 BackupSettings = @{
                     RetentionDays = 60                   # Override
-                    IncludePaths = @("*.config")         # New setting
+                    IncludePaths  = @("*.config")         # New setting
                     # Other backup settings inherited from shared
                 }
             }
@@ -496,7 +499,7 @@ Describe "Merge-Configurations Unit Tests" -Tag "Unit", "Logic", "Configuration"
         It "Should preserve object references correctly" {
             $sharedObject = @{ Key = "SharedValue" }
             $baseConfig = @{
-                SharedRef = $sharedObject
+                SharedRef    = $sharedObject
                 OtherSetting = "Base"
             }
 

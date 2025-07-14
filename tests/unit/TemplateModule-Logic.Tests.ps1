@@ -2,14 +2,14 @@
 # Tests the core template processing logic without file system operations
 
 BeforeAll {
-    # Import the main module to make functions available
-    Import-Module (Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1") -Force
+    # Import the template module to make functions available
+    Import-Module (Resolve-Path "$PSScriptRoot/../../Private/Core/WindowsMelodyRecovery.Template.psm1") -Force
 
     # Load the unified test environment (works for both Docker and Windows)
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
     # Initialize test environment
-    $testEnvironment = Initialize-TestEnvironment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
     # Mock all file operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
@@ -64,9 +64,9 @@ files:
 
         if ($TemplatePath -like "*valid*") {
             return [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
-                    name = "Valid Template"
-                    version = "1.0"
+                metadata      = [PSCustomObject]@{
+                    name        = "Valid Template"
+                    version     = "1.0"
                     description = "A valid test template"
                 }
                 prerequisites = @(
@@ -75,10 +75,10 @@ files:
                         path = "C:\Test"
                     }
                 )
-                files = @(
+                files         = @(
                     [PSCustomObject]@{
-                        name = "test.txt"
-                        source = "source.txt"
+                        name        = "test.txt"
+                        source      = "source.txt"
                         destination = "dest.txt"
                     }
                 )
@@ -87,8 +87,8 @@ files:
 
         # Default case
         return [PSCustomObject]@{
-            metadata = [PSCustomObject]@{
-                name = "Default Template"
+            metadata      = [PSCustomObject]@{
+                name    = "Default Template"
                 version = "1.0"
             }
             prerequisites = @()
@@ -159,10 +159,10 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should validate template configuration with required metadata" {
             $validConfig = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
-                    name = "Valid Template"
+                metadata      = [PSCustomObject]@{
+                    name        = "Valid Template"
                     description = "A valid template"
-                    version = "1.0"
+                    version     = "1.0"
                 }
                 prerequisites = @()
             }
@@ -172,9 +172,9 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should reject template configuration missing required metadata.name" {
             $invalidConfig = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
+                metadata      = [PSCustomObject]@{
                     description = "Missing name"
-                    version = "1.0"
+                    version     = "1.0"
                 }
                 prerequisites = @()
             }
@@ -201,8 +201,8 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         It "should identify template type from metadata" {
             $config = [PSCustomObject]@{
                 metadata = [PSCustomObject]@{
-                    name = "System Template"
-                    type = "system"
+                    name    = "System Template"
+                    type    = "system"
                     version = "1.0"
                 }
             }
@@ -213,24 +213,24 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should handle templates with different prerequisite types" {
             $config = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
-                    name = "Multi-Prereq Template"
+                metadata      = [PSCustomObject]@{
+                    name    = "Multi-Prereq Template"
                     version = "1.0"
                 }
                 prerequisites = @(
                     [PSCustomObject]@{
-                        type = "script"
-                        name = "Script Prereq"
-                        inline_script = "Write-Output 'test'"
+                        type            = "script"
+                        name            = "Script Prereq"
+                        inline_script   = "Write-Output 'test'"
                         expected_output = "test"
-                        on_missing = "warn"
+                        on_missing      = "warn"
                     },
                     [PSCustomObject]@{
-                        type = "application"
-                        name = "App Prereq"
-                        check_command = "winget --version"
+                        type            = "application"
+                        name            = "App Prereq"
+                        check_command   = "winget --version"
                         expected_output = "v.*"
-                        on_missing = "fail_backup"
+                        on_missing      = "fail_backup"
                     }
                 )
             }
@@ -242,11 +242,11 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should validate prerequisite structure" {
             $prereq = [PSCustomObject]@{
-                type = "script"
-                name = "Test Prereq"
-                inline_script = "Write-Output 'Hello'"
+                type            = "script"
+                name            = "Test Prereq"
+                inline_script   = "Write-Output 'Hello'"
                 expected_output = "Hello"
-                on_missing = "warn"
+                on_missing      = "warn"
             }
 
             # Validate prerequisite has required properties
@@ -260,24 +260,24 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should merge template configurations correctly" {
             $baseConfig = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
-                    name = "Base Template"
+                metadata      = [PSCustomObject]@{
+                    name    = "Base Template"
                     version = "1.0"
                 }
                 prerequisites = @()
             }
 
             $overrideConfig = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
+                metadata      = [PSCustomObject]@{
                     description = "Override description"
                 }
                 prerequisites = @(
                     [PSCustomObject]@{
-                        type = "script"
-                        name = "New Prereq"
-                        inline_script = "echo test"
+                        type            = "script"
+                        name            = "New Prereq"
+                        inline_script   = "echo test"
                         expected_output = "test"
-                        on_missing = "warn"
+                        on_missing      = "warn"
                     }
                 )
             }
@@ -291,7 +291,7 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         It "should handle empty or null configurations in merging" {
             $validConfig = [PSCustomObject]@{
                 metadata = [PSCustomObject]@{
-                    name = "Valid Template"
+                    name    = "Valid Template"
                     version = "1.0"
                 }
             }
@@ -344,15 +344,15 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
 
         It "should validate required template sections" {
             $completeTemplate = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{
-                    name = "Complete Template"
+                metadata      = [PSCustomObject]@{
+                    name        = "Complete Template"
                     description = "A complete template"
-                    version = "1.0"
+                    version     = "1.0"
                 }
                 prerequisites = @()
-                files = @()
-                registry = @()
-                applications = @()
+                files         = @()
+                registry      = @()
+                applications  = @()
             }
 
             # Test that all required sections are present
@@ -363,7 +363,7 @@ Describe "TemplateModule Logic Tests" -Tag "Unit", "Logic" {
         It "should handle templates with minimal required content" {
             $minimalTemplate = [PSCustomObject]@{
                 metadata = [PSCustomObject]@{
-                    name = "Minimal Template"
+                    name    = "Minimal Template"
                     version = "1.0"
                 }
             }

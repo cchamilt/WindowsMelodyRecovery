@@ -4,13 +4,18 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
+    # Import only the specific script needed to avoid TUI dependencies
     try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
+        $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
+        . $EncryptionUtilitiesScript
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
     }
     catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+        throw "Cannot find or import EncryptionUtilities script: $($_.Exception.Message)"
     }
 
     # Create and import the test helper module
@@ -32,7 +37,7 @@ Describe 'EncryptionUtilities' {
         for ($i = 0; $i -lt 32; $i++) {
             $script:TestSalt[$i] = $i
         }
-        $script:TestKey = New-TestEncryptionKey -Password $TestPassword -Salt $TestSalt
+        $script:TestKey = New-TestEncryptionKey -Password $TestSecureString -Salt $TestSalt
         $script:TestInitializationVector = New-TestInitializationVector
     }
 
@@ -72,8 +77,7 @@ Describe 'EncryptionUtilities' {
         It 'Should decrypt data correctly' {
             # Arrange
             $plainText = "Test data for decryption"
-            $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText $plainText
-            $encodedData = [Convert]::ToBase64String($encryptedData)
+            $encodedData = Protect-WmrData -Data $plainText -Passphrase $TestSecureString
 
             # Act
             $decryptedData = Unprotect-WmrData -EncodedData $encodedData -Passphrase $TestSecureString
@@ -85,8 +89,7 @@ Describe 'EncryptionUtilities' {
 
         It 'Should handle empty encrypted data' {
             # Arrange
-            $emptyEncrypted = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText ""
-            $encodedEmpty = [Convert]::ToBase64String($emptyEncrypted)
+            $encodedEmpty = Protect-WmrData -Data "" -Passphrase $TestSecureString
 
             # Act
             $decrypted = Unprotect-WmrData -EncodedData $encodedEmpty -Passphrase $TestSecureString
@@ -97,7 +100,8 @@ Describe 'EncryptionUtilities' {
 
         It 'Should throw on corrupted data' {
             # Arrange
-            $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText "Test"
+            $encodedData = Protect-WmrData -Data "Test" -Passphrase $TestSecureString
+            $encryptedData = [Convert]::FromBase64String($encodedData)
             $corruptedData = $encryptedData[0..($encryptedData.Length - 2)]  # Remove last byte
             $encodedCorrupted = [Convert]::ToBase64String($corruptedData)
 
@@ -109,8 +113,7 @@ Describe 'EncryptionUtilities' {
         It 'Should throw on incorrect password' {
             # Arrange
             $plainText = "Test data"
-            $encryptedData = New-TestEncryptedData -Key $TestKey -InitializationVector $TestInitializationVector -PlainText $plainText
-            $encodedData = [Convert]::ToBase64String($encryptedData)
+            $encodedData = Protect-WmrData -Data $plainText -Passphrase $TestSecureString
             $wrongPassword = New-TestSecureString -PlainText "WrongP@ssw0rd!"
 
             # Act & Assert
@@ -125,7 +128,7 @@ Describe 'EncryptionUtilities' {
             $testData = @{
                 'String' = "Test string"
                 'Number' = 42
-                'Array' = @(1, 2, 3)
+                'Array'  = @(1, 2, 3)
                 'Nested' = @{
                     'Key' = 'Value'
                 }

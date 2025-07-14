@@ -1,16 +1,23 @@
-﻿# tests/unit/PathUtilities.Tests.ps1
+﻿#!/usr/bin/env pwsh
 
 BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
+    # Import only the PathUtilities script directly to avoid TUI dependencies
     try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
+        $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
+        . $PathUtilitiesScript
+
+        # Also need the test environment path function
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+
+        # Initialize test environment for path redirection
+        Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
     }
     catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+        throw "Cannot find or import PathUtilities script: $($_.Exception.Message)"
     }
 }
 

@@ -11,16 +11,16 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import test environment utilities
+    # Load the unified test environment (works for both Docker and Windows)
     . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-    # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
     # Import core functions for testing
-    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\FileState.ps1")
-    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\PathUtilities.ps1")
-    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\EncryptionUtilities.ps1")
+    . (Join-Path $PSScriptRoot "../../Private/Core/FileState.ps1")
+    . (Join-Path $PSScriptRoot "../../Private/Core/PathUtilities.ps1")
+    . (Join-Path $PSScriptRoot "../../Private/Core/EncryptionUtilities.ps1")
 
     # Mock Convert-WmrPath to return Docker-compatible paths (avoid recursion)
     Mock Convert-WmrPath {
@@ -28,10 +28,10 @@ BeforeAll {
         # Direct path conversion without calling Get-WmrTestPath to avoid recursion
         $dockerPath = $Path -replace '\\', '/' -replace '^C:', '/tmp/test'
         return @{
-            PathType = "File"
-            Type = "File"
-            Path = $dockerPath
-            Original = $Path
+            PathType   = "File"
+            Type       = "File"
+            Path       = $dockerPath
+            Original   = $Path
             IsResolved = $true
         }
     }
@@ -61,10 +61,10 @@ Context "File Configuration Validation Logic" {
 
     It "Should validate required file configuration properties" {
         $validConfig = [PSCustomObject]@{
-            name = "Test File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Test File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/test.txt"
         }
 
@@ -74,10 +74,10 @@ Context "File Configuration Validation Logic" {
 
     It "Should handle missing path gracefully" {
         $configWithMissingPath = [PSCustomObject]@{
-            name = "Missing File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\missing_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Missing File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\missing_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/missing.txt"
         }
 
@@ -87,12 +87,12 @@ Context "File Configuration Validation Logic" {
 
     It "Should determine encryption requirement correctly" {
         $encryptedConfig = [PSCustomObject]@{
-            name = "Encrypted File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Encrypted File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/encrypted.txt"
-            encrypt = $true
+            encrypt            = $true
         }
 
         # Need to provide passphrase for encryption to work
@@ -108,10 +108,10 @@ Context "File Type Detection Logic" {
 
     It "Should correctly identify file type" {
         $fileConfig = [PSCustomObject]@{
-            name = "Test File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Test File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/test.txt"
         }
 
@@ -121,10 +121,10 @@ Context "File Type Detection Logic" {
 
     It "Should correctly identify directory type" {
         $dirConfig = [PSCustomObject]@{
-            name = "Test Directory"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_dir")
-            type = "directory"
-            action = "backup"
+            name               = "Test Directory"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_dir")
+            type               = "directory"
+            action             = "backup"
             dynamic_state_path = "dirs/test.json"
         }
 
@@ -137,10 +137,10 @@ Context "State Path Generation Logic" {
 
     It "Should generate correct state file path" {
         $config = [PSCustomObject]@{
-            name = "Test File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Test File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "custom/path/file.txt"
         }
 
@@ -155,10 +155,10 @@ Context "State Path Generation Logic" {
 
     It "Should handle nested directory paths in dynamic_state_path" {
         $config = [PSCustomObject]@{
-            name = "Nested File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Nested File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "level1/level2/level3/nested.txt"
         }
 
@@ -175,12 +175,12 @@ Context "Restore Logic Decision Making" {
 
     It "Should use destination path when provided" {
         $config = [PSCustomObject]@{
-            name = "Restore File"
-            path = "/tmp/test/original/path.txt"  # Direct path to avoid recursion
-            type = "file"
-            action = "restore"
+            name               = "Restore File"
+            path               = "/tmp/test/original/path.txt"  # Direct path to avoid recursion
+            type               = "file"
+            action             = "restore"
             dynamic_state_path = "files/restore.txt"
-            destination = "/tmp/test/custom/destination.txt"  # Direct path to avoid recursion
+            destination        = "/tmp/test/custom/destination.txt"  # Direct path to avoid recursion
         }
 
         # Mock the state file exists and has content - use exact path matching
@@ -202,10 +202,10 @@ Context "Restore Logic Decision Making" {
 
     It "Should fall back to original path when no destination provided" {
         $config = [PSCustomObject]@{
-            name = "Restore File"
-            path = "/tmp/test/original/exists_path.txt"  # Direct path to avoid recursion
-            type = "file"
-            action = "restore"
+            name               = "Restore File"
+            path               = "/tmp/test/original/exists_path.txt"  # Direct path to avoid recursion
+            type               = "file"
+            action             = "restore"
             dynamic_state_path = "files/restore.txt"
         }
 
@@ -234,14 +234,12 @@ Context "Encryption Logic" {
 
     It "Should apply encryption when encrypt flag is true" {
         $config = [PSCustomObject]@{
-            name = "Encrypted File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Encrypted File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/encrypted.txt"
-            encrypt = $true
-            # PSScriptAnalyzer suppression: Test requires known plaintext password
-            [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
+            encrypt            = $true
         }
 
         $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test") -Passphrase (ConvertTo-SecureString "test" -AsPlainText -Force)
@@ -253,12 +251,12 @@ Context "Encryption Logic" {
 
     It "Should skip encryption when encrypt flag is false" {
         $config = [PSCustomObject]@{
-            name = "Plain File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Plain File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/plain.txt"
-            encrypt = $false
+            encrypt            = $false
         }
 
         $result = Get-WmrFileState -FileConfig $config -StateFilesDirectory (Get-WmrTestPath -WindowsPath "C:\test")
@@ -270,12 +268,12 @@ Context "Encryption Logic" {
 
     It "Should apply decryption during restore when encrypt flag is true" {
         $config = [PSCustomObject]@{
-            name = "Decrypt File"
-            path = "/tmp/test/test/restore.txt"  # Direct path to avoid recursion
-            type = "file"
-            action = "restore"
+            name               = "Decrypt File"
+            path               = "/tmp/test/test/restore.txt"  # Direct path to avoid recursion
+            type               = "file"
+            action             = "restore"
             dynamic_state_path = "files/encrypted.txt"
-            encrypt = $true
+            encrypt            = $true
         }
 
         $stateDir = "/tmp/test/test"
@@ -284,9 +282,6 @@ Context "Encryption Logic" {
         # Mock the encrypted state file exists and has encrypted content
         Mock Test-Path { return $true } -ParameterFilter { $Path -eq $expectedStatePath }
         Mock Get-Content { return "ENCRYPTED:dGVzdCBjb250ZW50" } -ParameterFilter { $Path -eq $expectedStatePath }
-        # PSScriptAnalyzer suppression: Test requires known plaintext password
-        [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
-
         # Mock the target directory exists (parent of destination)
         Mock Test-Path { return $true } -ParameterFilter { $Path -eq "/tmp/test/test" }
 
@@ -301,10 +296,10 @@ Context "Error Handling Logic" {
 
     It "Should handle missing state file gracefully" {
         $config = [PSCustomObject]@{
-            name = "Missing State"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\restore.txt")
-            type = "file"
-            action = "restore"
+            name               = "Missing State"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\restore.txt")
+            type               = "file"
+            action             = "restore"
             dynamic_state_path = "files/missing_state.txt"
         }
 
@@ -315,10 +310,10 @@ Context "Error Handling Logic" {
 
     It "Should validate state directory exists" {
         $config = [PSCustomObject]@{
-            name = "Test File"
-            path = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
-            type = "file"
-            action = "backup"
+            name               = "Test File"
+            path               = (Get-WmrTestPath -WindowsPath "C:\test\exists_file.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/test.txt"
         }
 
@@ -327,7 +322,6 @@ Context "Error Handling Logic" {
 
         Should -Invoke New-Item -ParameterFilter { $ItemType -eq "Directory" }
     }
-}
 }
 
 

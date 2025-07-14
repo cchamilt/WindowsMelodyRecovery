@@ -3,15 +3,15 @@
 
 # Global path mappings for Docker testing
 $script:DockerPathMappings = @{
-    'C:\' = '/mock-c/'
-    'D:\' = '/mock-d/'
-    'E:\' = '/mock-e/'
-    'C:\Users' = '/mock-c/Users'
+    'C:\'              = '/mock-c/'
+    'D:\'              = '/mock-d/'
+    'E:\'              = '/mock-e/'
+    'C:\Users'         = '/mock-c/Users'
     'C:\Program Files' = '/mock-c/Program Files'
-    'C:\ProgramData' = '/mock-c/ProgramData'
-    'C:\Windows' = '/mock-c/Windows'
-    'C:\Temp' = '/tmp'
-    'C:\tmp' = '/tmp'
+    'C:\ProgramData'   = '/mock-c/ProgramData'
+    'C:\Windows'       = '/mock-c/Windows'
+    'C:\Temp'          = '/tmp'
+    'C:\tmp'           = '/tmp'
 }
 
 # Mock Windows Principal functionality for Docker tests
@@ -37,11 +37,11 @@ function Get-WmrPrivilegeRequirement {
 
     # Mock privilege requirements analysis
     $requirements = @{
-        RequiresAdmin = $false
+        RequiresAdmin     = $false
         RequiresElevation = $false
-        WindowsFeatures = @()
-        RegistryAccess = @()
-        ServiceAccess = @()
+        WindowsFeatures   = @()
+        RegistryAccess    = @()
+        ServiceAccess     = @()
     }
 
     # Simulate analysis of template requirements
@@ -200,8 +200,8 @@ function Get-WmrRegistryState {
 
     # Mock registry state retrieval
     return @{
-        Path = $RegistryConfig.path
-        Values = @{}
+        Path          = $RegistryConfig.path
+        Values        = @{}
         StateFilePath = Join-WmrPath -Path $StateFilesDirectory -ChildPath "registry_mock.json"
     }
 }
@@ -217,8 +217,8 @@ function Backup-WindowsFeature {
 
     Write-Verbose "Mock: Backing up Windows Features to $BackupPath"
     return @{
-        Success = $true
-        Features = @("IIS-WebServerRole", "Microsoft-Windows-Subsystem-Linux")
+        Success    = $true
+        Features   = @("IIS-WebServerRole", "Microsoft-Windows-Subsystem-Linux")
         BackupPath = $BackupPath
     }
 }
@@ -236,11 +236,11 @@ function Test-WmrPrerequisite {
 
     Write-Verbose "Mock: Testing prerequisites for template '$($TemplateConfig.metadata.name)' with operation '$Operation'"
     return @{
-        Success = $true
-        Results = @()
+        Success             = $true
+        Results             = @()
         FailedPrerequisites = @()
-        Operation = $Operation
-        TemplateConfig = $TemplateConfig
+        Operation           = $Operation
+        TemplateConfig      = $TemplateConfig
     }
 }
 
@@ -254,7 +254,7 @@ function Get-WindowsOptionalFeaturesState {
 
     Write-Verbose "Mock: Getting Windows Optional Features state"
     return @{
-        Features = @(
+        Features      = @(
             @{ Name = "IIS-WebServerRole"; State = "Enabled" }
             @{ Name = "Microsoft-Windows-Subsystem-Linux"; State = "Enabled" }
         )
@@ -272,7 +272,7 @@ function Get-WindowsCapabilitiesState {
 
     Write-Verbose "Mock: Getting Windows Capabilities state"
     return @{
-        Capabilities = @(
+        Capabilities  = @(
             @{ Name = "OpenSSH.Client"; State = "Installed" }
             @{ Name = "OpenSSH.Server"; State = "NotPresent" }
         )
@@ -294,11 +294,11 @@ function Set-WindowsService {
 
     Write-Verbose "Mock: Managing Windows Service '$ServiceName' with action '$Action'"
     return @{
-        Success = $true
-        ServiceName = $ServiceName
-        Action = $Action
+        Success       = $true
+        ServiceName   = $ServiceName
+        Action        = $Action
         PreviousState = "Running"
-        CurrentState = "Running"
+        CurrentState  = "Running"
     }
 }
 
@@ -322,10 +322,10 @@ function Set-RegistryValue {
     Write-Verbose "Mock: Setting registry value '$Name' at '$Path' to '$Value'"
     return @{
         Success = $true
-        Path = $Path
-        Name = $Name
-        Value = $Value
-        Type = $Type
+        Path    = $Path
+        Name    = $Name
+        Value   = $Value
+        Type    = $Type
     }
 }
 
@@ -349,10 +349,10 @@ function Set-ScheduledTask {
 
     Write-Verbose "Mock: Managing Scheduled Task '$TaskName' with action '$Action' (RequireElevation: $RequireElevation)"
     return @{
-        Success = $true
-        TaskName = $TaskName
-        Action = $Action
-        State = "Ready"
+        Success          = $true
+        TaskName         = $TaskName
+        Action           = $Action
+        State            = "Ready"
         RequireElevation = $RequireElevation
     }
 }
@@ -393,12 +393,12 @@ function New-ItemProperty {
 
     # Return a mock property object
     return @{
-        PSPath = $Path
+        PSPath       = $Path
         PSParentPath = Split-Path $Path -Parent
-        PSChildName = $Name
-        PSDrive = ($Path -split ':')[0]
-        PSProvider = "Microsoft.PowerShell.Core\Registry"
-        $Name = $Value
+        PSChildName  = $Name
+        PSDrive      = ($Path -split ':')[0]
+        PSProvider   = "Microsoft.PowerShell.Core\Registry"
+        $Name        = $Value
     }
 }
 
@@ -441,11 +441,11 @@ function Get-ItemProperty {
 
     # Return mock registry values based on the path and name
     $mockValues = @{
-        PSPath = $Path
+        PSPath       = $Path
         PSParentPath = Split-Path $Path -Parent
-        PSChildName = Split-Path $Path -Leaf
-        PSDrive = ($Path -split ':')[0]
-        PSProvider = "Microsoft.PowerShell.Core\Registry"
+        PSChildName  = Split-Path $Path -Leaf
+        PSDrive      = ($Path -split ':')[0]
+        PSProvider   = "Microsoft.PowerShell.Core\Registry"
     }
 
     # Add specific test values based on common test patterns
@@ -498,12 +498,12 @@ function New-Item {
         # For registry paths, simulate registry key creation
         if ($Path.StartsWith("HKLM:") -or $Path.StartsWith("HKCU:") -or $Path.StartsWith("HKEY_")) {
             return @{
-                PSPath = $Path
+                PSPath       = $Path
                 PSParentPath = Split-Path $Path -Parent
-                PSChildName = Split-Path $Path -Leaf
-                PSDrive = ($Path -split ':')[0]
-                PSProvider = "Microsoft.PowerShell.Core\Registry"
-                Name = Split-Path $Path -Leaf
+                PSChildName  = Split-Path $Path -Leaf
+                PSDrive      = ($Path -split ':')[0]
+                PSProvider   = "Microsoft.PowerShell.Core\Registry"
+                Name         = Split-Path $Path -Leaf
             }
         }
 
@@ -522,8 +522,8 @@ function New-Item {
         # For other file system paths, simulate file/directory creation
         return @{
             FullName = $Path
-            Name = Split-Path $Path -Leaf
-            Exists = $true
+            Name     = Split-Path $Path -Leaf
+            Exists   = $true
         }
     }
     else {
@@ -561,17 +561,17 @@ function Remove-Item {
         # For files in safe test directories, actually remove them
         if ($Path.StartsWith("/workspace/Temp/") -or $Path.StartsWith("/workspace/temp/")) {
             Write-Verbose "Actually removing test file in Docker: '$Path'"
-            return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$Confirm -ErrorAction $ErrorActionPreference
+            return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$false -ErrorAction $ErrorActionPreference
         }
 
         # For other paths, simulate removal
-        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
+        Write-Verbose "Mock: Removing item at '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $false)"
         return $null
     }
     else {
-        # In local environments, use the real Remove-Item for cleanup
-        Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $Confirm)"
-        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$Confirm -ErrorAction $ErrorActionPreference
+        # In local environments, use the real Remove-Item for cleanup (no confirmation in tests)
+        Write-Verbose "Removing actual item: '$Path' (Recurse: $Recurse, Force: $Force, Confirm: $false)"
+        return Microsoft.PowerShell.Management\Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$false -ErrorAction $ErrorActionPreference
     }
 }
 
@@ -621,12 +621,12 @@ function Get-WmrInheritanceConfiguration {
     )
 
     return @{
-        enabled = $true
-        validation_level = 'moderate'
-        shared_configuration = @{}
+        enabled                = $true
+        validation_level       = 'moderate'
+        shared_configuration   = @{}
         machine_configurations = @()
-        inheritance_rules = @()
-        conditional_sections = @()
+        inheritance_rules      = @()
+        conditional_sections   = @()
     }
 }
 
@@ -637,17 +637,17 @@ function Get-WmrMachineContext {
 
     return @{
         machine_name = $env:COMPUTERNAME ?? 'docker-test'
-        hostname = $env:HOSTNAME ?? 'docker-test'
-        environment = @{
+        hostname     = $env:HOSTNAME ?? 'docker-test'
+        environment  = @{
             DOCKER_TEST = 'true'
-            CI = $env:CI ?? 'false'
+            CI          = $env:CI ?? 'false'
         }
-        hardware = @{
+        hardware     = @{
             manufacturer = 'Docker'
-            model = 'Container'
+            model        = 'Container'
         }
-        software = @{
-            os = 'Linux'
+        software     = @{
+            os      = 'Linux'
             version = '1.0'
         }
     }
@@ -870,11 +870,11 @@ function Read-WmrTemplateConfig {
 
             # Simple YAML parsing for test purposes
             $yamlContent = [PSCustomObject]@{
-                metadata = [PSCustomObject]@{}
+                metadata      = [PSCustomObject]@{}
                 prerequisites = @()
-                files = @()
-                registry = @()
-                applications = @()
+                files         = @()
+                registry      = @()
+                applications  = @()
             }
 
             # Parse basic YAML structure

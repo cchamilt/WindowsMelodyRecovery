@@ -5,14 +5,14 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+
+    # Import EncryptionUtilities script for testing
+    . (Join-Path $PSScriptRoot "../../Private/Core/EncryptionUtilities.ps1")
 
     # Create and import the test helper module
     $helperPath = Join-Path $PSScriptRoot "../utilities/EncryptionTestHelper.ps1"
@@ -141,8 +141,8 @@ Describe 'Encryption Workflow Tests' {
             # Arrange
             $configData = @{
                 username = "testuser"
-                apikey = "secret-api-key-12345"
-                servers = @("server1.example.com", "server2.example.com")
+                apikey   = "secret-api-key-12345"
+                servers  = @("server1.example.com", "server2.example.com")
                 settings = @{
                     timeout = 30
                     retries = 3

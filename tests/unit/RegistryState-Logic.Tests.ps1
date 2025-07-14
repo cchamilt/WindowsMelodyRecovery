@@ -17,17 +17,14 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
 
-    # Dot-source RegistryState.ps1 to ensure all functions are available
-    . (Join-Path (Split-Path $ModulePath) "Private\Core\RegistryState.ps1")
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
+
+    # Import RegistryState script for testing
+    . (Join-Path $PSScriptRoot "../../Private/Core/RegistryState.ps1")
 
     # Mock all file and registry operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*registry*exists*" }
@@ -51,10 +48,10 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate registry configuration structure" {
             $registryConfig = @{
-                key_name = "TestKey"
+                key_name      = "TestKey"
                 registry_path = "HKCU:\Software\Test"
-                value_name = "TestValue"
-                encrypted = $false
+                value_name    = "TestValue"
+                encrypted     = $false
             }
 
             # Test configuration validation logic
@@ -90,10 +87,10 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
             Mock Test-Path { return $false } -ParameterFilter { $Path -like "*Missing*" }
 
             $missingKeyConfig = @{
-                key_name = "MissingKey"
+                key_name      = "MissingKey"
                 registry_path = "HKCU:\Software\Missing"
-                value_name = "TestValue"
-                encrypted = $false
+                value_name    = "TestValue"
+                encrypted     = $false
             }
 
             # Should handle missing keys without throwing
@@ -102,17 +99,17 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate encryption configuration logic" {
             $encryptedConfig = @{
-                key_name = "EncryptedKey"
+                key_name      = "EncryptedKey"
                 registry_path = "HKCU:\Software\Test"
-                value_name = "SecretValue"
-                encrypted = $true
+                value_name    = "SecretValue"
+                encrypted     = $true
             }
 
             $unencryptedConfig = @{
-                key_name = "PlainKey"
+                key_name      = "PlainKey"
                 registry_path = "HKCU:\Software\Test"
-                value_name = "PlainValue"
-                encrypted = $false
+                value_name    = "PlainValue"
+                encrypted     = $false
             }
 
             # Test encryption logic
@@ -125,11 +122,11 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate state restoration logic" {
             $registryState = @{
-                KeyName = "TestKey"
-                Value = "TestValue"
-                Encrypted = $false
+                KeyName      = "TestKey"
+                Value        = "TestValue"
+                Encrypted    = $false
                 RegistryPath = "HKCU:\Software\Test"
-                ValueName = "TestValue"
+                ValueName    = "TestValue"
             }
 
             # Test state structure validation
@@ -141,11 +138,11 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should handle encrypted value restoration logic" {
             $encryptedState = @{
-                KeyName = "EncryptedKey"
+                KeyName        = "EncryptedKey"
                 EncryptedValue = "MockEncryptedData"
-                Encrypted = $true
-                RegistryPath = "HKCU:\Software\Test"
-                ValueName = "SecretValue"
+                Encrypted      = $true
+                RegistryPath   = "HKCU:\Software\Test"
+                ValueName      = "SecretValue"
             }
 
             # Test encrypted state structure
@@ -186,12 +183,12 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate complete registry configuration" {
             $completeConfig = @{
-                key_name = "CompleteKey"
-                registry_path = "HKCU:\Software\Complete"
-                value_name = "CompleteValue"
-                encrypted = $false
+                key_name          = "CompleteKey"
+                registry_path     = "HKCU:\Software\Complete"
+                value_name        = "CompleteValue"
+                encrypted         = $false
                 backup_entire_key = $false
-                value_type = "String"
+                value_type        = "String"
             }
 
             # Validate all required fields
@@ -204,18 +201,18 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should handle backup_entire_key configuration" {
             $entireKeyConfig = @{
-                key_name = "EntireKey"
-                registry_path = "HKCU:\Software\EntireKey"
+                key_name          = "EntireKey"
+                registry_path     = "HKCU:\Software\EntireKey"
                 backup_entire_key = $true
-                encrypted = $false
+                encrypted         = $false
             }
 
             $singleValueConfig = @{
-                key_name = "SingleValue"
-                registry_path = "HKCU:\Software\SingleValue"
-                value_name = "SpecificValue"
+                key_name          = "SingleValue"
+                registry_path     = "HKCU:\Software\SingleValue"
+                value_name        = "SpecificValue"
                 backup_entire_key = $false
-                encrypted = $false
+                encrypted         = $false
             }
 
             # Test backup strategy logic
@@ -281,10 +278,10 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should handle encryption/decryption errors gracefully" {
             $encryptionErrorConfig = @{
-                key_name = "EncryptionError"
+                key_name      = "EncryptionError"
                 registry_path = "HKCU:\Software\Test"
-                value_name = "CorruptedValue"
-                encrypted = $true
+                value_name    = "CorruptedValue"
+                encrypted     = $true
             }
 
             # Should handle encryption errors without crashing
@@ -317,12 +314,12 @@ Describe "RegistryState Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate state file content structure" {
             $stateContent = @{
-                KeyName = "TestKey"
-                Value = "TestValue"
-                Encrypted = $false
+                KeyName      = "TestKey"
+                Value        = "TestValue"
+                Encrypted    = $false
                 RegistryPath = "HKCU:\Software\Test"
-                ValueName = "TestValue"
-                Timestamp = Get-Date
+                ValueName    = "TestValue"
+                Timestamp    = Get-Date
             }
 
             # Validate state structure

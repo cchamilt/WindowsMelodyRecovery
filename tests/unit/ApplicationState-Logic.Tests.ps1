@@ -9,17 +9,18 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
+    # Import only the specific scripts needed to avoid TUI dependencies
     try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
+        . (Resolve-Path "$PSScriptRoot/../../Private/Core/ApplicationState.ps1")
+        . (Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1")
+
+        # Initialize test environment
+        . "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
     }
     catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+        throw "Cannot find or import ApplicationState scripts: $($_.Exception.Message)"
     }
-
-    # Dot-source ApplicationState.ps1 to ensure all functions are available
-    . (Join-Path (Split-Path $ModulePath) "Private\Core\ApplicationState.ps1")
 
     # Mock all file operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*exists*" }
@@ -40,7 +41,6 @@ BeforeAll {
     }
     # Mock Read-Host to prevent interactive prompts
     # PSScriptAnalyzer suppression: Test requires known plaintext password
-    [System.Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     Mock Read-Host { return (ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force) } -ParameterFilter { $AsSecureString }
 
     # Define a parse script that properly handles spaces in application names and empty input
@@ -111,13 +111,13 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Winget Test Apps"
-                type = "winget"
+                name               = "Winget Test Apps"
+                type               = "winget"
                 dynamic_state_path = "apps/winget_list.json"
-                discovery_command = "winget list --source winget"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
-                uninstall_script = "dummy"
+                discovery_command  = "winget list --source winget"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
+                uninstall_script   = "dummy"
             }
 
             $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir"))
@@ -136,13 +136,13 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Empty Winget List"
-                type = "winget"
+                name               = "Empty Winget List"
+                type               = "winget"
                 dynamic_state_path = "apps/empty_winget_list.json"
-                discovery_command = "winget list"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
-                uninstall_script = "dummy"
+                discovery_command  = "winget list"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
+                uninstall_script   = "dummy"
             }
 
             $result = Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir"))
@@ -158,12 +158,12 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Failing Discovery"
-                type = "custom"
+                name               = "Failing Discovery"
+                type               = "custom"
                 dynamic_state_path = "apps/failing_discovery.json"
-                discovery_command = "nonexistent-command"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
+                discovery_command  = "nonexistent-command"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
             }
 
             { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
@@ -183,12 +183,12 @@ Package A           App.PackageA          1.2.3
             } -ParameterFilter { $Path -like "*install_list.json" }
 
             $appConfig = @{
-                name = "Install Test Apps"
-                type = "custom"
+                name               = "Install Test Apps"
+                type               = "custom"
                 dynamic_state_path = "apps/install_list.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = $script:CommonInstallScript
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = $script:CommonInstallScript
             }
 
             { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
@@ -200,12 +200,12 @@ Package A           App.PackageA          1.2.3
             Mock Test-Path { return $false } -ParameterFilter { $Path -like "*non_existent*" }
 
             $appConfig = @{
-                name = "Missing State Install"
-                type = "custom"
+                name               = "Missing State Install"
+                type               = "custom"
                 dynamic_state_path = "apps/non_existent_list.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = $script:CommonInstallScript
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = $script:CommonInstallScript
             }
 
             { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
@@ -225,13 +225,13 @@ Package A           App.PackageA          1.2.3
             } -ParameterFilter { $Path -like "*uninstall_list.json" }
 
             $appConfig = @{
-                name = "App to Uninstall"
-                type = "custom"
+                name               = "App to Uninstall"
+                type               = "custom"
                 dynamic_state_path = "apps/uninstall_list.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = "dummy"
-                uninstall_script = $script:CommonUninstallScript
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = "dummy"
+                uninstall_script   = $script:CommonUninstallScript
             }
 
             { Uninstall-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw
@@ -243,12 +243,12 @@ Package A           App.PackageA          1.2.3
             Mock Test-Path { return $true } -ParameterFilter { $Path -like "*no_uninstall_list.json" }
 
             $appConfig = @{
-                name = "No Uninstall Script"
-                type = "custom"
+                name               = "No Uninstall Script"
+                type               = "custom"
                 dynamic_state_path = "apps/no_uninstall_list.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = "dummy"
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = "dummy"
                 # uninstall_script is intentionally missing
             }
 
@@ -260,13 +260,13 @@ Package A           App.PackageA          1.2.3
 
         It "should validate required configuration properties" {
             $validConfig = @{
-                name = "Valid App Config"
-                type = "winget"
+                name               = "Valid App Config"
+                type               = "winget"
                 dynamic_state_path = "apps/valid_config.json"
-                discovery_command = "winget list"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
-                uninstall_script = "dummy"
+                discovery_command  = "winget list"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
+                uninstall_script   = "dummy"
             }
 
             { Get-WmrApplicationState -AppConfig $validConfig -StateFilesDirectory (Get-WmrTestPath -WindowsPath (Get-WmrTestPath -WindowsPath "C:\MockStateDir")) } | Should -Not -Throw

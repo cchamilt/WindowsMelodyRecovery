@@ -17,14 +17,11 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
-    }
+    # Load the unified test environment (works for both Docker and Windows)
+    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+
+    # Initialize test environment
+    $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
     # Mock all file operations
     Mock Test-Path { return $true } -ParameterFilter { $Path -like "*machine*" -and $Path -like "*priority*" }
@@ -162,7 +159,10 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
             $relativePath = "apps\winget.json"
             $expectedPath = Join-Path $machineBackup $relativePath
 
-            $expectedPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\TestMachine\apps\winget.json")
+            # Normalize paths for cross-platform comparison
+            $normalizedExpected = $expectedPath -replace '\\', '/'
+            $normalizedActual = (Get-WmrTestPath -WindowsPath "C:\TestMachine\apps\winget.json") -replace '\\', '/'
+            $normalizedExpected | Should -Be $normalizedActual
         }
 
         It "Should construct correct shared backup paths" {
@@ -170,7 +170,10 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
             $relativePath = "registry\display.json"
             $expectedPath = Join-Path $sharedBackup $relativePath
 
-            $expectedPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\TestShared\registry\display.json")
+            # Normalize paths for cross-platform comparison
+            $normalizedExpected = $expectedPath -replace '\\', '/'
+            $normalizedActual = (Get-WmrTestPath -WindowsPath "C:\TestShared\registry\display.json") -replace '\\', '/'
+            $normalizedExpected | Should -Be $normalizedActual
         }
 
         It "Should handle complex nested paths" {
@@ -178,7 +181,10 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
             $nestedPath = "level1\level2\level3\config.json"
             $fullPath = Join-Path $basePath $nestedPath
 
-            $fullPath | Should -Be (Get-WmrTestPath -WindowsPath "C:\Backup\level1\level2\level3\config.json")
+            # Normalize paths for cross-platform comparison
+            $normalizedExpected = $fullPath -replace '\\', '/'
+            $normalizedActual = (Get-WmrTestPath -WindowsPath "C:\Backup\level1\level2\level3\config.json") -replace '\\', '/'
+            $normalizedExpected | Should -Be $normalizedActual
         }
     }
 
@@ -187,19 +193,19 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
         It "Should merge machine and shared configurations correctly" {
             # Test configuration merging logic
             $machineConfig = @{
-                Source = "Machine"
+                Source   = "Machine"
                 Priority = 1
                 Settings = @{
-                    Theme = "Dark"
+                    Theme    = "Dark"
                     Language = "en-US"
                 }
             }
 
             $sharedConfig = @{
-                Source = "Shared"
+                Source   = "Shared"
                 Priority = 2
                 Settings = @{
-                    Theme = "Light"  # Should be overridden by machine
+                    Theme    = "Light"  # Should be overridden by machine
                     FontSize = "12"  # Should be added from shared
                 }
             }
@@ -250,10 +256,10 @@ Describe "SharedConfiguration Logic Tests" -Tag "Unit", "Logic" {
 
         It "Should validate configuration structure" {
             $validConfig = @{
-                Source = "Machine"
-                Priority = 1
+                Source     = "Machine"
+                Priority   = 1
                 BackupType = "System"
-                Path = (Get-WmrTestPath -WindowsPath "C:\Config\system.json")
+                Path       = (Get-WmrTestPath -WindowsPath "C:\Config\system.json")
             }
 
             # Validate required properties exist
