@@ -192,8 +192,12 @@ function ConvertTo-TestEnvironmentPath {
 
     # Only redirect if we're in a test environment
     if (-not ($env:WMR_TEST_MODE -eq 'true' -or $env:PESTER_OUTPUT_PATH -or $env:WMR_DOCKER_TEST -eq 'true')) {
+        Write-Verbose "ConvertTo-TestEnvironmentPath: Not in test mode, returning original path '$Path'"
         return $Path
     }
+
+    Write-Verbose "ConvertTo-TestEnvironmentPath: In test mode, processing path '$Path'"
+    Write-Verbose "ConvertTo-TestEnvironmentPath: WMR_TEST_MODE=$env:WMR_TEST_MODE, PESTER_OUTPUT_PATH=$env:PESTER_OUTPUT_PATH, WMR_DOCKER_TEST=$env:WMR_DOCKER_TEST"
 
     # Don't redirect paths that are already in test environments or project directories
     if ($Path.Contains("WMR-Tests-") -or $Path.Contains("test-restore") -or $Path.Contains("test-backup") -or $Path.Contains("test-state") -or $Path.Contains("WindowsMelodyRecovery\Temp") -or $Path.Contains("Debug-FileState-Test")) {
@@ -203,9 +207,23 @@ function ConvertTo-TestEnvironmentPath {
 
     # Also don't redirect paths that are within the project directory
     $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    Write-Verbose "ConvertTo-TestEnvironmentPath: Module root detected as '$moduleRoot'"
     if ($Path.StartsWith($moduleRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
         Write-Verbose "ConvertTo-TestEnvironmentPath: Path is within project directory, no redirection needed for '$Path'"
         return $Path
+    }
+
+    # Additional check: normalize paths and check if the path is within the project
+    try {
+        $normalizedPath = [System.IO.Path]::GetFullPath($Path)
+        $normalizedModuleRoot = [System.IO.Path]::GetFullPath($moduleRoot)
+        if ($normalizedPath.StartsWith($normalizedModuleRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Verbose "ConvertTo-TestEnvironmentPath: Normalized path is within project directory, no redirection needed for '$Path'"
+            return $Path
+        }
+    }
+    catch {
+        Write-Verbose "ConvertTo-TestEnvironmentPath: Could not normalize paths for comparison, continuing with original logic"
     }
 
     # Get test directories from environment if available
