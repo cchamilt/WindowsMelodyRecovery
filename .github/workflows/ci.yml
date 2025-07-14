@@ -141,7 +141,8 @@ jobs:
 
                   if (Test-Path "tests/scripts/run-unit-tests.ps1") {
                     try {
-                      ./tests/scripts/run-unit-tests.ps1 -OutputFormat Normal
+                      # Run with GenerateReport to create test-results directory and coverage
+                      ./tests/scripts/run-unit-tests.ps1 -OutputFormat Normal -GenerateReport
                       Write-Host "✅ Unit tests completed successfully" -ForegroundColor Green
                     } catch {
                       Write-Host "❌ Unit tests failed: $_" -ForegroundColor Red
@@ -153,12 +154,26 @@ jobs:
 
                     # Fallback to basic test if script doesn't exist
                     if (Test-Path "tests/unit") {
+                      # Create test-results directory structure
+                      New-Item -Path './test-results' -ItemType Directory -Force | Out-Null
+                      New-Item -Path './test-results/coverage' -ItemType Directory -Force | Out-Null
+
                       $config = New-PesterConfiguration
                       $config.Run.Path = './tests/unit'
                       $config.TestResult.Enabled = $true
-                      $config.TestResult.OutputPath = './test-results.xml'
+                      $config.TestResult.OutputPath = './test-results/unit-test-results.xml'
                       $config.TestResult.OutputFormat = 'JUnitXml'
                       $config.Output.Verbosity = 'Detailed'
+
+                      # Enable code coverage
+                      $config.CodeCoverage.Enabled = $true
+                      $config.CodeCoverage.Path = @(
+                        './Public/*.ps1',
+                        './Private/**/*.ps1',
+                        './WindowsMelodyRecovery.psm1'
+                      )
+                      $config.CodeCoverage.OutputPath = './test-results/coverage/coverage.xml'
+                      $config.CodeCoverage.OutputFormat = 'JaCoCo'
 
                       $result = Invoke-Pester -Configuration $config
 
@@ -177,14 +192,39 @@ jobs:
                     }
                   }
 
+            - name: Verify test results
+              shell: pwsh
+              if: always()
+              run: |
+                  Write-Host "Verifying test results and coverage files..." -ForegroundColor Green
+
+                  # Check for test results directory
+                  if (Test-Path "test-results") {
+                    Write-Host "✅ test-results directory exists" -ForegroundColor Green
+
+                    # List all files in test-results
+                    Get-ChildItem -Path "test-results" -Recurse | ForEach-Object {
+                      $relativePath = $_.FullName.Replace((Get-Location).Path, ".")
+                      Write-Host "  Found: $relativePath" -ForegroundColor Gray
+                    }
+                  } else {
+                    Write-Host "❌ test-results directory not found" -ForegroundColor Red
+                  }
+
+                  # Check for coverage directory
+                  if (Test-Path "test-results/coverage") {
+                    Write-Host "✅ coverage directory exists" -ForegroundColor Green
+                  } else {
+                    Write-Host "❌ coverage directory not found" -ForegroundColor Red
+                  }
+
             - name: Upload test results
               uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: ci-test-results
-                  path: |
-                      test-results.xml
-                      test-results/
+                  path: test-results/
+                  if-no-files-found: warn
 
             - name: Upload coverage reports
               uses: actions/upload-artifact@v4
@@ -192,6 +232,7 @@ jobs:
               with:
                   name: ci-coverage-reports
                   path: test-results/coverage/
+                  if-no-files-found: warn
 
     # Documentation check
     docs-check:
