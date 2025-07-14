@@ -179,6 +179,7 @@ try {
         $pesterConfig.TestResult = @{
             Enabled = $true
             OutputPath = Join-Path $testEnvironment.Logs "windows-only-test-results.xml"
+            OutputFormat = 'JUnitXml'
         }
     }
 

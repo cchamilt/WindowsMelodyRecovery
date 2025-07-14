@@ -61,7 +61,7 @@ $config.Output.RenderMode = 'Plaintext'
 
 # Test result configuration
 $config.TestResult.Enabled = $true
-$config.TestResult.OutputFormat = 'NUnitXml'
+    $config.TestResult.OutputFormat = 'JUnitXml'
 $config.TestResult.OutputPath = Join-Path $testResultsPath "junit/test-results.xml"
 
 # Code coverage configuration (enabled for comprehensive reporting)

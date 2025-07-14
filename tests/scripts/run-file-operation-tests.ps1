@@ -241,7 +241,7 @@ foreach ($test in $testsToRun) {
             $pesterConfig.TestResult = @{
                 Enabled = $true
                 OutputPath = Join-Path $testResultsDir "file-operations-test-results.xml"
-                OutputFormat = 'NUnitXml'
+                OutputFormat = 'JUnitXml'
             }
 
             $pesterConfig.CodeCoverage = @{

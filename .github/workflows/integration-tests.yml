@@ -57,7 +57,7 @@ jobs:
                   $config.Run.Path = './tests/unit'
                   $config.TestResult.Enabled = $true
                   $config.TestResult.OutputPath = './test-results/unit-tests.xml'
-                  $config.TestResult.OutputFormat = 'NUnitXml'
+                  $config.TestResult.OutputFormat = 'JUnitXml'
                   $config.CodeCoverage.Enabled = $true
                   $config.CodeCoverage.Path = './*.ps*1'
                   $config.CodeCoverage.OutputPath = './test-results/coverage.xml'
@@ -246,7 +246,7 @@ jobs:
                   $config.Filter.Tag = $testSuite
                   $config.TestResult.Enabled = $true
                   $config.TestResult.OutputPath = "./test-results/integration/integration-tests-$testSuite.xml"
-                  $config.TestResult.OutputFormat = 'NUnitXml'
+                  $config.TestResult.OutputFormat = 'JUnitXml'
                   $config.Output.Verbosity = 'Detailed'
 
                   # Set environment variables for tests

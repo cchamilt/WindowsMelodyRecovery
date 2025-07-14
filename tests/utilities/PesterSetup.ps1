@@ -10,7 +10,7 @@ function Initialize-WmrTestEnvironment {
     $config = New-PesterConfiguration
     $config.Output.Verbosity = 'Detailed'
     $config.TestResult.Enabled = $true
-    $config.TestResult.OutputFormat = 'NUnitXml'
+    $config.TestResult.OutputFormat = 'JUnitXml'
     $config.TestResult.OutputPath = 'test-results.xml'
 
     # Initialize TestDrive if not already done

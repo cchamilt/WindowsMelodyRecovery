@@ -99,6 +99,7 @@ foreach ($test in $testsToRun) {
             $pesterConfig.TestResult = @{
                 Enabled = $true
                 OutputPath = Join-Path $testEnvironment.Logs "integration-test-results.xml"
+                OutputFormat = 'JUnitXml'
             }
         }
 

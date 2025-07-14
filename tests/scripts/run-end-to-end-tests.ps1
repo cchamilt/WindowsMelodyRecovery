@@ -94,6 +94,7 @@ if ($GenerateReport) {
     $pesterConfig.TestResult = @{
         Enabled = $true
         OutputPath = Join-Path $testEnvironment.Logs "e2e-test-results.xml"
+        OutputFormat = 'JUnitXml'
     }
 }
 

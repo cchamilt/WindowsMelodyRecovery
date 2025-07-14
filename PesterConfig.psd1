@@ -50,7 +50,7 @@
     TestResult = @{
         Enabled = $true
         OutputPath = 'test-results/pester/test-results.xml'
-        OutputFormat = 'NUnitXml'
+        OutputFormat = 'JUnitXml'
         TestSuiteName = 'WindowsMelodyRecovery'
     }
 

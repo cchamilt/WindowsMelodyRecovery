@@ -3,3 +3,8 @@
 !test-results/
 !test-template-state/
 !Temp/
+!test-backups/*
+!test-restore/*
+!test-results/*
+!test-template-state/*
+!Temp/*

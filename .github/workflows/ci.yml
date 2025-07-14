@@ -157,7 +157,7 @@ jobs:
                       $config.Run.Path = './tests/unit'
                       $config.TestResult.Enabled = $true
                       $config.TestResult.OutputPath = './test-results.xml'
-                      $config.TestResult.OutputFormat = 'NUnitXml'
+                      $config.TestResult.OutputFormat = 'JUnitXml'
                       $config.Output.Verbosity = 'Detailed'
 
                       $result = Invoke-Pester -Configuration $config
