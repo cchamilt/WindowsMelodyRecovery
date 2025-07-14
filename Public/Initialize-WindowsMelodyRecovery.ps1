@@ -78,9 +78,14 @@ function Initialize-WindowsMelodyRecovery {
 
     # Validate InstallPath immediately after it's set
     try {
+        # Ensure InstallPath is not null or empty after auto-detection
+        if (-not $InstallPath -or [string]::IsNullOrWhiteSpace($InstallPath)) {
+            throw "InstallPath cannot be null or empty after auto-detection"
+        }
+
         # Check if the parent directory exists and is accessible, create if needed
         $parentPath = Split-Path $InstallPath -Parent
-        if ($parentPath -and -not [string]::IsNullOrWhiteSpace($parentPath) -and $parentPath -ne $InstallPath) {
+        if ($parentPath -and -not [string]::IsNullOrWhiteSpace($parentPath) -and $parentPath -ne $InstallPath -and $parentPath -ne '\' -and $parentPath -ne '/') {
             if (-not (Test-Path $parentPath)) {
                 # Try to create the parent directory structure (needed for Docker/test environments)
                 try {
@@ -100,6 +105,7 @@ function Initialize-WindowsMelodyRecovery {
                 $testFile = Join-Path $InstallPath "test-write-access.tmp"
                 New-Item -Path $testFile -ItemType File -Force -ErrorAction Stop | Out-Null
                 Remove-Item -Path $testFile -Force -ErrorAction Stop
+                Write-Verbose "Installation path '$InstallPath' is writable"
             }
             catch {
                 throw "The installation path '$InstallPath' exists but is not writable: $($_.Exception.Message)"
@@ -109,7 +115,8 @@ function Initialize-WindowsMelodyRecovery {
             # Path doesn't exist, check if we can create it
             try {
                 New-Item -Path $InstallPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
-                Remove-Item -Path $InstallPath -Force -ErrorAction Stop
+                # Don't remove it immediately - we'll need it for the config
+                Write-Verbose "Successfully created installation path '$InstallPath'"
             }
             catch {
                 throw "Cannot create the installation path '$InstallPath': $($_.Exception.Message)"
@@ -324,9 +331,9 @@ function Initialize-WindowsMelodyRecovery {
 
     # Create configuration
     $config = @{
-        BACKUP_ROOT = $backupRoot
-        CLOUD_PROVIDER = $selectedProvider
-        MACHINE_NAME = $machineName
+        BACKUP_ROOT                  = $backupRoot
+        CLOUD_PROVIDER               = $selectedProvider
+        MACHINE_NAME                 = $machineName
         WINDOWS_MELODY_RECOVERY_PATH = $InstallPath
     }
 
@@ -402,9 +409,9 @@ function Initialize-WindowsMelodyRecovery {
 
     # Update module configuration state
     $setParams = @{
-        BackupRoot = $backupRoot
-        MachineName = $machineName
-        CloudProvider = $selectedProvider
+        BackupRoot                = $backupRoot
+        MachineName               = $machineName
+        CloudProvider             = $selectedProvider
         WindowsMelodyRecoveryPath = $InstallPath
     }
 
