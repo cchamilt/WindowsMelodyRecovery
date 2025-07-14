@@ -1,20 +1,81 @@
-﻿# Windows Melody Recovery - Module File Operations Tests
+# Windows Melody Recovery - Module File Operations Tests
 # Tests module functionality with actual file operations (File-Operations Level)
 # Logic tests moved to tests/unit/module-tests-Logic.Tests.ps1
 
 BeforeAll {
-    # Import Docker test bootstrap for mock functions
-    if (Test-Path "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1") {
-        . "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1"
-    }
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the module using standardized pattern
-    $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
+    # Import only the specific scripts needed to avoid TUI dependencies
     try {
-        Import-Module $ModulePath -Force -ErrorAction Stop
+        # Import core module scripts without TUI dependencies
+        $CoreScripts = @(
+            "Private/Core/WindowsMelodyRecovery.Core.ps1",
+            "Private/Core/WindowsMelodyRecovery.Initialization.ps1",
+            "Private/Core/PathUtilities.ps1",
+            "Private/Core/FileState.ps1",
+            "Private/Core/ApplicationState.ps1",
+            "Public/Initialize-WindowsMelodyRecovery.ps1",
+            "Public/Set-WindowsMelodyRecovery.ps1"
+        )
+
+        foreach ($script in $CoreScripts) {
+            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
+            . $scriptPath
+        }
+
+        # Initialize script:Config variable that's needed by Set-WindowsMelodyRecovery
+        $script:Config = @{
+            BackupRoot = $null
+            MachineName = $env:COMPUTERNAME
+            WindowsMelodyRecoveryPath = $null
+            CloudProvider = $null
+            ModuleVersion = "1.0.0"
+            LastConfigured = $null
+            IsInitialized = $false
+            EmailSettings = @{
+                FromAddress = $null
+                ToAddress = $null
+                Password = $null
+                SmtpServer = $null
+                SmtpPort = 587
+                EnableSsl = $true
+            }
+            BackupSettings = @{
+                RetentionDays = 30
+                ExcludePaths = @()
+                IncludePaths = @()
+            }
+            ScheduleSettings = @{
+                BackupSchedule = $null
+                UpdateSchedule = $null
+            }
+            NotificationSettings = @{
+                EnableEmail = $false
+                NotifyOnSuccess = $false
+                NotifyOnFailure = $true
+            }
+            RecoverySettings = @{
+                Mode = "Selective"
+                ForceOverwrite = $false
+            }
+            LoggingSettings = @{
+                Path = $null
+                Level = "Information"
+            }
+            UpdateSettings = @{
+                AutoUpdate = $true
+                ExcludePackages = @()
+            }
+        }
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
     }
     catch {
-        throw "Failed to import module from $ModulePath : $($_.Exception.Message)"
+        throw "Cannot find or import required scripts: $($_.Exception.Message)"
     }
 
     # Set up test environment with real paths in safe test directories
@@ -154,10 +215,10 @@ WMR_LOG_PATH=$($TestTempDir)\logs
             $manifestPath = Join-Path $backupPath "manifest.json"
             $testManifest = @{
                 ModuleVersion = "1.0.0"
-                CreatedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                BackupType = "Full"
-                Components = @("SystemSettings", "Applications")
-                MachineName = $env:COMPUTERNAME
+                CreatedDate   = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                BackupType    = "Full"
+                Components    = @("SystemSettings", "Applications")
+                MachineName   = $env:COMPUTERNAME
             }
 
             $testManifest | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding UTF8
@@ -253,8 +314,8 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
             $timestampedFile = Join-Path $backupPath "backup_$timestamp.json"
 
             $backupData = @{
-                Timestamp = $timestamp
-                Data = "test backup data"
+                Timestamp   = $timestamp
+                Data        = "test backup data"
                 MachineName = $env:COMPUTERNAME
             }
 
@@ -272,16 +333,16 @@ Write-Information -MessageData "Test script executed with parameter: `$TestParam
 
             # Create a larger JSON structure to test file handling
             $largeData = @{
-                Configuration = @{}
-                Applications = @()
+                Configuration  = @{}
+                Applications   = @()
                 SystemSettings = @{}
             }
 
             # Add test data
             for ($i = 1; $i -le 100; $i++) {
                 $largeData.Applications += @{
-                    Name = "TestApp$i"
-                    Version = "1.0.$i"
+                    Name        = "TestApp$i"
+                    Version     = "1.0.$i"
                     InstallPath = "C:\Program Files\TestApp$i"
                 }
             }

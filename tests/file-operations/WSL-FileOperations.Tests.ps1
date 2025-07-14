@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     WSL File Operations Tests
@@ -12,16 +12,44 @@
 #>
 
 BeforeAll {
-    # Import test environment utilities
-    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
+    # Import only the specific scripts needed to avoid TUI dependencies
+    try {
+        # Import WSL-related scripts
+        $WSLScripts = @(
+            "Private/backup/wsl-discovery-distributions.ps1",
+            "Private/backup/wsl-discovery-packages.ps1",
+            "Private/backup/wsl-parse-distributions.ps1",
+            "Private/backup/wsl-parse-packages.ps1",
+            "Private/Core/PathUtilities.ps1",
+            "Private/Core/FileState.ps1"
+        )
+
+        foreach ($script in $WSLScripts) {
+            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
+            . $scriptPath
+        }
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    }
+    catch {
+        throw "Cannot find or import WSL scripts: $($_.Exception.Message)"
+    }
 
     # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
+    $script:TestPaths = $global:TestEnvironment
 
-    # Import the module with standardized pattern
-    try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
+    # Define Test-SafeTestPath function for safety validation
+    function Test-SafeTestPath {
+        param([string]$Path)
+        if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 10) { return $false }
+        # Must be in a test directory
+        return $Path.Contains("WMR-Tests") -or $Path.Contains("test-") -or $Path.Contains("Temp")
     }
     catch {
         throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
@@ -74,17 +102,17 @@ Describe "WSL File Operations Tests" -Tag "FileOperations", "WSL" {
             # Mock WSL distribution data
             $distributions = @(
                 @{
-                    Name = "Ubuntu-22.04"
-                    Version = "2"
-                    Default = $true
-                    State = "Running"
+                    Name     = "Ubuntu-22.04"
+                    Version  = "2"
+                    Default  = $true
+                    State    = "Running"
                     BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState"
                 },
                 @{
-                    Name = "Debian"
-                    Version = "2"
-                    Default = $false
-                    State = "Stopped"
+                    Name     = "Debian"
+                    Version  = "2"
+                    Default  = $false
+                    State    = "Stopped"
                     BasePath = "C:\\Users\\TestUser\\AppData\\Local\\Packages\\TheDebianProject.DebianGNULinux_79rhkp1fndgsc\\LocalState"
                 }
             )
@@ -131,7 +159,7 @@ localhostForwarding = true
         It "Should backup WSL dotfiles" {
             # Mock dotfiles
             $dotfiles = @{
-                ".bashrc" = @"
+                ".bashrc"       = @"
 # ~/.bashrc: executed by bash(1) for non-login shells.
 export PATH=`$HOME/bin:`$PATH
 alias ll='ls -alF'
@@ -144,14 +172,14 @@ if [ -f ~/.bashrc ]; then
     . ~/.bashrc
 fi
 "@
-                ".gitconfig" = @"
+                ".gitconfig"    = @"
 [user]
     name = Test User
     email = test@example.com
 [core]
     editor = vim
 "@
-                ".ssh/config" = @"
+                ".ssh/config"   = @"
 Host github.com
     HostName github.com
     User git
@@ -181,7 +209,7 @@ Host github.com
         It "Should backup WSL package lists" {
             # Mock package lists
             $packageLists = @{
-                "apt-packages.txt" = @"
+                "apt-packages.txt"  = @"
 git	install
 curl	install
 wget	install
@@ -189,7 +217,7 @@ vim	install
 python3	install
 nodejs	install
 "@
-                "pip-packages.txt" = @"
+                "pip-packages.txt"  = @"
 requests==2.28.1
 numpy==1.24.3
 pandas==1.5.3
@@ -231,10 +259,10 @@ flask==2.3.2
             $backupFile = Join-Path $script:TestBackupRoot "distributions/distributions.json"
             $mockDistributions = @(
                 @{
-                    Name = "Ubuntu-22.04"
+                    Name    = "Ubuntu-22.04"
                     Version = "2"
                     Default = $true
-                    State = "Running"
+                    State   = "Running"
                 }
             )
 
@@ -312,8 +340,8 @@ export PATH=`$HOME/bin:`$PATH
                 # Mock template-based backup operation
                 $templateBackupFile = Join-Path $backupPath "wsl-template-backup.json"
                 $mockTemplateData = @{
-                    template = "wsl.yaml"
-                    timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    template   = "wsl.yaml"
+                    timestamp  = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     operations = @("backup-distributions", "backup-config", "backup-dotfiles")
                 }
 
@@ -453,8 +481,8 @@ backup:
 
             # Create mock chezmoi managed files
             $managedFiles = @{
-                "dot_bashrc" = "# Managed by chezmoi`nexport PATH=`$HOME/bin:`$PATH"
-                "dot_gitconfig.tmpl" = "[user]`n    name = {{ .name }}`n    email = {{ .email }}"
+                "dot_bashrc"             = "# Managed by chezmoi`nexport PATH=`$HOME/bin:`$PATH"
+                "dot_gitconfig.tmpl"     = "[user]`n    name = {{ .name }}`n    email = {{ .email }}"
                 "private_dot_ssh/config" = "Host *`n    ServerAliveInterval 60"
             }
 

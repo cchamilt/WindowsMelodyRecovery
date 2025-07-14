@@ -708,7 +708,7 @@ function Remove-StandardTestEnvironment {
                     try {
                         if (Test-Path $path) {
                             if ($PSCmdlet.ShouldProcess($path, "Remove test directory")) {
-                                Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
+                                Remove-Item -Path $path -Recurse -Force -Confirm:$false -ErrorAction Stop
                                 $cleanupReport.RemovedPaths += $path
                                 Write-Information -MessageData "  ✓ Removed $pathName : $path" -InformationAction Continue
                             }

@@ -1,4 +1,4 @@
-﻿# tests/file-operations/SharedConfiguration-FileOperations.Tests.ps1
+# tests/file-operations/SharedConfiguration-FileOperations.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -14,15 +14,37 @@
 #>
 
 BeforeAll {
-    # Import test environment utilities
-    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
+    # Import only the specific scripts needed to avoid TUI dependencies
+    try {
+        # Import shared configuration scripts
+        $SharedConfigScripts = @(
+            "Private/Core/ConfigurationMerging.ps1",
+            "Private/Core/ConfigurationValidation.ps1",
+            "Private/Core/PathUtilities.ps1",
+            "Private/Core/FileState.ps1"
+        )
+
+        foreach ($script in $SharedConfigScripts) {
+            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
+            . $scriptPath
+        }
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    }
+    catch {
+        throw "Cannot find or import shared configuration scripts: $($_.Exception.Message)"
+    }
 
     # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
+    $script:TestPaths = $global:TestEnvironment
     $script:TestMachineBackup = $script:TestPaths.MachineBackup
     $script:TestSharedBackup = $script:TestPaths.SharedBackup
-
-    # Import the module with standardized pattern
     try {
         $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
         Import-Module $ModulePath -Force -ErrorAction Stop
@@ -230,10 +252,10 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
         It "Should validate JSON file content correctly" {
             $jsonFile = Join-Path $script:TestSharedBackup "valid-json.json"
             $validJson = @{
-                Source = "Shared"
+                Source   = "Shared"
                 Settings = @{
-                    Theme = "Dark"
-                    Version = "1.0"
+                    Theme    = "Dark"
+                    Version  = "1.0"
                     Features = @("Feature1", "Feature2", "Feature3")
                 }
             } | ConvertTo-Json -Depth 3
@@ -260,7 +282,7 @@ Describe "SharedConfiguration File Operations" -Tag "FileOperations" {
 
             # Create a large configuration with many entries
             $largeConfig = @{
-                Source = "Shared"
+                Source    = "Shared"
                 LargeData = @{}
             }
 

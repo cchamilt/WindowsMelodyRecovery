@@ -1,4 +1,4 @@
-﻿# tests/file-operations/TemplateModule-FileOperations.Tests.ps1
+# tests/file-operations/TemplateModule-FileOperations.Tests.ps1
 
 <#
 .SYNOPSIS
@@ -14,13 +14,33 @@
 #>
 
 BeforeAll {
-    # Import Docker test bootstrap for mock functions
-    if (Test-Path "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1") {
-        . "/usr/local/share/powershell/Modules/Docker-Test-Bootstrap.ps1"
-    }
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import the main module to ensure Template functions are available
-    Import-Module "$PSScriptRoot/../../WindowsMelodyRecovery.psd1" -Force
+    # Import only the specific scripts needed to avoid TUI dependencies
+    try {
+        # Import template-related scripts
+        $TemplateScripts = @(
+            "Private/Core/WindowsMelodyRecovery.Template.psm1",
+            "Private/Core/TemplateInheritance.ps1",
+            "Private/Core/TemplateResolution.ps1",
+            "Private/Core/PathUtilities.ps1",
+            "Private/Core/FileState.ps1"
+        )
+
+        foreach ($script in $TemplateScripts) {
+            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
+            . $scriptPath
+        }
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    }
+    catch {
+        throw "Cannot find or import template scripts: $($_.Exception.Message)"
+    }
 
     # Set up environment-aware test paths
     $isDockerEnvironment = ($env:DOCKER_TEST -eq 'true') -or ($env:CONTAINER -eq 'true') -or

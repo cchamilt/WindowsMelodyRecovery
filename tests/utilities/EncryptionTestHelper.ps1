@@ -292,7 +292,7 @@ function Remove-TestTempDirectory {
     )
 
     if (Test-Path $Path) {
-        Remove-Item -Path $Path -Recurse -Force
+        Remove-Item -Path $Path -Recurse -Force -Confirm:$false
     }
 }
 

@@ -329,7 +329,7 @@ function Remove-TestEnvironment {
         if (Test-Path $testRoot) {
             Write-Verbose "🧹 Removing isolated test environment at: $testRoot"
             try {
-                Remove-Item -Path $testRoot -Recurse -Force -ErrorAction Stop
+                Remove-Item -Path $testRoot -Recurse -Force -Confirm:$false -ErrorAction Stop
                 Write-Verbose "✅ Test environment cleanup successful."
             }
             catch {

@@ -1,4 +1,4 @@
-﻿# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
 param()
 
@@ -9,16 +9,51 @@ param()
 $ConfirmPreference = 'None'
 
 BeforeAll {
-    # Import test environment utilities
-    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+
+    # Import only the specific scripts needed to avoid TUI dependencies
+    try {
+        $FileStateScript = Resolve-Path "$PSScriptRoot/../../Private/Core/FileState.ps1"
+        . $FileStateScript
+
+        $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
+        . $PathUtilitiesScript
+
+        $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
+        . $EncryptionUtilitiesScript
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
+    }
+    catch {
+        throw "Cannot find or import required scripts: $($_.Exception.Message)"
+    }
 
     # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
+    $script:TestPaths = $global:TestEnvironment
 
-    # Import core files directly for unit testing
-    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\FileState.ps1")
-    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\PathUtilities.ps1")
-    . (Join-Path $script:TestPaths.ModuleRoot "Private\Core\EncryptionUtilities.ps1")
+    # Define Test-SafeTestPath function for safety validation
+    function Test-SafeTestPath {
+        param([string]$Path)
+        if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 10) { return $false }
+        # Must be in a test directory
+        return $Path.Contains("WMR-Tests") -or $Path.Contains("test-") -or $Path.Contains("Temp")
+    }
+
+    # Define Remove-TestItems function for safe cleanup
+    function Remove-TestItems {
+        param(
+            [string]$Path,
+            [switch]$Recurse,
+            [switch]$Force
+        )
+        if ($Path -and (Test-SafeTestPath $Path) -and (Test-Path $Path)) {
+            Remove-Item -Path $Path -Recurse:$Recurse -Force:$Force -Confirm:$false -ErrorAction SilentlyContinue
+        }
+    }
 
     # Import test utilities if they exist
     $testHelperPath = Join-Path $PSScriptRoot "..\utilities\TestHelper.ps1"
@@ -81,7 +116,7 @@ BeforeAll {
 AfterAll {
     # Clean up temporary directories safely
     if ($script:TempStateDir -and (Test-SafeTestPath $script:TempStateDir)) {
-        Remove-Item -Path $script:TempStateDir -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $script:TempStateDir -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
     }
 }
 
@@ -89,7 +124,11 @@ Describe "Get-WmrFileState - File Type" {
 
     BeforeEach {
         # Clean up test files before each test
-        Get-ChildItem -Path $script:SourceDir -Recurse | Remove-Item -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
+        if (Test-Path $script:SourceDir) {
+            Get-ChildItem -Path $script:SourceDir -Recurse -Force | ForEach-Object {
+                Remove-Item -Path $_.FullName -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     It "should capture file content and metadata and save to dynamic_state_path" {
@@ -97,13 +136,13 @@ Describe "Get-WmrFileState - File Type" {
         New-TestFile -Path $testFilePath -Content "Hello World"
 
         $fileConfig = [PSCustomObject]@{
-            name = "Test File"
-            path = $testFilePath
-            type = "file"
-            action = "backup"
+            name               = "Test File"
+            path               = $testFilePath
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/testfile.txt"
-            checksum_type = "SHA256"
-            encrypt = $false
+            checksum_type      = "SHA256"
+            encrypt            = $false
         }
 
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
@@ -127,12 +166,12 @@ Describe "Get-WmrFileState - File Type" {
         New-TestFile -Path $testFilePath -Content "Secret Data"
 
         $fileConfig = [PSCustomObject]@{
-            name = "Encrypted File"
-            path = $testFilePath
-            type = "file"
-            action = "backup"
+            name               = "Encrypted File"
+            path               = $testFilePath
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/encrypted_file.txt"
-            encrypt = $true
+            encrypt            = $true
         }
 
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir -Passphrase $script:testPassphrase
@@ -147,12 +186,12 @@ Describe "Get-WmrFileState - File Type" {
 
     It "should warn and return null if source path does not exist" {
         $fileConfig = [PSCustomObject]@{
-            name = "Non Existent File"
-            path = (Join-Path $script:SourceDir "nonexistent.txt")
-            type = "file"
-            action = "backup"
+            name               = "Non Existent File"
+            path               = (Join-Path $script:SourceDir "nonexistent.txt")
+            type               = "file"
+            action             = "backup"
             dynamic_state_path = "files/nonexistent.txt"
-            encrypt = $false
+            encrypt            = $false
         }
         $result = Get-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
         $result | Should -BeNull
@@ -162,7 +201,11 @@ Describe "Get-WmrFileState - File Type" {
 Describe "Get-WmrFileState - Directory Type" {
     BeforeEach {
         # Clean up test directories before each test
-        Get-ChildItem -Path $script:SourceDir -Recurse | Remove-Item -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
+        if (Test-Path $script:SourceDir) {
+            Get-ChildItem -Path $script:SourceDir -Recurse -Force | ForEach-Object {
+                Remove-Item -Path $_.FullName -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     It "should capture directory metadata and save to dynamic_state_path" {
@@ -173,10 +216,10 @@ Describe "Get-WmrFileState - Directory Type" {
         New-TestFile -Path (Join-Path $testDirPath "subdir/file2.txt") -Content "file2"
 
         $fileConfig = [PSCustomObject]@{
-            name = "Test Directory"
-            path = $testDirPath
-            type = "directory"
-            action = "backup"
+            name               = "Test Directory"
+            path               = $testDirPath
+            type               = "directory"
+            action             = "backup"
             dynamic_state_path = "dirs/test_dir_meta.json"
         }
 
@@ -211,13 +254,13 @@ Describe "Set-WmrFileState - File Type" {
         New-TestFile -Path $stateFilePath -Content "Content to restore"
 
         $fileConfig = [PSCustomObject]@{
-            name = "Restore Test File"
-            path = (Join-Path $script:SourceDir "dummy.txt") # Path here doesn't matter if destination is provided
-            type = "file"
-            action = "restore"
+            name               = "Restore Test File"
+            path               = (Join-Path $script:SourceDir "dummy.txt") # Path here doesn't matter if destination is provided
+            type               = "file"
+            action             = "restore"
             dynamic_state_path = "files/restore_test.txt"
-            destination = (Join-Path $script:DestDir "restored_file.txt")
-            encrypt = $false
+            destination        = (Join-Path $script:DestDir "restored_file.txt")
+            encrypt            = $false
         }
 
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir
@@ -233,13 +276,13 @@ Describe "Set-WmrFileState - File Type" {
         New-TestFile -Path $stateFilePath -Content $encryptedContent
 
         $fileConfig = [PSCustomObject]@{
-            name = "Restore Encrypted File"
-            path = (Join-Path $script:SourceDir "dummy_encrypted.txt")
-            type = "file"
-            action = "restore"
+            name               = "Restore Encrypted File"
+            path               = (Join-Path $script:SourceDir "dummy_encrypted.txt")
+            type               = "file"
+            action             = "restore"
             dynamic_state_path = "files/restore_encrypted.txt"
-            destination = (Join-Path $script:DestDir "restored_encrypted_file.txt")
-            encrypt = $true
+            destination        = (Join-Path $script:DestDir "restored_encrypted_file.txt")
+            encrypt            = $true
         }
 
         Set-WmrFileState -FileConfig $fileConfig -StateFilesDirectory $script:TempStateDir -Passphrase $script:testPassphrase
@@ -283,10 +326,10 @@ Describe "Set-WmrFileState - Directory Type" {
 
         # Create backup config
         $backupConfig = [PSCustomObject]@{
-            name = "Test Directory"
-            path = $testDirPath
-            type = "directory"
-            action = "backup"
+            name               = "Test Directory"
+            path               = $testDirPath
+            type               = "directory"
+            action             = "backup"
             dynamic_state_path = "dirs/test_dir.json"
         }
 
@@ -305,12 +348,12 @@ Describe "Set-WmrFileState - Directory Type" {
         Write-Debug "Restored directory path: $restoredDirPath"
 
         $restoreConfig = [PSCustomObject]@{
-            name = "Test Directory"
-            path = $testDirPath
-            type = "directory"
-            action = "restore"
+            name               = "Test Directory"
+            path               = $testDirPath
+            type               = "directory"
+            action             = "restore"
             dynamic_state_path = "dirs/test_dir.json"
-            destination = $restoredDirPath
+            destination        = $restoredDirPath
         }
 
         Write-Debug "Restore config:"
@@ -339,25 +382,25 @@ Describe "Set-WmrFileState - Directory Type" {
         # Arrange
         $dirContent = @(
             @{
-                FullName = "C:\testdir\file1.txt"
-                Length = 10
+                FullName         = "C:\testdir\file1.txt"
+                Length           = 10
                 LastWriteTimeUtc = (Get-Date).ToUniversalTime()
-                PSIsContainer = $false
-                RelativePath = "file1.txt"
+                PSIsContainer    = $false
+                RelativePath     = "file1.txt"
             },
             @{
-                FullName = "C:\testdir\subdir"
-                Length = 0
+                FullName         = "C:\testdir\subdir"
+                Length           = 0
                 LastWriteTimeUtc = (Get-Date).ToUniversalTime()
-                PSIsContainer = $true
-                RelativePath = "subdir"
+                PSIsContainer    = $true
+                RelativePath     = "subdir"
             },
             @{
-                FullName = "C:\testdir\subdir\file2.txt"
-                Length = 10
+                FullName         = "C:\testdir\subdir\file2.txt"
+                Length           = 10
                 LastWriteTimeUtc = (Get-Date).ToUniversalTime()
-                PSIsContainer = $false
-                RelativePath = "subdir\file2.txt"
+                PSIsContainer    = $false
+                RelativePath     = "subdir\file2.txt"
             }
         )
 
@@ -366,10 +409,10 @@ Describe "Set-WmrFileState - Directory Type" {
 
         $destinationPath = Join-Path -Path $script:testDataDir -ChildPath "restored_dir"
         $fileConfig = [PSCustomObject]@{
-            name = "testdir"
-            path = "C:\testdir"
-            destination = $destinationPath
-            type = "directory"
+            name               = "testdir"
+            path               = "C:\testdir"
+            destination        = $destinationPath
+            type               = "directory"
             dynamic_state_path = "testdir.json"
         }
 
@@ -406,10 +449,10 @@ Describe "FileState" {
             New-TestFile -Path $testFile -Content $testContent
 
             $fileConfig = [PSCustomObject]@{
-                name = "test"
-                path = $testFile
-                type = "file"
-                encrypt = $false
+                name               = "test"
+                path               = $testFile
+                type               = "file"
+                encrypt            = $false
                 dynamic_state_path = "test.txt"
             }
 
@@ -435,10 +478,10 @@ Describe "FileState" {
             New-TestFile -Path $testFile -Content $testContent
 
             $fileConfig = [PSCustomObject]@{
-                name = "secret"
-                path = $testFile
-                type = "file"
-                encrypt = $true
+                name               = "secret"
+                path               = $testFile
+                type               = "file"
+                encrypt            = $true
                 dynamic_state_path = "secret.txt"
             }
 
@@ -472,9 +515,9 @@ Describe "FileState" {
             New-TestFile -Path "$testDir/subdir/file2.txt" -Content "File 2"
 
             $fileConfig = [PSCustomObject]@{
-                name = "testdir"
-                path = $testDir
-                type = "directory"
+                name               = "testdir"
+                path               = $testDir
+                type               = "directory"
                 dynamic_state_path = "testdir.json"
             }
 
@@ -504,10 +547,10 @@ Describe "FileState" {
 
             $destinationPath = Join-Path -Path $script:testDataDir -ChildPath "restored.txt"
             $fileConfig = [PSCustomObject]@{
-                name = "test"
-                path = $destinationPath
-                type = "file"
-                encrypt = $false
+                name               = "test"
+                path               = $destinationPath
+                type               = "file"
+                encrypt            = $false
                 dynamic_state_path = "test.txt"
             }
 
@@ -532,18 +575,18 @@ Describe "FileState" {
             # Create metadata file
             $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
             $metadata = @{
-                Encrypted = $true
-                Encoding = "UTF8"
+                Encrypted    = $true
+                Encoding     = "UTF8"
                 OriginalSize = $contentBytes.Length
             }
             $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -NoNewline
 
             $destinationPath = Join-Path -Path $script:testDataDir -ChildPath "restored_secret.txt"
             $fileConfig = [PSCustomObject]@{
-                name = "secret"
-                path = $destinationPath
-                type = "file"
-                encrypt = $true
+                name               = "secret"
+                path               = $destinationPath
+                type               = "file"
+                encrypt            = $true
                 dynamic_state_path = "secret.txt"
             }
 
@@ -560,25 +603,25 @@ Describe "FileState" {
             # Arrange
             $dirContent = @(
                 @{
-                    FullName = "C:\testdir\file1.txt"
-                    Length = 10
+                    FullName         = "C:\testdir\file1.txt"
+                    Length           = 10
                     LastWriteTimeUtc = (Get-Date).ToUniversalTime()
-                    PSIsContainer = $false
-                    RelativePath = "file1.txt"
+                    PSIsContainer    = $false
+                    RelativePath     = "file1.txt"
                 },
                 @{
-                    FullName = "C:\testdir\subdir"
-                    Length = 0
+                    FullName         = "C:\testdir\subdir"
+                    Length           = 0
                     LastWriteTimeUtc = (Get-Date).ToUniversalTime()
-                    PSIsContainer = $true
-                    RelativePath = "subdir"
+                    PSIsContainer    = $true
+                    RelativePath     = "subdir"
                 },
                 @{
-                    FullName = "C:\testdir\subdir\file2.txt"
-                    Length = 10
+                    FullName         = "C:\testdir\subdir\file2.txt"
+                    Length           = 10
                     LastWriteTimeUtc = (Get-Date).ToUniversalTime()
-                    PSIsContainer = $false
-                    RelativePath = "subdir\file2.txt"
+                    PSIsContainer    = $false
+                    RelativePath     = "subdir\file2.txt"
                 }
             )
 
@@ -587,10 +630,10 @@ Describe "FileState" {
 
             $destinationPath = Join-Path -Path $script:testDataDir -ChildPath "restored_dir"
             $fileConfig = [PSCustomObject]@{
-                name = "testdir"
-                path = "C:\testdir"
-                destination = $destinationPath
-                type = "directory"
+                name               = "testdir"
+                path               = "C:\testdir"
+                destination        = $destinationPath
+                type               = "directory"
                 dynamic_state_path = "testdir.json"
             }
 

@@ -1,4 +1,4 @@
-﻿# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
+# PSScriptAnalyzer - ignore creation of a SecureString using plain text for the contents of this test file
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
 param()
 
@@ -6,23 +6,40 @@ param()
 # Tests the Get-WmrApplicationState and Set-WmrApplicationState functions for file operations
 
 BeforeAll {
-    # Import test environment utilities
-    . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")
+    # Load Docker test bootstrap for cross-platform compatibility
+    . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Get standardized test paths
-    $script:TestPaths = Get-TestPaths
-
-    # Import the module with standardized pattern
+    # Import only the specific scripts needed to avoid TUI dependencies
     try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
+        # Import dependencies first
+        $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
+        . $PathUtilitiesScript
+
+        $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
+        . $EncryptionUtilitiesScript
+
+        $ApplicationStateScript = Resolve-Path "$PSScriptRoot/../../Private/Core/ApplicationState.ps1"
+        . $ApplicationStateScript
+
+        # Initialize test environment
+        $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
+        . $TestEnvironmentScript
+        Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null
     }
     catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+        throw "Cannot find or import ApplicationState script: $($_.Exception.Message)"
     }
 
-    # Dot-source ApplicationState.ps1 to ensure all functions are available
-    . (Join-Path (Split-Path $ModulePath) "Private\Core\ApplicationState.ps1")
+    # Get standardized test paths from the initialized environment
+    $script:TestPaths = $global:TestEnvironment
+
+    # Define Test-SafeTestPath function for safety validation
+    function Test-SafeTestPath {
+        param([string]$Path)
+        if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 10) { return $false }
+        # Must be in a test directory
+        return $Path.Contains("WMR-Tests") -or $Path.Contains("test-") -or $Path.Contains("Temp")
+    }
 
     # Use standardized temp directory for state files
     $script:TempStateDir = Join-Path $script:TestPaths.Temp "ApplicationStateTests"
@@ -120,13 +137,13 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Winget Test Apps"
-                type = "winget"
+                name               = "Winget Test Apps"
+                type               = "winget"
                 dynamic_state_path = "apps/winget_list.json"
-                discovery_command = "winget list --source winget"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
-                uninstall_script = "dummy"
+                discovery_command  = "winget list --source winget"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
+                uninstall_script   = "dummy"
             }
 
             Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir
@@ -150,13 +167,13 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Empty Winget List"
-                type = "winget"
+                name               = "Empty Winget List"
+                type               = "winget"
                 dynamic_state_path = "apps/empty_winget_list.json"
-                discovery_command = "winget list"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
-                uninstall_script = "dummy"
+                discovery_command  = "winget list"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
+                uninstall_script   = "dummy"
             }
 
             Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir
@@ -174,12 +191,12 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Failing Discovery"
-                type = "custom"
+                name               = "Failing Discovery"
+                type               = "custom"
                 dynamic_state_path = "apps/failing_discovery.json"
-                discovery_command = "nonexistent-command"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
+                discovery_command  = "nonexistent-command"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
             }
 
             { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
@@ -195,12 +212,12 @@ Package A           App.PackageA          1.2.3
             $appListJson | Set-Content -Path $stateFilePath -Encoding Utf8
 
             $appConfig = @{
-                name = "Install Test Apps"
-                type = "custom"
+                name               = "Install Test Apps"
+                type               = "custom"
                 dynamic_state_path = "apps/install_list.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = $script:CommonInstallScript
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = $script:CommonInstallScript
             }
 
             Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir
@@ -212,12 +229,12 @@ Package A           App.PackageA          1.2.3
 
         It "should handle missing state files gracefully" {
             $appConfig = @{
-                name = "Missing State Install"
-                type = "custom"
+                name               = "Missing State Install"
+                type               = "custom"
                 dynamic_state_path = "apps/non_existent_install.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = $script:CommonInstallScript
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = $script:CommonInstallScript
             }
 
             { Set-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
@@ -233,13 +250,13 @@ Package A           App.PackageA          1.2.3
             $initialAppListJson | Set-Content -Path $initialStateFilePath -Encoding Utf8
 
             $initialAppConfig = @{
-                name = "App to Uninstall"
-                type = "custom"
+                name               = "App to Uninstall"
+                type               = "custom"
                 dynamic_state_path = "apps/uninstall_list.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = $script:CommonInstallScript
-                uninstall_script = $script:CommonUninstallScript
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = $script:CommonInstallScript
+                uninstall_script   = $script:CommonUninstallScript
             }
             Set-WmrApplicationState -AppConfig $initialAppConfig -StateFilesDirectory $script:TempStateDir
             (Test-Path (Join-Path $script:InstalledAppsDir "App.Uninstall.installed")) | Should -Be $true
@@ -253,12 +270,12 @@ Package A           App.PackageA          1.2.3
 
         It "should handle missing uninstall script gracefully" {
             $appConfig = @{
-                name = "No Uninstall Script"
-                type = "custom"
+                name               = "No Uninstall Script"
+                type               = "custom"
                 dynamic_state_path = "apps/no_uninstall.json"
-                discovery_command = "dummy"
-                parse_script = "dummy"
-                install_script = "dummy"
+                discovery_command  = "dummy"
+                parse_script       = "dummy"
+                install_script     = "dummy"
                 # uninstall_script is intentionally missing
             }
 
@@ -277,12 +294,12 @@ Package A           App.PackageA          1.2.3
             }
 
             $appConfig = @{
-                name = "Nested Directory Test"
-                type = "custom"
+                name               = "Nested Directory Test"
+                type               = "custom"
                 dynamic_state_path = "level1/level2/level3/nested_app.json"
-                discovery_command = "test command"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
+                discovery_command  = "test command"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
             }
 
             Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir
@@ -298,12 +315,12 @@ Package A           App.PackageA          1.2.3
             # This test would require mocking New-Item to fail, but since we're in file-operations
             # we'll just verify that the function handles real directory creation properly
             $appConfig = @{
-                name = "Directory Creation Test"
-                type = "custom"
+                name               = "Directory Creation Test"
+                type               = "custom"
                 dynamic_state_path = "apps/directory_test.json"
-                discovery_command = "echo 'test'"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
+                discovery_command  = "echo 'test'"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
             }
 
             { Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir } | Should -Not -Throw
@@ -328,12 +345,12 @@ Visual Studio Code   Microsoft.VisualStudioCode 1.60.0
             }
 
             $appConfig = @{
-                name = "JSON Validation Test"
-                type = "winget"
+                name               = "JSON Validation Test"
+                type               = "winget"
                 dynamic_state_path = "apps/json_validation.json"
-                discovery_command = "winget list --source winget"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
+                discovery_command  = "winget list --source winget"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
             }
 
             Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir
@@ -365,12 +382,12 @@ Test App with 中文    Test.Unicode          1.0.0
             }
 
             $appConfig = @{
-                name = "UTF-8 Encoding Test"
-                type = "custom"
+                name               = "UTF-8 Encoding Test"
+                type               = "custom"
                 dynamic_state_path = "apps/utf8_test.json"
-                discovery_command = "test command"
-                parse_script = $script:CommonParseScript
-                install_script = "dummy"
+                discovery_command  = "test command"
+                parse_script       = $script:CommonParseScript
+                install_script     = "dummy"
             }
 
             Get-WmrApplicationState -AppConfig $appConfig -StateFilesDirectory $script:TempStateDir
