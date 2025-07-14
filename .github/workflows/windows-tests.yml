@@ -1,188 +1,190 @@
 name: Windows Native Tests
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  schedule:
-    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM UTC
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+    schedule:
+        - cron: "0 2 * * 0" # Weekly on Sunday at 2 AM UTC
 
 jobs:
-  windows-tests:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        test-category: [unit, file-operations, integration]
-      fail-fast: false
-    
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Setup PowerShell Environment
-      shell: pwsh
-      run: |
-        Write-Host "Setting up PowerShell environment for Windows-only tests..."
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
-        Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
-        Write-Host "Pester version: $(Get-Module Pester -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
-    
-    - name: Verify Windows Environment
-      shell: pwsh
-      run: |
-        Write-Host "Verifying Windows environment..."
-        Write-Host "OS: $([System.Environment]::OSVersion.VersionString)"
-        Write-Host "Is Windows: $($IsWindows)"
-        Write-Host "Is CI/CD: $($env:CI -or $env:GITHUB_ACTIONS)"
-        Write-Host "Admin Rights: $((New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))"
-    
-    - name: Run Windows ${{ matrix.test-category }} Tests
-      shell: pwsh
-      run: |
-        Write-Host "Running Windows ${{ matrix.test-category }} tests..."
-        Write-Host "Environment: Windows CI/CD"
-        Write-Host "Test Category: ${{ matrix.test-category }}"
-        Write-Host "All Windows-specific functionality will be tested"
-        Write-Host ""
-        
-        $requireAdmin = $false
-        if ("${{ matrix.test-category }}" -eq "integration") {
-          $requireAdmin = $true
-          Write-Host "Integration tests require administrative privileges"
-        }
-        
-        try {
-          # Use the standardized test runner scripts for consistency
-          if ("${{ matrix.test-category }}" -eq "unit") {
-            ./tests/scripts/run-unit-tests.ps1 -OutputFormat Normal
-          } elseif ("${{ matrix.test-category }}" -eq "file-operations") {
-            ./tests/scripts/run-file-operation-tests.ps1 -OutputFormat Normal
-          } elseif ("${{ matrix.test-category }}" -eq "integration") {
-            ./tests/scripts/run-windows-tests.ps1 -Category integration -RequireAdmin -GenerateReport -CreateRestorePoint
-          }
-        } catch {
-          Write-Host "Error running Windows tests: $_" -ForegroundColor Red
-          Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
-          exit 1
-        }
-    
-    - name: Publish Windows Test Results
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Windows ${{ matrix.test-category }} Tests
-        path: 'test-results/*-test-results.xml'
-        reporter: java-junit
-        fail-on-error: false
-    
-    - name: Upload Windows Test Artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: windows-${{ matrix.test-category }}-test-results
-        path: |
-          test-results/
-          !test-results/*.tmp
-        retention-days: 30
-    
-    - name: Upload Test Logs
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: windows-${{ matrix.test-category }}-logs
-        path: |
-          test-results/logs/
-        retention-days: 7
-        
-    - name: Upload Coverage Reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: windows-${{ matrix.test-category }}-coverage
-        path: |
-          test-results/coverage/
-        retention-days: 30
+    windows-tests:
+        runs-on: windows-latest
+        strategy:
+            matrix:
+                test-category: [unit, file-operations, integration]
+            fail-fast: false
 
-  windows-cross-platform-verification:
-    runs-on: windows-latest
-    
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Setup PowerShell Environment
-      shell: pwsh
-      run: |
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
-    
-    - name: Run Cross-Platform Tests on Windows
-      shell: pwsh
-      run: |
-        Write-Host "Running cross-platform tests on Windows to verify compatibility..."
-        Write-Host "Environment: Windows (cross-platform mode)"
-        Write-Host "Windows-only tests will run normally"
-        Write-Host ""
-        
-        # Run a subset of cross-platform tests to verify they work on Windows
-        try {
-          ./tests/scripts/run-unit-tests.ps1 -TestName "PathUtilities" -OutputFormat Normal
-          ./tests/scripts/run-file-operation-tests.ps1 -TestName "SharedConfiguration-FileOperations" -OutputFormat Normal
-        } catch {
-          Write-Host "Error running cross-platform tests on Windows: $_" -ForegroundColor Red
-          exit 1
-        }
-    
-    - name: Upload Cross-Platform Verification Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: windows-cross-platform-verification
-        path: |
-          test-results/
-        retention-days: 7
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
 
-  windows-summary:
-    runs-on: ubuntu-latest
-    needs: [windows-tests, windows-cross-platform-verification]
-    if: always()
-    
-    steps:
-    - name: Download All Artifacts
-      uses: actions/download-artifact@v4
-    
-    - name: Generate Windows Test Summary
-      run: |
-        echo "# Windows Native Test Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Test Category | Status | Details |" >> $GITHUB_STEP_SUMMARY
-        echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
-        
-        for category in unit file-operations integration; do
-          if [ -d "windows-$category-test-results" ]; then
-            echo "| Windows $category | ✅ Completed | Results available |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Windows $category | ❌ Failed | No results |" >> $GITHUB_STEP_SUMMARY
-          fi
-        done
-        
-        if [ -d "windows-cross-platform-verification" ]; then
-          echo "| Cross-platform verification | ✅ Completed | Windows compatibility verified |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| Cross-platform verification | ❌ Failed | Compatibility issues |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment**: Windows (native)" >> $GITHUB_STEP_SUMMARY
-        echo "**Windows-only tests**: Executed with full functionality" >> $GITHUB_STEP_SUMMARY
-        echo "**Administrative privileges**: Used for integration tests" >> $GITHUB_STEP_SUMMARY
-        echo "**Safety measures**: Restore points created before destructive tests" >> $GITHUB_STEP_SUMMARY
-        echo "**Cross-platform compatibility**: Verified on Windows" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
-        echo "Coverage reports are available in the artifacts for each test category:" >> $GITHUB_STEP_SUMMARY
-        echo "- Unit tests: JaCoCo XML format" >> $GITHUB_STEP_SUMMARY
-        echo "- File operations: JaCoCo XML format" >> $GITHUB_STEP_SUMMARY
-        echo "- Coverage target: 80%" >> $GITHUB_STEP_SUMMARY 
+            - name: Setup PowerShell Environment
+              shell: pwsh
+              run: |
+                  Write-Host "Setting up PowerShell environment for Windows-only tests..."
+                  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+                  Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
+                  Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
+                  Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+                  Write-Host "Pester version: $(Get-Module Pester -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
+                  Write-Host "Yayaml version: $(Get-Module Yayaml -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
+
+            - name: Verify Windows Environment
+              shell: pwsh
+              run: |
+                  Write-Host "Verifying Windows environment..."
+                  Write-Host "OS: $([System.Environment]::OSVersion.VersionString)"
+                  Write-Host "Is Windows: $($IsWindows)"
+                  Write-Host "Is CI/CD: $($env:CI -or $env:GITHUB_ACTIONS)"
+                  Write-Host "Admin Rights: $((New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))"
+
+            - name: Run Windows Tests
+              shell: pwsh
+              run: |
+                  Write-Host "Running Windows ${{ matrix.test-category }} tests..."
+                  Write-Host "Environment: Windows CI/CD"
+                  Write-Host "Test Category: ${{ matrix.test-category }}"
+                  Write-Host "All Windows-specific functionality will be tested"
+                  Write-Host ""
+
+                  $requireAdmin = $false
+                  if ("${{ matrix.test-category }}" -eq "integration") {
+                    $requireAdmin = $true
+                    Write-Host "Integration tests require administrative privileges"
+                  }
+
+                  try {
+                    # Use the standardized test runner scripts for consistency
+                    if ("${{ matrix.test-category }}" -eq "unit") {
+                      ./tests/scripts/run-unit-tests.ps1 -OutputFormat Normal -GenerateReport
+                    } elseif ("${{ matrix.test-category }}" -eq "file-operations") {
+                      ./tests/scripts/run-file-operation-tests.ps1 -OutputFormat Normal -GenerateReport
+                    } elseif ("${{ matrix.test-category }}" -eq "integration") {
+                      ./tests/scripts/run-windows-tests.ps1 -Category integration -RequireAdmin -GenerateReport -CreateRestorePoint
+                    }
+                  } catch {
+                    Write-Host "Error running Windows tests: $_" -ForegroundColor Red
+                    Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+                    exit 1
+                  }
+
+            - name: Publish Windows Test Results
+              uses: dorny/test-reporter@v1
+              if: always()
+              with:
+                  name: Windows ${{ matrix.test-category }} Tests
+                  path: "test-results/*-test-results.xml"
+                  reporter: java-junit
+                  fail-on-error: false
+
+            - name: Upload Windows Test Artifacts
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: windows-${{ matrix.test-category }}-test-results
+                  path: |
+                      test-results/
+                      !test-results/*.tmp
+                  retention-days: 30
+
+            - name: Upload Test Logs
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: windows-${{ matrix.test-category }}-logs
+                  path: |
+                      test-results/logs/
+                  retention-days: 7
+
+            - name: Upload Coverage Reports
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: windows-${{ matrix.test-category }}-coverage
+                  path: |
+                      test-results/coverage/
+                  retention-days: 30
+
+    windows-cross-platform-verification:
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup PowerShell Environment
+              shell: pwsh
+              run: |
+                  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+                  Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
+
+            - name: Run Cross-Platform Tests on Windows
+              shell: pwsh
+              run: |
+                  Write-Host "Running cross-platform tests on Windows to verify compatibility..."
+                  Write-Host "Environment: Windows (cross-platform mode)"
+                  Write-Host "Windows-only tests will run normally"
+                  Write-Host ""
+
+                  # Run a subset of cross-platform tests to verify they work on Windows
+                  try {
+                    ./tests/scripts/run-unit-tests.ps1 -TestName "PathUtilities" -OutputFormat Normal
+                    ./tests/scripts/run-file-operation-tests.ps1 -TestName "SharedConfiguration-FileOperations" -OutputFormat Normal
+                  } catch {
+                    Write-Host "Error running cross-platform tests on Windows: $_" -ForegroundColor Red
+                    exit 1
+                  }
+
+            - name: Upload Cross-Platform Verification Results
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: windows-cross-platform-verification
+                  path: |
+                      test-results/
+                  retention-days: 7
+
+    windows-summary:
+        runs-on: ubuntu-latest
+        needs: [windows-tests, windows-cross-platform-verification]
+        if: always()
+
+        steps:
+            - name: Download All Artifacts
+              uses: actions/download-artifact@v4
+
+            - name: Generate Windows Test Summary
+              run: |
+                  echo "# Windows Native Test Summary" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "| Test Category | Status | Details |" >> $GITHUB_STEP_SUMMARY
+                  echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+                  for category in unit file-operations integration; do
+                    if [ -d "windows-$category-test-results" ]; then
+                      echo "| Windows $category | ✅ Completed | Results available |" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo "| Windows $category | ❌ Failed | No results |" >> $GITHUB_STEP_SUMMARY
+                    fi
+                  done
+
+                  if [ -d "windows-cross-platform-verification" ]; then
+                    echo "| Cross-platform verification | ✅ Completed | Windows compatibility verified |" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo "| Cross-platform verification | ❌ Failed | Compatibility issues |" >> $GITHUB_STEP_SUMMARY
+                  fi
+
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "**Environment**: Windows (native)" >> $GITHUB_STEP_SUMMARY
+                  echo "**Windows-only tests**: Executed with full functionality" >> $GITHUB_STEP_SUMMARY
+                  echo "**Administrative privileges**: Used for integration tests" >> $GITHUB_STEP_SUMMARY
+                  echo "**Safety measures**: Restore points created before destructive tests" >> $GITHUB_STEP_SUMMARY
+                  echo "**Cross-platform compatibility**: Verified on Windows" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+                  echo "Coverage reports are available in the artifacts for each test category:" >> $GITHUB_STEP_SUMMARY
+                  echo "- Unit tests: JaCoCo XML format" >> $GITHUB_STEP_SUMMARY
+                  echo "- File operations: JaCoCo XML format" >> $GITHUB_STEP_SUMMARY
+                  echo "- Coverage target: 80%" >> $GITHUB_STEP_SUMMARY

@@ -49,6 +49,7 @@ jobs:
               run: |
                   Set-PSRepository PSGallery -InstallationPolicy Trusted
                   Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
+                  Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
 
             - name: Run unit tests
               shell: pwsh
@@ -103,6 +104,7 @@ jobs:
               run: |
                   Set-PSRepository PSGallery -InstallationPolicy Trusted
                   Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
+                  Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
 
             - name: Enable WSL and install Ubuntu
               shell: pwsh
@@ -319,6 +321,7 @@ jobs:
                   # Install all required modules and tools
                   Set-PSRepository PSGallery -InstallationPolicy Trusted
                   Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
+                  Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
 
                   # Setup WSL
                   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart

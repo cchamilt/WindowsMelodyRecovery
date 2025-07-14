@@ -60,8 +60,10 @@ param(
     [switch]$Force
 )
 
-# Set execution policy for current process
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+# Set execution policy for current process (Windows only)
+if ($IsWindows) {
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+}
 
 # Validate Windows environment
 if (-not $IsWindows -and -not $Force) {
@@ -176,9 +178,18 @@ try {
     }
 
     if ($GenerateReport) {
+        # Write to standard test-results directory for CI/CD compatibility
+        $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $testResultsDir = Join-Path $moduleRoot "test-results"
+
+        # Ensure test-results directory exists
+        if (-not (Test-Path $testResultsDir)) {
+            New-Item -Path $testResultsDir -ItemType Directory -Force | Out-Null
+        }
+
         $pesterConfig.TestResult = @{
             Enabled = $true
-            OutputPath = Join-Path $testEnvironment.Logs "windows-only-test-results.xml"
+            OutputPath = Join-Path $testResultsDir "windows-only-test-results.xml"
             OutputFormat = 'JUnitXml'
         }
     }

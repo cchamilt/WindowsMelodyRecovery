@@ -34,8 +34,10 @@ param(
     [switch]$GenerateReport
 )
 
-# Set execution policy for current process to allow unsigned scripts
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+# Set execution policy for current process to allow unsigned scripts (Windows only)
+if ($IsWindows) {
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+}
 
 # Import the unified test environment library
 . (Join-Path $PSScriptRoot "..\utilities\Test-Environment.ps1")

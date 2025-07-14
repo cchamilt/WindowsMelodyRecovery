@@ -132,14 +132,16 @@ foreach ($dir in $safeDirs) {
     # ENHANCED SAFETY CHECK: Identify safe path types first
     $isProjectPath = $dir.StartsWith($moduleRoot)
     $isUserTempPath = $envType.IsCI -and (
-        ($IsWindows -and $dir.Contains($env:TEMP) -and $dir.Contains("WindowsMelodyRecovery-Tests")) -or
-        (-not $IsWindows -and $dir.StartsWith('/tmp/') -and $dir.Contains("WindowsMelodyRecovery-Tests"))
+        ($IsWindows -and $dir.Contains($env:TEMP) -and ($dir.Contains("WMR-Tests-") -or $dir.Contains("WindowsMelodyRecovery-Tests"))) -or
+        (-not $IsWindows -and $dir.StartsWith('/tmp/') -and ($dir.Contains("WMR-Tests-") -or $dir.Contains("WindowsMelodyRecovery-Tests")))
     )
     # Docker-specific safety check for workspace paths
     $isDockerWorkspacePath = $envType.IsDocker -and $dir.StartsWith('/workspace/') -and $dir.Contains("Temp")
 
     # ADDITIONAL CI/CD SAFETY: Allow runner temp directories (GitHub Actions)
     $isRunnerTempPath = $envType.IsCI -and $IsWindows -and (
+        $dir.StartsWith("C:\Users\RUNNER~1\AppData\Local\Temp\WMR-Tests-") -or
+        $dir.StartsWith("C:\Users\runner\AppData\Local\Temp\WMR-Tests-") -or
         $dir.StartsWith("C:\Users\RUNNER~1\AppData\Local\Temp\WindowsMelodyRecovery-Tests") -or
         $dir.StartsWith("C:\Users\runner\AppData\Local\Temp\WindowsMelodyRecovery-Tests")
     )
