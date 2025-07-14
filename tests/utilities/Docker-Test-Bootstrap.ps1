@@ -30,9 +30,9 @@ if ($script:IsDockerEnvironment) {
 
     # Set up Docker-specific environment variables
     $env:WMR_DOCKER_TEST = 'true'
-    $env:WMR_BACKUP_PATH = $env:WMR_BACKUP_PATH ?? '/tmp/wmr-test-backup'
-    $env:WMR_LOG_PATH = $env:WMR_LOG_PATH ?? '/tmp/wmr-test-logs'
-    $env:WMR_STATE_PATH = $env:WMR_STATE_PATH ?? '/tmp/wmr-test-state'
+    if (-not $env:WMR_BACKUP_PATH) { $env:WMR_BACKUP_PATH = '/tmp/wmr-test-backup' }
+    if (-not $env:WMR_LOG_PATH) { $env:WMR_LOG_PATH = '/tmp/wmr-test-logs' }
+    if (-not $env:WMR_STATE_PATH) { $env:WMR_STATE_PATH = '/tmp/wmr-test-state' }
 
     # Create test directories
     @($env:WMR_BACKUP_PATH, $env:WMR_LOG_PATH, $env:WMR_STATE_PATH) | ForEach-Object {
@@ -43,15 +43,15 @@ if ($script:IsDockerEnvironment) {
     }
 
     # Mock Windows-specific environment variables
-    $env:USERPROFILE = $env:USERPROFILE ?? '/mock-c/Users/TestUser'
-    $env:PROGRAMFILES = $env:PROGRAMFILES ?? '/mock-c/Program Files'
-    $env:PROGRAMDATA = $env:PROGRAMDATA ?? '/mock-c/ProgramData'
-    $env:COMPUTERNAME = $env:COMPUTERNAME ?? 'TEST-MACHINE'
-    $env:HOSTNAME = $env:HOSTNAME ?? 'TEST-MACHINE'
-    $env:USERNAME = $env:USERNAME ?? 'TestUser'
-    $env:PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE ?? 'AMD64'
-    $env:USERDOMAIN = $env:USERDOMAIN ?? 'WORKGROUP'
-    $env:PROCESSOR_IDENTIFIER = $env:PROCESSOR_IDENTIFIER ?? 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel'
+    if (-not $env:USERPROFILE) { $env:USERPROFILE = '/mock-c/Users/TestUser' }
+    if (-not $env:PROGRAMFILES) { $env:PROGRAMFILES = '/mock-c/Program Files' }
+    if (-not $env:PROGRAMDATA) { $env:PROGRAMDATA = '/mock-c/ProgramData' }
+    if (-not $env:COMPUTERNAME) { $env:COMPUTERNAME = 'TEST-MACHINE' }
+    if (-not $env:HOSTNAME) { $env:HOSTNAME = 'TEST-MACHINE' }
+    if (-not $env:USERNAME) { $env:USERNAME = 'TestUser' }
+    if (-not $env:PROCESSOR_ARCHITECTURE) { $env:PROCESSOR_ARCHITECTURE = 'AMD64' }
+    if (-not $env:USERDOMAIN) { $env:USERDOMAIN = 'WORKGROUP' }
+    if (-not $env:PROCESSOR_IDENTIFIER) { $env:PROCESSOR_IDENTIFIER = 'Intel64 Family 6 Model 158 Stepping 10, GenuineIntel' }
 
     # Mock Get-CimInstance for hardware information
     if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
@@ -718,6 +718,29 @@ if ($script:IsDockerEnvironment) {
         }
     }
 
+    # Mock Test-WmrTemplateSchema for template validation
+    if (-not (Get-Command Test-WmrTemplateSchema -ErrorAction SilentlyContinue)) {
+        function Test-WmrTemplateSchema {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory = $true)]
+                [PSObject]$TemplateConfig
+            )
+
+            # Basic schema validation for tests
+            if (-not $TemplateConfig.metadata) {
+                throw "Template schema validation failed: 'metadata' section is missing."
+            }
+
+            if (-not $TemplateConfig.metadata.name) {
+                throw "Template schema validation failed: 'metadata.name' is missing."
+            }
+
+            Write-Information "Basic template schema validation passed." -InformationAction Continue
+            return $true
+        }
+    }
+
     # Mock Get-WmrModulePath for module operations
     if (-not (Get-Command Get-WmrModulePath -ErrorAction SilentlyContinue)) {
         function Get-WmrModulePath {
@@ -800,7 +823,7 @@ function Remove-WmrTestDirectory {
 
     $testPath = Get-WmrTestPath -WindowsPath $Path
     if (Test-Path $testPath) {
-        Remove-Item -Path $testPath -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $testPath -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
         Write-Verbose "Cleaned up test directory: $testPath"
     }
 }

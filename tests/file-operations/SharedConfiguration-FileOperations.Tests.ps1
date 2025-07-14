@@ -43,14 +43,22 @@ BeforeAll {
 
     # Get standardized test paths
     $script:TestPaths = $global:TestEnvironment
-    $script:TestMachineBackup = $script:TestPaths.MachineBackup
-    $script:TestSharedBackup = $script:TestPaths.SharedBackup
+    $script:TestMachineBackup = Join-Path $script:TestPaths.TestBackup "machine"
+    $script:TestSharedBackup = Join-Path $script:TestPaths.TestBackup "shared"
+    # Import additional scripts needed for shared configuration
     try {
-        $ModulePath = Resolve-Path "$PSScriptRoot/../../WindowsMelodyRecovery.psd1"
-        Import-Module $ModulePath -Force -ErrorAction Stop
+        $AdditionalScripts = @(
+            "Private/Core/TemplateInheritance.ps1",
+            "Private/Core/TemplateResolution.ps1"
+        )
+
+        foreach ($script in $AdditionalScripts) {
+            $scriptPath = Resolve-Path "$PSScriptRoot/../../$script"
+            . $scriptPath
+        }
     }
     catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
+        throw "Cannot find or import additional shared configuration scripts: $($_.Exception.Message)"
     }
 
     # Ensure test directories exist

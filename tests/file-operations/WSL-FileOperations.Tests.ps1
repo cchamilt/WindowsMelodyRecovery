@@ -17,12 +17,10 @@ BeforeAll {
 
     # Import only the specific scripts needed to avoid TUI dependencies
     try {
-        # Import WSL-related scripts
+        # Import WSL-related scripts (only function libraries, not scripts with mandatory params)
         $WSLScripts = @(
             "Private/backup/wsl-discovery-distributions.ps1",
             "Private/backup/wsl-discovery-packages.ps1",
-            "Private/backup/wsl-parse-distributions.ps1",
-            "Private/backup/wsl-parse-packages.ps1",
             "Private/Core/PathUtilities.ps1",
             "Private/Core/FileState.ps1"
         )
@@ -50,9 +48,6 @@ BeforeAll {
         if ([string]::IsNullOrWhiteSpace($Path) -or $Path.Length -lt 10) { return $false }
         # Must be in a test directory
         return $Path.Contains("WMR-Tests") -or $Path.Contains("test-") -or $Path.Contains("Temp")
-    }
-    catch {
-        throw "Cannot find or import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 
     # Set up test paths using standardized test environment
@@ -327,7 +322,7 @@ export PATH=`$HOME/bin:`$PATH
         It "Should process WSL template for backup operations" {
             # Test template-based backup file operations
             $templatePath = "Templates/System/wsl.yaml"
-            $moduleRoot = Split-Path (Get-Module WindowsMelodyRecovery).Path -Parent
+            $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
             $fullTemplatePath = Join-Path $moduleRoot $templatePath
 
             if (Test-Path $fullTemplatePath) {

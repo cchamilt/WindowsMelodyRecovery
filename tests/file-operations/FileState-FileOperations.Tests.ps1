@@ -241,8 +241,8 @@ Describe "Get-WmrFileState - Directory Type" {
 Describe "Set-WmrFileState - File Type" {
     BeforeEach {
         # Clean up test directories before each test
-        Remove-TestItems -Path $script:DestDir
-        Remove-TestItems -Path $script:TempStateDir
+        Remove-TestItems -Path $script:DestDir -Recurse -Force
+        Remove-TestItems -Path $script:TempStateDir -Recurse -Force
 
         # Recreate test directories
         New-Item -ItemType Directory -Path $script:DestDir -Force | Out-Null
@@ -433,8 +433,8 @@ Describe "Set-WmrFileState - Directory Type" {
 Describe "FileState" {
     BeforeEach {
         # Clean test directories before each test
-        Remove-TestItems -Path $script:testStateDir
-        Remove-TestItems -Path $script:testDataDir
+        Remove-TestItems -Path $script:testStateDir -Recurse -Force
+        Remove-TestItems -Path $script:testDataDir -Recurse -Force
 
         # Recreate test directories
         New-Item -ItemType Directory -Path $script:testStateDir -Force | Out-Null

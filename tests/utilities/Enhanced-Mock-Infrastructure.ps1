@@ -1532,7 +1532,7 @@ function Reset-EnhancedMockData {
             $componentPath = Get-DynamicMockPath -Component $Component
 
             if (Test-Path $componentPath) {
-                Remove-Item -Path $componentPath -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path $componentPath -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
                 Write-Information -MessageData "  ✓ Removed $Component dynamic data" -InformationAction Continue
             }
             else {

@@ -39,6 +39,9 @@ function Get-WSLAptPackage {
     return @()
 }
 
+# Create alias for plural form
+Set-Alias -Name Get-WSLAptPackages -Value Get-WSLAptPackage
+
 function Get-WSLNpmPackage {
     try {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
@@ -69,6 +72,9 @@ function Get-WSLNpmPackage {
     return @()
 }
 
+# Create alias for plural form
+Set-Alias -Name Get-WSLNpmPackages -Value Get-WSLNpmPackage
+
 function Get-WSLPipPackage {
     try {
         if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
@@ -96,6 +102,9 @@ function Get-WSLPipPackage {
     }
     return @()
 }
+
+# Create alias for plural form
+Set-Alias -Name Get-WSLPipPackages -Value Get-WSLPipPackage
 
 # Main execution
 try {

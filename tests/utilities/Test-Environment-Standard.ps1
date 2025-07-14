@@ -566,7 +566,7 @@ function Test-EnvironmentIntegrity {
             try {
                 $testFile = Join-Path $path "test-access-$(Get-Random).tmp"
                 "test" | Out-File -FilePath $testFile -ErrorAction Stop
-                Remove-Item -Path $testFile -Force -ErrorAction Stop
+                Remove-Item -Path $testFile -Force -Confirm:$false -ErrorAction Stop
                 $validation.Verified += $pathName
             }
             catch {

@@ -19,9 +19,8 @@ BeforeAll {
 
     # Import only the specific scripts needed to avoid TUI dependencies
     try {
-        # Import template-related scripts
+        # Import template-related scripts (excluding .psm1 files which can't be dot-sourced)
         $TemplateScripts = @(
-            "Private/Core/WindowsMelodyRecovery.Template.psm1",
             "Private/Core/TemplateInheritance.ps1",
             "Private/Core/TemplateResolution.ps1",
             "Private/Core/PathUtilities.ps1",
@@ -33,7 +32,7 @@ BeforeAll {
             . $scriptPath
         }
 
-        # Initialize test environment
+        # Initialize test environment (includes template function mocks)
         $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
         . $TestEnvironmentScript
         Initialize-TestEnvironment -SuiteName 'FileOps' | Out-Null

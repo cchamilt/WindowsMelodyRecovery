@@ -22,8 +22,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             return
         }
 
-        # Load Docker test bootstrap for cross-platform compatibility
-        . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+        # Load Docker test bootstrap only for non-Windows environments
+        if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+            . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
+        }
 
         # Import only the specific scripts needed to avoid TUI dependencies
         try {
@@ -32,6 +34,9 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
             $PathUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/PathUtilities.ps1"
             . $PathUtilitiesScript
+
+            $EncryptionUtilitiesScript = Resolve-Path "$PSScriptRoot/../../Private/Core/EncryptionUtilities.ps1"
+            . $EncryptionUtilitiesScript
 
             # Initialize test environment
             $TestEnvironmentScript = Resolve-Path "$PSScriptRoot/../utilities/Test-Environment.ps1"
@@ -49,9 +54,6 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
         # Module functions are already imported via specific scripts above
 
-        # Dot-source RegistryState.ps1 for direct function access
-        . (Join-Path $PSScriptRoot "..\\..\\Private\\Core\\RegistryState.ps1")
-
         # Set up test registry path (only on Windows)
         if ($IsWindows) {
             $script:TestRegistryPath = "HKCU:\Software\WindowsMelodyRecovery\FileOperationsTest"
@@ -61,7 +63,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
         }
 
         # Ensure test directories exist with null checks
-        @($script:TestBackupDir, $script:TestRestoreDir) | ForEach-Object {
+        @($script:TestBackupDir, $script:TestRestoreDir, $script:TestStateDir) | ForEach-Object {
             if ($_ -and -not (Test-Path $_)) {
                 New-Item -ItemType Directory -Path $_ -Force | Out-Null
             }
@@ -287,7 +289,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
     Context "State File and Registry Integration" {
 
-        It "Should backup registry value to state file" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+                It "Should backup registry value to state file" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
             # Skip this test in non-Windows environments
             if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
                 Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
@@ -295,17 +297,18 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
 
             $testKeyPath = "$script:TestRegistryPath\BackupTest"
-            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_backup.json"
+            $stateFilePath = Join-Path $script:TestBackupDir "registry_backup.json"
 
-            try {
+                        try {
                 # Create test registry key with value
-                if (-not (Test-Path $testKeyPath)) {
-                    New-Item -Path $testKeyPath -Force | Out-Null
+                if (Test-Path $testKeyPath) {
+                    Remove-Item -Path $testKeyPath -Recurse -Force -ErrorAction SilentlyContinue
                 }
+                New-Item -Path $testKeyPath -Force | Out-Null
                 Set-ItemProperty -Path $testKeyPath -Name "BackupValue" -Value "DataToBackup"
 
-                # Backup registry value
-                $registryValue = Get-ItemProperty -Path $testKeyPath -Name "BackupValue"
+                # Backup registry value (original working approach)
+                $registryValue = Get-ItemProperty -Path $testKeyPath
                 $stateData = @{
                     KeyName      = "BackupTest"
                     Value        = $registryValue.BackupValue
@@ -335,7 +338,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
         }
 
-        It "Should restore registry value from state file" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
+                It "Should restore registry value from state file" -Skip:($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
             # Skip this test in non-Windows environments
             if ($IsLinux -or $IsMacOS -or ($env:DOCKER_ENVIRONMENT -eq "true") -or ($env:CONTAINER_NAME -like "*wmr*")) {
                 Set-ItResult -Skipped -Because "Registry operations not supported in Docker environment"
@@ -343,10 +346,10 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
             }
 
             $testKeyPath = "$script:TestRegistryPath\RestoreTest"
-            $stateFilePath = Join-Path $script:TestEnvironment.TestState "registry_restore.json"
+            $stateFilePath = Join-Path $script:TestRestoreDir "registry_restore.json"
 
             try {
-                # Create state file with backup data
+                # Create state file with backup data (original working approach)
                 $stateData = @{
                     KeyName      = "RestoreTest"
                     Value        = "DataToRestore"
@@ -399,11 +402,12 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 Set-ItemProperty -Path $testKeyPath -Name "Value2" -Value "Data2"
                 Set-ItemProperty -Path $testKeyPath -Name "Value3" -Value 12345
 
-                # Backup entire key
+                                # Backup entire key
                 $keyProperties = Get-ItemProperty -Path $testKeyPath
-                $keyValues = @{}
-                $keyProperties.PSObject.Properties | Where-Object { $_.Name -notmatch "^PS" } | ForEach-Object {
-                    $keyValues[$_.Name] = $_.Value
+                $keyValues = @{
+                    "Value1" = $keyProperties.Value1
+                    "Value2" = $keyProperties.Value2
+                    "Value3" = $keyProperties.Value3
                 }
 
                 $stateData = @{
@@ -471,6 +475,11 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
 
             $missingKeyPath = "$script:TestRegistryPath\NonExistentKey"
 
+            # Ensure the key doesn't exist
+            if (Test-Path $missingKeyPath) {
+                Remove-Item $missingKeyPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+
             # Key should not exist
             Test-Path $missingKeyPath | Should -Be $false
 
@@ -500,7 +509,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 # Set value (should succeed)
                 Set-ItemProperty -Path $testKeyPath -Name "PermissionValue" -Value "TestData"
                 $value = Get-ItemProperty -Path $testKeyPath -Name "PermissionValue"
-                $value.PermissionValue | Should -Be "TestData"
+                $value."PermissionValue" | Should -Be "TestData"
 
             }
             finally {
@@ -535,7 +544,7 @@ Describe "RegistryState File Operations" -Tag "FileOperations", "Safe" {
                 $registryValue = Get-ItemProperty -Path $testKeyPath -Name "LargeValue"
                 $stateData = @{
                     KeyName      = "LargeValueTest"
-                    Value        = $registryValue.LargeValue
+                    Value        = $registryValue."LargeValue"
                     Encrypted    = $false
                     RegistryPath = $testKeyPath
                     ValueName    = "LargeValue"

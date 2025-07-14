@@ -15,6 +15,9 @@ BeforeAll {
             "Private/Core/PathUtilities.ps1",
             "Private/Core/FileState.ps1",
             "Private/Core/ApplicationState.ps1",
+            "Private/Core/ConfigurationValidation.ps1",
+            "Private/Core/EncryptionUtilities.ps1",
+            "Private/Core/Prerequisites.ps1",
             "Public/Initialize-WindowsMelodyRecovery.ps1",
             "Public/Set-WindowsMelodyRecovery.ps1"
         )
