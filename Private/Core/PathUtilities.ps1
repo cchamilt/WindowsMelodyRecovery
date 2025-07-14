@@ -17,10 +17,10 @@ function Convert-WmrPath {
         $normalizedPath = ConvertTo-TestEnvironmentPath -Path $normalizedPath
 
         return @{
-            PathType = "File"
-            Type = "File"  # For backwards compatibility
-            Path = $normalizedPath
-            Original = $Path
+            PathType   = "File"
+            Type       = "File"  # For backwards compatibility
+            Path       = $normalizedPath
+            Original   = $Path
             IsResolved = $true
         }
     }
@@ -31,10 +31,10 @@ function Convert-WmrPath {
         # Convert remaining forward slashes to backslashes for registry paths
         $normalizedPath = $normalizedPath.Replace('/', '\')
         return @{
-            PathType = "Registry"
-            Type = "Registry"  # For backwards compatibility
-            Path = $normalizedPath
-            Original = $Path
+            PathType   = "Registry"
+            Type       = "Registry"  # For backwards compatibility
+            Path       = $normalizedPath
+            Original   = $Path
             IsResolved = $true
         }
     }
@@ -44,12 +44,12 @@ function Convert-WmrPath {
         # Handle empty path after wsl://
         if ([string]::IsNullOrEmpty($wslPath)) {
             return @{
-                PathType = "WSL"
-                Type = "WSL"
-                Path = "/"
+                PathType     = "WSL"
+                Type         = "WSL"
+                Path         = "/"
                 Distribution = ""
-                Original = $Path
-                IsResolved = $true
+                Original     = $Path
+                IsResolved   = $true
             }
         }
 
@@ -83,12 +83,12 @@ function Convert-WmrPath {
         $linuxPath = $linuxPath -replace '//', "/$env:USERNAME/"
 
         return @{
-            PathType = "WSL"
-            Type = "WSL"  # For backwards compatibility
-            Path = $linuxPath
+            PathType     = "WSL"
+            Type         = "WSL"  # For backwards compatibility
+            Path         = $linuxPath
             Distribution = $distribution
-            Original = $Path
-            IsResolved = $true
+            Original     = $Path
+            IsResolved   = $true
         }
     }
 
@@ -159,10 +159,10 @@ function Convert-WmrPath {
     }
 
     return @{
-        PathType = $pathType
-        Type = $pathType  # For backwards compatibility
-        Path = $normalizedPath
-        Original = $Path
+        PathType   = $pathType
+        Type       = $pathType  # For backwards compatibility
+        Path       = $normalizedPath
+        Original   = $Path
         IsResolved = $true
     }
 }
@@ -195,6 +195,12 @@ function ConvertTo-TestEnvironmentPath {
         return $Path
     }
 
+    # Don't redirect paths that are already in test environments
+    if ($Path.Contains("WMR-Tests-") -or $Path.Contains("test-restore") -or $Path.Contains("test-backup") -or $Path.Contains("test-state")) {
+        Write-Verbose "ConvertTo-TestEnvironmentPath: Path already in test environment, no redirection needed for '$Path'"
+        return $Path
+    }
+
     # Get test directories from environment if available
     $testRestorePath = $env:WMR_STATE_PATH
     $testBackupPath = $env:WMR_BACKUP_PATH
@@ -216,12 +222,12 @@ function ConvertTo-TestEnvironmentPath {
     # Define path mappings for test environment redirection
     $pathMappings = @{
         'C:\Program Files (x86)\Steam' = Join-Path $testRestorePath "TEST-MACHINE\programfiles\steam"
-        'C:\Program Files\Steam' = Join-Path $testRestorePath "TEST-MACHINE\programfiles\steam"
-        'C:\Program Files (x86)' = Join-Path $testRestorePath "TEST-MACHINE\programfiles"
-        'C:\Program Files' = Join-Path $testRestorePath "TEST-MACHINE\programfiles"
-        'C:\ProgramData' = Join-Path $testRestorePath "TEST-MACHINE\programdata"
-        'C:\Windows' = Join-Path $testRestorePath "TEST-MACHINE\windows"
-        'C:\Users' = Join-Path $testRestorePath "TEST-MACHINE\users"
+        'C:\Program Files\Steam'       = Join-Path $testRestorePath "TEST-MACHINE\programfiles\steam"
+        'C:\Program Files (x86)'       = Join-Path $testRestorePath "TEST-MACHINE\programfiles"
+        'C:\Program Files'             = Join-Path $testRestorePath "TEST-MACHINE\programfiles"
+        'C:\ProgramData'               = Join-Path $testRestorePath "TEST-MACHINE\programdata"
+        'C:\Windows'                   = Join-Path $testRestorePath "TEST-MACHINE\windows"
+        'C:\Users'                     = Join-Path $testRestorePath "TEST-MACHINE\users"
     }
 
     # Check for matching path mappings (longest first for specificity)
