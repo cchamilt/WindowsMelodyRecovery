@@ -379,9 +379,9 @@ if ($script:IsDockerEnvironment) {
             )
 
             return [PSCustomObject]@{
-                UserId    = $UserId ?? 'SYSTEM'
-                RunLevel  = $RunLevel ?? 'Limited'
-                LogonType = $LogonType ?? 'ServiceAccount'
+                UserId    = if ($UserId) { $UserId } else { 'SYSTEM' }
+                RunLevel  = if ($RunLevel) { $RunLevel } else { 'Limited' }
+                LogonType = if ($LogonType) { $LogonType } else { 'ServiceAccount' }
             }
         }
     }
@@ -417,7 +417,7 @@ if ($script:IsDockerEnvironment) {
 
             return [PSCustomObject]@{
                 TriggerType   = if ($Daily) { 'Daily' } elseif ($Weekly) { 'Weekly' } elseif ($AtStartup) { 'AtStartup' } elseif ($AtLogOn) { 'AtLogOn' } else { 'Unknown' }
-                StartBoundary = $At ?? (Get-Date)
+                StartBoundary = if ($At) { $At } else { (Get-Date) }
                 Enabled       = $true
             }
         }
@@ -446,7 +446,7 @@ if ($script:IsDockerEnvironment) {
             return @{
                 Success           = $true
                 RequiresElevation = $false
-                BackupPath        = $BackupPath ?? '/tmp/mock-features-backup.json'
+                BackupPath        = if ($BackupPath) { $BackupPath } else { '/tmp/mock-features-backup.json' }
                 Features          = @(
                     @{ Name = 'MockFeature1'; State = 'Enabled' },
                     @{ Name = 'MockFeature2'; State = 'Disabled' }

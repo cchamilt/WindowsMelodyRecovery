@@ -15,14 +15,24 @@ BeforeAll {
 
     # Import core functions through module system for code coverage
     try {
-        Import-WmrCoreForTesting -Functions @(
-            'Get-WmrApplicationState',
-            'Set-WmrApplicationState',
-            'Convert-WmrPath',
-            'ConvertTo-TestEnvironmentPath',
-            'Protect-WmrData',
-            'Unprotect-WmrData'
-        )
+        # First import the module for code coverage
+        $moduleRoot = $PSScriptRoot
+        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
+            $moduleRoot = Split-Path -Parent $moduleRoot
+            if ([string]::IsNullOrEmpty($moduleRoot)) {
+                throw "Could not find WindowsMelodyRecovery module root"
+            }
+        }
+
+        # Import the module
+        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
+
+        # Directly dot-source the Core files to ensure functions are available
+        . (Join-Path $moduleRoot "Private\Core\ApplicationState.ps1")
+        . (Join-Path $moduleRoot "Private\Core\EncryptionUtilities.ps1")
+        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
+
+        Write-Verbose "Successfully loaded core functions for code coverage"
     }
     catch {
         throw "Cannot find or import required functions: $($_.Exception.Message)"
@@ -54,11 +64,12 @@ BeforeAll {
     # Mock encryption functions for testing purposes
     Mock Protect-WmrData {
         param([byte[]]$DataBytes)
-        return [System.Convert]::ToBase64String($DataBytes) # Simply Base64 encode for mock
+        return "ENCRYPTED:" + [System.Convert]::ToBase64String($DataBytes) # Add ENCRYPTED prefix for mock
     }
     Mock Unprotect-WmrData {
         param([string]$EncodedData)
-        return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedData)) # Simply Base64 decode for mock
+        $cleanData = $EncodedData -replace "^ENCRYPTED:", ""
+        return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($cleanData)) # Remove ENCRYPTED prefix and decode
     }
     # Mock Read-Host to prevent interactive prompts
     Mock Read-Host { return (ConvertTo-SecureString "TestPassphrase123!" -AsPlainText -Force) } -ParameterFilter { $AsSecureString }
@@ -127,8 +138,8 @@ Describe "ApplicationState File Operations" -Tag "FileOperations" {
 Name                 Id                    Version
 ------------------------------------------------
 Microsoft Edge       Microsoft.Edge        100.0.1
-Windows Terminal    Microsoft.WindowsTerminal 1.0.0
-Package A           App.PackageA          1.2.3
+Windows Terminal     Microsoft.WindowsTerminal 1.0.0
+Package A            App.PackageA          1.2.3
 "@
                 }
                 else { throw "Unexpected Command: $Command" }

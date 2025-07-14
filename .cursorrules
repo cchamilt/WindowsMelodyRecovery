@@ -60,6 +60,7 @@
   "Advise on using Pester's TestDrive for isolated file system tests": true,
   "Do not alter verbs or sentiment of tests without permission and discussion": true,
   "Do not lie, hallucinate, or ignore where and how a test fails": true,
+  "Do not dot source in tests as we need to import modules for code coverage": true,
 
   // --- Code Quality and Maintainability ---
   // Emphasize code readability and clear variable/function naming.

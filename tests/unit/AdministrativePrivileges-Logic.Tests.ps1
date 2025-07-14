@@ -19,17 +19,25 @@ BeforeAll {
     # Load Docker test bootstrap for cross-platform compatibility
     . (Join-Path $PSScriptRoot "../utilities/Docker-Test-Bootstrap.ps1")
 
-    # Import only the specific scripts needed to avoid TUI dependencies
-    . (Resolve-Path "$PSScriptRoot/../../Private/Core/AdministrativePrivileges.ps1")
-    . (Resolve-Path "$PSScriptRoot/../../Private/Core/Test-WmrAdminPrivilege.ps1")
-    . (Resolve-Path "$PSScriptRoot/../../Private/Core/Prerequisites.ps1")
-    . (Resolve-Path "$PSScriptRoot/../../Public/Install-WindowsMelodyRecoveryTasks.ps1")
-    . (Resolve-Path "$PSScriptRoot/../../Public/Initialize-WindowsMelodyRecovery.ps1")
-
     # Import test utilities and environment
     . "$PSScriptRoot/../utilities/Test-Utilities.ps1"
     . "$PSScriptRoot/../utilities/Test-Environment.ps1"
     Initialize-TestEnvironment -SuiteName 'Unit' | Out-Null
+
+    # Import core functions through module system for code coverage
+    try {
+        Import-WmrCoreForTesting -Functions @(
+            'Test-WmrAdminPrivilege',
+            'Enable-WmrAdminPrivilege',
+            'Disable-WmrAdminPrivilege',
+            'Test-WmrPrerequisite',
+            'Install-WindowsMelodyRecoveryTasks',
+            'Initialize-WindowsMelodyRecovery'
+        )
+    }
+    catch {
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
+    }
 
     # Test data directory
     $script:TestDataPath = Join-Path $PSScriptRoot "../mock-data"

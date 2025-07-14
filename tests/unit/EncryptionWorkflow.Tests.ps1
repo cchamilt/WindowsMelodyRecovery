@@ -11,8 +11,18 @@ BeforeAll {
     # Initialize test environment
     $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
-    # Import EncryptionUtilities script for testing
-    . (Join-Path $PSScriptRoot "../../Private/Core/EncryptionUtilities.ps1")
+    # Import core functions through module system for code coverage
+    try {
+        Import-WmrCoreForTesting -Functions @(
+            'Protect-WmrData',
+            'Unprotect-WmrData',
+            'Get-WmrEncryptionKey',
+            'Clear-WmrEncryptionCache'
+        )
+    }
+    catch {
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
+    }
 
     # Create and import the test helper module
     $helperPath = Join-Path $PSScriptRoot "../utilities/EncryptionTestHelper.ps1"

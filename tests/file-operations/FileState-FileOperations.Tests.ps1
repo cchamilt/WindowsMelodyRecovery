@@ -18,14 +18,24 @@ BeforeAll {
 
     # Import core functions through module system for code coverage
     try {
-        Import-WmrCoreForTesting -Functions @(
-            'Get-WmrFileState',
-            'Set-WmrFileState',
-            'Convert-WmrPath',
-            'ConvertTo-TestEnvironmentPath',
-            'ConvertFrom-SecureString',
-            'ConvertTo-SecureString'
-        )
+        # First import the module for code coverage
+        $moduleRoot = $PSScriptRoot
+        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
+            $moduleRoot = Split-Path -Parent $moduleRoot
+            if ([string]::IsNullOrEmpty($moduleRoot)) {
+                throw "Could not find WindowsMelodyRecovery module root"
+            }
+        }
+
+        # Import the module
+        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
+
+        # Directly dot-source the Core files to ensure functions are available
+        . (Join-Path $moduleRoot "Private\Core\FileState.ps1")
+        . (Join-Path $moduleRoot "Private\Core\EncryptionUtilities.ps1")
+        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
+
+        Write-Verbose "Successfully loaded core functions for code coverage"
     }
     catch {
         throw "Cannot find or import required functions: $($_.Exception.Message)"

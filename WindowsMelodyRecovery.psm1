@@ -60,6 +60,7 @@ Import-Module (Join-Path $PSScriptRoot 'Private/Core/WindowsMelodyRecovery.Templ
 . (Join-Path $PSScriptRoot 'Private/Core/EncryptionUtilities.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/FileState.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/RegistryState.ps1')
+. (Join-Path $PSScriptRoot 'Private/Core/ApplicationState.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/AdministrativePrivileges.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/ConfigurationValidation.ps1')
 . (Join-Path $PSScriptRoot 'Private/Core/TemplateInheritance.ps1')
@@ -164,6 +165,15 @@ function Set-WindowsMelodyRecovery {
     .PARAMETER CloudProvider
         Cloud storage provider (OneDrive, GoogleDrive, Dropbox, Box, Custom).
 
+    .PARAMETER EmailAddress
+        Email address for notifications.
+
+    .PARAMETER RetentionDays
+        Number of days to retain backups.
+
+    .PARAMETER EnableEmailNotifications
+        Whether to enable email notifications.
+
     .EXAMPLE
         Set-WindowsMelodyRecovery -BackupRoot "C:\Backups" -CloudProvider "OneDrive"
     #>
@@ -183,7 +193,16 @@ function Set-WindowsMelodyRecovery {
 
         [Parameter(Mandatory = $false)]
         [ValidateSet('OneDrive', 'GoogleDrive', 'Dropbox', 'Box', 'Custom')]
-        [string]$CloudProvider
+        [string]$CloudProvider,
+
+        [Parameter(Mandatory = $false)]
+        [string]$EmailAddress,
+
+        [Parameter(Mandatory = $false)]
+        [int]$RetentionDays,
+
+        [Parameter(Mandatory = $false)]
+        [bool]$EnableEmailNotifications
     )
 
     if ($Config) {
@@ -194,6 +213,12 @@ function Set-WindowsMelodyRecovery {
         if ($MachineName) { $script:Config.MachineName = $MachineName }
         if ($WindowsMelodyRecoveryPath) { $script:Config.WindowsMelodyRecoveryPath = $WindowsMelodyRecoveryPath }
         if ($CloudProvider) { $script:Config.CloudProvider = $CloudProvider }
+
+        if ($EmailAddress) { $script:Config.EmailSettings.ToAddress = $EmailAddress }
+        if ($RetentionDays) { $script:Config.BackupSettings.RetentionDays = $RetentionDays }
+        if ($PSBoundParameters.ContainsKey('EnableEmailNotifications')) {
+            $script:Config.NotificationSettings.EnableEmail = $EnableEmailNotifications
+        }
     }
 
     $script:Config.LastConfigured = Get-Date -Format "yyyy-MM-dd HH:mm:ss"

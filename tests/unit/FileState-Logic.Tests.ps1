@@ -17,10 +17,20 @@ BeforeAll {
     # Initialize test environment
     $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
-    # Import core functions for testing
-    . (Join-Path $PSScriptRoot "../../Private/Core/FileState.ps1")
-    . (Join-Path $PSScriptRoot "../../Private/Core/PathUtilities.ps1")
-    . (Join-Path $PSScriptRoot "../../Private/Core/EncryptionUtilities.ps1")
+    # Import core functions through module system for code coverage
+    try {
+        Import-WmrCoreForTesting -Functions @(
+            'Get-WmrFileState',
+            'Set-WmrFileState',
+            'Convert-WmrPath',
+            'ConvertTo-TestEnvironmentPath',
+            'Protect-WmrData',
+            'Unprotect-WmrData'
+        )
+    }
+    catch {
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
+    }
 
     # Mock Convert-WmrPath to return Docker-compatible paths (avoid recursion)
     Mock Convert-WmrPath {

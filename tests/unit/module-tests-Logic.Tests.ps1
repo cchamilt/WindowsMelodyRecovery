@@ -12,23 +12,24 @@ BeforeAll {
     # Initialize test environment
     $testEnvironment = Initialize-TestEnvironment -SuiteName 'Unit'
 
-    # Import Public functions needed for testing
-    . (Join-Path $PSScriptRoot "../../Public/Initialize-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Get-WindowsMelodyRecoveryStatus.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Backup-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Restore-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Start-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Convert-ToWinget.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Test-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Update-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Set-WindowsMelodyRecovery.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Set-WindowsMelodyRecoveryScripts.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Sync-WindowsMelodyRecoveryScripts.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Install-WindowsMelodyRecoveryTasks.ps1")
-    . (Join-Path $PSScriptRoot "../../Public/Remove-WindowsMelodyRecoveryTasks.ps1")
-
-    # Import supporting Core functions
-    . (Join-Path $PSScriptRoot "../../Private/Core/PathUtilities.ps1")
+    # Import core functions through module system for code coverage
+    try {
+        Import-WmrCoreForTesting -Functions @(
+            'Initialize-WindowsMelodyRecovery',
+            'Get-WindowsMelodyRecoveryStatus',
+            'Backup-WindowsMelodyRecovery',
+            'Restore-WindowsMelodyRecovery',
+            'Start-WindowsMelodyRecovery',
+            'Convert-ToWinget',
+            'Test-WindowsMelodyRecovery',
+            'Update-WindowsMelodyRecovery',
+            'Set-WindowsMelodyRecovery',
+            'Convert-WmrPath'
+        )
+    }
+    catch {
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
+    }
 
     # Create a dummy function for Get-WindowsMelodyRecovery (doesn't exist as a file)
     function Get-WindowsMelodyRecovery {

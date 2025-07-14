@@ -23,14 +23,29 @@ BeforeAll {
 
     # Import core functions through module system for code coverage
     try {
-        Import-WmrCoreForTesting -Functions @(
-            'Get-WmrFileState',
-            'Set-WmrFileState',
-            'Convert-WmrPath',
-            'ConvertTo-TestEnvironmentPath'
-        )
+        # First import the module for code coverage
+        $moduleRoot = $PSScriptRoot
+        while (-not (Test-Path (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"))) {
+            $moduleRoot = Split-Path -Parent $moduleRoot
+            if ([string]::IsNullOrEmpty($moduleRoot)) {
+                throw "Could not find WindowsMelodyRecovery module root"
+            }
+        }
 
-        # Import shared configuration scripts directly (these are not exported module functions)
+        # Import the module
+        Import-Module (Join-Path $moduleRoot "WindowsMelodyRecovery.psd1") -Force -Global
+
+        # Directly dot-source the Core files to ensure functions are available
+        . (Join-Path $moduleRoot "Private\Core\PathUtilities.ps1")
+
+        Write-Verbose "Successfully loaded core functions for code coverage"
+    }
+    catch {
+        throw "Cannot find or import required functions: $($_.Exception.Message)"
+    }
+
+    # Import shared configuration scripts directly (these are not exported module functions)
+    try {
         $SharedConfigScripts = @(
             "Private/Core/ConfigurationMerging.ps1",
             "Private/Core/ConfigurationValidation.ps1"
@@ -42,7 +57,7 @@ BeforeAll {
         }
     }
     catch {
-        throw "Cannot find or import required functions: $($_.Exception.Message)"
+        throw "Cannot find or import additional shared configuration scripts: $($_.Exception.Message)"
     }
 
     # Get standardized test paths

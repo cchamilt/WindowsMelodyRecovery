@@ -271,13 +271,8 @@ function Initialize-TestEnvironment {
 # Import Test-Utilities for cleanup and helper functions
 . (Join-Path $PSScriptRoot "Test-Utilities.ps1")
 
-# Export functions (only when loaded as a module)
-if ($MyInvocation.MyCommand.CommandType -eq 'ExternalScript') {
-    # Functions are automatically available when dot-sourced
-}
-else {
-    Export-ModuleMember -Function Initialize-TestEnvironment, Get-EnvironmentType, Find-ModuleRoot, Import-WmrCoreForTesting
-}
+# Functions are automatically available when dot-sourced
+# Export-ModuleMember is not needed since this script is dot-sourced, not imported as a module
 
 <#
 .SYNOPSIS
@@ -312,67 +307,62 @@ function Import-WmrCoreForTesting {
         }
     }
 
-    # Try to import the module, but handle TUI dependency errors gracefully
-    try {
-        # First, try to install the TUI dependency if it's missing
-        if (-not (Get-Module -Name Microsoft.PowerShell.ConsoleGuiTools -ListAvailable)) {
-            Write-Warning "Microsoft.PowerShell.ConsoleGuiTools not found. Installing for code coverage testing..."
-            try {
-                Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
-                Write-Verbose "Successfully installed Microsoft.PowerShell.ConsoleGuiTools"
-            }
-            catch {
-                Write-Warning "Failed to install Microsoft.PowerShell.ConsoleGuiTools: $($_.Exception.Message)"
-                Write-Warning "Falling back to direct function loading..."
-
-                # Fallback: Load core functions directly
-                $coreScripts = @(
-                    'Private/Core/FileState.ps1',
-                    'Private/Core/RegistryState.ps1',
-                    'Private/Core/ApplicationState.ps1',
-                    'Private/Core/EncryptionUtilities.ps1',
-                    'Private/Core/PathUtilities.ps1',
-                    'Private/Core/AdministrativePrivileges.ps1'
-                )
-
-                foreach ($script in $coreScripts) {
-                    $scriptPath = Join-Path $moduleRoot $script
-                    if (Test-Path $scriptPath) {
-                        . $scriptPath
-                        Write-Verbose "Loaded $script directly"
-                    }
-                }
-                return
-            }
+    # Ensure TUI dependency is available for module import
+    if (-not (Get-Module -Name Microsoft.PowerShell.ConsoleGuiTools -ListAvailable)) {
+        Write-Verbose "Installing Microsoft.PowerShell.ConsoleGuiTools for code coverage testing..."
+        try {
+            Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
+            Write-Verbose "Successfully installed Microsoft.PowerShell.ConsoleGuiTools"
         }
+        catch {
+            Write-Warning "Failed to install Microsoft.PowerShell.ConsoleGuiTools: $($_.Exception.Message)"
+            throw "Cannot import module without TUI dependency. Please install Microsoft.PowerShell.ConsoleGuiTools manually."
+        }
+    }
 
-        # Import the full module
+    # Import the full module for code coverage
+    try {
         $modulePath = Join-Path $moduleRoot "WindowsMelodyRecovery.psd1"
-        Import-Module $modulePath -Force -Global
+        Import-Module $modulePath -Force -Global -ErrorAction Stop
         Write-Verbose "Successfully imported WindowsMelodyRecovery module for code coverage"
 
-    }
-    catch {
-        Write-Warning "Failed to import module: $($_.Exception.Message)"
-        Write-Warning "Falling back to direct function loading..."
-
-        # Fallback: Load core functions directly
-        $coreScripts = @(
-            'Private/Core/FileState.ps1',
-            'Private/Core/RegistryState.ps1',
-            'Private/Core/ApplicationState.ps1',
-            'Private/Core/EncryptionUtilities.ps1',
-            'Private/Core/PathUtilities.ps1',
-            'Private/Core/AdministrativePrivileges.ps1'
+        # Explicitly load Core functions that may not be exported by the module
+        $coreFiles = @(
+            "Private\Core\ApplicationState.ps1",
+            "Private\Core\FileState.ps1",
+            "Private\Core\RegistryState.ps1",
+            "Private\Core\EncryptionUtilities.ps1",
+            "Private\Core\PathUtilities.ps1",
+            "Private\Core\Prerequisites.ps1",
+            "Private\Core\AdministrativePrivileges.ps1",
+            "Private\Core\Test-WmrAdminPrivilege.ps1"
         )
 
-        foreach ($script in $coreScripts) {
-            $scriptPath = Join-Path $moduleRoot $script
-            if (Test-Path $scriptPath) {
-                . $scriptPath
-                Write-Verbose "Loaded $script directly"
+        foreach ($coreFile in $coreFiles) {
+            $coreFilePath = Join-Path $moduleRoot $coreFile
+            if (Test-Path $coreFilePath) {
+                try {
+                    # Load in global scope to ensure functions are available to tests
+                    Invoke-Expression ". '$coreFilePath'"
+                    Write-Verbose "Successfully loaded core file: $coreFile"
+                }
+                catch {
+                    Write-Warning "Failed to load core file $coreFile`: $($_.Exception.Message)"
+                }
             }
         }
+
+        # Verify that the requested functions are available
+        if ($Functions.Count -gt 0) {
+            foreach ($func in $Functions) {
+                if (-not (Get-Command $func -ErrorAction SilentlyContinue)) {
+                    Write-Warning "Function $func not found after module import"
+                }
+            }
+        }
+    }
+    catch {
+        throw "Failed to import WindowsMelodyRecovery module: $($_.Exception.Message)"
     }
 }
 

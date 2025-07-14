@@ -636,11 +636,11 @@ function Get-WmrMachineContext {
     param()
 
     return @{
-        machine_name = $env:COMPUTERNAME ?? 'docker-test'
-        hostname     = $env:HOSTNAME ?? 'docker-test'
+        machine_name = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } else { 'docker-test' }
+        hostname     = if ($env:HOSTNAME) { $env:HOSTNAME } else { 'docker-test' }
         environment  = @{
             DOCKER_TEST = 'true'
-            CI          = $env:CI ?? 'false'
+            CI          = if ($env:CI) { $env:CI } else { 'false' }
         }
         hardware     = @{
             manufacturer = 'Docker'
