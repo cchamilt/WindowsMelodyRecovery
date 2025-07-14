@@ -31,12 +31,13 @@ RUN pwsh -Command " \
     Install-Module -Name PSScriptAnalyzer -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     Install-Module -Name ImportExcel -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     Install-Module -Name Yayaml -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
+    Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -Scope AllUsers -AcceptLicense -SkipPublisherCheck; \
     "
 
 # Verify PowerShell modules installation
 RUN pwsh -Command " \
     Write-Host 'Verifying PowerShell modules installation...'; \
-    \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel, Yayaml; \
+    \$modules = Get-Module -ListAvailable -Name Pester, PSScriptAnalyzer, ImportExcel, Yayaml, Microsoft.PowerShell.ConsoleGuiTools; \
     \$modules | Select-Object Name, Version | Format-Table; \
     if (-not (Get-Module -ListAvailable -Name Pester)) { \
     throw 'Pester module not found after installation'; \
@@ -47,6 +48,11 @@ RUN pwsh -Command " \
     throw 'Yayaml module not found after installation'; \
     } else { \
     Write-Host 'Yayaml installation verified successfully'; \
+    } \
+    if (-not (Get-Module -ListAvailable -Name Microsoft.PowerShell.ConsoleGuiTools)) { \
+    throw 'Microsoft.PowerShell.ConsoleGuiTools module not found after installation'; \
+    } else { \
+    Write-Host 'Microsoft.PowerShell.ConsoleGuiTools installation verified successfully'; \
     } \
     "
 

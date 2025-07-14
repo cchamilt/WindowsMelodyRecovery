@@ -7,45 +7,45 @@ $ModuleVersion = "1.0.0"
 
 # Module configuration (in-memory state)
 $script:Config = @{
-    BackupRoot = $null
-    MachineName = $env:COMPUTERNAME
+    BackupRoot                = $null
+    MachineName               = $env:COMPUTERNAME
     WindowsMelodyRecoveryPath = Join-Path $PSScriptRoot "Config"
-    CloudProvider = $null
-    ModuleVersion = $ModuleVersion
-    LastConfigured = $null
-    IsInitialized = $false
-    EmailSettings = @{
+    CloudProvider             = $null
+    ModuleVersion             = $ModuleVersion
+    LastConfigured            = $null
+    IsInitialized             = $false
+    EmailSettings             = @{
         FromAddress = $null
-        ToAddress = $null
-        Password = $null
-        SmtpServer = $null
-        SmtpPort = 587
-        EnableSsl = $true
+        ToAddress   = $null
+        Password    = $null
+        SmtpServer  = $null
+        SmtpPort    = 587
+        EnableSsl   = $true
     }
-    BackupSettings = @{
+    BackupSettings            = @{
         RetentionDays = 30
-        ExcludePaths = @()
-        IncludePaths = @()
+        ExcludePaths  = @()
+        IncludePaths  = @()
     }
-    ScheduleSettings = @{
+    ScheduleSettings          = @{
         BackupSchedule = $null
         UpdateSchedule = $null
     }
-    NotificationSettings = @{
-        EnableEmail = $false
+    NotificationSettings      = @{
+        EnableEmail     = $false
         NotifyOnSuccess = $false
         NotifyOnFailure = $true
     }
-    RecoverySettings = @{
-        Mode = "Selective"
+    RecoverySettings          = @{
+        Mode           = "Selective"
         ForceOverwrite = $false
     }
-    LoggingSettings = @{
-        Path = $null
+    LoggingSettings           = @{
+        Path  = $null
         Level = "Information"
     }
-    UpdateSettings = @{
-        AutoUpdate = $true
+    UpdateSettings            = @{
+        AutoUpdate      = $true
         ExcludePackages = @()
     }
 }
@@ -93,13 +93,13 @@ function Get-WindowsMelodyRecovery {
         if ($env:WMR_BACKUP_PATH -or $env:WMR_CONFIG_PATH) {
             Write-Verbose "Found test environment variables, using them for configuration"
             $script:Config = @{
-                BackupRoot = $env:WMR_BACKUP_PATH
-                MachineName = $env:COMPUTERNAME
+                BackupRoot                = $env:WMR_BACKUP_PATH
+                MachineName               = $env:COMPUTERNAME
                 WindowsMelodyRecoveryPath = $env:WMR_CONFIG_PATH
-                CloudProvider = "Test"
-                IsInitialized = $true
-                ModuleVersion = "1.0.0"
-                LastConfigured = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                CloudProvider             = "Test"
+                IsInitialized             = $true
+                ModuleVersion             = "1.0.0"
+                LastConfigured            = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
             }
         }
         else {
@@ -109,26 +109,26 @@ function Get-WindowsMelodyRecovery {
                 if (-not $initialized) {
                     Write-Verbose "Could not initialize from config file, using default configuration"
                     $script:Config = @{
-                        BackupRoot = $null
-                        MachineName = $env:COMPUTERNAME
+                        BackupRoot                = $null
+                        MachineName               = $env:COMPUTERNAME
                         WindowsMelodyRecoveryPath = $null
-                        CloudProvider = $null
-                        IsInitialized = $false
-                        ModuleVersion = "1.0.0"
-                        LastConfigured = $null
+                        CloudProvider             = $null
+                        IsInitialized             = $false
+                        ModuleVersion             = "1.0.0"
+                        LastConfigured            = $null
                     }
                 }
             }
             catch {
                 Write-Verbose "Error initializing configuration: $_"
                 $script:Config = @{
-                    BackupRoot = $null
-                    MachineName = $env:COMPUTERNAME
+                    BackupRoot                = $null
+                    MachineName               = $env:COMPUTERNAME
                     WindowsMelodyRecoveryPath = $null
-                    CloudProvider = $null
-                    IsInitialized = $false
-                    ModuleVersion = "1.0.0"
-                    LastConfigured = $null
+                    CloudProvider             = $null
+                    IsInitialized             = $false
+                    ModuleVersion             = "1.0.0"
+                    LastConfigured            = $null
                 }
             }
         }
@@ -500,6 +500,37 @@ if ($script:LoadedCoreFunctions) {
     Write-Verbose "Adding $($script:LoadedCoreFunctions.Count) core functions to export list."
 }
 
+# Conditionally load TUI module if dependencies are available
+function Show-WmrTui {
+    [CmdletBinding()]
+    param()
+
+    # Check if TUI dependencies are available
+    $tuiModule = Get-Module -Name 'Microsoft.PowerShell.ConsoleGuiTools' -ListAvailable
+    if (-not $tuiModule) {
+        Write-Warning "TUI functionality requires Microsoft.PowerShell.ConsoleGuiTools module"
+        Write-Host "To install: Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools" -ForegroundColor Yellow
+        return
+    }
+
+    # Load TUI module if not already loaded
+    $tuiModulePath = Join-Path $PSScriptRoot "TUI\WindowsMelodyRecovery.TUI.psd1"
+    if (Test-Path $tuiModulePath) {
+        try {
+            Import-Module $tuiModulePath -Force
+            # Call the actual TUI function from the loaded module
+            & (Get-Module WindowsMelodyRecovery.TUI) { Show-WmrTui }
+        }
+        catch {
+            Write-Error "Failed to load TUI module: $($_.Exception.Message)"
+            Write-Host "This may be due to missing dependencies or incompatible environment" -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Error "TUI module not found at: $tuiModulePath"
+    }
+}
+
 # After collecting all functions to export, add Template, EncryptionUtilities, and Core functions explicitly
 $AllFunctionsToExport = @()
 $AllFunctionsToExport += $AllFunctions
@@ -523,7 +554,8 @@ $ExistingFunctions = $ExistingFunctions | Sort-Object -Unique
 # Always add Template and EncryptionUtilities functions to export list
 $TemplateAndEncryptionFunctions = @(
     'Read-WmrTemplateConfig', 'Test-WmrTemplateSchema',
-    'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache'
+    'Protect-WmrData', 'Unprotect-WmrData', 'Get-WmrEncryptionKey', 'Clear-WmrEncryptionCache',
+    'Show-WmrTui'
 )
 foreach ($fn in $TemplateAndEncryptionFunctions) {
     if ($ExistingFunctions -notcontains $fn -and (Get-Command $fn -ErrorAction SilentlyContinue)) {
@@ -635,6 +667,8 @@ try {
 catch {
     Write-Warning "Failed to load Template module: $($_.Exception.Message)"
 }
+
+
 
 # Remove the conflicting secondary export logic that was overriding the first export
 # The module already exports functions correctly in the first export section above
