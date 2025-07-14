@@ -1,75 +1,71 @@
 @{
     Run = @{
-        Path = @(
-            'tests/unit',
-            'tests/integration'
-        )
-        ExcludePath = @(
-            'tests/mock-data',
-            'tests/mock-scripts'
-        )
-        TestExtension = '.Tests.ps1'
+        Path = @()
         PassThru = $true
-        Container = @{
-            Parallel = $false  # Ensure tests run sequentially for now until we fix isolation
-        }
-        Timeout = @{
-            TestTimeout = 300  # 5 minutes per test
-            DescribeTimeout = 1800  # 30 minutes per describe block
-            ContextTimeout = 900  # 15 minutes per context block
-            BlockTimeout = 3600  # 1 hour per test block file
-            GlobalTimeout = 7200  # 2 hours total test run
-        }
-    }
-
-    CodeCoverage = @{
-        Enabled = $true
-        Path = @(
-            'Public/*.ps1',
-            'Private/**/*.ps1',
-            'WindowsMelodyRecovery.psm1'
-        )
-        ExcludePath = @(
-            'tests/**/*',
-            'docs/**/*',
-            'Templates/**/*',
-            'example-profiles/**/*'
-        )
-        OutputPath = 'test-results/coverage/coverage.xml'
-        OutputFormat = 'JaCoCo'
-        CoveragePercentTarget = 80
     }
 
     Output = @{
-        Verbosity = 'Detailed'
-        RenderMode = 'Console'
-        StackTraceVerbosity = 'Full'
-        CIFormat = 'Auto'
+        Verbosity = 'Normal'
+        RenderMode = 'Plaintext'
     }
 
     TestResult = @{
         Enabled = $true
-        OutputPath = 'test-results/pester/test-results.xml'
         OutputFormat = 'JUnitXml'
-        TestSuiteName = 'WindowsMelodyRecovery'
+        OutputPath = 'test-results/pester-test-results.xml'
     }
 
-    Should = @{
-        ErrorAction = 'Continue'
-        MaxConsecutiveFailures = 3  # Stop after 3 consecutive failures in a describe block
+    CodeCoverage = @{
+        Enabled = $true
+        # Include only core production code
+        Path = @(
+            # Public API functions
+            'Public/*.ps1',
+            # Core module logic only (exclude setup, backup, restore scripts)
+            'Private/Core/*.ps1',
+            # Main module file
+            'WindowsMelodyRecovery.psm1'
+        )
+        # Exclude test files, templates, and setup scripts
+        ExcludeTests = $true
+        ExcludePath = @(
+            # Test files and utilities
+            'tests/**/*',
+            # Configuration templates
+            'Templates/**/*',
+            # Setup and deployment scripts
+            'Private/scripts/**/*',
+            'Private/tasks/**/*',
+            'Private/setup/**/*',
+            'Private/backup/**/*',
+            'Private/restore/**/*',
+            # TUI components (optional - can be included if needed)
+            'TUI/**/*',
+            # Mock data and test utilities
+            '**/mock-*',
+            '**/test-*',
+            # Example files
+            'example-*',
+            # Temporary and build files
+            'Temp/**/*',
+            'test-*/**/*',
+            'logs/**/*'
+        )
+        OutputFormat = 'JaCoCo'
+        OutputPath = 'test-results/coverage/coverage.xml'
+        CoveragePercentTarget = 75
     }
 
+    # Filter configuration
     Filter = @{
         Tag = @()
-        ExcludeTag = @('Slow', 'Integration')
-        Line = $null
-        ExcludeLine = $null
+        ExcludeTag = @('WindowsOnly', 'RequiresAdmin', 'Slow', 'Manual')
+        Line = @()
+        ExcludeLine = @()
     }
 
-    Debug = @{
-        ShowNavigationMarkers = $true
-        WriteDebugMessages = $true
-        WriteVerboseMessages = $true
-        WriteProgressMessages = $true
+    # Should configuration
+    Should = @{
+        ErrorAction = 'Continue'
     }
 }

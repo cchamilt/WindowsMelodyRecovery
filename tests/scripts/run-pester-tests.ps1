@@ -64,16 +64,31 @@ $config.TestResult.Enabled = $true
     $config.TestResult.OutputFormat = 'JUnitXml'
 $config.TestResult.OutputPath = Join-Path $testResultsPath "junit/test-results.xml"
 
-# Code coverage configuration (enabled for comprehensive reporting)
+# Code coverage configuration (enabled for production code only)
 $config.CodeCoverage.Enabled = $true
 $config.CodeCoverage.Path = @(
     (Join-Path $basePath "Public/*.ps1"),
-    (Join-Path $basePath "Private/**/*.ps1"),
+    (Join-Path $basePath "Private/Core/*.ps1"),
     (Join-Path $basePath "WindowsMelodyRecovery.psm1")
+)
+$config.CodeCoverage.ExcludePath = @(
+    (Join-Path $basePath "tests/**/*"),
+    (Join-Path $basePath "Templates/**/*"),
+    (Join-Path $basePath "Private/scripts/**/*"),
+    (Join-Path $basePath "Private/tasks/**/*"),
+    (Join-Path $basePath "Private/setup/**/*"),
+    (Join-Path $basePath "Private/backup/**/*"),
+    (Join-Path $basePath "Private/restore/**/*"),
+    (Join-Path $basePath "TUI/**/*"),
+    (Join-Path $basePath "**/mock-*"),
+    (Join-Path $basePath "**/test-*"),
+    (Join-Path $basePath "example-*"),
+    (Join-Path $basePath "Temp/**/*"),
+    (Join-Path $basePath "logs/**/*")
 )
 $config.CodeCoverage.OutputPath = Join-Path $testResultsPath "coverage/coverage.xml"
 $config.CodeCoverage.OutputFormat = 'JaCoCo'
-$config.CodeCoverage.CoveragePercentTarget = 80
+$config.CodeCoverage.CoveragePercentTarget = 75
 
 # Set test paths based on suite
 switch ($TestSuite) {

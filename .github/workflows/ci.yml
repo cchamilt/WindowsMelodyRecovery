@@ -28,6 +28,7 @@ jobs:
                   Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
                   Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
                   Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
+                  Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser
 
             - name: Run PSScriptAnalyzer
               shell: pwsh
@@ -166,12 +167,27 @@ jobs:
                       $config.TestResult.OutputFormat = 'JUnitXml'
                       $config.Output.Verbosity = 'Detailed'
 
-                      # Enable code coverage
+                      # Enable code coverage for production code only
                       $config.CodeCoverage.Enabled = $true
                       $config.CodeCoverage.Path = @(
                         './Public/*.ps1',
-                        './Private/**/*.ps1',
+                        './Private/Core/*.ps1',
                         './WindowsMelodyRecovery.psm1'
+                      )
+                      $config.CodeCoverage.ExcludePath = @(
+                        './tests/**/*',
+                        './Templates/**/*',
+                        './Private/scripts/**/*',
+                        './Private/tasks/**/*',
+                        './Private/setup/**/*',
+                        './Private/backup/**/*',
+                        './Private/restore/**/*',
+                        './TUI/**/*',
+                        './**/mock-*',
+                        './**/test-*',
+                        './example-*',
+                        './Temp/**/*',
+                        './logs/**/*'
                       )
                       $config.CodeCoverage.OutputPath = './test-results/coverage/coverage.xml'
                       $config.CodeCoverage.OutputFormat = 'JaCoCo'

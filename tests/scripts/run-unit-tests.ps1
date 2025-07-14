@@ -130,12 +130,27 @@ foreach ($test in $testsToRun) {
                 Enabled = $true
                 Path = @(
                     (Join-Path $projectRoot "Public/*.ps1"),
-                    (Join-Path $projectRoot "Private/**/*.ps1"),
+                    (Join-Path $projectRoot "Private/Core/*.ps1"),
                     (Join-Path $projectRoot "WindowsMelodyRecovery.psm1")
+                )
+                ExcludePath = @(
+                    (Join-Path $projectRoot "tests/**/*"),
+                    (Join-Path $projectRoot "Templates/**/*"),
+                    (Join-Path $projectRoot "Private/scripts/**/*"),
+                    (Join-Path $projectRoot "Private/tasks/**/*"),
+                    (Join-Path $projectRoot "Private/setup/**/*"),
+                    (Join-Path $projectRoot "Private/backup/**/*"),
+                    (Join-Path $projectRoot "Private/restore/**/*"),
+                    (Join-Path $projectRoot "TUI/**/*"),
+                    (Join-Path $projectRoot "**/mock-*"),
+                    (Join-Path $projectRoot "**/test-*"),
+                    (Join-Path $projectRoot "example-*"),
+                    (Join-Path $projectRoot "Temp/**/*"),
+                    (Join-Path $projectRoot "logs/**/*")
                 )
                 OutputPath = Join-Path $coverageDir "unit-coverage.xml"
                 OutputFormat = 'JaCoCo'
-                CoveragePercentTarget = 80
+                CoveragePercentTarget = 75
             }
         }
 

@@ -27,9 +27,11 @@ jobs:
                   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
                   Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
                   Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
+                  Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser
                   Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
                   Write-Host "Pester version: $(Get-Module Pester -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
                   Write-Host "Yayaml version: $(Get-Module Yayaml -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
+                  Write-Host "ConsoleGuiTools version: $(Get-Module Microsoft.PowerShell.ConsoleGuiTools -ListAvailable | Select-Object -First 1 | ForEach-Object Version)"
 
             - name: Verify Windows Environment
               shell: pwsh
