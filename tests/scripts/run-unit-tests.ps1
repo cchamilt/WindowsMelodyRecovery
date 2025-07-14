@@ -118,7 +118,14 @@ foreach ($test in $testsToRun) {
             @($testResultsDir, $coverageDir, $logsDir) | ForEach-Object {
                 if (-not (Test-Path $_)) {
                     New-Item -Path $_ -ItemType Directory -Force | Out-Null
+                    Write-Verbose "Created directory: $_"
                 }
+            }
+
+            # Create a placeholder log file to ensure the logs directory is not empty
+            $logPlaceholder = Join-Path $logsDir "unit-test-placeholder.log"
+            if (-not (Test-Path $logPlaceholder)) {
+                "Unit test run at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" | Out-File -FilePath $logPlaceholder -Encoding UTF8
             }
 
             $pesterConfig.TestResult = @{

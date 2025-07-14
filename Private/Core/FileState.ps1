@@ -136,9 +136,9 @@ function Get-WmrFileState {
 
         # Save metadata
         $metadata = @{
-            Encrypted = $fileState.Encrypted
+            Encrypted    = $fileState.Encrypted
             OriginalSize = $contentBytes.Length
-            Encoding = "UTF8"
+            Encoding     = "UTF8"
         }
         $metadataPath = $stateFilePath -replace '\.[^.]+$', '.metadata.json'
         $metadata | ConvertTo-Json | Set-Content -Path $metadataPath -Encoding UTF8 -NoNewline
@@ -165,7 +165,8 @@ function Get-WmrFileState {
                 # Improved relative path calculation with better error handling
                 if ($fullPath.StartsWith($basePath, [System.StringComparison]::OrdinalIgnoreCase)) {
                     $relativePath = $fullPath.Substring($basePath.Length).TrimStart('\')
-                } else {
+                }
+                else {
                     # Fallback: use just the filename if path calculation fails
                     $relativePath = $_.Name
                     Write-Warning "Path calculation failed for $($_.FullName), using filename: $relativePath"
@@ -177,11 +178,11 @@ function Get-WmrFileState {
             Write-Debug "Relative path: $relativePath"
 
             $item = @{
-                FullName = $_.FullName
-                Length = $_.Length
+                FullName         = $_.FullName
+                Length           = $_.Length
                 LastWriteTimeUtc = $_.LastWriteTimeUtc
-                PSIsContainer = $_.PSIsContainer
-                RelativePath = $relativePath
+                PSIsContainer    = $_.PSIsContainer
+                RelativePath     = $relativePath
             }
 
             # For files, also capture their content
@@ -302,6 +303,8 @@ function Set-WmrFileState {
 
         # Process each item in the directory content
         foreach ($item in $dirContent) {
+            Write-Debug "Processing item: $($item | ConvertTo-Json -Compress)"
+
             if (-not $item.RelativePath) {
                 Write-Warning "Item $($item.FullName) has no relative path information. Skipping."
                 continue
@@ -313,6 +316,8 @@ function Set-WmrFileState {
                 Write-Warning "Invalid relative path for item $($item.FullName). Skipping."
                 continue
             }
+
+            Write-Debug "Sanitized relative path: $sanitizedRelativePath"
 
             # Construct the new path using the sanitized relative path
             $targetPath = Join-Path -Path $destinationPath -ChildPath $sanitizedRelativePath
@@ -332,11 +337,15 @@ function Set-WmrFileState {
                     Write-Debug "Creating directory: $targetPath"
                     try {
                         New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+                        Write-Debug "Successfully created directory: $targetPath"
                     }
                     catch {
                         Write-Warning "Failed to create directory $targetPath : $($_.Exception.Message)"
                         continue
                     }
+                }
+                else {
+                    Write-Debug "Directory already exists: $targetPath"
                 }
             }
             else {
@@ -358,6 +367,7 @@ function Set-WmrFileState {
                     Write-Debug "Creating file with content: $targetPath"
                     try {
                         Set-Content -Path $targetPath -Value $item.Content -Encoding UTF8 -NoNewline
+                        Write-Debug "Successfully created file with content: $targetPath"
                     }
                     catch {
                         Write-Warning "Failed to create file $targetPath : $($_.Exception.Message)"
@@ -370,11 +380,15 @@ function Set-WmrFileState {
                         Write-Debug "Creating empty file: $targetPath"
                         try {
                             New-Item -ItemType File -Path $targetPath -Force | Out-Null
+                            Write-Debug "Successfully created empty file: $targetPath"
                         }
                         catch {
                             Write-Warning "Failed to create empty file $targetPath : $($_.Exception.Message)"
                             continue
                         }
+                    }
+                    else {
+                        Write-Debug "File already exists: $targetPath"
                     }
                 }
             }

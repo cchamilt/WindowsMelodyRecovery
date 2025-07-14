@@ -29,6 +29,11 @@ on:
                 default: false
                 type: boolean
 
+permissions:
+    contents: read
+    checks: write
+    pull-requests: write
+
 env:
     POWERSHELL_TELEMETRY_OPTOUT: 1
     DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -108,81 +113,21 @@ jobs:
                   Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
                   Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser
 
-            - name: Enable WSL and install Ubuntu
-              shell: pwsh
-              run: |
-                  Write-Host "Installing WSL with Ubuntu using modern wsl --install command..." -ForegroundColor Green
-
-                  # Use the modern WSL install command (available in GitHub Actions)
-                  try {
-                      # Install WSL with Ubuntu distribution
-                      wsl --install --distribution Ubuntu-22.04 --no-launch
-                      Write-Host "WSL installation initiated successfully" -ForegroundColor Green
-                  } catch {
-                      Write-Host "Modern WSL install failed, trying legacy method..." -ForegroundColor Yellow
-
-                      # Fallback to legacy method if modern command fails
-                      Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
-                      Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
-
-                      # Set WSL2 as default
-                      wsl --set-default-version 2
-
-                      # Try to install Ubuntu via winget (more reliable than AppxPackage)
-                      try {
-                          winget install Canonical.Ubuntu.2204 --accept-source-agreements --accept-package-agreements
-                          Write-Host "Ubuntu installed via winget" -ForegroundColor Green
-                      } catch {
-                          Write-Host "Winget install failed, using wsl --install as final fallback" -ForegroundColor Yellow
-                          wsl --install Ubuntu-22.04
-                      }
-                  }
-
-                  # Wait for installation to complete
-                  Write-Host "Waiting for WSL installation to complete..." -ForegroundColor Yellow
-                  Start-Sleep -Seconds 60
-
-            - name: Initialize WSL Ubuntu
-              shell: pwsh
-              run: |
-                  Write-Host "Initializing WSL Ubuntu distribution..." -ForegroundColor Green
-
-                  # Check if Ubuntu is available
-                  $distributions = wsl --list --online
-                  Write-Host "Available distributions:" -ForegroundColor Cyan
-                  Write-Host $distributions -ForegroundColor Gray
-
-                  # List installed distributions
-                  $installed = wsl --list --verbose
-                  Write-Host "Installed distributions:" -ForegroundColor Cyan
-                  Write-Host $installed -ForegroundColor Gray
-
-                  # Try to initialize Ubuntu (first run setup)
-                  try {
-                      Write-Host "Running first-time setup for Ubuntu..." -ForegroundColor Yellow
-
-                      # Run the initialization (this will prompt for user setup on first run)
-                      Write-Host "Setting up Ubuntu user and packages..." -ForegroundColor Yellow
-                      wsl -d Ubuntu-22.04 -- bash -c "apt update && apt install -y sudo"
-                      wsl -d Ubuntu-22.04 -- bash -c "useradd -m -s /bin/bash testuser || true"
-                      wsl -d Ubuntu-22.04 -- bash -c "echo 'testuser:testpass' | chpasswd"
-                      wsl -d Ubuntu-22.04 -- bash -c "usermod -aG sudo testuser"
-                      wsl -d Ubuntu-22.04 -- bash -c "echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers"
-
-                      Write-Host "Installing basic packages..." -ForegroundColor Yellow
-                      wsl -d Ubuntu-22.04 -u testuser -- bash -c "sudo apt update && sudo apt install -y curl wget git vim python3 python3-pip nodejs npm"
-
-                      Write-Host "WSL Ubuntu initialization completed successfully" -ForegroundColor Green
-                  } catch {
-                      Write-Host "WSL initialization failed: $($_.Exception.Message)" -ForegroundColor Red
-                      Write-Host "Attempting to continue with available WSL setup..." -ForegroundColor Yellow
-                  }
+            - name: Setup WSL with Ubuntu
+              uses: Vampire/setup-wsl@v6
+              with:
+                  distribution: Ubuntu-22.04
+                  use-cache: true
+                  set-as-default: true
+                  update: true
+                  additional-packages: curl wget git vim python3 python3-pip nodejs npm sudo
 
             - name: Install chezmoi in WSL
               shell: pwsh
               run: |
-                  wsl -d Ubuntu-22.04 -u testuser -- bash -c "sh -c \"\$(curl -fsLS get.chezmoi.io)\" -- -b /usr/local/bin"
-                  wsl -d Ubuntu-22.04 -u testuser -- bash -c "chezmoi --version"
+                  # Install chezmoi in WSL using the default user
+                  wsl -d Ubuntu-22.04 -- bash -c "sh -c \"\$(curl -fsLS get.chezmoi.io)\" -- -b /usr/local/bin"
+                  wsl -d Ubuntu-22.04 -- bash -c "chezmoi --version"
 
             - name: Setup package managers
               shell: pwsh
@@ -352,6 +297,15 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - name: Setup WSL for E2E Tests
+              uses: Vampire/setup-wsl@v6
+              with:
+                  distribution: Ubuntu-22.04
+                  use-cache: true
+                  set-as-default: true
+                  update: true
+                  additional-packages: curl wget git vim python3 python3-pip nodejs npm sudo
+
             - name: Setup complete environment
               shell: pwsh
               run: |
@@ -360,15 +314,6 @@ jobs:
                   Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser -RequiredVersion 5.5.0
                   Install-Module -Name Yayaml -Force -SkipPublisherCheck -Scope CurrentUser
                   Install-Module -Name Microsoft.PowerShell.ConsoleGuiTools -RequiredVersion 0.7.7 -Force -SkipPublisherCheck -Scope CurrentUser
-
-                  # Setup WSL using modern approach
-                  try {
-                      Write-Host "Setting up WSL for E2E tests..." -ForegroundColor Green
-                      wsl --install --distribution Ubuntu-22.04 --no-launch
-                      Write-Host "WSL setup initiated successfully" -ForegroundColor Green
-                  } catch {
-                      Write-Host "WSL setup failed, E2E tests may skip WSL components" -ForegroundColor Yellow
-                  }
 
                   # Install package managers
                   Set-ExecutionPolicy Bypass -Scope Process -Force
