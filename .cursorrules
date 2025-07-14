@@ -5,6 +5,7 @@
   "Provide percentage confidence levels for all responses/changes": true,
   "Output model name at end of responses": true,
   "No time constraints to fix or finish project": true,
+  "If you have a question, are unsure, think the users request is not clear, or you are not sure how to proceed, stop and ask the user for clarification": true,
 
   // --- General PowerShell Best Practices ---
   // Ensure all PowerShell scripts and functions adhere to standard PowerShell naming conventions.

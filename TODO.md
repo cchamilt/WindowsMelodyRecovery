@@ -1,5 +1,40 @@
 # Windows Melody Recovery - Implementation Plan
 
+## Phase 0: Critical Code Quality & Testing Infrastructure (URGENT - Must Complete First)
+
+### Test Function Cleanup & Separation
+- **[URGENT]** Remove all Test- files and functions from Public and Private directories
+  - Move `Public/Test-WindowsMelodyRecovery.ps1` to test utilities with proper imports
+  - Move `Private/Core/Test-WmrAdminPrivilege.ps1` to test utilities
+  - Remove all Test- functions from production code in Private/ directories:
+    - `Test-WmrAdministrativePrivilege`, `Test-WmrElevationCapability`, `Test-WmrAdminRequiredOperation` (AdministrativePrivileges.ps1)
+    - `Test-WmrInheritanceRuleCondition`, `Test-WmrConditionalSectionCondition`, `Test-WmrRuleItemMatch` (ConditionalProcessing.ps1)
+    - `Test-ConfigurationConsistency`, `Test-SharedConfigurationMerging`, `Test-ConfigurationInheritance` and 8 other Test- functions (ConfigurationValidation.ps1)
+    - `Test-WmrFileConfig` (FileState.ps1)
+    - `Test-WmrMachineSelector`, `Test-WmrStringComparison` (MachineContext.ps1)
+    - `Test-WmrPrerequisite` (Prerequisites.ps1)
+    - `Test-ModuleInitialized`, `Test-WSLRepository` (WindowsMelodyRecovery.Core.ps1)
+    - `Test-ModuleStructure`, `Test-ModuleDependency` (WindowsMelodyRecovery.Initialization.ps1)
+    - All Test- functions from setup scripts (setup-*.ps1 files)
+  - Refactor test suites to use proper module imports instead of accessing internal Test- functions
+  - Status: Critical for proper module design and PowerShell Gallery compliance
+
+### Dot Sourcing Elimination
+- **[URGENT]** Remove all dot sourcing from test suites and replace with proper module imports
+  - Eliminate dot sourcing from all unit tests (PathUtilities.Tests.ps1, EncryptionUtilities.Tests.ps1, EncryptionWorkflow.Tests.ps1)
+  - Remove dot sourcing from integration tests (cloud-failover.Tests.ps1, installation-integration.Tests.ps1, etc.)
+  - Replace dot sourcing in file-operations tests with proper module imports
+  - Update test runner scripts to use module imports instead of dot sourcing
+  - Fix code coverage tracking broken by dot sourcing [[memory:3249270]]
+  - Status: Critical for code coverage accuracy and proper module design
+
+### Production Code Dot Sourcing Review
+- **[HIGH PRIORITY]** Audit and potentially refactor dot sourcing in production code
+  - Review dot sourcing in Private/Core/ files (TemplateResolution.ps1, TemplateInheritance.ps1)
+  - Evaluate dot sourcing in setup scripts and determine if module imports are more appropriate
+  - Ensure production dot sourcing doesn't violate module design principles
+  - Status: Important for consistent module architecture
+
 ## Phase 1: Foundation & Testing (High Priority - In Progress)
 
 ### Testing Infrastructure
