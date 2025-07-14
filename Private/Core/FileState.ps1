@@ -167,9 +167,16 @@ function Get-WmrFileState {
                     $relativePath = $fullPath.Substring($basePath.Length).TrimStart('\')
                 }
                 else {
-                    # Fallback: use just the filename if path calculation fails
-                    $relativePath = $_.Name
-                    Write-Warning "Path calculation failed for $($_.FullName), using filename: $relativePath"
+                    # Enhanced fallback: try to calculate relative path using common parent
+                    try {
+                        $relativePath = [System.IO.Path]::GetRelativePath($basePath, $fullPath)
+                        Write-Verbose "Used GetRelativePath for $($_.FullName): $relativePath"
+                    }
+                    catch {
+                        # Final fallback: use just the filename if path calculation fails
+                        $relativePath = $_.Name
+                        Write-Warning "Path calculation failed for $($_.FullName), using filename: $relativePath"
+                    }
                 }
             }
 

@@ -200,7 +200,7 @@ function ConvertTo-TestEnvironmentPath {
     Write-Verbose "ConvertTo-TestEnvironmentPath: WMR_TEST_MODE=$env:WMR_TEST_MODE, PESTER_OUTPUT_PATH=$env:PESTER_OUTPUT_PATH, WMR_DOCKER_TEST=$env:WMR_DOCKER_TEST"
 
     # Don't redirect paths that are already in test environments or project directories
-    if ($Path.Contains("WMR-Tests-") -or $Path.Contains("test-restore") -or $Path.Contains("test-backup") -or $Path.Contains("test-state") -or $Path.Contains("WindowsMelodyRecovery\Temp") -or $Path.Contains("Debug-FileState-Test")) {
+    if ($Path.Contains("WMR-Tests-") -or $Path.Contains("test-restore") -or $Path.Contains("test-backup") -or $Path.Contains("test-state") -or $Path.Contains("WindowsMelodyRecovery\Temp") -or $Path.Contains("Debug-FileState-Test") -or $Path.Contains("FileOps-") -or ($Path.Contains("AppData\Local\Temp") -and $Path.Contains("WMR-"))) {
         Write-Verbose "ConvertTo-TestEnvironmentPath: Path already in test environment, no redirection needed for '$Path'"
         return $Path
     }
