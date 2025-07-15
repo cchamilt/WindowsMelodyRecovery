@@ -314,7 +314,7 @@ function Set-WmrTestEnvironmentVariables {
 
     # Set standard variables
     foreach ($var in $script:TestConfiguration.Environment.Variables.GetEnumerator()) {
-        $env:($var.Name) = $var.Value
+        $env:${var.Name} = $var.Value
     }
 
     # Set dynamic path variables
