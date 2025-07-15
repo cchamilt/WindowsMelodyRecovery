@@ -8,7 +8,7 @@
         Import-Module (Join-Path $script:TestEnvironment.ModuleRoot "WindowsMelodyRecovery.psd1") -Force
 
         # Import test utilities for timeout functions
-        . (Join-Path $PSScriptRoot "../utilities/Test-Utilities.ps1")
+        . (Join-Path $PSScriptRoot "../utilities/Test-Helper.ps1")
     }
 
     AfterAll {

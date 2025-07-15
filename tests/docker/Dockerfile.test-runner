@@ -79,11 +79,6 @@ RUN chmod +x /usr/local/bin/mock-windows/* && \
     ln -sf /usr/local/bin/mock-windows/winget.sh /usr/local/bin/winget && \
     ln -sf /usr/local/bin/mock-windows/reg.sh /usr/local/bin/reg
 
-# Copy essential test utilities that are needed for bootstrap
-# Note: Most test files are mounted at runtime via docker-compose volumes
-COPY tests/utilities/Docker-Test-Bootstrap.ps1 /usr/local/share/powershell/Modules/
-COPY tests/utilities/Docker-Path-Mocks.ps1 /usr/local/share/powershell/Modules/
-
 # Copy the health check script for container readiness
 COPY tests/scripts/health-check.ps1 /usr/local/bin/
 RUN chmod +x /usr/local/bin/health-check.ps1

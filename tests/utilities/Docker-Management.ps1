@@ -248,121 +248,98 @@ function Start-TestContainer {
 
         # Final status check
         if (-not (Test-ContainersRunning)) {
-            Write-Warning "Some containers failed to start properly"
-            Show-ContainerStatus
+            Write-Error "Failed to start all containers. Check logs for details."
+            Get-ContainerStatus | Format-Table
             return $false
         }
 
-        # Test container connectivity
-        Write-Information -MessageData "🔍 Testing container connectivity..." -InformationAction Continue
-        if (Test-ContainerConnectivity) {
-            Write-Information -MessageData "✓ Container connectivity verified" -InformationAction Continue
-        }
-        else {
-            Write-Warning "Container connectivity test failed"
+        # Health checks for critical services
+        Write-Information -MessageData "🩺 Performing health checks..." -InformationAction Continue
+        if (-not (Test-AllContainersHealthy -TimeoutSeconds 120)) {
+            Write-Error "One or more containers failed health checks. Please check container logs."
             return $false
         }
 
-        # Test cloud mock health (optional)
-        if (Test-CloudMockHealth) {
-            Write-Information -MessageData "✓ Cloud mock server is healthy" -InformationAction Continue
-        }
-        else {
-            Write-Warning -Message "⚠ Cloud mock server health check failed (continuing anyway)"
-        }
-
-        Write-Information -MessageData "🎉 Docker test environment is ready!" -InformationAction Continue
+        Write-Information -MessageData "✅ Docker test environment started successfully!" -InformationAction Continue
         return $true
 
     }
     catch {
-        Write-Error "Failed to start test containers: $($_.Exception.Message)"
+        Write-Error "An unexpected error occurred while starting containers: $($_.Exception.Message)"
         return $false
     }
 }
 
-function Stop-TestContainer {
+function Stop-TestContainers {
     <#
     .SYNOPSIS
-        Stops all test containers
+        Stops all running test containers
     .DESCRIPTION
-        Gracefully stops all containers using Docker Compose
+        Stops all containers defined in docker-compose.test.yml without removing them
     .PARAMETER Force
-        Force stop containers without graceful shutdown
+        Force stop without confirmation
     .OUTPUTS
         Boolean indicating if containers stopped successfully
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     [OutputType([bool])]
     param(
         [switch]$Force
     )
 
-    Write-Warning -Message "🛑 Stopping test containers..."
+    Write-Warning -Message "🛑 Stopping Docker test environment..."
 
     try {
-        if ($Force) {
-            docker compose -f $script:DockerComposeFile kill 2>&1 | Out-Null
+        if ($Force -or $PSCmdlet.ShouldProcess("all test containers", "Stop")) {
+            $stopResult = docker compose -f $script:DockerComposeFile stop 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to stop containers: $stopResult"
+                return $false
+            }
+            Write-Information -MessageData "✓ All test containers stopped" -InformationAction Continue
         }
-        else {
-            docker compose -f $script:DockerComposeFile stop 2>&1 | Out-Null
-        }
-
-        if ($LASTEXITCODE -eq 0) {
-            Write-Information -MessageData "✓ Containers stopped successfully" -InformationAction Continue
-            return $true
-        }
-        else {
-            Write-Warning "Failed to stop some containers"
-            return $false
-        }
+        return $true
 
     }
     catch {
-        Write-Error "Failed to stop containers: $($_.Exception.Message)"
+        Write-Error "An unexpected error occurred while stopping containers: $($_.Exception.Message)"
         return $false
     }
 }
 
-function Remove-TestContainer {
+function Remove-TestContainers {
     <#
     .SYNOPSIS
-        Removes all test containers and volumes
+        Removes all test containers and associated volumes
     .DESCRIPTION
-        Removes containers, networks, and volumes created by Docker Compose
+        Stops and removes all containers, networks, and volumes defined in docker-compose.test.yml
     .PARAMETER Force
         Force removal without confirmation
     .OUTPUTS
         Boolean indicating if cleanup was successful
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     [OutputType([bool])]
     param(
         [switch]$Force
     )
 
-    Write-Warning -Message "🗑️ Removing test containers and volumes..."
+    Write-Warning -Message "🗑️ Removing Docker test environment..."
 
     try {
-        $removeArgs = @("-f", $script:DockerComposeFile, "down", "--volumes", "--remove-orphans")
-        if ($Force) {
-            $removeArgs += "--rmi", "local"
+        if ($Force -or $PSCmdlet.ShouldProcess("all test containers and volumes", "Remove")) {
+            $downResult = docker compose -f $script:DockerComposeFile down --volumes --remove-orphans 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to remove containers: $downResult"
+                return $false
+            }
+            Write-Information -MessageData "✓ Docker test environment removed successfully" -InformationAction Continue
         }
-
-        docker compose $removeArgs 2>&1 | Out-Null
-
-        if ($LASTEXITCODE -eq 0) {
-            Write-Information -MessageData "✓ Containers and volumes removed successfully" -InformationAction Continue
-            return $true
-        }
-        else {
-            Write-Warning "Failed to remove some containers or volumes"
-            return $false
-        }
+        return $true
 
     }
     catch {
-        Write-Error "Failed to remove containers: $($_.Exception.Message)"
+        Write-Error "An unexpected error occurred while removing containers: $($_.Exception.Message)"
         return $false
     }
 }
@@ -549,6 +526,110 @@ function Reset-DockerEnvironment {
     return Initialize-DockerEnvironment -Clean
 }
 
+function Get-ContainerLog {
+    <#
+    .SYNOPSIS
+        Gets the logs for a specific container
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [string]$ContainerName,
+        [int]$TailLines = 100
+    )
+
+    if ($ContainerName -notin $script:ExpectedContainers) {
+        Write-Warning "Container '$ContainerName' is not part of the expected test environment."
+        return $null
+    }
+
+    try {
+        $logs = docker logs $ContainerName --tail $TailLines 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Could not retrieve logs for container: $ContainerName"
+            return $null
+        }
+        return $logs
+    }
+    catch {
+        Write-Warning "Unable to retrieve logs for container: $ContainerName. Error: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+function Test-ContainerHealth {
+    <#
+    .SYNOPSIS
+        Checks the health of a single container by inspecting its state.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [string]$ContainerName,
+        [int]$TimeoutSeconds = 30
+    )
+
+    $startTime = Get-Date
+    $healthy = $false
+
+    while ((Get-Date) -lt ($startTime.AddSeconds($TimeoutSeconds))) {
+        try {
+            $status = docker inspect --format='{{.State.Status}}' $ContainerName 2>$null
+            if ($LASTEXITCODE -eq 0 -and $status -eq "running") {
+                # For more specific health, check .State.Health.Status if available
+                $healthStatus = docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{end}}' $ContainerName 2>$null
+                if ($healthStatus -eq "healthy") {
+                    $healthy = $true
+                    break
+                }
+                elseif ($healthStatus -eq "") { # No health check defined
+                    $healthy = $true
+                    break
+                }
+            }
+        }
+        catch {
+            # Container not found or other error
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    return $healthy
+}
+
+function Test-AllContainersHealthy {
+    <#
+    .SYNOPSIS
+        Checks if all expected containers are healthy.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [int]$TimeoutSeconds = 60
+    )
+
+    Write-Information -MessageData "🩺 Checking health of all test containers..." -InformationAction Continue
+    $healthyCount = 0
+    $unhealthyList = @()
+
+    foreach ($container in $script:ExpectedContainers) {
+        if (Test-ContainerHealth -ContainerName $container -TimeoutSeconds $TimeoutSeconds) {
+            $healthyCount++
+            Write-Verbose "✓ $container is healthy"
+        }
+        else {
+            $unhealthyList += $container
+            Write-Warning "✗ $container is not healthy"
+        }
+    }
+
+    if ($unhealthyList.Count -gt 0) {
+        Write-Warning "The following containers are not healthy: $($unhealthyList -join ', ')"
+    }
+
+    return $healthyCount -eq $script:ExpectedContainers.Count
+}
+
 # Add plural function aliases for compatibility
 Set-Alias -Name "Start-TestContainers" -Value "Start-TestContainer"
 Set-Alias -Name "Stop-TestContainers" -Value "Stop-TestContainer"
@@ -574,7 +655,10 @@ else {
         'Show-ContainerStatus',
         'Show-ContainerLogs',
         'Initialize-DockerEnvironment',
-        'Reset-DockerEnvironment'
+        'Reset-DockerEnvironment',
+        'Get-ContainerLog',
+        'Test-AllContainersHealthy',
+        'Test-ContainerHealth'
     )
 }
 

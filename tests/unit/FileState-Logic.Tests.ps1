@@ -18,7 +18,6 @@ BeforeAll {
     # Mock Convert-WmrPath to return Docker-compatible paths (avoid recursion)
     Mock Convert-WmrPath {
         param($Path)
-        # Direct path conversion without calling Get-WmrTestPath to avoid recursion
         $dockerPath = $Path -replace '\\', '/' -replace '^C:', '/tmp/test'
         return @{
             PathType   = "File"

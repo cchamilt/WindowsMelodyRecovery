@@ -114,22 +114,6 @@ files:
         Write-Information -MessageData "Basic template schema validation passed." -InformationAction Continue
         return $true
     }
-
-    # Add missing Get-WmrTestPath function
-    function Get-WmrTestPath {
-        param(
-            [string]$Path,
-            [string]$WindowsPath
-        )
-
-        # If WindowsPath is provided, use it; otherwise use Path
-        if ($WindowsPath) {
-            return $WindowsPath
-        }
-        else {
-            return $Path
-        }
-    }
 }
 
 AfterAll {
