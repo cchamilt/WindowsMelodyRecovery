@@ -68,9 +68,9 @@ function Global:Invoke-WSLScript {
 
     # In test environment, simulate WSL script execution
     Write-Verbose "Mock WSL Script Execution:"
-    Write-Verbose "Distribution: $($Distribution ?? 'default')"
+    Write-Verbose "Distribution: $(if ($Distribution) { $Distribution } else { 'default' })"
     Write-Verbose "AsRoot: $AsRoot"
-    Write-Verbose "WorkingDirectory: $($WorkingDirectory ?? 'default')"
+    Write-Verbose "WorkingDirectory: $(if ($WorkingDirectory) { $WorkingDirectory } else { 'default' })"
     Write-Verbose "Script: $($ScriptContent.Substring(0, [Math]::Min(100, $ScriptContent.Length)))..."
 
     # Simulate successful execution
@@ -79,9 +79,9 @@ function Global:Invoke-WSLScript {
     if ($PassThru) {
         return @{
             ExitCode = 0
-            Output = $output
-            Error = ""
-            Success = $true
+            Output   = $output
+            Error    = ""
+            Success  = $true
         }
     }
 
@@ -189,9 +189,9 @@ function Start-TestRun {
     }
 
     $params = @{
-        Path = $TestPath
+        Path     = $TestPath
         PassThru = $true
-        Output = 'Detailed'
+        Output   = 'Detailed'
     }
 
     if ($Verbose) {

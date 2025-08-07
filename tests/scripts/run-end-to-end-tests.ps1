@@ -111,7 +111,7 @@ $completed = Wait-Job -Job $job -Timeout $timeoutSeconds
 $result = $null
 if ($completed) {
     $result = Receive-Job -Job $job
-    $exitCode = $result.FailedCount -gt 0 ? 1 : 0
+    $exitCode = if ($result.FailedCount -gt 0) { 1 } else { 0 }
 }
 else {
     Write-Error -Message "✗ End-to-end tests timed out after $Timeout minutes"

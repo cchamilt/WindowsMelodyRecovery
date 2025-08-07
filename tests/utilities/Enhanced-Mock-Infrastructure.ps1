@@ -27,16 +27,16 @@
 # Enhanced mock infrastructure configuration
 $script:EnhancedMockConfig = @{
     # Docker environment detection and paths
-    DockerEnvironment = @{
+    DockerEnvironment   = @{
         IsDockerEnvironment = $false
-        DynamicMockRoot = $null
-        DynamicPaths = @{}
-        DockerIndicators = @()
+        DynamicMockRoot     = $null
+        DynamicPaths        = @{}
+        DockerIndicators    = @()
     }
 
-    DataSources = @{
+    DataSources         = @{
         # Real-world application data for realistic testing
-        WingetApps = @(
+        WingetApps       = @(
             @{ Id = "Microsoft.VisualStudioCode"; Name = "Visual Studio Code"; Version = "1.88.1"; Source = "winget" }
             @{ Id = "Google.Chrome"; Name = "Google Chrome"; Version = "124.0.6367.208"; Source = "winget" }
             @{ Id = "Mozilla.Firefox"; Name = "Mozilla Firefox"; Version = "125.0.3"; Source = "winget" }
@@ -49,7 +49,7 @@ $script:EnhancedMockConfig = @{
             @{ Id = "Slack.Slack"; Name = "Slack"; Version = "4.38.125"; Source = "winget" }
         )
 
-        ChocolateyApps = @(
+        ChocolateyApps   = @(
             @{ Id = "notepadplusplus"; Name = "Notepad++"; Version = "8.6.4"; Source = "chocolatey" }
             @{ Id = "wireshark"; Name = "Wireshark"; Version = "4.2.4"; Source = "chocolatey" }
             @{ Id = "putty"; Name = "PuTTY"; Version = "0.80"; Source = "chocolatey" }
@@ -57,7 +57,7 @@ $script:EnhancedMockConfig = @{
             @{ Id = "keepass"; Name = "KeePass"; Version = "2.56"; Source = "chocolatey" }
         )
 
-        ScoopApps = @(
+        ScoopApps        = @(
             @{ Id = "nodejs"; Name = "Node.js"; Version = "20.12.2"; Source = "scoop"; Bucket = "main" }
             @{ Id = "python"; Name = "Python"; Version = "3.12.3"; Source = "scoop"; Bucket = "main" }
             @{ Id = "go"; Name = "Go"; Version = "1.22.2"; Source = "scoop"; Bucket = "main" }
@@ -65,7 +65,7 @@ $script:EnhancedMockConfig = @{
             @{ Id = "ripgrep"; Name = "ripgrep"; Version = "14.1.0"; Source = "scoop"; Bucket = "main" }
         )
 
-        SteamGames = @(
+        SteamGames       = @(
             @{ AppId = "730"; Name = "Counter-Strike 2"; InstallDir = "Counter-Strike Global Offensive"; SizeOnDisk = "27834567890" }
             @{ AppId = "570"; Name = "Dota 2"; InstallDir = "dota 2 beta"; SizeOnDisk = "26843545600" }
             @{ AppId = "440"; Name = "Team Fortress 2"; InstallDir = "Team Fortress 2"; SizeOnDisk = "15367890123" }
@@ -73,7 +73,7 @@ $script:EnhancedMockConfig = @{
             @{ AppId = "292030"; Name = "The Witcher 3: Wild Hunt"; InstallDir = "The Witcher 3"; SizeOnDisk = "65432109876" }
         )
 
-        EpicGames = @(
+        EpicGames        = @(
             @{ DisplayName = "Fortnite"; AppName = "Fortnite"; InstallLocation = "C:\Program Files\Epic Games\Fortnite"; InstallSize = "87654321098" }
             @{ DisplayName = "Rocket League"; AppName = "Sugar"; InstallLocation = "C:\Program Files\Epic Games\rocketleague"; InstallSize = "23456789012" }
             @{ DisplayName = "Fall Guys"; AppName = "0a2d9f6403244d12969e11da6713137b"; InstallLocation = "C:\Program Files\Epic Games\FallGuys"; InstallSize = "45678901234" }
@@ -85,7 +85,7 @@ $script:EnhancedMockConfig = @{
             @{ Name = "Ubuntu-20.04"; Version = "20.04.6"; DefaultUser = "devuser"; State = "Stopped" }
         )
 
-        CloudProviders = @(
+        CloudProviders   = @(
             @{ Name = "OneDrive"; Path = "$env:USERPROFILE\OneDrive"; SyncStatus = "UpToDate"; Account = "user@example.com" }
             @{ Name = "GoogleDrive"; Path = "$env:USERPROFILE\Google Drive"; SyncStatus = "Syncing"; Account = "user@gmail.com" }
             @{ Name = "Dropbox"; Path = "$env:USERPROFILE\Dropbox"; SyncStatus = "UpToDate"; Account = "user@dropbox.com" }
@@ -93,10 +93,10 @@ $script:EnhancedMockConfig = @{
         )
     }
 
-    Templates = @{
+    Templates           = @{
         # Realistic system configuration templates
         DisplaySettings = @{
-            PrimaryDisplay = @{
+            PrimaryDisplay   = @{
                 Width = 1920; Height = 1080; RefreshRate = 60
                 ColorDepth = 32; Orientation = 0; ScaleFactor = 100
             }
@@ -106,7 +106,7 @@ $script:EnhancedMockConfig = @{
             }
         }
 
-        PowerSettings = @{
+        PowerSettings   = @{
             ActiveScheme = "High performance"
             ScreenTimeout = 15; SleepTimeout = 30; HibernateTimeout = 60
             USBSelectiveSuspend = $false; HybridSleep = $true
@@ -117,14 +117,14 @@ $script:EnhancedMockConfig = @{
                 @{ Name = "Ethernet"; Type = "Wired"; Status = "Connected"; IP = "192.168.1.100" }
                 @{ Name = "Wi-Fi"; Type = "Wireless"; Status = "Connected"; IP = "192.168.1.101" }
             )
-            DNS = @("8.8.8.8", "8.8.4.4")
-            Gateway = "192.168.1.1"
+            DNS      = @("8.8.8.8", "8.8.4.4")
+            Gateway  = "192.168.1.1"
         }
     }
 
     FileSystemStructure = @{
         # Common Windows application data paths
-        AppDataPaths = @(
+        AppDataPaths      = @(
             "AppData\Local\Microsoft\Edge\User Data\Default\Preferences"
             "AppData\Local\Google\Chrome\User Data\Default\Preferences"
             "AppData\Local\Mozilla\Firefox\Profiles\default\prefs.js"
@@ -145,7 +145,7 @@ $script:EnhancedMockConfig = @{
             "Microsoft\Teams\current\Teams.exe"
         )
 
-        SystemPaths = @(
+        SystemPaths       = @(
             "Windows\System32\drivers\etc\hosts"
             "Windows\System32\WindowsPowerShell\v1.0\profile.ps1"
             "ProgramData\Microsoft\Windows\Start Menu\Programs"
@@ -273,12 +273,12 @@ function Set-DockerEnvironmentLock {
     try {
         $lockData = @{
             IsDockerEnvironment = $true
-            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
-            ProcessId = $PID
-            Hostname = $env:HOSTNAME
-            ContainerName = $env:CONTAINER_NAME
-            DynamicPaths = $script:EnhancedMockConfig.DockerEnvironment.DynamicPaths
-            DockerIndicators = $script:EnhancedMockConfig.DockerEnvironment.DockerIndicators
+            Timestamp           = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+            ProcessId           = $PID
+            Hostname            = $env:HOSTNAME
+            ContainerName       = $env:CONTAINER_NAME
+            DynamicPaths        = $script:EnhancedMockConfig.DockerEnvironment.DynamicPaths
+            DockerIndicators    = $script:EnhancedMockConfig.DockerEnvironment.DockerIndicators
         }
 
         # Cross-platform lock path
@@ -287,7 +287,7 @@ function Set-DockerEnvironmentLock {
         }
         else {
             # Windows - use temp directory
-            $tempDir = $env:TEMP ?? $env:TMP ?? "$env:USERPROFILE\AppData\Local\Temp"
+            $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMP) { $env:TMP } else { "$env:USERPROFILE\AppData\Local\Temp" }
             $lockPath = Join-Path $tempDir "wmr-docker-env.lock"
         }
 
@@ -339,7 +339,7 @@ function Test-DockerEnvironmentLock {
                 $lockPath = "/tmp/wmr-docker-env.lock"
             }
             else {
-                $tempDir = $env:TEMP ?? $env:TMP ?? "$env:USERPROFILE\AppData\Local\Temp"
+                $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMP) { $env:TMP } else { "$env:USERPROFILE\AppData\Local\Temp" }
                 $lockPath = Join-Path $tempDir "wmr-docker-env.lock"
             }
         }
@@ -448,13 +448,13 @@ function Get-DynamicMockPath {
     if ($dockerConfig.IsDockerEnvironment) {
         # Use Docker volume paths
         $basePath = switch ($Component) {
-            'applications' { $dockerConfig.DynamicPaths['DYNAMIC_APPLICATIONS'] ?? '/dynamic-applications' }
-            'gaming' { $dockerConfig.DynamicPaths['DYNAMIC_GAMING'] ?? '/dynamic-gaming' }
-            'system-settings' { $dockerConfig.DynamicPaths['DYNAMIC_SYSTEM_SETTINGS'] ?? '/dynamic-system-settings' }
-            'wsl' { $dockerConfig.DynamicPaths['DYNAMIC_WSL_ROOT'] ?? '/dynamic-wsl' }
-            'cloud' { $dockerConfig.DynamicPaths['DYNAMIC_CLOUD_ROOT'] ?? '/dynamic-cloud' }
-            'registry' { Join-Path ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] ?? '/dynamic-mock-data') 'registry' }
-            default { Join-Path ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] ?? '/dynamic-mock-data') $Component }
+            'applications' { if ($dockerConfig.DynamicPaths['DYNAMIC_APPLICATIONS']) { $dockerConfig.DynamicPaths['DYNAMIC_APPLICATIONS'] } else { '/dynamic-applications' } }
+            'gaming' { if ($dockerConfig.DynamicPaths['DYNAMIC_GAMING']) { $dockerConfig.DynamicPaths['DYNAMIC_GAMING'] } else { '/dynamic-gaming' } }
+            'system-settings' { if ($dockerConfig.DynamicPaths['DYNAMIC_SYSTEM_SETTINGS']) { $dockerConfig.DynamicPaths['DYNAMIC_SYSTEM_SETTINGS'] } else { '/dynamic-system-settings' } }
+            'wsl' { if ($dockerConfig.DynamicPaths['DYNAMIC_WSL_ROOT']) { $dockerConfig.DynamicPaths['DYNAMIC_WSL_ROOT'] } else { '/dynamic-wsl' } }
+            'cloud' { if ($dockerConfig.DynamicPaths['DYNAMIC_CLOUD_ROOT']) { $dockerConfig.DynamicPaths['DYNAMIC_CLOUD_ROOT'] } else { '/dynamic-cloud' } }
+            'registry' { Join-Path (if ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT']) { $dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] } else { '/dynamic-mock-data' }) 'registry' }
+            default { Join-Path (if ($dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT']) { $dockerConfig.DynamicPaths['DYNAMIC_MOCK_ROOT'] } else { '/dynamic-mock-data' }) $Component }
         }
     }
     else {
@@ -736,7 +736,7 @@ function New-ApplicationMockData {
     New-Item -Path $wingetPath -ItemType Directory -Force | Out-Null
 
     $wingetData = @{
-        Sources = @(
+        Sources  = @(
             @{ Name = "winget"; Argument = "https://cdn.winget.microsoft.com/cache" }
         )
         Packages = $script:EnhancedMockConfig.DataSources.WingetApps
@@ -759,7 +759,7 @@ function New-ApplicationMockData {
     New-Item -Path $scoopPath -ItemType Directory -Force | Out-Null
 
     $scoopData = @{
-        Apps = $script:EnhancedMockConfig.DataSources.ScoopApps
+        Apps    = $script:EnhancedMockConfig.DataSources.ScoopApps
         Buckets = @(
             @{ Name = "main"; Source = "https://github.com/ScoopInstaller/Main" }
             @{ Name = "extras"; Source = "https://github.com/ScoopInstaller/Extras" }
@@ -874,24 +874,24 @@ function New-SystemSettingsMockData {
 
     # Sound settings
     $soundData = @{
-        DefaultPlaybackDevice = "Speakers (Realtek High Definition Audio)"
+        DefaultPlaybackDevice  = "Speakers (Realtek High Definition Audio)"
         DefaultRecordingDevice = "Microphone (Realtek High Definition Audio)"
-        Volume = 75
-        Muted = $false
+        Volume                 = 75
+        Muted                  = $false
     }
     $soundData | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $OutputPath "sound.json") -Encoding UTF8
 
     # Mouse and keyboard settings
     $inputData = @{
-        Mouse = @{
-            PointerSpeed = 6
+        Mouse    = @{
+            PointerSpeed     = 6
             DoubleClickSpeed = 500
-            SwapButtons = $false
+            SwapButtons      = $false
             WheelScrollLines = 3
         }
         Keyboard = @{
-            RepeatDelay = 250
-            RepeatRate = 31
+            RepeatDelay     = 250
+            RepeatRate      = 31
             CursorBlinkRate = 530
         }
     }
@@ -919,23 +919,23 @@ function New-CloudMockData {
 
         # Provider info file
         $providerInfo = @{
-            Name = $provider.Name
-            Path = $provider.Path
-            SyncStatus = $provider.SyncStatus
-            Account = $provider.Account
-            LastSync = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Name           = $provider.Name
+            Path           = $provider.Path
+            SyncStatus     = $provider.SyncStatus
+            Account        = $provider.Account
+            LastSync       = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
             AvailableSpace = "50GB"
-            UsedSpace = "25GB"
+            UsedSpace      = "25GB"
         }
 
         $providerInfo | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $providerPath "cloud-provider-info.json") -Encoding UTF8
 
         # Sample backup manifest
         $backupManifest = @{
-            Version = "1.0"
+            Version     = "1.0"
             CreatedDate = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
             MachineName = "TEST-MACHINE"
-            Components = @("applications", "system-settings", "gaming", "wsl")
+            Components  = @("applications", "system-settings", "gaming", "wsl")
         }
 
         $backupManifest | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $wmrPath "backup-manifest.json") -Encoding UTF8
@@ -995,10 +995,10 @@ function New-WSLMockData {
         $npmPackages = @{
             dependencies = @{
                 "@angular/cli" = "17.3.4"
-                "typescript" = "5.4.5"
-                "nodemon" = "3.1.0"
-                "eslint" = "8.57.0"
-                "prettier" = "3.2.5"
+                "typescript"   = "5.4.5"
+                "nodemon"      = "3.1.0"
+                "eslint"       = "8.57.0"
+                "prettier"     = "3.2.5"
             }
         }
 
@@ -1034,121 +1034,121 @@ function New-RegistryMockData {
     # Common registry keys and values - comprehensive mock data for all template needs
     $registryData = @{
         # Explorer and Desktop settings
-        'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer' = @{
-            'ShowHidden' = 1
-            'HideFileExt' = 0
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer'          = @{
+            'ShowHidden'      = 1
+            'HideFileExt'     = 0
             'ShowSuperHidden' = 1
         }
-        'HKCU\Control Panel\Desktop' = @{
-            'Wallpaper' = 'C:\Windows\Web\Wallpaper\Windows\img0.jpg'
+        'HKCU\Control Panel\Desktop'                                       = @{
+            'Wallpaper'      = 'C:\Windows\Web\Wallpaper\Windows\img0.jpg'
             'WallpaperStyle' = '10'
-            'TileWallpaper' = '0'
+            'TileWallpaper'  = '0'
         }
-        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion' = @{
-            'ProgramFilesDir' = 'C:\Program Files'
+        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion'                   = @{
+            'ProgramFilesDir'       = 'C:\Program Files'
             'ProgramFilesDir (x86)' = 'C:\Program Files (x86)'
-            'CommonFilesDir' = 'C:\Program Files\Common Files'
+            'CommonFilesDir'        = 'C:\Program Files\Common Files'
         }
-        'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes' = @{
-            'CurrentTheme' = 'C:\WINDOWS\resources\Themes\aero.theme'
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes'            = @{
+            'CurrentTheme'              = 'C:\WINDOWS\resources\Themes\aero.theme'
             'ThemeChangesMousePointers' = 0
         }
 
         # System settings
-        'HKLM\SYSTEM\CurrentControlSet\Control' = @{
-            'SystemStartOptions' = 'NOEXECUTE=OPTIN'
+        'HKLM\SYSTEM\CurrentControlSet\Control'                            = @{
+            'SystemStartOptions'  = 'NOEXECUTE=OPTIN'
             'TimeZoneInformation' = @{
                 'StandardName' = 'Pacific Standard Time'
-                'Bias' = 480
+                'Bias'         = 480
             }
         }
-        'HKCU\Control Panel\International' = @{
+        'HKCU\Control Panel\International'                                 = @{
             'LocaleName' = 'en-US'
-            'sCountry' = 'United States'
-            'sLanguage' = 'ENU'
+            'sCountry'   = 'United States'
+            'sLanguage'  = 'ENU'
         }
 
         # Power settings
-        'HKCU\Control Panel\PowerCfg' = @{
+        'HKCU\Control Panel\PowerCfg'                                      = @{
             'CurrentPowerPolicy' = 1
         }
-        'HKLM\SYSTEM\CurrentControlSet\Control\Power' = @{
-            'HibernateEnabled' = 1
+        'HKLM\SYSTEM\CurrentControlSet\Control\Power'                      = @{
+            'HibernateEnabled'        = 1
             'HibernateEnabledDefault' = 1
         }
 
         # Network settings
-        'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' = @{
+        'HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'          = @{
             'Hostname' = 'TEST-MACHINE'
-            'Domain' = 'test.local'
+            'Domain'   = 'test.local'
         }
 
         # Windows Update settings
-        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate' = @{
+        'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate'     = @{
             'SusClientId' = '{12345678-1234-1234-1234-123456789012}'
         }
-        'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' = @{
+        'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'           = @{
             'DoNotConnectToWindowsUpdateInternetLocations' = 0
         }
 
         # Office settings
-        'HKCU\Software\Microsoft\Office\16.0\Word\Options' = @{
+        'HKCU\Software\Microsoft\Office\16.0\Word\Options'                 = @{
             'DoNotPromptForConvert' = 1
-            'PictureFormat' = 0
+            'PictureFormat'         = 0
         }
-        'HKCU\Software\Microsoft\Office\16.0\Excel\Options' = @{
+        'HKCU\Software\Microsoft\Office\16.0\Excel\Options'                = @{
             'DoNotPromptForConvert' = 1
-            'DefaultFormat' = 51
+            'DefaultFormat'         = 51
         }
 
         # Terminal and console settings
-        'HKCU\Console' = @{
+        'HKCU\Console'                                                     = @{
             'ScreenBufferSize' = 0x012c0050
-            'WindowSize' = 0x00320050
-            'FontSize' = 0x00100008
+            'WindowSize'       = 0x00320050
+            'FontSize'         = 0x00100008
         }
-        'HKCU\Software\Microsoft\Command Processor' = @{
+        'HKCU\Software\Microsoft\Command Processor'                        = @{
             'CompletionChar' = 9
-            'DefaultColor' = 0
+            'DefaultColor'   = 0
         }
 
         # WSL settings
-        'HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss' = @{
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss'              = @{
             'DefaultDistribution' = '{12345678-1234-1234-1234-123456789012}'
         }
 
         # VPN settings
-        'HKLM\SYSTEM\CurrentControlSet\Services\RasMan\Parameters' = @{
+        'HKLM\SYSTEM\CurrentControlSet\Services\RasMan\Parameters'         = @{
             'ServiceDll' = '%SystemRoot%\System32\rasmans.dll'
         }
 
         # Gaming settings
-        'HKCU\Software\Valve\Steam' = @{
+        'HKCU\Software\Valve\Steam'                                        = @{
             'SteamPath' = 'C:\Program Files (x86)\Steam'
-            'SteamExe' = 'C:\Program Files (x86)\Steam\steam.exe'
+            'SteamExe'  = 'C:\Program Files (x86)\Steam\steam.exe'
         }
-        'HKCU\Software\Epic Games\Unreal Engine\Identifiers' = @{
+        'HKCU\Software\Epic Games\Unreal Engine\Identifiers'               = @{
             'AccountId' = 'test-account-id'
         }
 
         # Display settings
-        'HKCU\Control Panel\Desktop\WindowMetrics' = @{
-            'AppliedDPI' = 96
+        'HKCU\Control Panel\Desktop\WindowMetrics'                         = @{
+            'AppliedDPI'      = 96
             'Shell Icon Size' = 32
         }
 
         # Mouse and touchpad settings
-        'HKCU\Control Panel\Mouse' = @{
+        'HKCU\Control Panel\Mouse'                                         = @{
             'MouseSensitivity' = 10
-            'MouseSpeed' = 1
-            'MouseThreshold1' = 6
-            'MouseThreshold2' = 10
+            'MouseSpeed'       = 1
+            'MouseThreshold1'  = 6
+            'MouseThreshold2'  = 10
         }
 
         # Default fallback for any unmatched paths
         'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' = @{
-            'Hidden' = 1
-            'HideFileExt' = 0
+            'Hidden'          = 1
+            'HideFileExt'     = 0
             'ShowSuperHidden' = 1
         }
     }
@@ -1180,9 +1180,9 @@ function New-UserProfileMockData {
 
     # Create user profile files
     $userFiles = @{
-        "Documents\test-document.txt" = "Test document content"
-        "Desktop\test-shortcut.lnk" = "Test shortcut"
-        "AppData\Local\test-app.json" = '{"version": "1.0", "settings": {}}'
+        "Documents\test-document.txt"     = "Test document content"
+        "Desktop\test-shortcut.lnk"       = "Test shortcut"
+        "AppData\Local\test-app.json"     = '{"version": "1.0", "settings": {}}'
         "AppData\Roaming\test-config.ini" = "[Settings]`nVersion=1.0"
     }
 
@@ -1207,14 +1207,14 @@ function New-SystemStateMockData {
 
     # Create system state data
     $systemData = @{
-        "services.json" = @{
+        "services.json"    = @{
             "services" = @(
                 @{ "Name" = "Themes"; "Status" = "Running"; "StartType" = "Automatic" }
                 @{ "Name" = "Windows Update"; "Status" = "Running"; "StartType" = "Manual" }
                 @{ "Name" = "BITS"; "Status" = "Stopped"; "StartType" = "Manual" }
             )
         }
-        "processes.json" = @{
+        "processes.json"   = @{
             "processes" = @(
                 @{ "Name" = "explorer"; "Id" = 1234; "CPU" = 2.5 }
                 @{ "Name" = "winlogon"; "Id" = 5678; "CPU" = 0.1 }
@@ -1222,8 +1222,8 @@ function New-SystemStateMockData {
         }
         "environment.json" = @{
             "variables" = @{
-                "PATH" = "C:\Windows\System32;C:\Windows"
-                "TEMP" = "C:\Users\TestUser\AppData\Local\Temp"
+                "PATH"     = "C:\Windows\System32;C:\Windows"
+                "TEMP"     = "C:\Users\TestUser\AppData\Local\Temp"
                 "USERNAME" = "TestUser"
             }
         }
@@ -1254,10 +1254,10 @@ function New-HardwareMockData {
             )
             "settings" = @{
                 "primaryDisplay" = 0
-                "orientation" = "Landscape"
+                "orientation"    = "Landscape"
             }
         }
-        "audio.json" = @{
+        "audio.json"   = @{
             "devices" = @(
                 @{ "Name" = "Speakers"; "Type" = "Playback"; "Default" = $true }
                 @{ "Name" = "Microphone"; "Type" = "Recording"; "Default" = $true }
@@ -1328,10 +1328,10 @@ function New-ProgramFilesStructure {
 
         # Create mock executable info
         $exeInfo = @{
-            FileName = Split-Path $fullPath -Leaf
-            Version = "1.0.0.0"
+            FileName    = Split-Path $fullPath -Leaf
+            Version     = "1.0.0.0"
             InstallDate = (Get-Date).ToString("yyyy-MM-dd")
-            Size = Get-Random -Minimum 1000000 -Maximum 100000000
+            Size        = Get-Random -Minimum 1000000 -Maximum 100000000
         }
 
         $exeInfo | ConvertTo-Json | Set-Content -Path "$fullPath.info" -Encoding UTF8
@@ -1351,14 +1351,14 @@ function New-MockConfiguration {
 
     # Sample backup configuration
     $backupConfig = @{
-        BackupRoot = "C:\TestBackups"
-        CloudProvider = "OneDrive"
+        BackupRoot        = "C:\TestBackups"
+        CloudProvider     = "OneDrive"
         EncryptionEnabled = $true
-        Components = @("applications", "system-settings", "gaming")
-        Schedule = @{
-            Enabled = $true
+        Components        = @("applications", "system-settings", "gaming")
+        Schedule          = @{
+            Enabled   = $true
             Frequency = "Daily"
-            Time = "02:00"
+            Time      = "02:00"
         }
     }
 
@@ -1367,11 +1367,11 @@ function New-MockConfiguration {
     # Sample restoration configuration
     $restoreConfig = @{
         RestoreRoot = "C:\TestRestore"
-        Components = @("applications", "system-settings")
-        Options = @{
-            OverwriteExisting = $false
+        Components  = @("applications", "system-settings")
+        Options     = @{
+            OverwriteExisting         = $false
             CreateBackupBeforeRestore = $true
-            VerifyIntegrity = $true
+            VerifyIntegrity           = $true
         }
     }
 
@@ -1390,37 +1390,37 @@ function New-MockTemplateData {
     # Sample template with various data types
     $sampleTemplate = @{
         metadata = @{
-            name = "test-template"
-            version = "1.0"
-            description = "Sample template for testing"
-            category = "system-settings"
+            name         = "test-template"
+            version      = "1.0"
+            description  = "Sample template for testing"
+            category     = "system-settings"
             requirements = @("Windows 10+", "Administrator")
         }
-        backup = @{
+        backup   = @{
             registry = @(
                 @{
-                    path = "HKCU\Software\TestApp"
+                    path   = "HKCU\Software\TestApp"
                     values = @("Setting1", "Setting2")
                 }
             )
-            files = @(
+            files    = @(
                 @{
-                    source = "%APPDATA%\TestApp\config.json"
+                    source      = "%APPDATA%\TestApp\config.json"
                     backup_name = "testapp-config"
                 }
             )
         }
-        restore = @{
+        restore  = @{
             registry = @(
                 @{
-                    path = "HKCU\Software\TestApp"
+                    path       = "HKCU\Software\TestApp"
                     create_key = $true
                 }
             )
-            files = @(
+            files    = @(
                 @{
                     backup_name = "testapp-config"
-                    target = "%APPDATA%\TestApp\config.json"
+                    target      = "%APPDATA%\TestApp\config.json"
                 }
             )
         }

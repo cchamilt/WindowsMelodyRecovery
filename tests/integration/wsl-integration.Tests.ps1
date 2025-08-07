@@ -22,7 +22,7 @@ BeforeAll {
 
     # Setup test environment paths
     $script:TestBackupRoot = $script:TestEnvironment.TestBackup
-    $script:WSLDistro = $env:WMR_WSL_DISTRO ?? "Ubuntu-22.04"
+    $script:WSLDistro = if ($env:WMR_WSL_DISTRO) { $env:WMR_WSL_DISTRO } else { "Ubuntu-22.04" }
     $script:ContainerName = "wmr-wsl-mock"
 
     # Test WSL container connectivity

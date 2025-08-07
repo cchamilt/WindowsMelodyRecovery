@@ -336,8 +336,10 @@ Write-Information -MessageData "  • Total Passed: $totalPassed" -InformationAc
 Write-Information -MessageData "  • Total Failed: $totalFailed"  -InformationAction Continue
 Write-Warning -Message "  • Total Skipped: $totalSkipped"
 Write-Verbose -Message "  • Total Time: $([math]::Round($totalTime, 2))s"
-Write-Verbose -Message "  • Environment: $($envType.IsDocker ? 'Docker' : $envType.IsCI ? 'CI/CD' : 'Local')"
-Write-Verbose -Message "  • Destructive Tests: $($allowDestructiveTests ? 'Enabled' : 'Disabled')"
+$environmentType = if ($envType.IsDocker) { 'Docker' } elseif ($envType.IsCI) { 'CI/CD' } else { 'Local' }
+$destructiveStatus = if ($allowDestructiveTests) { 'Enabled' } else { 'Disabled' }
+Write-Verbose -Message "  • Environment: $environmentType"
+Write-Verbose -Message "  • Destructive Tests: $destructiveStatus"
 
 if ($totalFailed -eq 0) {
     Write-Information -MessageData "" -InformationAction Continue
